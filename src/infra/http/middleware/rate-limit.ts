@@ -27,4 +27,5 @@ export const leadRateLimiter = rateLimit({
   message: {
     error: { code: 'RATE_LIMITED', message: 'Too many submissions. Please try again later.' },
   },
+  skip: () => process.env.NODE_ENV === 'test',
 });

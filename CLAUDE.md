@@ -8,12 +8,13 @@ Deployed via Docker on Hostinger VPS (Singapore).
 ## Documentation
 - `docs/superpowers/specs/2026-03-10-v2-rewrite-design.md` — Master design spec for the v2 rewrite
 - `docs/superpowers/plans/` — Implementation plans per phase
-- Reference: `docs/phase-0-shared-context.md` — v1 shared context (business requirements reference)
-- Reference: `docs/phase-{1-6}-*.md` — v1 phase docs (feature requirements reference)
+- `docs/phase-0-shared-context.md` — Shared business context (read before every phase)
+- `docs/phase-{1-6}-*.md` — Phase-specific business requirements
 
 ## Build Rules
-- Always read the v2 design spec before starting any work
-- Read the relevant v1 phase doc for business requirements context
+- Always read the v2 design spec (`docs/superpowers/specs/2026-03-10-v2-rewrite-design.md`) before starting any work
+- Always read `docs/phase-0-shared-context.md` before starting any phase — it contains shared business context needed across all phases
+- Read the relevant phase doc (e.g., `docs/phase-1-foundation.md`) for business requirements context
 - Follow the database schema exactly as specified — do not add or remove fields without asking
 - Run tests after building each section: `npm test && npm run test:integration`
 - Every feature uses Superpowers workflow: brainstorm → spec → plan → TDD

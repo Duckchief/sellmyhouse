@@ -251,4 +251,44 @@ export const factory = {
       },
     });
   },
+
+  async financialReport(overrides: {
+    sellerId: string;
+    propertyId: string;
+    reportData?: Record<string, unknown>;
+    aiNarrative?: string;
+    aiProvider?: string;
+    aiModel?: string;
+    version?: number;
+    reviewedByAgentId?: string;
+    approvedAt?: Date;
+    sentToSellerAt?: Date;
+    sentVia?: string;
+  }) {
+    return testPrisma.financialReport.create({
+      data: {
+        id: createId(),
+        sellerId: overrides.sellerId,
+        propertyId: overrides.propertyId,
+        reportData: (overrides.reportData || {
+          inputs: { salePrice: 500000, outstandingLoan: 200000 },
+          outputs: { netCashProceeds: 127857 },
+          metadata: {
+            flatType: '4 ROOM',
+            town: 'TAMPINES',
+            leaseCommenceDate: 1995,
+            calculatedAt: new Date().toISOString(),
+          },
+        }) as Prisma.InputJsonValue,
+        aiNarrative: overrides.aiNarrative,
+        aiProvider: overrides.aiProvider,
+        aiModel: overrides.aiModel,
+        version: overrides.version ?? 1,
+        reviewedByAgentId: overrides.reviewedByAgentId,
+        approvedAt: overrides.approvedAt,
+        sentToSellerAt: overrides.sentToSellerAt,
+        sentVia: overrides.sentVia,
+      },
+    });
+  },
 };

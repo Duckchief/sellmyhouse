@@ -16,6 +16,7 @@ import { publicRouter } from '../../domains/public/public.router';
 import { leadRouter } from '../../domains/lead/lead.router';
 import { sellerRouter } from '../../domains/seller/seller.router';
 import { propertyRouter } from '../../domains/property/property.router';
+import { financialRouter } from '../../domains/property/financial.router';
 
 function validateEnv() {
   const required = ['SESSION_SECRET', 'DATABASE_URL', 'ENCRYPTION_KEY'];
@@ -102,6 +103,7 @@ export function createApp() {
   app.use(notificationRouter);
   app.use(sellerRouter);
   app.use(propertyRouter);
+  app.use(financialRouter);
 
   // Error handling (must be last)
   app.use(errorHandler);

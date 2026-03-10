@@ -18,6 +18,10 @@ export class HdbService {
     return this.repo.getDistinctFlatTypes();
   }
 
+  async getDistinctStoreyRanges(): Promise<string[]> {
+    return this.repo.getDistinctStoreyRanges();
+  }
+
   async getMarketReport(params: {
     town: string;
     flatType: string;

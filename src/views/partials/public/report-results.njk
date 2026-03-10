@@ -1,0 +1,68 @@
+{% if error %}
+<div class="text-center py-8 text-red-600">{{ error }}</div>
+{% elif not report %}
+<div class="text-center py-8 text-gray-400">{{ "No transactions found for this criteria. Try adjusting your search." | t }}</div>
+{% else %}
+
+{# Stats cards #}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="border border-gray-200 rounded-xl p-4 text-center">
+    <div class="text-xs text-gray-400 mb-1">{{ "Transactions" | t }}</div>
+    <div class="text-2xl font-bold">{{ report.count }}</div>
+  </div>
+  <div class="border border-gray-200 rounded-xl p-4 text-center">
+    <div class="text-xs text-gray-400 mb-1">{{ "Min Price" | t }}</div>
+    <div class="text-2xl font-bold">S${{ report.min | formatPrice }}</div>
+  </div>
+  <div class="border border-gray-200 rounded-xl p-4 text-center">
+    <div class="text-xs text-gray-400 mb-1">{{ "Median Price" | t }}</div>
+    <div class="text-2xl font-bold text-[#c8553d]">S${{ report.median | formatPrice }}</div>
+  </div>
+  <div class="border border-gray-200 rounded-xl p-4 text-center">
+    <div class="text-xs text-gray-400 mb-1">{{ "Max Price" | t }}</div>
+    <div class="text-2xl font-bold">S${{ report.max | formatPrice }}</div>
+  </div>
+</div>
+
+{# Avg price per sqm #}
+<div class="border border-gray-200 rounded-xl p-4 mb-6">
+  <div class="text-xs text-gray-400 mb-1">{{ "Average Price per sqm" | t }}</div>
+  <div class="text-xl font-bold">S${{ report.avgPricePerSqm | formatPrice }}/sqm</div>
+</div>
+
+{# Recent transactions table #}
+{% if report.recentTransactions.length > 0 %}
+<div class="border border-gray-200 rounded-xl p-4 mb-6">
+  <h3 class="font-bold mb-4">{{ "Recent Transactions" | t }}</h3>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 text-left">
+          <th class="py-2 pr-4">{{ "Block" | t }}</th>
+          <th class="py-2 pr-4">{{ "Street" | t }}</th>
+          <th class="py-2 pr-4">{{ "Storey" | t }}</th>
+          <th class="py-2 pr-4">{{ "Model" | t }}</th>
+          <th class="py-2 text-right">{{ "Price" | t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for txn in report.recentTransactions %}
+        <tr class="border-b border-gray-100">
+          <td class="py-2 pr-4">{{ txn.block }}</td>
+          <td class="py-2 pr-4">{{ txn.streetName }}</td>
+          <td class="py-2 pr-4">{{ txn.storeyRange }}</td>
+          <td class="py-2 pr-4">{{ txn.flatModel }}</td>
+          <td class="py-2 text-right text-[#c8553d] font-semibold">S${{ txn.resalePrice | formatPrice }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<p class="text-xs text-gray-400 text-center">
+  {{ "This is an indicative range based on publicly available HDB resale data and does not constitute a formal valuation. Data source: data.gov.sg." | t }}
+</p>
+
+{% endif %}

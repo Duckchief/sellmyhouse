@@ -115,10 +115,7 @@ describe('Financial Calculator — Regression Suite', () => {
       CURRENT_YEAR,
     );
     expect(r.owner2Cpf).toBeDefined();
-    expect(r.totalCpfRefund).toBeCloseTo(
-      r.owner1Cpf.totalRefund + r.owner2Cpf!.totalRefund,
-      2,
-    );
+    expect(r.totalCpfRefund).toBeCloseTo(r.owner1Cpf.totalRefund + r.owner2Cpf!.totalRefund, 2);
   });
 
   it('9. Joint owners, one unknown CPF', () => {
@@ -257,7 +254,11 @@ describe('Financial Calculator — Regression Suite', () => {
   // --- Legal fees ---
 
   it('23. Custom legal fees', () => {
-    const r = calculateNetProceeds(makeInput({ legalFeesEstimate: 3000 }), COMMISSION, CURRENT_YEAR);
+    const r = calculateNetProceeds(
+      makeInput({ legalFeesEstimate: 3000 }),
+      COMMISSION,
+      CURRENT_YEAR,
+    );
     expect(r.legalFees).toBe(3000);
   });
 

@@ -1,0 +1,40 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NOTE: All IDs use cuid2, generated in application code via @paralleldrive/cuid2.
+// Prisma schema has no @default() on id fields — IDs are passed in create() calls.
+
+model SystemSetting {
+  id               String   @id
+  key              String   @unique
+  value            String
+  description      String
+  updatedByAgentId String?  @map("updated_by_agent_id")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("system_settings")
+}
+
+model AuditLog {
+  id         String   @id
+  agentId    String?  @map("agent_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  details    Json
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

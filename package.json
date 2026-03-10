@@ -1,9 +1,6 @@
 {
   "name": "sellmyhomenow-v2",
   "version": "2.0.0",
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
-  },
   "description": "AI-powered HDB resale transaction platform",
   "main": "dist/server.js",
   "engines": {

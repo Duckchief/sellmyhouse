@@ -4,7 +4,7 @@ export default async function setup() {
   // Ensure test database is migrated
   process.env.DATABASE_URL =
     process.env.DATABASE_URL_TEST ||
-    'postgresql://smhn:smhn_dev@localhost:5432/sellmyhomenow_test';
+    'postgresql://smhn:smhn_test@localhost:5433/sellmyhomenow_test';
 
   try {
     execSync('npx prisma migrate deploy', {

@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 import * as notificationRepo from './notification.repository';
-import { InAppProvider } from './providers/in-app.provider';
 import { EmailProvider } from './providers/email.provider';
 import { WhatsAppProvider } from './providers/whatsapp.provider';
 import { logger } from '../../infra/logger';
@@ -22,10 +21,7 @@ const TEMPLATES: Record<string, string> = {
   generic: '{{message}}',
 };
 
-export async function send(
-  input: SendNotificationInput,
-  agentId: string,
-): Promise<void> {
+export async function send(input: SendNotificationInput, agentId: string): Promise<void> {
   const content = renderTemplate(input.templateName, input.templateData);
 
   // Always create in-app notification
@@ -61,9 +57,7 @@ async function sendExternal(
   });
 
   try {
-    const provider = primaryChannel === 'whatsapp'
-      ? new WhatsAppProvider()
-      : new EmailProvider();
+    const provider = primaryChannel === 'whatsapp' ? new WhatsAppProvider() : new EmailProvider();
 
     const result = await provider.send(input.recipientId, content, agentId);
     await notificationRepo.updateStatus(record.id, 'sent', {
@@ -148,25 +142,16 @@ export async function markAsRead(notificationId: string) {
   return notificationRepo.markAsRead(notificationId);
 }
 
-export function verifyWebhookSignature(
-  rawBody: Buffer,
-  signature: string | undefined,
-): boolean {
+export function verifyWebhookSignature(rawBody: Buffer, signature: string | undefined): boolean {
   const secret = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
   if (!secret || !signature) return false;
 
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(rawBody)
-    .digest('hex');
+  const expectedSignature = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
 
   return `sha256=${expectedSignature}` === signature;
 }
 
-function renderTemplate(
-  templateName: string,
-  data: Record<string, string>,
-): string {
+function renderTemplate(templateName: string, data: Record<string, string>): string {
   const template = TEMPLATES[templateName] || TEMPLATES.generic;
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => data[key] || '');
 }

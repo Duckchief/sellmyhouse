@@ -21,7 +21,7 @@ export function registerJob(
 
 export function startJobs() {
   for (const job of jobs) {
-    const options: cron.ScheduleOptions = {};
+    const options: { timezone?: string } = {};
     if (job.timezone) {
       options.timezone = job.timezone;
     }

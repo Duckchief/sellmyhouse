@@ -2,7 +2,12 @@ import { Router, Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import { validationResult } from 'express-validator';
 import * as authService from './auth.service';
-import { registerValidation, loginValidation, totpValidation, backupCodeValidation } from './auth.validator';
+import {
+  registerValidation,
+  loginValidation,
+  totpValidation,
+  backupCodeValidation,
+} from './auth.validator';
 import { authRateLimiter } from '../../infra/http/middleware/rate-limit';
 import { requireAuth } from '../../infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from './auth.types';
@@ -34,7 +39,9 @@ authRouter.post(
             errors: errorMap,
           });
         }
-        return res.status(400).render('pages/auth/register', { errors: errorMap, values: req.body });
+        return res
+          .status(400)
+          .render('pages/auth/register', { errors: errorMap, values: req.body });
       }
 
       await authService.registerSeller({
@@ -43,25 +50,29 @@ authRouter.post(
         phone: req.body.phone,
         password: req.body.password,
         consentService: true,
-        consentMarketing: req.body.consentMarketing === 'true' || req.body.consentMarketing === 'on',
+        consentMarketing:
+          req.body.consentMarketing === 'true' || req.body.consentMarketing === 'on',
         ipAddress: req.ip,
         userAgent: req.get('user-agent'),
       });
 
       // Auto-login after registration
-      passport.authenticate('seller-local', (err: Error | null, user: AuthenticatedUser | false) => {
-        if (err || !user) {
-          return res.redirect('/auth/login');
-        }
-        req.logIn(user, (loginErr) => {
-          if (loginErr) return next(loginErr);
-          if (req.headers['hx-request']) {
-            res.set('HX-Redirect', '/seller/dashboard');
-            return res.sendStatus(200);
+      passport.authenticate(
+        'seller-local',
+        (err: Error | null, user: AuthenticatedUser | false) => {
+          if (err || !user) {
+            return res.redirect('/auth/login');
           }
-          return res.redirect('/seller/dashboard');
-        });
-      })(req, res, next);
+          req.logIn(user, (loginErr) => {
+            if (loginErr) return next(loginErr);
+            if (req.headers['hx-request']) {
+              res.set('HX-Redirect', '/seller/dashboard');
+              return res.sendStatus(200);
+            }
+            return res.redirect('/seller/dashboard');
+          });
+        },
+      )(req, res, next);
     } catch (err) {
       next(err);
     }
@@ -234,7 +245,9 @@ authRouter.post(
             message: 'Enter a valid 6-digit code',
           });
         }
-        return res.status(400).render('pages/auth/2fa-verify', { error: 'Enter a valid 6-digit code' });
+        return res
+          .status(400)
+          .render('pages/auth/2fa-verify', { error: 'Enter a valid 6-digit code' });
       }
 
       const user = req.user as AuthenticatedUser;
@@ -250,7 +263,9 @@ authRouter.post(
             message: 'Invalid verification code',
           });
         }
-        return res.status(401).render('pages/auth/2fa-verify', { error: 'Invalid verification code' });
+        return res
+          .status(401)
+          .render('pages/auth/2fa-verify', { error: 'Invalid verification code' });
       }
 
       // Update session to mark 2FA as verified
@@ -293,7 +308,9 @@ authRouter.post(
             message: 'Please enter a backup code',
           });
         }
-        return res.status(400).render('pages/auth/2fa-verify', { error: 'Please enter a backup code' });
+        return res
+          .status(400)
+          .render('pages/auth/2fa-verify', { error: 'Please enter a backup code' });
       }
 
       const user = req.user as AuthenticatedUser;

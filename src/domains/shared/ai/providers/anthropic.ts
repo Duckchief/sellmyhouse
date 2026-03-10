@@ -20,8 +20,7 @@ export class AnthropicProvider implements AIProvider {
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const text =
-      response.content[0].type === 'text' ? response.content[0].text : '';
+    const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
     return {
       text,

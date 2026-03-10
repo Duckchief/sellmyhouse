@@ -23,10 +23,7 @@ export async function saveSetting(
   });
 }
 
-export async function getSetting(
-  agentId: string,
-  key: AgentSettingKey,
-): Promise<string | null> {
+export async function getSetting(agentId: string, key: AgentSettingKey): Promise<string | null> {
   const record = await repo.findByKey(agentId, key);
   if (!record) return null;
   return decrypt(record.encryptedValue);
@@ -49,7 +46,9 @@ export async function getSettingsView(agentId: string): Promise<AgentSettingsVie
   });
 }
 
-export async function testWhatsAppConnection(agentId: string): Promise<{ success: boolean; message: string }> {
+export async function testWhatsAppConnection(
+  agentId: string,
+): Promise<{ success: boolean; message: string }> {
   const token = await getSetting(agentId, 'whatsapp_api_token');
   const phoneNumberId = await getSetting(agentId, 'whatsapp_phone_number_id');
 
@@ -69,7 +68,9 @@ export async function testWhatsAppConnection(agentId: string): Promise<{ success
   }
 }
 
-export async function testSmtpConnection(agentId: string): Promise<{ success: boolean; message: string }> {
+export async function testSmtpConnection(
+  agentId: string,
+): Promise<{ success: boolean; message: string }> {
   const host = await getSetting(agentId, 'smtp_host');
   const port = await getSetting(agentId, 'smtp_port');
   const user = await getSetting(agentId, 'smtp_user');

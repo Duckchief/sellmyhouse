@@ -26,9 +26,7 @@ describe('NotificationService', () => {
     };
 
     it('always creates in-app notification', async () => {
-      WhatsAppProvider.prototype.send = jest
-        .fn()
-        .mockResolvedValue({ messageId: 'wamid.1' });
+      WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.1' });
 
       await service.send(input, 'agent-1');
 
@@ -42,9 +40,7 @@ describe('NotificationService', () => {
     });
 
     it('sends via WhatsApp by default', async () => {
-      WhatsAppProvider.prototype.send = jest
-        .fn()
-        .mockResolvedValue({ messageId: 'wamid.1' });
+      WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.1' });
 
       await service.send(input, 'agent-1');
 
@@ -53,25 +49,16 @@ describe('NotificationService', () => {
     });
 
     it('respects preferredChannel=email', async () => {
-      EmailProvider.prototype.send = jest
-        .fn()
-        .mockResolvedValue({ messageId: '<msg1>' });
+      EmailProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: '<msg1>' });
 
-      await service.send(
-        { ...input, preferredChannel: 'email' },
-        'agent-1',
-      );
+      await service.send({ ...input, preferredChannel: 'email' }, 'agent-1');
 
       expect(EmailProvider.prototype.send).toHaveBeenCalled();
     });
 
     it('falls back to email when WhatsApp fails', async () => {
-      WhatsAppProvider.prototype.send = jest
-        .fn()
-        .mockRejectedValue(new Error('WA failed'));
-      EmailProvider.prototype.send = jest
-        .fn()
-        .mockResolvedValue({ messageId: '<fallback>' });
+      WhatsAppProvider.prototype.send = jest.fn().mockRejectedValue(new Error('WA failed'));
+      EmailProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: '<fallback>' });
 
       await service.send(input, 'agent-1');
 
@@ -83,9 +70,7 @@ describe('NotificationService', () => {
 
   describe('handleWhatsAppWebhook', () => {
     it('updates status on delivery receipt', async () => {
-      notificationRepo.findByWhatsAppMessageId = jest
-        .fn()
-        .mockResolvedValue({ id: 'notif-1' });
+      notificationRepo.findByWhatsAppMessageId = jest.fn().mockResolvedValue({ id: 'notif-1' });
 
       await service.handleWhatsAppWebhook({
         entry: [
@@ -93,9 +78,7 @@ describe('NotificationService', () => {
             changes: [
               {
                 value: {
-                  statuses: [
-                    { id: 'wamid.1', status: 'delivered', timestamp: '1700000000' },
-                  ],
+                  statuses: [{ id: 'wamid.1', status: 'delivered', timestamp: '1700000000' }],
                 },
               },
             ],
@@ -119,9 +102,7 @@ describe('NotificationService', () => {
             changes: [
               {
                 value: {
-                  statuses: [
-                    { id: 'unknown', status: 'delivered', timestamp: '1700000000' },
-                  ],
+                  statuses: [{ id: 'unknown', status: 'delivered', timestamp: '1700000000' }],
                 },
               },
             ],

@@ -7,6 +7,7 @@ import path from 'path';
 import { authRouter } from '../auth.router';
 import { configurePassport } from '../../../infra/http/middleware/passport';
 import { errorHandler } from '../../../infra/http/middleware/error-handler';
+import { ConflictError } from '../../shared/errors';
 
 // Mock auth service
 jest.mock('../auth.service');
@@ -27,7 +28,7 @@ function createTestApp() {
     express: app,
   });
   env.addFilter('t', (str: string) => str);
-  env.addFilter('date', (str: string) => str === 'now' ? '2026' : str);
+  env.addFilter('date', (str: string) => (str === 'now' ? '2026' : str));
   app.set('view engine', 'njk');
 
   app.use(express.json());
@@ -83,22 +84,17 @@ describe('AuthRouter', () => {
         }),
       );
 
-      // Need to import and use AppError for errorHandler to recognize it
-      const { ConflictError } = require('../../shared/errors');
-      authService.registerSeller = jest.fn().mockRejectedValue(
-        new ConflictError('An account with this email already exists'),
-      );
+      authService.registerSeller = jest
+        .fn()
+        .mockRejectedValue(new ConflictError('An account with this email already exists'));
 
-      const res = await request(app)
-        .post('/auth/register')
-        .type('form')
-        .send({
-          name: 'Test',
-          email: 'test@example.com',
-          phone: '91234567',
-          password: 'password123',
-          consentService: 'true',
-        });
+      const res = await request(app).post('/auth/register').type('form').send({
+        name: 'Test',
+        email: 'test@example.com',
+        phone: '91234567',
+        password: 'password123',
+        consentService: 'true',
+      });
 
       expect(res.status).toBe(409);
     });

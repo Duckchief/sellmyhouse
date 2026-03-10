@@ -19,10 +19,7 @@ export function encrypt(plaintext: string): string {
     authTagLength: AUTH_TAG_LENGTH,
   });
 
-  const encrypted = Buffer.concat([
-    cipher.update(plaintext, 'utf8'),
-    cipher.final(),
-  ]);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
   const authTag = cipher.getAuthTag();
 
   const ivB64 = iv.toString('base64url');
@@ -48,10 +45,7 @@ export function decrypt(token: string): string {
   });
   decipher.setAuthTag(authTag);
 
-  const decrypted = Buffer.concat([
-    decipher.update(ciphertext),
-    decipher.final(),
-  ]);
+  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 
   return decrypted.toString('utf8');
 }

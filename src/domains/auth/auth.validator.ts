@@ -7,9 +7,7 @@ export const registerValidation = [
     .trim()
     .matches(/^[89]\d{7}$/)
     .withMessage('Valid Singapore phone number is required (8 digits starting with 8 or 9)'),
-  body('password')
-    .isLength({ min: 8 })
-    .withMessage('Password must be at least 8 characters'),
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
   body('consentService')
     .custom((value) => value === 'true' || value === true || value === 'on')
     .withMessage('You must consent to our service terms'),
@@ -21,11 +19,7 @@ export const loginValidation = [
 ];
 
 export const totpValidation = [
-  body('token')
-    .trim()
-    .isLength({ min: 6, max: 6 })
-    .isNumeric()
-    .withMessage('Enter a 6-digit code'),
+  body('token').trim().isLength({ min: 6, max: 6 }).isNumeric().withMessage('Enter a 6-digit code'),
 ];
 
 export const backupCodeValidation = [

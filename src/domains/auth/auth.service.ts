@@ -83,10 +83,7 @@ export async function loginAgent(email: string, password: string) {
   return agent;
 }
 
-export async function setup2FA(
-  userId: string,
-  role: UserRole,
-): Promise<TotpSetupResult> {
+export async function setup2FA(userId: string, role: UserRole): Promise<TotpSetupResult> {
   const secret = otpGenerateSecret();
   const issuer = role === 'seller' ? 'SellMyHomeNow (Seller)' : 'SellMyHomeNow (Agent)';
   const otpAuthUrl = generateURI({ issuer, label: userId, secret });
@@ -150,9 +147,7 @@ export async function verify2FA(input: TotpVerifyInput): Promise<boolean> {
     if (newFailures >= MAX_2FA_FAILURES) {
       const lockUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
       const lockFn =
-        input.role === 'seller'
-          ? authRepo.lockSellerTwoFactor
-          : authRepo.lockAgentTwoFactor;
+        input.role === 'seller' ? authRepo.lockSellerTwoFactor : authRepo.lockAgentTwoFactor;
       await lockFn(input.userId, lockUntil);
     }
 
@@ -201,17 +196,11 @@ export async function verifyBackupCode(input: BackupCodeVerifyInput): Promise<bo
   return false;
 }
 
-export async function changePassword(
-  userId: string,
-  role: UserRole,
-  newPassword: string,
-) {
+export async function changePassword(userId: string, role: UserRole, newPassword: string) {
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
 
   const updateFn =
-    role === 'seller'
-      ? authRepo.updateSellerPasswordHash
-      : authRepo.updateAgentPasswordHash;
+    role === 'seller' ? authRepo.updateSellerPasswordHash : authRepo.updateAgentPasswordHash;
   await updateFn(userId, passwordHash);
 
   await auditService.log({

@@ -15,23 +15,23 @@ describe('WhatsAppProvider', () => {
   });
 
   function mockSettings() {
-    agentSettingsService.getSetting = jest.fn().mockImplementation(
-      (_agentId: string, key: string) => {
+    agentSettingsService.getSetting = jest
+      .fn()
+      .mockImplementation((_agentId: string, key: string) => {
         const map: Record<string, string> = {
           whatsapp_api_token: 'test-token',
           whatsapp_phone_number_id: '12345',
         };
         return Promise.resolve(map[key] ?? null);
-      },
-    );
+      });
   }
 
   it('throws when WhatsApp not configured', async () => {
     agentSettingsService.getSetting = jest.fn().mockResolvedValue(null);
 
-    await expect(
-      provider.send('6591234567', 'Hello', 'agent1'),
-    ).rejects.toThrow('WhatsApp not configured');
+    await expect(provider.send('6591234567', 'Hello', 'agent1')).rejects.toThrow(
+      'WhatsApp not configured',
+    );
   });
 
   it('calls correct Meta API endpoint', async () => {
@@ -63,9 +63,7 @@ describe('WhatsAppProvider', () => {
     mockSettings();
     axios.post = jest.fn().mockRejectedValue(new Error('Network error'));
 
-    await expect(
-      provider.send('6591234567', 'Hello', 'agent1'),
-    ).rejects.toThrow('Network error');
+    await expect(provider.send('6591234567', 'Hello', 'agent1')).rejects.toThrow('Network error');
 
     expect(axios.post).toHaveBeenCalledTimes(3);
   }, 15000);

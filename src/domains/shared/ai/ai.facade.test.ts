@@ -2,7 +2,10 @@ jest.mock('./providers/anthropic', () => ({
   AnthropicProvider: jest.fn().mockImplementation(() => ({
     name: 'anthropic',
     generateText: jest.fn().mockResolvedValue({
-      text: 'test', provider: 'anthropic', model: 'test', tokensUsed: 10,
+      text: 'test',
+      provider: 'anthropic',
+      model: 'test',
+      tokensUsed: 10,
     }),
   })),
 }));

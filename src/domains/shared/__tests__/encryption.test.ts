@@ -34,7 +34,11 @@ describe('encryption', () => {
   it('detects tampered auth tag', () => {
     const encrypted = encrypt('secret');
     const parts = encrypted.split(':');
-    parts[1] = parts[1].slice(0, -1) + (parts[1].endsWith('A') ? 'B' : 'A');
+    // Flip a character in the middle to ensure decoded bytes actually change
+    const mid = Math.floor(parts[1].length / 2);
+    const ch = parts[1][mid];
+    const replacement = ch === 'A' ? 'B' : 'A';
+    parts[1] = parts[1].slice(0, mid) + replacement + parts[1].slice(mid + 1);
     expect(() => decrypt(parts.join(':'))).toThrow();
   });
 

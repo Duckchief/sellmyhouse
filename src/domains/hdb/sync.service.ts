@@ -158,11 +158,7 @@ export class HdbSyncService {
           headers,
         });
       } catch (err) {
-        if (
-          axios.isAxiosError(err) &&
-          err.response?.status === 429 &&
-          attempt < retries
-        ) {
+        if (axios.isAxiosError(err) && err.response?.status === 429 && attempt < retries) {
           const retryAfter = err.response.headers['retry-after'];
           const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 0;
           const exponentialMs = 5000 * Math.pow(2, attempt - 1);

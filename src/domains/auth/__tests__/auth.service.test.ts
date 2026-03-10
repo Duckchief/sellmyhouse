@@ -103,9 +103,7 @@ describe('AuthService', () => {
     });
 
     it('returns null when password is wrong', async () => {
-      authRepo.findSellerByEmail = jest
-        .fn()
-        .mockResolvedValue({ id: 's1', passwordHash: 'hash' });
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({ id: 's1', passwordHash: 'hash' });
       bcrypt.compare = jest.fn().mockResolvedValue(false);
 
       const result = await authService.loginSeller('test@example.com', 'wrong');
@@ -213,10 +211,7 @@ describe('AuthService', () => {
         token: 'wrong',
       });
 
-      expect(authRepo.lockSellerTwoFactor).toHaveBeenCalledWith(
-        's1',
-        expect.any(Date),
-      );
+      expect(authRepo.lockSellerTwoFactor).toHaveBeenCalledWith('s1', expect.any(Date));
     });
 
     it('throws when locked out', async () => {
@@ -239,10 +234,7 @@ describe('AuthService', () => {
         twoFactorBackupCodes: ['hash1', 'hash2', 'hash3'],
       });
       // Match second code
-      bcrypt.compare = jest
-        .fn()
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(true);
+      bcrypt.compare = jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
       authRepo.updateSellerBackupCodes = jest.fn().mockResolvedValue({});
 
       const result = await authService.verifyBackupCode({
@@ -287,10 +279,7 @@ describe('AuthService', () => {
       await authService.changePassword('s1', 'seller', 'newpassword');
 
       expect(bcrypt.hash).toHaveBeenCalledWith('newpassword', 12);
-      expect(authRepo.updateSellerPasswordHash).toHaveBeenCalledWith(
-        's1',
-        'hashed-password',
-      );
+      expect(authRepo.updateSellerPasswordHash).toHaveBeenCalledWith('s1', 'hashed-password');
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'password.changed',

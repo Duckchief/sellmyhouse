@@ -1,0 +1,10 @@
+node_modules/
+dist/
+public/css/output.css
+.env
+*.log
+uploads/
+coverage/
+.prisma/
+prisma/migrations/*.sql.bak
+.DS_Store

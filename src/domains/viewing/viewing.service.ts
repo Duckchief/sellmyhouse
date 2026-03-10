@@ -5,7 +5,12 @@ import * as viewingRepo from './viewing.repository';
 import * as auditService from '@/domains/shared/audit.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as settingsService from '@/domains/shared/settings.service';
-import { NotFoundError, ForbiddenError, ValidationError, ConflictError } from '@/domains/shared/errors';
+import {
+  NotFoundError,
+  ForbiddenError,
+  ValidationError,
+  ConflictError,
+} from '@/domains/shared/errors';
 import {
   computeSlotStatus,
   canTransitionViewing,
@@ -80,7 +85,11 @@ export async function createBulkSlots(input: CreateBulkSlotsInput, sellerId: str
       const startMinutes = startH * 60 + startM;
       const endMinutes = endH * 60 + endM;
 
-      for (let t = startMinutes; t + input.slotDurationMinutes <= endMinutes; t += input.slotDurationMinutes) {
+      for (
+        let t = startMinutes;
+        t + input.slotDurationMinutes <= endMinutes;
+        t += input.slotDurationMinutes
+      ) {
         const slotStart = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
         const slotEnd = `${String(Math.floor((t + input.slotDurationMinutes) / 60)).padStart(2, '0')}:${String((t + input.slotDurationMinutes) % 60).padStart(2, '0')}`;
 
@@ -99,7 +108,7 @@ export async function createBulkSlots(input: CreateBulkSlotsInput, sellerId: str
     current.setDate(current.getDate() + 1);
   }
 
-  const result = await viewingRepo.createManySlots(slots);
+  await viewingRepo.createManySlots(slots);
 
   await auditService.log({
     action: 'viewing.bulk_slots_created',
@@ -153,7 +162,7 @@ export async function cancelSlot(slotId: string, sellerId: string) {
 
 export async function initiateBooking(
   input: BookingFormInput,
-  ip: string,
+  _ip: string,
 ): Promise<BookingResult | { spam: true }> {
   // Spam check 1: Honeypot
   if (input.website) return { spam: true };
@@ -171,7 +180,9 @@ export async function initiateBooking(
   // Spam check 4: Daily booking limit
   const todayCount = await viewingRepo.countBookingsToday(input.phone);
   if (todayCount >= BOOKINGS_PER_PHONE_PER_DAY) {
-    throw new ValidationError('Maximum booking limit reached for today. Please try again tomorrow.');
+    throw new ValidationError(
+      'Maximum booking limit reached for today. Please try again tomorrow.',
+    );
   }
 
   // Find or create verified viewer
@@ -191,9 +202,11 @@ export async function initiateBooking(
     });
   }
 
-  const noShowWarning = (viewer as { noShowCount?: number }).noShowCount && (viewer as { noShowCount: number }).noShowCount > 0
-    ? { count: (viewer as { noShowCount: number }).noShowCount }
-    : undefined;
+  const noShowWarning =
+    (viewer as { noShowCount?: number }).noShowCount &&
+    (viewer as { noShowCount: number }).noShowCount > 0
+      ? { count: (viewer as { noShowCount: number }).noShowCount }
+      : undefined;
 
   // Determine status based on returning viewer
   const status: ViewingStatus = isReturningViewer ? 'scheduled' : 'pending_otp';
@@ -252,9 +265,13 @@ export async function initiateBooking(
     // Notify seller about booking
     const fullViewing = await viewingRepo.findViewingById(viewing.id);
     if (fullViewing) {
-      const property = (fullViewing as { property: { sellerId: string; town: string; street: string } }).property;
-      const viewingSlot = (fullViewing as { viewingSlot: { date: Date; startTime: string } }).viewingSlot;
-      const vw = (fullViewing as { verifiedViewer: { name: string; viewerType: string } }).verifiedViewer;
+      const property = (
+        fullViewing as { property: { sellerId: string; town: string; street: string } }
+      ).property;
+      const viewingSlot = (fullViewing as { viewingSlot: { date: Date; startTime: string } })
+        .viewingSlot;
+      const vw = (fullViewing as { verifiedViewer: { name: string; viewerType: string } })
+        .verifiedViewer;
 
       const noShowNote = noShowWarning
         ? ` Warning: This viewer has ${noShowWarning.count} previous no-show(s).`
@@ -350,7 +367,8 @@ export async function verifyOtp(input: VerifyOtpInput) {
 
   // Notify seller
   const noShowCount = v.verifiedViewer.noShowCount ?? 0;
-  const noShowNote = noShowCount > 0 ? ` Warning: This viewer has ${noShowCount} previous no-show(s).` : '';
+  const noShowNote =
+    noShowCount > 0 ? ` Warning: This viewer has ${noShowCount} previous no-show(s).` : '';
 
   await notificationService.send(
     {
@@ -415,7 +433,11 @@ export async function cancelViewing(viewingId: string, cancelToken: string) {
 
   // Decrement slot bookings and recalculate status
   const newBookings = Math.max(0, v.viewingSlot.currentBookings - 1);
-  const newStatus = computeSlotStatus(newBookings, v.viewingSlot.maxViewers, v.viewingSlot.slotType) as SlotStatus;
+  const newStatus = computeSlotStatus(
+    newBookings,
+    v.viewingSlot.maxViewers,
+    v.viewingSlot.slotType,
+  ) as SlotStatus;
   await viewingRepo.updateSlotStatus(v.viewingSlotId, {
     currentBookings: newBookings,
     status: newStatus,
@@ -598,7 +620,10 @@ export async function sendOneHourReminders() {
 export async function sendFeedbackPrompts() {
   const viewings = await viewingRepo.findViewingsNeedingFeedbackPrompt();
 
-  for (const v of viewings as { property: { sellerId: string; town: string; street: string }; viewingSlot: { date: Date } }[]) {
+  for (const v of viewings as {
+    property: { sellerId: string; town: string; street: string };
+    viewingSlot: { date: Date };
+  }[]) {
     await notificationService.send(
       {
         recipientType: 'seller',
@@ -642,9 +667,7 @@ export async function getPublicBookingPage(slug: string) {
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
   );
 
-  const availableSlots = slots.filter(
-    (s) => (s as { status: string }).status === 'available',
-  );
+  const availableSlots = slots.filter((s) => (s as { status: string }).status === 'available');
 
   return { property, availableSlots };
 }

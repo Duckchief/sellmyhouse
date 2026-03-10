@@ -4,7 +4,10 @@ import { viewingRouter } from '../viewing.router';
 import * as viewingService from '../viewing.service';
 
 jest.mock('../viewing.service');
-jest.mock('express-rate-limit', () => () => (_req: unknown, _res: unknown, next: () => void) => next());
+jest.mock(
+  'express-rate-limit',
+  () => () => (_req: unknown, _res: unknown, next: () => void) => next(),
+);
 
 const mockService = viewingService as jest.Mocked<typeof viewingService>;
 
@@ -51,14 +54,12 @@ describe('viewing.router', () => {
         status: 'available',
       } as never);
 
-      const res = await request(app)
-        .post('/seller/viewings/slots')
-        .send({
-          propertyId: 'prop-1',
-          date: '2026-04-15',
-          startTime: '10:00',
-          endTime: '10:15',
-        });
+      const res = await request(app).post('/seller/viewings/slots').send({
+        propertyId: 'prop-1',
+        date: '2026-04-15',
+        startTime: '10:00',
+        endTime: '10:15',
+      });
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
@@ -70,18 +71,16 @@ describe('viewing.router', () => {
         slots: [],
       } as never);
 
-      const res = await request(app)
-        .post('/seller/viewings/slots')
-        .send({
-          bulk: 'true',
-          propertyId: 'prop-1',
-          startDate: '2026-04-04',
-          endDate: '2026-04-25',
-          dayOfWeek: '6',
-          startTime: '10:00',
-          endTime: '12:00',
-          slotDurationMinutes: '15',
-        });
+      const res = await request(app).post('/seller/viewings/slots').send({
+        bulk: 'true',
+        propertyId: 'prop-1',
+        startDate: '2026-04-04',
+        endDate: '2026-04-25',
+        dayOfWeek: '6',
+        startTime: '10:00',
+        endTime: '12:00',
+        slotDurationMinutes: '15',
+      });
 
       expect(res.status).toBe(201);
       expect(res.body.count).toBe(32);
@@ -108,11 +107,10 @@ describe('viewing.router', () => {
         .send({ feedback: 'Good viewing', interestRating: '4' });
 
       expect(res.status).toBe(200);
-      expect(mockService.submitFeedback).toHaveBeenCalledWith(
-        'v-1',
-        'seller-1',
-        { feedback: 'Good viewing', interestRating: 4 },
-      );
+      expect(mockService.submitFeedback).toHaveBeenCalledWith('v-1', 'seller-1', {
+        feedback: 'Good viewing',
+        interestRating: 4,
+      });
     });
   });
 

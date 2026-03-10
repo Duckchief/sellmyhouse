@@ -70,8 +70,26 @@ describe('viewing.repository', () => {
   describe('createManySlots', () => {
     it('creates multiple slots', async () => {
       const slots = [
-        { id: 'slot-1', propertyId: 'prop-1', date: new Date(), startTime: '10:00', endTime: '10:15', durationMinutes: 15, slotType: 'single' as const, maxViewers: 1 },
-        { id: 'slot-2', propertyId: 'prop-1', date: new Date(), startTime: '10:15', endTime: '10:30', durationMinutes: 15, slotType: 'single' as const, maxViewers: 1 },
+        {
+          id: 'slot-1',
+          propertyId: 'prop-1',
+          date: new Date(),
+          startTime: '10:00',
+          endTime: '10:15',
+          durationMinutes: 15,
+          slotType: 'single' as const,
+          maxViewers: 1,
+        },
+        {
+          id: 'slot-2',
+          propertyId: 'prop-1',
+          date: new Date(),
+          startTime: '10:15',
+          endTime: '10:30',
+          durationMinutes: 15,
+          slotType: 'single' as const,
+          maxViewers: 1,
+        },
       ];
 
       mockedPrisma.viewingSlot.createMany.mockResolvedValue({ count: 2 });

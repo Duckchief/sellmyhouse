@@ -125,7 +125,10 @@ viewingRouter.post(
       await viewingService.markNoShow(req.params.id as string, user.id);
 
       if (req.headers['hx-request']) {
-        return res.render('partials/seller/viewing-status', { viewingId: req.params.id as string, status: 'no_show' });
+        return res.render('partials/seller/viewing-status', {
+          viewingId: req.params.id as string,
+          status: 'no_show',
+        });
       }
       return res.json({ success: true, message: 'Marked as no-show' });
     } catch (err) {
@@ -143,7 +146,10 @@ viewingRouter.post(
       await viewingService.markCompleted(req.params.id as string, user.id);
 
       if (req.headers['hx-request']) {
-        return res.render('partials/seller/viewing-status', { viewingId: req.params.id as string, status: 'completed' });
+        return res.render('partials/seller/viewing-status', {
+          viewingId: req.params.id as string,
+          status: 'completed',
+        });
       }
       return res.json({ success: true, message: 'Marked as completed' });
     } catch (err) {
@@ -190,7 +196,10 @@ viewingRouter.post(
 
       if (result.status === 'pending_otp') {
         if (req.headers['hx-request']) {
-          return res.render('partials/public/otp-form', { bookingId: result.viewingId, phone: input.phone });
+          return res.render('partials/public/otp-form', {
+            bookingId: result.viewingId,
+            phone: input.phone,
+          });
         }
         return res.json({ success: true, requiresOtp: true, bookingId: result.viewingId });
       }
@@ -228,7 +237,9 @@ viewingRouter.get(
   '/view/cancel/:viewingId/:cancelToken',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const viewing = await viewingService.getViewingByCancelToken(req.params.cancelToken as string);
+      const viewing = await viewingService.getViewingByCancelToken(
+        req.params.cancelToken as string,
+      );
       if (!viewing) return res.status(404).render('404');
 
       return res.render('public/cancel-confirmation', {
@@ -246,7 +257,10 @@ viewingRouter.post(
   '/view/cancel/:viewingId/:cancelToken',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await viewingService.cancelViewing(req.params.viewingId as string, req.params.cancelToken as string);
+      await viewingService.cancelViewing(
+        req.params.viewingId as string,
+        req.params.cancelToken as string,
+      );
 
       return res.render('public/cancel-success');
     } catch (err) {

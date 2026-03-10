@@ -61,6 +61,16 @@ describe('HdbService', () => {
     });
   });
 
+  describe('getDistinctStoreyRanges', () => {
+    it('returns list of storey ranges', async () => {
+      mockRepo.getDistinctStoreyRanges.mockResolvedValue(['01 TO 03', '04 TO 06', '07 TO 09']);
+
+      const result = await service.getDistinctStoreyRanges();
+
+      expect(result).toEqual(['01 TO 03', '04 TO 06', '07 TO 09']);
+    });
+  });
+
   describe('getMarketReport', () => {
     it('calculates statistics from transactions', async () => {
       const transactions = [

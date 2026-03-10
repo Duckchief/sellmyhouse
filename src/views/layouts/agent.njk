@@ -1,0 +1,16 @@
+{% extends "layouts/base.njk" %}
+
+{% block body %}
+<div class="flex min-h-screen">
+  <aside class="w-64 bg-gray-900 text-white p-4">
+    <div class="text-lg font-bold mb-6">Agent Portal</div>
+    <nav class="space-y-2">
+      <a href="/agent/dashboard" class="block px-3 py-2 rounded hover:bg-gray-800">Dashboard</a>
+      <!-- Phase 3 will add more nav items -->
+    </nav>
+  </aside>
+  <main class="flex-1 p-8">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

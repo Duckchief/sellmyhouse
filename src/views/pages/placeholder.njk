@@ -1,0 +1,10 @@
+{% extends "layouts/public.njk" %}
+
+{% block title %}{{ title }} — SellMyHomeNow.sg{% endblock %}
+
+{% block content %}
+<div class="text-center py-20">
+  <h1 class="text-3xl font-bold mb-4">{{ title }}</h1>
+  <p class="text-gray-600">{{ message | default("This page is under construction.") }}</p>
+</div>
+{% endblock %}

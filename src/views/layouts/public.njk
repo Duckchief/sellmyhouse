@@ -1,0 +1,9 @@
+{% extends "layouts/base.njk" %}
+
+{% block body %}
+  {% include "partials/header.njk" %}
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    {% block content %}{% endblock %}
+  </main>
+  {% include "partials/footer.njk" %}
+{% endblock %}

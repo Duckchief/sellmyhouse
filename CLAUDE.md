@@ -8,8 +8,8 @@ Deployed via Docker on Hostinger VPS (Singapore).
 ## Documentation
 - `docs/superpowers/specs/2026-03-10-v2-rewrite-design.md` — Master design spec for the v2 rewrite
 - `docs/superpowers/plans/` — Implementation plans per phase
-- Reference: `../sellmyhomenow/docs/phase-0-shared-context.md` — v1 shared context (business requirements reference)
-- Reference: `../sellmyhomenow/docs/phase-{1-6}-*.md` — v1 phase docs (feature requirements reference)
+- Reference: `docs/phase-0-shared-context.md` — v1 shared context (business requirements reference)
+- Reference: `docs/phase-{1-6}-*.md` — v1 phase docs (feature requirements reference)
 
 ## Build Rules
 - Always read the v2 design spec before starting any work

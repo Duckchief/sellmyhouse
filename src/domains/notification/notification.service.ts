@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 import * as notificationRepo from './notification.repository';
-import { InAppProvider } from './providers/in-app.provider';
 import { EmailProvider } from './providers/email.provider';
 import { WhatsAppProvider } from './providers/whatsapp.provider';
 import { logger } from '../../infra/logger';

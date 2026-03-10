@@ -7,6 +7,7 @@ import path from 'path';
 import { authRouter } from '../auth.router';
 import { configurePassport } from '../../../infra/http/middleware/passport';
 import { errorHandler } from '../../../infra/http/middleware/error-handler';
+import { ConflictError } from '../../shared/errors';
 
 // Mock auth service
 jest.mock('../auth.service');
@@ -83,8 +84,6 @@ describe('AuthRouter', () => {
         }),
       );
 
-      // Need to import and use AppError for errorHandler to recognize it
-      const { ConflictError } = require('../../shared/errors');
       authService.registerSeller = jest.fn().mockRejectedValue(
         new ConflictError('An account with this email already exists'),
       );

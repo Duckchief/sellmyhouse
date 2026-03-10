@@ -12,6 +12,8 @@ import { healthRouter } from './health.router';
 import { authRouter } from '../../domains/auth/auth.router';
 import { agentSettingsRouter } from '../../domains/agent-settings/agent-settings.router';
 import { notificationRouter } from '../../domains/notification/notification.router';
+import { publicRouter } from '../../domains/public/public.router';
+import { leadRouter } from '../../domains/lead/lead.router';
 
 function validateEnv() {
   const required = ['SESSION_SECRET', 'DATABASE_URL', 'ENCRYPTION_KEY'];
@@ -44,6 +46,12 @@ export function createApp() {
     return str;
   });
 
+  // Add price formatting filter (e.g., 500000 → "500,000")
+  env.addFilter('formatPrice', (val: unknown) => {
+    const num = Number(val);
+    return isNaN(num) ? String(val) : num.toLocaleString('en-SG');
+  });
+
   app.set('view engine', 'njk');
 
   // Security
@@ -58,6 +66,7 @@ export function createApp() {
           imgSrc: ["'self'", 'data:', 'blob:'],
           connectSrc: ["'self'"],
           frameSrc: ['www.youtube.com'],
+          workerSrc: ["'self'"],
         },
       },
     }),
@@ -83,6 +92,8 @@ export function createApp() {
 
   // Routes
   app.use(healthRouter);
+  app.use(publicRouter);
+  app.use(leadRouter);
   app.use(authRouter);
   app.use(agentSettingsRouter);
   app.use('/api', apiRateLimiter);

@@ -56,7 +56,8 @@ describe('validateLeadInput', () => {
   });
 
   it('allows submission without formLoadedAt (skip timing check)', () => {
-    const { formLoadedAt, ...input } = validInput;
+    const input = { ...validInput };
+    delete (input as Partial<typeof validInput>).formLoadedAt;
     const result = validateLeadInput(input);
     expect(result).toBeNull();
   });

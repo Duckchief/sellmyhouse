@@ -6,8 +6,8 @@ export interface LeadInput {
   consentService: boolean;
   consentMarketing: boolean;
   leadSource: LeadSource;
-  honeypot?: string;        // hidden field — must be empty
-  formLoadedAt?: number;    // timestamp when form was loaded (ms)
+  honeypot?: string; // hidden field — must be empty
+  formLoadedAt?: number; // timestamp when form was loaded (ms)
   ipAddress?: string;
   userAgent?: string;
 }

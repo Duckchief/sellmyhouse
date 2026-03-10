@@ -31,7 +31,9 @@ publicRouter.get('/api/hdb/report', async (req: Request, res: Response, next: Ne
     const months = req.query.months ? parseInt(req.query.months as string, 10) : 24;
 
     if (!town || !flatType) {
-      return res.status(400).render('partials/public/report-results', { error: 'Town and flat type are required' });
+      return res
+        .status(400)
+        .render('partials/public/report-results', { error: 'Town and flat type are required' });
     }
 
     const report = await hdbService.getMarketReport({ town, flatType, storeyRange, months });

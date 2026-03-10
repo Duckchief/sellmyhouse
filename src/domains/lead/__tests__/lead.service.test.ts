@@ -105,7 +105,9 @@ describe('lead.service', () => {
       id: 'existing',
       name: 'Existing',
       phone: '91234567',
-    } as ReturnType<typeof mockLeadRepo.findActiveSellerByPhone> extends Promise<infer T> ? NonNullable<T> : never);
+    } as ReturnType<typeof mockLeadRepo.findActiveSellerByPhone> extends Promise<infer T>
+      ? NonNullable<T>
+      : never);
 
     await expect(submitLead(validInput)).rejects.toThrow('already exists');
   });

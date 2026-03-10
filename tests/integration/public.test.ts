@@ -49,15 +49,17 @@ describe('Public routes', () => {
 
   describe('GET /api/hdb/report', () => {
     it('returns report data for known town/type', async () => {
-      const res = await request(app)
-        .get('/api/hdb/report?town=ANG+MO+KIO&flatType=4+ROOM&months=24');
+      const res = await request(app).get(
+        '/api/hdb/report?town=ANG+MO+KIO&flatType=4+ROOM&months=24',
+      );
       // May return 200 with empty report if no data in test DB
       expect(res.status).toBe(200);
     });
 
     it('handles unknown town gracefully', async () => {
-      const res = await request(app)
-        .get('/api/hdb/report?town=NONEXISTENT&flatType=4+ROOM&months=24');
+      const res = await request(app).get(
+        '/api/hdb/report?town=NONEXISTENT&flatType=4+ROOM&months=24',
+      );
       expect(res.status).toBe(200);
     });
 

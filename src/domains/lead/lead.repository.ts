@@ -25,7 +25,13 @@ export async function createSellerLead(data: {
       consentService: data.consentService,
       consentMarketing: data.consentMarketing,
       consentTimestamp: new Date(),
-      leadSource: data.leadSource as 'website' | 'tiktok' | 'instagram' | 'referral' | 'walkin' | 'other',
+      leadSource: data.leadSource as
+        | 'website'
+        | 'tiktok'
+        | 'instagram'
+        | 'referral'
+        | 'walkin'
+        | 'other',
       status: 'lead',
     },
   });

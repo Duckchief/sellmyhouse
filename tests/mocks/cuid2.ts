@@ -1,8 +1,7 @@
-let counter = 0;
+import crypto from 'crypto';
 
 export function createId(): string {
-  counter++;
-  return `test_id_${counter}`;
+  return crypto.randomBytes(12).toString('hex');
 }
 
 export function init() {

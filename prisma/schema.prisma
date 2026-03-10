@@ -294,6 +294,7 @@ model Agent {
   marketContentApproved     MarketContent[]        @relation("ContentApprover")
   deletionReviews           DataDeletionRequest[]  @relation("DeletionReviewer")
   correctionProcessed       DataCorrectionRequest[] @relation("CorrectionProcessor")
+  agentSettings             AgentSetting[]
 
   @@map("agents")
 }
@@ -872,4 +873,17 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+model AgentSetting {
+  id             String   @id
+  agentId        String   @map("agent_id")
+  agent          Agent    @relation(fields: [agentId], references: [id])
+  key            String
+  encryptedValue String   @map("encrypted_value")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([agentId, key])
+  @@map("agent_settings")
 }

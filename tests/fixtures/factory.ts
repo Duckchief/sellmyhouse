@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { testPrisma } from '../helpers/prisma';
 import { createId } from '@paralleldrive/cuid2';
 
@@ -30,7 +31,7 @@ export const factory = {
         action: overrides.action,
         entityType: overrides.entityType,
         entityId: overrides.entityId,
-        details: overrides.details || {},
+        details: (overrides.details || {}) as Prisma.InputJsonValue,
         agentId: overrides.agentId,
       },
     });

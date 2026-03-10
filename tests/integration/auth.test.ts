@@ -21,17 +21,14 @@ afterAll(async () => {
 describe('Auth Integration', () => {
   describe('POST /auth/register', () => {
     it('creates seller + consent record + audit log', async () => {
-      const res = await request(app)
-        .post('/auth/register')
-        .type('form')
-        .send({
-          name: 'Integration Seller',
-          email: 'integration@test.local',
-          phone: '91234567',
-          password: 'password123',
-          consentService: 'true',
-          consentMarketing: 'true',
-        });
+      const res = await request(app).post('/auth/register').type('form').send({
+        name: 'Integration Seller',
+        email: 'integration@test.local',
+        phone: '91234567',
+        password: 'password123',
+        consentService: 'true',
+        consentMarketing: 'true',
+      });
 
       expect(res.status).toBe(302); // redirect after success
 
@@ -69,30 +66,24 @@ describe('Auth Integration', () => {
         passwordHash: await bcrypt.hash('password', 12),
       });
 
-      const res = await request(app)
-        .post('/auth/register')
-        .type('form')
-        .send({
-          name: 'Dupe Seller',
-          email: 'dupe@test.local',
-          phone: '92345678',
-          password: 'password123',
-          consentService: 'true',
-        });
+      const res = await request(app).post('/auth/register').type('form').send({
+        name: 'Dupe Seller',
+        email: 'dupe@test.local',
+        phone: '92345678',
+        password: 'password123',
+        consentService: 'true',
+      });
 
       expect(res.status).toBe(409);
     });
 
     it('returns 400 when consent is missing', async () => {
-      const res = await request(app)
-        .post('/auth/register')
-        .type('form')
-        .send({
-          name: 'No Consent',
-          email: 'noconsent@test.local',
-          phone: '93456789',
-          password: 'password123',
-        });
+      const res = await request(app).post('/auth/register').type('form').send({
+        name: 'No Consent',
+        email: 'noconsent@test.local',
+        phone: '93456789',
+        password: 'password123',
+      });
 
       expect(res.status).toBe(400);
     });

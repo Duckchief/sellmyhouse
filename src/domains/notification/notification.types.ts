@@ -41,9 +41,5 @@ export interface NotificationRecord {
 }
 
 export interface ChannelProvider {
-  send(
-    recipientId: string,
-    content: string,
-    agentId: string,
-  ): Promise<{ messageId?: string }>;
+  send(recipientId: string, content: string, agentId: string): Promise<{ messageId?: string }>;
 }

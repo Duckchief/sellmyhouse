@@ -13,7 +13,10 @@ export class WhatsAppProvider implements ChannelProvider {
     agentId: string,
   ): Promise<{ messageId?: string }> {
     const token = await agentSettingsService.getSetting(agentId, 'whatsapp_api_token');
-    const phoneNumberId = await agentSettingsService.getSetting(agentId, 'whatsapp_phone_number_id');
+    const phoneNumberId = await agentSettingsService.getSetting(
+      agentId,
+      'whatsapp_phone_number_id',
+    );
 
     if (!token || !phoneNumberId) {
       throw new Error('WhatsApp not configured for this agent');

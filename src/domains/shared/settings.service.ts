@@ -16,7 +16,10 @@ export async function getNumber(key: SettingKey | string, defaultValue?: number)
   return parseFloat(value);
 }
 
-export async function getBoolean(key: SettingKey | string, defaultValue?: boolean): Promise<boolean> {
+export async function getBoolean(
+  key: SettingKey | string,
+  defaultValue?: boolean,
+): Promise<boolean> {
   const value = await get(key, defaultValue?.toString());
   return value === 'true';
 }

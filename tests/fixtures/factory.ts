@@ -4,11 +4,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { encrypt } from '../../src/domains/shared/encryption';
 
 export const factory = {
-  async systemSetting(overrides: {
-    key: string;
-    value: string;
-    description?: string;
-  }) {
+  async systemSetting(overrides: { key: string; value: string; description?: string }) {
     return testPrisma.systemSetting.create({
       data: {
         id: createId(),
@@ -101,7 +97,14 @@ export const factory = {
     flatModel?: string;
     leaseCommenceDate?: number;
     askingPrice?: number;
-    status?: 'draft' | 'listed' | 'offer_received' | 'under_option' | 'completing' | 'completed' | 'withdrawn';
+    status?:
+      | 'draft'
+      | 'listed'
+      | 'offer_received'
+      | 'under_option'
+      | 'completing'
+      | 'completed'
+      | 'withdrawn';
   }) {
     return testPrisma.property.create({
       data: {
@@ -175,11 +178,7 @@ export const factory = {
     });
   },
 
-  async agentSetting(overrides: {
-    agentId: string;
-    key: string;
-    value: string;
-  }) {
+  async agentSetting(overrides: { agentId: string; key: string; value: string }) {
     return testPrisma.agentSetting.create({
       data: {
         id: createId(),

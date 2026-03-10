@@ -17,17 +17,18 @@ describe('EmailProvider', () => {
   it('throws when SMTP not configured', async () => {
     agentSettingsService.getSetting = jest.fn().mockResolvedValue(null);
 
-    await expect(
-      provider.send('user@test.com', '<p>Hello</p>', 'agent1'),
-    ).rejects.toThrow('SMTP not configured');
+    await expect(provider.send('user@test.com', '<p>Hello</p>', 'agent1')).rejects.toThrow(
+      'SMTP not configured',
+    );
   });
 
   it('creates transporter with correct credentials', async () => {
     const sendMail = jest.fn().mockResolvedValue({ messageId: '<msg123>' });
     nodemailer.createTransport = jest.fn().mockReturnValue({ sendMail });
 
-    agentSettingsService.getSetting = jest.fn().mockImplementation(
-      (_agentId: string, key: string) => {
+    agentSettingsService.getSetting = jest
+      .fn()
+      .mockImplementation((_agentId: string, key: string) => {
         const map: Record<string, string> = {
           smtp_host: 'smtp.test.com',
           smtp_port: '587',
@@ -37,8 +38,7 @@ describe('EmailProvider', () => {
           smtp_from_name: 'Test Agent',
         };
         return Promise.resolve(map[key] ?? null);
-      },
-    );
+      });
 
     const result = await provider.send('recipient@test.com', '<p>Hi</p>', 'agent1');
 

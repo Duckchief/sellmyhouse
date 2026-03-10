@@ -99,7 +99,7 @@ export async function createBulkSlots(input: CreateBulkSlotsInput, sellerId: str
     current.setDate(current.getDate() + 1);
   }
 
-  const result = await viewingRepo.createManySlots(slots);
+  await viewingRepo.createManySlots(slots);
 
   await auditService.log({
     action: 'viewing.bulk_slots_created',
@@ -153,7 +153,7 @@ export async function cancelSlot(slotId: string, sellerId: string) {
 
 export async function initiateBooking(
   input: BookingFormInput,
-  ip: string,
+  _ip: string,
 ): Promise<BookingResult | { spam: true }> {
   // Spam check 1: Honeypot
   if (input.website) return { spam: true };

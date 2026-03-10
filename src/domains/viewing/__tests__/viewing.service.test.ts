@@ -38,7 +38,7 @@ describe('viewing.service', () => {
         status: 'available',
       } as never);
 
-      const result = await viewingService.createSlot({
+      await viewingService.createSlot({
         propertyId: 'prop-1',
         date: new Date('2026-04-15'),
         startTime: '10:00',
@@ -65,7 +65,7 @@ describe('viewing.service', () => {
       mockedRepo.createManySlots.mockResolvedValue({ count: 32 });
 
       // 4 Saturdays, 2-hour window with 15-min slots = 4 * 8 = 32 slots
-      const result = await viewingService.createBulkSlots({
+      await viewingService.createBulkSlots({
         propertyId: 'prop-1',
         startDate: new Date('2026-04-04'), // Saturday
         endDate: new Date('2026-04-25'),   // 4th Saturday

@@ -2,7 +2,7 @@ import { prisma, createId } from '../../infra/database/prisma';
 import type { NotificationChannel, NotificationStatus } from './notification.types';
 
 export function create(data: {
-  recipientType: 'seller' | 'agent';
+  recipientType: 'seller' | 'agent' | 'viewer';
   recipientId: string;
   channel: NotificationChannel;
   templateName: string;

@@ -9,8 +9,11 @@ import type { SendNotificationInput, NotificationChannel } from './notification.
 const TEMPLATES: Record<string, string> = {
   welcome_seller: 'Welcome to SellMyHomeNow, {{name}}! Your account is ready.',
   viewing_booked: 'A viewing has been booked for {{address}} on {{date}}.',
+  viewing_booked_seller: 'New viewing booked for {{address}} on {{date}} at {{time}}. Viewer: {{viewerName}} ({{viewerType}}).{{noShowWarning}}',
   viewing_cancelled: 'The viewing for {{address}} on {{date}} has been cancelled.',
   viewing_reminder: 'Reminder: Viewing for {{address}} is scheduled for {{date}}.',
+  viewing_reminder_viewer: 'Reminder: Your viewing at {{address}} is at {{time}} today.',
+  viewing_feedback_prompt: 'How did the viewing go for {{address}} on {{date}}? Please log your feedback.',
   offer_received: 'An offer of ${{amount}} has been received for {{address}}.',
   offer_countered: 'A counter-offer of ${{amount}} has been made for {{address}}.',
   offer_accepted: 'The offer for {{address}} has been accepted. Congratulations!',

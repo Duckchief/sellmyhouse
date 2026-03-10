@@ -170,6 +170,7 @@ enum ConsentSubjectType {
 enum RecipientType {
   seller
   agent
+  viewer
 }
 
 enum NotificationChannel {
@@ -375,6 +376,7 @@ model Property {
   remainingLease    String?        @map("remaining_lease")
   askingPrice       Decimal?       @map("asking_price") @db.Decimal(12, 2)
   priceHistory      Json?          @default("[]") @map("price_history")
+  slug              String?        @unique
   status            PropertyStatus @default(draft)
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
@@ -438,6 +440,7 @@ model VerifiedViewer {
   consentService  Boolean    @default(false) @map("consent_service")
   totalBookings   Int        @default(0) @map("total_bookings")
   lastBookingAt   DateTime?  @map("last_booking_at")
+  noShowCount     Int        @default(0) @map("no_show_count")
   createdAt       DateTime   @default(now()) @map("created_at")
   updatedAt       DateTime   @updatedAt @map("updated_at")
 
@@ -479,6 +482,10 @@ model Viewing {
   scheduledAt      DateTime       @map("scheduled_at")
   completedAt      DateTime?      @map("completed_at")
   feedback         String?
+  interestRating   Int?           @map("interest_rating")
+  otpHash          String?        @map("otp_hash")
+  otpExpiresAt     DateTime?      @map("otp_expires_at")
+  otpAttempts      Int            @default(0) @map("otp_attempts")
   createdAt        DateTime       @default(now()) @map("created_at")
 
   @@index([propertyId, scheduledAt])

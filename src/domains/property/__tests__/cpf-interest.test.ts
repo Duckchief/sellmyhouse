@@ -1,3 +1,4 @@
+import type { FlatType } from '../financial.types';
 import { calculateCpfAccruedInterest, estimateCpfUsage } from '../cpf-interest';
 
 describe('calculateCpfAccruedInterest', () => {
@@ -50,6 +51,6 @@ describe('estimateCpfUsage', () => {
   });
 
   it('returns 0 for unknown flat type', () => {
-    expect(estimateCpfUsage('UNKNOWN' as any)).toBe(0);
+    expect(estimateCpfUsage('UNKNOWN' as FlatType)).toBe(0);
   });
 });

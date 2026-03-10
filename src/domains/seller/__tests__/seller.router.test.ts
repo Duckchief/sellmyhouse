@@ -1,6 +1,7 @@
 import * as sellerService from '../seller.service';
 import * as propertyService from '../../property/property.service';
 import { TOTAL_ONBOARDING_STEPS } from '../seller.types';
+import type { VideoTutorial } from '@prisma/client';
 
 jest.mock('../seller.service');
 jest.mock('../../property/property.service');
@@ -222,7 +223,7 @@ describe('seller.router', () => {
   describe('GET /seller/tutorials', () => {
     it('renders tutorials page with grouped data', async () => {
       mockedService.getTutorialsGrouped.mockResolvedValue({
-        photography: [{ id: 't1', title: 'Photo tips' }],
+        photography: [{ id: 't1', title: 'Photo tips' } as unknown as VideoTutorial],
       });
 
       const res = await request(app).get('/seller/tutorials');

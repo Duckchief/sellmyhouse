@@ -1,0 +1,182 @@
+import * as sellerService from '../seller.service';
+import { TOTAL_ONBOARDING_STEPS } from '../seller.types';
+
+jest.mock('../seller.service');
+jest.mock('../../notification/notification.repository', () => ({
+  countUnreadForRecipient: jest.fn().mockResolvedValue(0),
+  findUnreadForRecipient: jest.fn().mockResolvedValue([]),
+}));
+
+const mockedService = jest.mocked(sellerService);
+
+import request from 'supertest';
+import express from 'express';
+import nunjucks from 'nunjucks';
+import path from 'path';
+import { sellerRouter } from '../seller.router';
+
+function createTestApp() {
+  const app = express();
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  const viewsPath = path.resolve('src/views');
+  const env = nunjucks.configure(viewsPath, {
+    autoescape: true,
+    express: app,
+  });
+  env.addFilter('t', (str: string) => str);
+  app.set('view engine', 'njk');
+
+  // Mock authenticated seller
+  app.use((req, _res, next) => {
+    req.user = { id: 'seller-1', role: 'seller', email: 'test@test.local', name: 'Test', twoFactorEnabled: false, twoFactorVerified: false };
+    req.isAuthenticated = (() => true) as typeof req.isAuthenticated;
+    next();
+  });
+
+  app.use(sellerRouter);
+  return app;
+}
+
+describe('seller.router', () => {
+  let app: express.Express;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    app = createTestApp();
+  });
+
+  describe('GET /seller/dashboard', () => {
+    it('redirects to onboarding if not complete', async () => {
+      mockedService.getDashboardOverview.mockResolvedValue({
+        seller: { id: 'seller-1', name: 'Test', email: 'test@test.local', phone: '91234567', status: 'lead', onboardingStep: 2 },
+        onboarding: { currentStep: 2, isComplete: false, completedSteps: [1, 2] },
+        propertyStatus: null,
+        transactionStatus: null,
+        unreadNotificationCount: 0,
+        nextSteps: [],
+      });
+
+      const res = await request(app).get('/seller/dashboard');
+
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toBe('/seller/onboarding');
+    });
+
+    it('renders dashboard when onboarding is complete', async () => {
+      mockedService.getDashboardOverview.mockResolvedValue({
+        seller: { id: 'seller-1', name: 'Test', email: 'test@test.local', phone: '91234567', status: 'engaged', onboardingStep: 5 },
+        onboarding: { currentStep: 5, isComplete: true, completedSteps: [1, 2, 3, 4, 5] },
+        propertyStatus: null,
+        transactionStatus: null,
+        unreadNotificationCount: 3,
+        nextSteps: [],
+      });
+
+      const res = await request(app).get('/seller/dashboard');
+
+      expect(res.status).toBe(200);
+    });
+
+    it('returns HTMX partial when hx-request is set', async () => {
+      mockedService.getDashboardOverview.mockResolvedValue({
+        seller: { id: 'seller-1', name: 'Test', email: 'test@test.local', phone: '91234567', status: 'engaged', onboardingStep: 5 },
+        onboarding: { currentStep: 5, isComplete: true, completedSteps: [1, 2, 3, 4, 5] },
+        propertyStatus: null,
+        transactionStatus: null,
+        unreadNotificationCount: 0,
+        nextSteps: [],
+      });
+
+      const res = await request(app)
+        .get('/seller/dashboard')
+        .set('HX-Request', 'true');
+
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe('GET /seller/onboarding', () => {
+    it('renders onboarding page', async () => {
+      mockedService.getOnboardingStatus.mockResolvedValue({
+        currentStep: 0,
+        isComplete: false,
+        completedSteps: [],
+      });
+
+      const res = await request(app).get('/seller/onboarding');
+
+      expect(res.status).toBe(200);
+    });
+
+    it('redirects to dashboard if onboarding is complete', async () => {
+      mockedService.getOnboardingStatus.mockResolvedValue({
+        currentStep: TOTAL_ONBOARDING_STEPS,
+        isComplete: true,
+        completedSteps: [1, 2, 3, 4, 5],
+      });
+
+      const res = await request(app).get('/seller/onboarding');
+
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toBe('/seller/dashboard');
+    });
+  });
+
+  describe('POST /seller/onboarding/step/:step', () => {
+    it('completes step and returns next step partial for HTMX', async () => {
+      mockedService.completeOnboardingStep.mockResolvedValue({ onboardingStep: 2 });
+
+      const res = await request(app)
+        .post('/seller/onboarding/step/2')
+        .set('HX-Request', 'true');
+
+      expect(res.status).toBe(200);
+      expect(mockedService.completeOnboardingStep).toHaveBeenCalledWith({
+        sellerId: 'seller-1',
+        step: 2,
+      });
+    });
+
+    it('redirects to dashboard after completing last step', async () => {
+      mockedService.completeOnboardingStep.mockResolvedValue({
+        onboardingStep: TOTAL_ONBOARDING_STEPS,
+      });
+
+      const res = await request(app)
+        .post(`/seller/onboarding/step/${TOTAL_ONBOARDING_STEPS}`)
+        .set('HX-Request', 'true');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['hx-redirect']).toBe('/seller/dashboard');
+    });
+  });
+
+  describe('GET /seller/my-data', () => {
+    it('renders My Data page', async () => {
+      mockedService.getMyData.mockResolvedValue({
+        personalInfo: { name: 'Test', email: 'test@test.local', phone: '91234567' },
+        consentStatus: { service: true, marketing: false, consentTimestamp: new Date(), withdrawnAt: null },
+        consentHistory: [],
+        dataActions: { canRequestCorrection: true, canRequestDeletion: true, canWithdrawConsent: true },
+      });
+
+      const res = await request(app).get('/seller/my-data');
+
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe('GET /seller/tutorials', () => {
+    it('renders tutorials page with grouped data', async () => {
+      mockedService.getTutorialsGrouped.mockResolvedValue({
+        photography: [{ id: 't1', title: 'Photo tips' }],
+      });
+
+      const res = await request(app).get('/seller/tutorials');
+
+      expect(res.status).toBe(200);
+    });
+  });
+});

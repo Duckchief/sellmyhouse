@@ -4,6 +4,7 @@ export class AnthropicProvider implements AIProvider {
   name = 'anthropic';
 
   async generateText(prompt: string, options: AIGenerateOptions): Promise<AIGenerateResult> {
+    // @ts-expect-error — SDK installed only when Anthropic is the active provider
     const { default: Anthropic } = await import('@anthropic-ai/sdk').catch(() => {
       throw new Error('Anthropic SDK not installed');
     });

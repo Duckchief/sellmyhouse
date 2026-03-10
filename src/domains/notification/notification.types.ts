@@ -1,12 +1,15 @@
 export type NotificationChannel = 'whatsapp' | 'email' | 'in_app';
 export type NotificationStatus = 'pending' | 'sent' | 'delivered' | 'failed' | 'read';
-export type RecipientType = 'seller' | 'agent';
+export type RecipientType = 'seller' | 'agent' | 'viewer';
 
 export type NotificationTemplateName =
   | 'welcome_seller'
   | 'viewing_booked'
+  | 'viewing_booked_seller'
   | 'viewing_cancelled'
   | 'viewing_reminder'
+  | 'viewing_reminder_viewer'
+  | 'viewing_feedback_prompt'
   | 'offer_received'
   | 'offer_countered'
   | 'offer_accepted'

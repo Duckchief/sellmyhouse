@@ -1,1 +1,59 @@
-<div>partial</div>
+{# Personal Information #}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+  <h2 class="font-semibold mb-4">{{ "Personal Information" | t }}</h2>
+  <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div>
+      <dt class="text-sm font-medium text-gray-500">{{ "Name" | t }}</dt>
+      <dd class="mt-1 text-sm text-gray-900">{{ myData.personalInfo.name }}</dd>
+    </div>
+    <div>
+      <dt class="text-sm font-medium text-gray-500">{{ "Email" | t }}</dt>
+      <dd class="mt-1 text-sm text-gray-900">{{ myData.personalInfo.email or "Not provided" | t }}</dd>
+    </div>
+    <div>
+      <dt class="text-sm font-medium text-gray-500">{{ "Phone" | t }}</dt>
+      <dd class="mt-1 text-sm text-gray-900">{{ myData.personalInfo.phone }}</dd>
+    </div>
+  </dl>
+  {% if myData.dataActions.canRequestCorrection %}
+  <div class="mt-4">
+    <a href="#" class="text-sm text-blue-600 hover:underline">{{ "Request data correction →" | t }}</a>
+  </div>
+  {% endif %}
+</div>
+
+{# Consent Status #}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+  <h2 class="font-semibold mb-4">{{ "Consent Status" | t }}</h2>
+  <div class="space-y-3">
+    <div class="flex items-center justify-between">
+      <span class="text-sm text-gray-700">{{ "Service Consent" | t }}</span>
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if myData.consentStatus.service %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+        {% if myData.consentStatus.service %}{{ "Granted" | t }}{% else %}{{ "Not Granted" | t }}{% endif %}
+      </span>
+    </div>
+    <div class="flex items-center justify-between">
+      <span class="text-sm text-gray-700">{{ "Marketing Consent" | t }}</span>
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if myData.consentStatus.marketing %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+        {% if myData.consentStatus.marketing %}{{ "Granted" | t }}{% else %}{{ "Not Granted" | t }}{% endif %}
+      </span>
+    </div>
+    {% if myData.consentStatus.consentTimestamp %}
+    <p class="text-xs text-gray-400">{{ "Consent recorded:" | t }} {{ myData.consentStatus.consentTimestamp | date }}</p>
+    {% endif %}
+  </div>
+  {% if myData.dataActions.canWithdrawConsent %}
+  <div class="mt-4">
+    <a href="#" class="text-sm text-red-600 hover:underline">{{ "Withdraw consent →" | t }}</a>
+  </div>
+  {% endif %}
+</div>
+
+{# Data Deletion #}
+{% if myData.dataActions.canRequestDeletion %}
+<div class="bg-white rounded-lg shadow p-6 border border-red-200">
+  <h2 class="font-semibold mb-2 text-red-700">{{ "Delete My Data" | t }}</h2>
+  <p class="text-sm text-gray-600 mb-4">{{ "Request deletion of your personal data. Note: active transactions and legally required records cannot be deleted." | t }}</p>
+  <a href="#" class="text-sm text-red-600 hover:underline">{{ "Request data deletion →" | t }}</a>
+</div>
+{% endif %}

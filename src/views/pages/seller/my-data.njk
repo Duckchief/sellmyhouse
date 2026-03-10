@@ -1,4 +1,11 @@
 {% extends "layouts/seller.njk" %}
+
+{% block title %}{{ "My Data" | t }} — SellMyHomeNow.sg{% endblock %}
+
 {% block content %}
-<div>{{ title }}</div>
+<h1 class="text-2xl font-bold mb-6">{{ "My Data" | t }}</h1>
+
+<div class="space-y-6">
+  {% include "partials/seller/my-data-content.njk" %}
+</div>
 {% endblock %}

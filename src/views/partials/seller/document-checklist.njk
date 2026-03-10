@@ -1,1 +1,37 @@
-<div>partial</div>
+{% if checklist.length == 0 %}
+<div class="p-6 text-center text-gray-500">
+  {{ "No documents required at this stage" | t }}
+</div>
+{% else %}
+<ul class="divide-y divide-gray-200">
+  {% for item in checklist %}
+  <li class="p-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-6 h-6 rounded flex items-center justify-center
+        {% if item.status == 'verified' %}bg-green-100 text-green-600
+        {% elif item.status == 'uploaded' %}bg-blue-100 text-blue-600
+        {% else %}bg-gray-100 text-gray-400{% endif %}">
+        {% if item.status == 'verified' %}&#10003;
+        {% elif item.status == 'uploaded' %}&uarr;
+        {% else %}&middot;{% endif %}
+      </div>
+      <div>
+        <p class="text-sm font-medium text-gray-900">
+          {{ item.label | t }}
+          {% if item.required %}<span class="text-red-500">*</span>{% endif %}
+        </p>
+        <p class="text-xs text-gray-500">{{ item.description | t }}</p>
+      </div>
+    </div>
+    <span class="text-xs font-medium px-2 py-1 rounded
+      {% if item.status == 'verified' %}bg-green-100 text-green-700
+      {% elif item.status == 'uploaded' %}bg-blue-100 text-blue-700
+      {% else %}bg-gray-100 text-gray-500{% endif %}">
+      {% if item.status == 'verified' %}{{ "Verified" | t }}
+      {% elif item.status == 'uploaded' %}{{ "Uploaded" | t }}
+      {% else %}{{ "Not Uploaded" | t }}{% endif %}
+    </span>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}

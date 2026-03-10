@@ -26,6 +26,7 @@ function createTestApp() {
     express: app,
   });
   env.addFilter('t', (str: string) => str);
+  env.addFilter('date', (d: unknown) => (d ? String(d) : ''));
   app.set('view engine', 'njk');
 
   // Mock authenticated seller

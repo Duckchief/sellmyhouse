@@ -1,1 +1,32 @@
-<div>partial</div>
+{# Status card #}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+  <h2 class="font-semibold mb-3">{{ "Transaction Status" | t }}</h2>
+  <div class="flex items-center gap-2">
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+      {{ overview.seller.status }}
+    </span>
+    {% if overview.propertyStatus %}
+    <span class="text-sm text-gray-500">{{ "Property:" | t }} {{ overview.propertyStatus }}</span>
+    {% endif %}
+  </div>
+</div>
+
+{# Next steps #}
+{% if overview.nextSteps.length > 0 %}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+  <h2 class="font-semibold mb-3">{{ "Next Steps" | t }}</h2>
+  <ul class="space-y-3">
+    {% for step in overview.nextSteps %}
+    <li>
+      <a href="{{ step.href }}" class="flex items-center justify-between p-3 rounded-md border border-gray-200 hover:bg-gray-50 transition">
+        <div>
+          <p class="font-medium text-gray-900">{{ step.label | t }}</p>
+          <p class="text-sm text-gray-500">{{ step.description | t }}</p>
+        </div>
+        <span class="text-gray-400">&rarr;</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}

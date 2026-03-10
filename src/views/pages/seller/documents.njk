@@ -1,4 +1,11 @@
 {% extends "layouts/seller.njk" %}
+
+{% block title %}{{ "Documents" | t }} — SellMyHomeNow.sg{% endblock %}
+
 {% block content %}
-<div>{{ title }}</div>
+<h1 class="text-2xl font-bold mb-6">{{ "Document Checklist" | t }}</h1>
+
+<div class="bg-white rounded-lg shadow">
+  {% include "partials/seller/document-checklist.njk" %}
+</div>
 {% endblock %}

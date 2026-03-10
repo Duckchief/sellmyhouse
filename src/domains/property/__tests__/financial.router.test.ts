@@ -69,20 +69,18 @@ describe('financial.router', () => {
       mockService.generateNarrative.mockResolvedValue(undefined);
 
       const app = createTestApp();
-      const res = await request(app)
-        .post('/seller/financial/calculate')
-        .send({
-          salePrice: 500000,
-          outstandingLoan: 200000,
-          cpfOaUsed: 100000,
-          purchaseYear: 2016,
-          flatType: '4 ROOM',
-          subsidyType: 'subsidised',
-          isFirstTimer: true,
-          propertyId: 'property-1',
-          town: 'TAMPINES',
-          leaseCommenceDate: 1995,
-        });
+      const res = await request(app).post('/seller/financial/calculate').send({
+        salePrice: 500000,
+        outstandingLoan: 200000,
+        cpfOaUsed: 100000,
+        purchaseYear: 2016,
+        flatType: '4 ROOM',
+        subsidyType: 'subsidised',
+        isFirstTimer: true,
+        propertyId: 'property-1',
+        town: 'TAMPINES',
+        leaseCommenceDate: 1995,
+      });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -156,9 +154,7 @@ describe('financial.router', () => {
 
     it('rejects non-agent users', async () => {
       const app = createTestApp(); // seller auth
-      const res = await request(app)
-        .post('/api/v1/financial/report/report-1/approve')
-        .send({});
+      const res = await request(app).post('/api/v1/financial/report/report-1/approve').send({});
 
       expect(res.status).toBe(403);
     });

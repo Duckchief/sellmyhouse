@@ -1,5 +1,10 @@
 import { ValidationError } from '@/domains/shared/errors';
-import type { FinancialCalculationInput, FlatType, SubsidyType, CpfOwnerInput } from './financial.types';
+import type {
+  FinancialCalculationInput,
+  FlatType,
+  SubsidyType,
+  CpfOwnerInput,
+} from './financial.types';
 
 const VALID_FLAT_TYPES: FlatType[] = [
   '2 ROOM',
@@ -14,9 +19,7 @@ const VALID_SUBSIDY_TYPES: SubsidyType[] = ['subsidised', 'non_subsidised'];
 
 const VALID_SEND_CHANNELS = ['whatsapp', 'email', 'in_app'] as const;
 
-export function validateCalculationInput(
-  body: Record<string, unknown>,
-): FinancialCalculationInput {
+export function validateCalculationInput(body: Record<string, unknown>): FinancialCalculationInput {
   const salePrice = Number(body.salePrice);
   if (!body.salePrice && body.salePrice !== 0) {
     throw new ValidationError('Sale price is required');

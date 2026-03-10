@@ -81,9 +81,7 @@ describe('financial.service', () => {
         metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995 },
       });
 
-      expect(mockRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ version: 4 }),
-      );
+      expect(mockRepo.create).toHaveBeenCalledWith(expect.objectContaining({ version: 4 }));
     });
 
     it('uses commission from SystemSetting, never hardcoded', async () => {
@@ -112,7 +110,12 @@ describe('financial.service', () => {
           outputs: {
             salePrice: 500000,
             outstandingLoan: 200000,
-            owner1Cpf: { oaUsed: 100000, accruedInterest: 28008, totalRefund: 128008, isEstimated: false },
+            owner1Cpf: {
+              oaUsed: 100000,
+              accruedInterest: 28008,
+              totalRefund: 128008,
+              isEstimated: false,
+            },
             totalCpfRefund: 128008,
             resaleLevy: 40000,
             commission: 1633.91,
@@ -184,9 +187,9 @@ describe('financial.service', () => {
 
     it('throws if report not found', async () => {
       mockRepo.findById.mockResolvedValue(null);
-      await expect(
-        financialService.approveReport({ reportId: 'x', agentId: 'a' }),
-      ).rejects.toThrow('FinancialReport not found');
+      await expect(financialService.approveReport({ reportId: 'x', agentId: 'a' })).rejects.toThrow(
+        'FinancialReport not found',
+      );
     });
 
     it('throws if report has no narrative yet', async () => {

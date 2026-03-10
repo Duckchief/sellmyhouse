@@ -18,7 +18,12 @@ const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 const sampleReportData = {
   inputs: { salePrice: 500000, outstandingLoan: 200000 },
   outputs: { netCashProceeds: 127857 },
-  metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995, calculatedAt: '2026-03-10T00:00:00.000Z' },
+  metadata: {
+    flatType: '4 ROOM',
+    town: 'TAMPINES',
+    leaseCommenceDate: 1995,
+    calculatedAt: '2026-03-10T00:00:00.000Z',
+  },
 };
 
 describe('financial.repository', () => {

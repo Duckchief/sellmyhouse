@@ -21,19 +21,28 @@ const sampleOutput: FinancialCalculationOutput = {
 
 describe('buildFinancialNarrativePrompt', () => {
   it('includes Singapore HDB context', () => {
-    const prompt = buildFinancialNarrativePrompt(sampleOutput, { town: 'TAMPINES', flatType: '4 ROOM' });
+    const prompt = buildFinancialNarrativePrompt(sampleOutput, {
+      town: 'TAMPINES',
+      flatType: '4 ROOM',
+    });
     expect(prompt).toContain('Singapore');
     expect(prompt).toContain('HDB');
   });
 
   it('includes the actual financial figures', () => {
-    const prompt = buildFinancialNarrativePrompt(sampleOutput, { town: 'TAMPINES', flatType: '4 ROOM' });
+    const prompt = buildFinancialNarrativePrompt(sampleOutput, {
+      town: 'TAMPINES',
+      flatType: '4 ROOM',
+    });
     expect(prompt).toContain('500,000');
     expect(prompt).toContain('127,858'); // toLocaleString rounds 127857.64 → 127,858
   });
 
   it('includes disclaimer instruction', () => {
-    const prompt = buildFinancialNarrativePrompt(sampleOutput, { town: 'TAMPINES', flatType: '4 ROOM' });
+    const prompt = buildFinancialNarrativePrompt(sampleOutput, {
+      town: 'TAMPINES',
+      flatType: '4 ROOM',
+    });
     expect(prompt).toContain('disclaimer');
   });
 
@@ -42,7 +51,10 @@ describe('buildFinancialNarrativePrompt', () => {
       ...sampleOutput,
       owner1Cpf: { ...sampleOutput.owner1Cpf, isEstimated: true },
     };
-    const prompt = buildFinancialNarrativePrompt(estimatedOutput, { town: 'TAMPINES', flatType: '4 ROOM' });
+    const prompt = buildFinancialNarrativePrompt(estimatedOutput, {
+      town: 'TAMPINES',
+      flatType: '4 ROOM',
+    });
     expect(prompt).toContain('estimated');
   });
 
@@ -52,7 +64,10 @@ describe('buildFinancialNarrativePrompt', () => {
       netCashProceeds: -50000,
       warnings: ['Based on the figures provided, the sale proceeds may not cover all deductions.'],
     };
-    const prompt = buildFinancialNarrativePrompt(negativeOutput, { town: 'TAMPINES', flatType: '4 ROOM' });
+    const prompt = buildFinancialNarrativePrompt(negativeOutput, {
+      town: 'TAMPINES',
+      flatType: '4 ROOM',
+    });
     expect(prompt).toContain('negative');
   });
 
@@ -67,7 +82,10 @@ describe('buildFinancialNarrativePrompt', () => {
       },
       totalCpfRefund: 192012.67,
     };
-    const prompt = buildFinancialNarrativePrompt(jointOutput, { town: 'TAMPINES', flatType: '4 ROOM' });
+    const prompt = buildFinancialNarrativePrompt(jointOutput, {
+      town: 'TAMPINES',
+      flatType: '4 ROOM',
+    });
     expect(prompt).toContain('Owner 2');
   });
 });

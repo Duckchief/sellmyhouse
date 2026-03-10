@@ -85,6 +85,27 @@ export function updateSellerBackupCodes(id: string, codes: Prisma.InputJsonValue
   });
 }
 
+export function incrementSellerFailedLoginAttempts(id: string) {
+  return prisma.seller.update({
+    where: { id },
+    data: { failedLoginAttempts: { increment: 1 } },
+  });
+}
+
+export function lockSellerLogin(id: string, until: Date) {
+  return prisma.seller.update({
+    where: { id },
+    data: { loginLockedUntil: until, failedLoginAttempts: 0 },
+  });
+}
+
+export function resetSellerLoginAttempts(id: string) {
+  return prisma.seller.update({
+    where: { id },
+    data: { failedLoginAttempts: 0, loginLockedUntil: null },
+  });
+}
+
 // ─── Agent ─────────────────────────────────────────────────
 
 export function findAgentByEmail(email: string) {
@@ -141,6 +162,27 @@ export function updateAgentBackupCodes(id: string, codes: Prisma.InputJsonValue)
   return prisma.agent.update({
     where: { id },
     data: { twoFactorBackupCodes: codes },
+  });
+}
+
+export function incrementAgentFailedLoginAttempts(id: string) {
+  return prisma.agent.update({
+    where: { id },
+    data: { failedLoginAttempts: { increment: 1 } },
+  });
+}
+
+export function lockAgentLogin(id: string, until: Date) {
+  return prisma.agent.update({
+    where: { id },
+    data: { loginLockedUntil: until, failedLoginAttempts: 0 },
+  });
+}
+
+export function resetAgentLoginAttempts(id: string) {
+  return prisma.agent.update({
+    where: { id },
+    data: { failedLoginAttempts: 0, loginLockedUntil: null },
   });
 }
 

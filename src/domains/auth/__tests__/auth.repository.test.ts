@@ -89,6 +89,34 @@ describe('AuthRepository', () => {
         data: { failedTwoFactorAttempts: 0, twoFactorLockedUntil: null },
       });
     });
+
+    it('incrementFailedLoginAttempts increments correctly', async () => {
+      prisma.seller.update.mockResolvedValue({});
+      await authRepo.incrementSellerFailedLoginAttempts('s1');
+      expect(prisma.seller.update).toHaveBeenCalledWith({
+        where: { id: 's1' },
+        data: { failedLoginAttempts: { increment: 1 } },
+      });
+    });
+
+    it('lockSellerLogin sets loginLockedUntil and resets failedLoginAttempts to 0', async () => {
+      prisma.seller.update.mockResolvedValue({});
+      const until = new Date('2026-03-12T00:00:00Z');
+      await authRepo.lockSellerLogin('s1', until);
+      expect(prisma.seller.update).toHaveBeenCalledWith({
+        where: { id: 's1' },
+        data: { loginLockedUntil: until, failedLoginAttempts: 0 },
+      });
+    });
+
+    it('resetSellerLoginAttempts clears failedLoginAttempts and loginLockedUntil', async () => {
+      prisma.seller.update.mockResolvedValue({});
+      await authRepo.resetSellerLoginAttempts('s1');
+      expect(prisma.seller.update).toHaveBeenCalledWith({
+        where: { id: 's1' },
+        data: { failedLoginAttempts: 0, loginLockedUntil: null },
+      });
+    });
   });
 
   describe('agent', () => {
@@ -106,6 +134,34 @@ describe('AuthRepository', () => {
       expect(prisma.agent.update).toHaveBeenCalledWith({
         where: { id: 'a1' },
         data: { failedTwoFactorAttempts: { increment: 1 } },
+      });
+    });
+
+    it('incrementAgentFailedLoginAttempts increments correctly', async () => {
+      prisma.agent.update.mockResolvedValue({});
+      await authRepo.incrementAgentFailedLoginAttempts('a1');
+      expect(prisma.agent.update).toHaveBeenCalledWith({
+        where: { id: 'a1' },
+        data: { failedLoginAttempts: { increment: 1 } },
+      });
+    });
+
+    it('lockAgentLogin sets loginLockedUntil and resets failedLoginAttempts to 0', async () => {
+      prisma.agent.update.mockResolvedValue({});
+      const until = new Date('2026-03-12T00:00:00Z');
+      await authRepo.lockAgentLogin('a1', until);
+      expect(prisma.agent.update).toHaveBeenCalledWith({
+        where: { id: 'a1' },
+        data: { loginLockedUntil: until, failedLoginAttempts: 0 },
+      });
+    });
+
+    it('resetAgentLoginAttempts clears failedLoginAttempts and loginLockedUntil', async () => {
+      prisma.agent.update.mockResolvedValue({});
+      await authRepo.resetAgentLoginAttempts('a1');
+      expect(prisma.agent.update).toHaveBeenCalledWith({
+        where: { id: 'a1' },
+        data: { failedLoginAttempts: 0, loginLockedUntil: null },
       });
     });
   });

@@ -249,13 +249,18 @@ describe('property.service', () => {
     it('throws NotFoundError for missing property', async () => {
       mockedRepo.findByIdWithListings.mockResolvedValue(null);
 
-      await expect(
-        propertyService.updateAskingPrice('bad-id', 'seller-1', 520000),
-      ).rejects.toThrow(NotFoundError);
+      await expect(propertyService.updateAskingPrice('bad-id', 'seller-1', 520000)).rejects.toThrow(
+        NotFoundError,
+      );
     });
 
     it('throws ForbiddenError when sellerId does not match', async () => {
-      const fakeProperty = { id: 'prop-1', sellerId: 'seller-1', askingPrice: 500000, listings: [] };
+      const fakeProperty = {
+        id: 'prop-1',
+        sellerId: 'seller-1',
+        askingPrice: 500000,
+        listings: [],
+      };
       mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as any);
 
       await expect(
@@ -293,17 +298,17 @@ describe('property.service', () => {
       const fakeListing = { id: 'listing-1', propertyId: 'prop-1', status: 'draft' };
       mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as any);
 
-      await expect(
-        propertyService.updateListingStatus('prop-1', 'live'),
-      ).rejects.toThrow(ValidationError);
+      await expect(propertyService.updateListingStatus('prop-1', 'live')).rejects.toThrow(
+        ValidationError,
+      );
     });
 
     it('throws NotFoundError when no active listing exists', async () => {
       mockedRepo.findActiveListingForProperty.mockResolvedValue(null);
 
-      await expect(
-        propertyService.updateListingStatus('prop-1', 'pending_review'),
-      ).rejects.toThrow(NotFoundError);
+      await expect(propertyService.updateListingStatus('prop-1', 'pending_review')).rejects.toThrow(
+        NotFoundError,
+      );
     });
 
     it('allows valid transition pending_review -> approved', async () => {
@@ -323,9 +328,9 @@ describe('property.service', () => {
       const fakeListing = { id: 'listing-1', propertyId: 'prop-1', status: 'closed' };
       mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as any);
 
-      await expect(
-        propertyService.updateListingStatus('prop-1', 'live'),
-      ).rejects.toThrow(ValidationError);
+      await expect(propertyService.updateListingStatus('prop-1', 'live')).rejects.toThrow(
+        ValidationError,
+      );
     });
   });
 });

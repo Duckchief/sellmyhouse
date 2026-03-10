@@ -152,7 +152,9 @@ describe('property.repository', () => {
 
   describe('appendPriceHistory', () => {
     it('parses existing history, appends new entry, and updates property', async () => {
-      const existingHistory = [{ price: 550000, changedAt: '2025-01-01T00:00:00.000Z', changedBy: 'agent-0' }];
+      const existingHistory = [
+        { price: 550000, changedAt: '2025-01-01T00:00:00.000Z', changedBy: 'agent-0' },
+      ];
       const mockProperty = {
         id: 'prop-1',
         askingPrice: 550000,

@@ -55,11 +55,7 @@ export async function updateProperty(
   return updated;
 }
 
-export async function updateAskingPrice(
-  propertyId: string,
-  sellerId: string,
-  newPrice: number,
-) {
+export async function updateAskingPrice(propertyId: string, sellerId: string, newPrice: number) {
   const property = await propertyRepo.findByIdWithListings(propertyId);
   if (!property) throw new NotFoundError('Property', propertyId);
   if (property.sellerId !== sellerId) throw new ForbiddenError('You do not own this property');

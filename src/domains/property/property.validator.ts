@@ -50,10 +50,7 @@ export const validatePropertyUpdate = [
   body('storeyRange').optional().trim().notEmpty(),
   body('floorAreaSqm').optional().isFloat({ min: 30, max: 300 }).toFloat(),
   body('flatModel').optional().trim().notEmpty(),
-  body('leaseCommenceDate')
-    .optional()
-    .isInt({ min: 1960, max: new Date().getFullYear() })
-    .toInt(),
+  body('leaseCommenceDate').optional().isInt({ min: 1960, max: new Date().getFullYear() }).toInt(),
   body('remainingLease').optional().trim(),
   body('askingPrice').optional().isFloat({ min: 0 }).toFloat(),
 ];

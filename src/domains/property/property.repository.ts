@@ -1,7 +1,12 @@
 import { prisma } from '../../infra/database/prisma';
 import { createId } from '@paralleldrive/cuid2';
 import { $Enums } from '@prisma/client';
-import type { CreatePropertyInput, UpdatePropertyInput, PhotoRecord, PriceHistoryEntry } from './property.types';
+import type {
+  CreatePropertyInput,
+  UpdatePropertyInput,
+  PhotoRecord,
+  PriceHistoryEntry,
+} from './property.types';
 
 export const propertyRepository = {
   // ─── Property ──────────────────────────────────────────────
@@ -107,7 +112,8 @@ export const propertyRepository = {
 
 // Named exports to match the function-based calling pattern in tests
 export const create = propertyRepository.create.bind(propertyRepository);
-export const findByIdWithListings = propertyRepository.findByIdWithListings.bind(propertyRepository);
+export const findByIdWithListings =
+  propertyRepository.findByIdWithListings.bind(propertyRepository);
 export const findBySellerId = propertyRepository.findBySellerId.bind(propertyRepository);
 export const update = propertyRepository.update.bind(propertyRepository);
 export const appendPriceHistory = propertyRepository.appendPriceHistory.bind(propertyRepository);

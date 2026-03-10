@@ -45,10 +45,17 @@ function createTestApp() {
   app.use(propertyRouter);
 
   // Error handler for NotFoundError (404)
-  app.use((err: Error & { statusCode?: number }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    const status = err.statusCode ?? 500;
-    res.status(status).json({ error: err.message });
-  });
+  app.use(
+    (
+      err: Error & { statusCode?: number },
+      _req: express.Request,
+      res: express.Response,
+      _next: express.NextFunction,
+    ) => {
+      const status = err.statusCode ?? 500;
+      res.status(status).json({ error: err.message });
+    },
+  );
 
   return app;
 }

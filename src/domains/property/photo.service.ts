@@ -22,11 +22,17 @@ export async function validateImage(
   sizeBytes: number,
 ): Promise<{ valid: boolean; error?: string }> {
   if (!(ALLOWED_MIME_TYPES as readonly string[]).includes(mimeType)) {
-    return { valid: false, error: `Invalid file type. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}` };
+    return {
+      valid: false,
+      error: `Invalid file type. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`,
+    };
   }
 
   if (sizeBytes > MAX_PHOTO_SIZE_BYTES) {
-    return { valid: false, error: `File size exceeds maximum of ${MAX_PHOTO_SIZE_BYTES / (1024 * 1024)}MB` };
+    return {
+      valid: false,
+      error: `File size exceeds maximum of ${MAX_PHOTO_SIZE_BYTES / (1024 * 1024)}MB`,
+    };
   }
 
   const metadata = await sharp(buffer).metadata();

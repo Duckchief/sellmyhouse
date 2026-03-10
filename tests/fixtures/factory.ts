@@ -211,4 +211,44 @@ export const factory = {
       },
     });
   },
+
+  async listing(overrides: {
+    propertyId: string;
+    title?: string;
+    description?: string;
+    status?: 'draft' | 'pending_review' | 'approved' | 'live' | 'paused' | 'closed';
+    photos?: string;
+  }) {
+    return testPrisma.listing.create({
+      data: {
+        id: createId(),
+        propertyId: overrides.propertyId,
+        title: overrides.title ?? null,
+        description: overrides.description ?? null,
+        status: overrides.status ?? 'draft',
+        photos: overrides.photos ?? '[]',
+      },
+    });
+  },
+
+  async videoTutorial(overrides?: {
+    title?: string;
+    slug?: string;
+    description?: string;
+    youtubeUrl?: string;
+    category?: 'photography' | 'forms' | 'process' | 'financial';
+    orderIndex?: number;
+  }) {
+    return testPrisma.videoTutorial.create({
+      data: {
+        id: createId(),
+        title: overrides?.title ?? 'Test Tutorial',
+        slug: overrides?.slug ?? `test-tutorial-${createId()}`,
+        description: overrides?.description ?? 'A test video tutorial',
+        youtubeUrl: overrides?.youtubeUrl ?? 'https://www.youtube.com/watch?v=test',
+        category: overrides?.category ?? 'process',
+        orderIndex: overrides?.orderIndex ?? 0,
+      },
+    });
+  },
 };

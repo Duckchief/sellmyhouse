@@ -5,6 +5,8 @@ import { validateOnboardingStep } from './seller.validator';
 import { TOTAL_ONBOARDING_STEPS } from './seller.types';
 import { requireAuth, requireRole } from '@/infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
+import * as propertyService from '../property/property.service';
+import { HDB_TOWNS, HDB_FLAT_TYPES } from '../property/property.types';
 
 export const sellerRouter = Router();
 
@@ -72,13 +74,27 @@ sellerRouter.get(
   '/seller/onboarding/step/:step',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const step = parseInt(req.params['step'] as string, 10);
-      if (step < 1 || step > TOTAL_ONBOARDING_STEPS) {
+      const user = req.user as AuthenticatedUser;
+      const sellerId = user.id;
+      const stepNum = parseInt(req.params['step'] as string, 10);
+      if (stepNum < 1 || stepNum > TOTAL_ONBOARDING_STEPS) {
         return res.status(400).render('partials/error-message', {
-          message: `Invalid step: ${step}`,
+          message: `Invalid step: ${stepNum}`,
         });
       }
-      res.render(`partials/seller/onboarding-step-${step}`);
+
+      if (stepNum === 2) {
+        const onboarding = await sellerService.getOnboardingStatus(sellerId);
+        const property = await propertyService.getPropertyForSeller(sellerId);
+        return res.render('partials/seller/onboarding-step-2', {
+          status: onboarding,
+          property,
+          towns: HDB_TOWNS,
+          flatTypes: HDB_FLAT_TYPES,
+        });
+      }
+
+      res.render(`partials/seller/onboarding-step-${stepNum}`);
     } catch (err) {
       next(err);
     }
@@ -99,10 +115,67 @@ sellerRouter.post(
       }
 
       const user = req.user as AuthenticatedUser;
+      const sellerId = user.id;
       const step = parseInt(req.params['step'] as string, 10);
 
+      if (step === 2) {
+        const {
+          town,
+          street,
+          block,
+          flatType,
+          storeyRange,
+          floorAreaSqm,
+          flatModel,
+          leaseCommenceDate,
+        } = req.body;
+
+        if (
+          !town ||
+          !street ||
+          !block ||
+          !flatType ||
+          !storeyRange ||
+          !floorAreaSqm ||
+          !flatModel ||
+          !leaseCommenceDate
+        ) {
+          return res.render('partials/seller/onboarding-step-2', {
+            towns: HDB_TOWNS,
+            flatTypes: HDB_FLAT_TYPES,
+            error: 'All property fields are required.',
+          });
+        }
+
+        const existing = await propertyService.getPropertyForSeller(sellerId);
+        if (existing) {
+          await propertyService.updateProperty(existing.id, sellerId, {
+            town,
+            street,
+            block,
+            flatType,
+            storeyRange,
+            floorAreaSqm: parseFloat(floorAreaSqm),
+            flatModel,
+            leaseCommenceDate: parseInt(leaseCommenceDate, 10),
+          });
+        } else {
+          await propertyService.createProperty({
+            sellerId,
+            town,
+            street,
+            block,
+            flatType,
+            storeyRange,
+            floorAreaSqm: parseFloat(floorAreaSqm),
+            flatModel,
+            leaseCommenceDate: parseInt(leaseCommenceDate, 10),
+          });
+        }
+      }
+
       const result = await sellerService.completeOnboardingStep({
-        sellerId: user.id,
+        sellerId,
         step,
       });
 

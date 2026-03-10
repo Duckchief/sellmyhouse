@@ -1,0 +1,41 @@
+{% if photos and photos.length > 0 %}
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="photo-grid">
+  {% for photo in photos %}
+  <div class="relative group bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+    data-photo-id="{{ photo.id }}">
+    <img src="/seller/photos/{{ photo.id }}/thumbnail" alt="{{ photo.originalFilename }}"
+      class="w-full h-40 object-cover">
+    <div class="p-2">
+      <p class="text-xs text-gray-500 truncate">{{ photo.originalFilename }}</p>
+      <span class="inline-block mt-1 px-2 py-0.5 text-xs rounded-full
+        {% if photo.status == 'approved' %}bg-green-100 text-green-800
+        {% elif photo.status == 'pending_review' %}bg-yellow-100 text-yellow-800
+        {% elif photo.status == 'rejected' %}bg-red-100 text-red-800
+        {% else %}bg-blue-100 text-blue-800{% endif %}">
+        {{ photo.status | t }}
+      </span>
+    </div>
+    <button
+      hx-delete="/seller/photos/{{ photo.id }}"
+      hx-target="#photo-grid-container"
+      hx-swap="innerHTML"
+      hx-confirm="{{ 'Are you sure you want to delete this photo?' | t }}"
+      class="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  {% endfor %}
+</div>
+
+{% if photos.length > 1 %}
+<div class="mt-4">
+  <p class="text-sm text-gray-500">{{ "The first photo will be the cover image." | t }}</p>
+</div>
+{% endif %}
+{% else %}
+<div class="text-center py-12 text-gray-500">
+  <p>{{ "No photos uploaded yet. Upload your first photo above." | t }}</p>
+</div>
+{% endif %}

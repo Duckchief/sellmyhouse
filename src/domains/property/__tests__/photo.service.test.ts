@@ -4,6 +4,7 @@ import * as auditService from '../../shared/audit.service';
 import { localStorage } from '../../../infra/storage/local-storage';
 import { NotFoundError, ValidationError } from '../../shared/errors';
 import type { PhotoRecord } from '../property.types';
+import type { Listing } from '@prisma/client';
 
 // ─── Mock sharp ────────────────────────────────────────────────────────────────
 
@@ -212,8 +213,8 @@ describe('photo.service', () => {
     it('adds a photo to the listing photos array', async () => {
       const existingPhoto = makePhotoRecord({ id: 'photo-existing', displayOrder: 0 });
       const listing = makeListing([existingPhoto]);
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as any);
-      mockedRepo.updateListingPhotos.mockResolvedValue(listing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
+      mockedRepo.updateListingPhotos.mockResolvedValue(listing as unknown as Listing);
 
       const newPhoto = makePhotoRecord({ id: 'photo-new', displayOrder: 1 });
       const result = await photoService.addPhotoToListing('prop-1', newPhoto);
@@ -234,7 +235,7 @@ describe('photo.service', () => {
         makePhotoRecord({ id: `photo-${i}`, displayOrder: i }),
       );
       const listing = makeListing(photos);
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
 
       const newPhoto = makePhotoRecord({ id: 'photo-new' });
 
@@ -245,8 +246,8 @@ describe('photo.service', () => {
 
     it('adds photo to empty listing', async () => {
       const listing = makeListing([]);
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as any);
-      mockedRepo.updateListingPhotos.mockResolvedValue(listing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
+      mockedRepo.updateListingPhotos.mockResolvedValue(listing as unknown as Listing);
 
       const newPhoto = makePhotoRecord({ id: 'photo-new' });
       const result = await photoService.addPhotoToListing('prop-1', newPhoto);
@@ -273,8 +274,8 @@ describe('photo.service', () => {
       const photo1 = makePhotoRecord({ id: 'photo-1', displayOrder: 0 });
       const photo2 = makePhotoRecord({ id: 'photo-2', displayOrder: 1 });
       const listing = makeListing([photo1, photo2]);
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as any);
-      mockedRepo.updateListingPhotos.mockResolvedValue(listing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
+      mockedRepo.updateListingPhotos.mockResolvedValue(listing as unknown as Listing);
       mockedAudit.log.mockResolvedValue(undefined);
 
       const result = await photoService.removePhoto('prop-1', 'photo-1');
@@ -291,8 +292,8 @@ describe('photo.service', () => {
       const photo2 = makePhotoRecord({ id: 'photo-2', displayOrder: 1 });
       const photo3 = makePhotoRecord({ id: 'photo-3', displayOrder: 2 });
       const listing = makeListing([photo1, photo2, photo3]);
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as any);
-      mockedRepo.updateListingPhotos.mockResolvedValue(listing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
+      mockedRepo.updateListingPhotos.mockResolvedValue(listing as unknown as Listing);
       mockedAudit.log.mockResolvedValue(undefined);
 
       const result = await photoService.removePhoto('prop-1', 'photo-1');
@@ -303,7 +304,7 @@ describe('photo.service', () => {
 
     it('throws NotFoundError for missing photo', async () => {
       const listing = makeListing([makePhotoRecord({ id: 'photo-1' })]);
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
 
       await expect(photoService.removePhoto('prop-1', 'nonexistent-photo')).rejects.toThrow(
         NotFoundError,
@@ -319,8 +320,8 @@ describe('photo.service', () => {
     it('logs audit after removing photo', async () => {
       const photo = makePhotoRecord({ id: 'photo-1' });
       const listing = makeListing([photo]);
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as any);
-      mockedRepo.updateListingPhotos.mockResolvedValue(listing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
+      mockedRepo.updateListingPhotos.mockResolvedValue(listing as unknown as Listing);
       mockedAudit.log.mockResolvedValue(undefined);
 
       await photoService.removePhoto('prop-1', 'photo-1');
@@ -344,8 +345,8 @@ describe('photo.service', () => {
       const photo2 = makePhotoRecord({ id: 'photo-2', displayOrder: 1 });
       const photo3 = makePhotoRecord({ id: 'photo-3', displayOrder: 2 });
       const listing = makeListing([photo1, photo2, photo3]);
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as any);
-      mockedRepo.updateListingPhotos.mockResolvedValue(listing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
+      mockedRepo.updateListingPhotos.mockResolvedValue(listing as unknown as Listing);
 
       const result = await photoService.reorderPhotos('prop-1', ['photo-3', 'photo-1', 'photo-2']);
 
@@ -361,8 +362,8 @@ describe('photo.service', () => {
       const photo1 = makePhotoRecord({ id: 'photo-1', displayOrder: 0 });
       const photo2 = makePhotoRecord({ id: 'photo-2', displayOrder: 1 });
       const listing = makeListing([photo1, photo2]);
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as any);
-      mockedRepo.updateListingPhotos.mockResolvedValue(listing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
+      mockedRepo.updateListingPhotos.mockResolvedValue(listing as unknown as Listing);
 
       await photoService.reorderPhotos('prop-1', ['photo-2', 'photo-1']);
 
@@ -392,7 +393,7 @@ describe('photo.service', () => {
       const photo2 = makePhotoRecord({ id: 'photo-2', displayOrder: 0 });
       const photo3 = makePhotoRecord({ id: 'photo-3', displayOrder: 1 });
       const listing = makeListing([photo1, photo2, photo3]);
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
 
       const result = await photoService.getPhotosForProperty('prop-1');
 
@@ -403,7 +404,7 @@ describe('photo.service', () => {
 
     it('returns empty array when listing has no photos', async () => {
       const listing = makeListing([]);
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
 
       const result = await photoService.getPhotosForProperty('prop-1');
 

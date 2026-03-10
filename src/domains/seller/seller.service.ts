@@ -12,6 +12,7 @@ import {
   type TimelineMilestone,
   type DocumentChecklistItem,
 } from './seller.types';
+import type { Property, VideoTutorial } from '@prisma/client';
 
 export async function getOnboardingStatus(sellerId: string): Promise<OnboardingStatus> {
   const seller = await sellerRepo.findById(sellerId);
@@ -113,10 +114,10 @@ export async function getMyData(sellerId: string): Promise<SellerMyData> {
   };
 }
 
-export async function getTutorialsGrouped(): Promise<Record<string, any[]>> {
+export async function getTutorialsGrouped(): Promise<Record<string, VideoTutorial[]>> {
   const tutorials = await sellerRepo.findTutorialsGroupedByCategory();
 
-  return tutorials.reduce((acc: Record<string, any[]>, t) => {
+  return tutorials.reduce((acc: Record<string, VideoTutorial[]>, t) => {
     if (!acc[t.category]) acc[t.category] = [];
     acc[t.category].push(t);
     return acc;
@@ -236,7 +237,7 @@ function buildOnboardingStatus(step: number): OnboardingStatus {
   };
 }
 
-function buildNextSteps(onboarding: OnboardingStatus, property: any): NextStep[] {
+function buildNextSteps(onboarding: OnboardingStatus, property: Property | null): NextStep[] {
   const steps: NextStep[] = [];
 
   if (!onboarding.isComplete) {

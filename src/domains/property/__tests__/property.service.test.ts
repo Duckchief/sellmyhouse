@@ -2,6 +2,8 @@ import * as propertyService from '../property.service';
 import * as propertyRepo from '../property.repository';
 import * as auditService from '../../shared/audit.service';
 import { NotFoundError, ForbiddenError, ValidationError } from '../../shared/errors';
+import type { Property, Listing } from '@prisma/client';
+import type { PropertyWithListing } from '../property.types';
 
 jest.mock('../property.repository');
 jest.mock('../../shared/audit.service');
@@ -31,8 +33,8 @@ describe('property.service', () => {
       const fakeProperty = { id: 'prop-1', ...input };
       const fakeListing = { id: 'listing-1', propertyId: 'prop-1', status: 'draft' };
 
-      mockedRepo.create.mockResolvedValue(fakeProperty as any);
-      mockedRepo.createListing.mockResolvedValue(fakeListing as any);
+      mockedRepo.create.mockResolvedValue(fakeProperty as Property);
+      mockedRepo.createListing.mockResolvedValue(fakeListing as unknown as Listing);
       mockedAudit.log.mockResolvedValue(undefined);
 
       const result = await propertyService.createProperty(input);
@@ -55,7 +57,7 @@ describe('property.service', () => {
   describe('getPropertyForSeller', () => {
     it('returns property when found', async () => {
       const fakeProperty = { id: 'prop-1', sellerId: 'seller-1' };
-      mockedRepo.findBySellerId.mockResolvedValue(fakeProperty as any);
+      mockedRepo.findBySellerId.mockResolvedValue(fakeProperty as unknown as PropertyWithListing);
 
       const result = await propertyService.getPropertyForSeller('seller-1');
 
@@ -77,7 +79,9 @@ describe('property.service', () => {
   describe('getPropertyById', () => {
     it('returns property with listings when found', async () => {
       const fakeProperty = { id: 'prop-1', listings: [] };
-      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as any);
+      mockedRepo.findByIdWithListings.mockResolvedValue(
+        fakeProperty as unknown as PropertyWithListing,
+      );
 
       const result = await propertyService.getPropertyById('prop-1');
 
@@ -103,8 +107,10 @@ describe('property.service', () => {
         listings: [],
       };
 
-      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as any);
-      mockedRepo.update.mockResolvedValue(updatedProperty as any);
+      mockedRepo.findByIdWithListings.mockResolvedValue(
+        fakeProperty as unknown as PropertyWithListing,
+      );
+      mockedRepo.update.mockResolvedValue(updatedProperty as unknown as PropertyWithListing);
       mockedAudit.log.mockResolvedValue(undefined);
 
       const result = await propertyService.updateProperty('prop-1', 'seller-1', {
@@ -132,7 +138,9 @@ describe('property.service', () => {
 
     it('throws ForbiddenError when sellerId does not match', async () => {
       const fakeProperty = { id: 'prop-1', sellerId: 'seller-1', listings: [] };
-      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as any);
+      mockedRepo.findByIdWithListings.mockResolvedValue(
+        fakeProperty as unknown as PropertyWithListing,
+      );
 
       await expect(
         propertyService.updateProperty('prop-1', 'seller-OTHER', { flatType: '5 ROOM' }),
@@ -144,12 +152,14 @@ describe('property.service', () => {
       const fakeProperty = { id: 'prop-1', sellerId: 'seller-1', listings: [liveListing] };
       const updatedProperty = { id: 'prop-1', sellerId: 'seller-1', listings: [liveListing] };
 
-      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as any);
-      mockedRepo.update.mockResolvedValue(updatedProperty as any);
+      mockedRepo.findByIdWithListings.mockResolvedValue(
+        fakeProperty as unknown as PropertyWithListing,
+      );
+      mockedRepo.update.mockResolvedValue(updatedProperty as unknown as PropertyWithListing);
       mockedRepo.updateListingStatus.mockResolvedValue({
         ...liveListing,
         status: 'pending_review',
-      } as any);
+      } as unknown as Listing);
       mockedAudit.log.mockResolvedValue(undefined);
 
       await propertyService.updateProperty('prop-1', 'seller-1', { flatType: '5 ROOM' });
@@ -162,8 +172,10 @@ describe('property.service', () => {
       const fakeProperty = { id: 'prop-1', sellerId: 'seller-1', listings: [draftListing] };
       const updatedProperty = { id: 'prop-1', sellerId: 'seller-1', listings: [draftListing] };
 
-      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as any);
-      mockedRepo.update.mockResolvedValue(updatedProperty as any);
+      mockedRepo.findByIdWithListings.mockResolvedValue(
+        fakeProperty as unknown as PropertyWithListing,
+      );
+      mockedRepo.update.mockResolvedValue(updatedProperty as unknown as PropertyWithListing);
       mockedAudit.log.mockResolvedValue(undefined);
 
       await propertyService.updateProperty('prop-1', 'seller-1', { flatType: '5 ROOM' });
@@ -184,8 +196,12 @@ describe('property.service', () => {
       };
       const updatedProperty = { ...fakeProperty, askingPrice: 520000 };
 
-      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as any);
-      mockedRepo.appendPriceHistory.mockResolvedValue(updatedProperty as any);
+      mockedRepo.findByIdWithListings.mockResolvedValue(
+        fakeProperty as unknown as PropertyWithListing,
+      );
+      mockedRepo.appendPriceHistory.mockResolvedValue(
+        updatedProperty as unknown as PropertyWithListing,
+      );
       mockedAudit.log.mockResolvedValue(undefined);
 
       await propertyService.updateAskingPrice('prop-1', 'seller-1', 520000);
@@ -214,12 +230,16 @@ describe('property.service', () => {
       };
       const updatedProperty = { ...fakeProperty, askingPrice: 520000, listings: [liveListing] };
 
-      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as any);
-      mockedRepo.appendPriceHistory.mockResolvedValue(updatedProperty as any);
+      mockedRepo.findByIdWithListings.mockResolvedValue(
+        fakeProperty as unknown as PropertyWithListing,
+      );
+      mockedRepo.appendPriceHistory.mockResolvedValue(
+        updatedProperty as unknown as PropertyWithListing,
+      );
       mockedRepo.updateListingStatus.mockResolvedValue({
         ...liveListing,
         status: 'pending_review',
-      } as any);
+      } as unknown as Listing);
       mockedAudit.log.mockResolvedValue(undefined);
 
       await propertyService.updateAskingPrice('prop-1', 'seller-1', 520000);
@@ -237,8 +257,12 @@ describe('property.service', () => {
       };
       const updatedProperty = { ...fakeProperty, askingPrice: 520000, listings: [draftListing] };
 
-      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as any);
-      mockedRepo.appendPriceHistory.mockResolvedValue(updatedProperty as any);
+      mockedRepo.findByIdWithListings.mockResolvedValue(
+        fakeProperty as unknown as PropertyWithListing,
+      );
+      mockedRepo.appendPriceHistory.mockResolvedValue(
+        updatedProperty as unknown as PropertyWithListing,
+      );
       mockedAudit.log.mockResolvedValue(undefined);
 
       await propertyService.updateAskingPrice('prop-1', 'seller-1', 520000);
@@ -261,7 +285,9 @@ describe('property.service', () => {
         askingPrice: 500000,
         listings: [],
       };
-      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as any);
+      mockedRepo.findByIdWithListings.mockResolvedValue(
+        fakeProperty as unknown as PropertyWithListing,
+      );
 
       await expect(
         propertyService.updateAskingPrice('prop-1', 'seller-OTHER', 520000),
@@ -276,8 +302,8 @@ describe('property.service', () => {
       const fakeListing = { id: 'listing-1', propertyId: 'prop-1', status: 'draft' };
       const updatedListing = { ...fakeListing, status: 'pending_review' };
 
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as any);
-      mockedRepo.updateListingStatus.mockResolvedValue(updatedListing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as unknown as Listing);
+      mockedRepo.updateListingStatus.mockResolvedValue(updatedListing as unknown as Listing);
       mockedAudit.log.mockResolvedValue(undefined);
 
       const result = await propertyService.updateListingStatus('prop-1', 'pending_review');
@@ -296,7 +322,7 @@ describe('property.service', () => {
 
     it('rejects invalid transition draft -> live', async () => {
       const fakeListing = { id: 'listing-1', propertyId: 'prop-1', status: 'draft' };
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as unknown as Listing);
 
       await expect(propertyService.updateListingStatus('prop-1', 'live')).rejects.toThrow(
         ValidationError,
@@ -315,8 +341,8 @@ describe('property.service', () => {
       const fakeListing = { id: 'listing-1', propertyId: 'prop-1', status: 'pending_review' };
       const updatedListing = { ...fakeListing, status: 'approved' };
 
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as any);
-      mockedRepo.updateListingStatus.mockResolvedValue(updatedListing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as unknown as Listing);
+      mockedRepo.updateListingStatus.mockResolvedValue(updatedListing as unknown as Listing);
       mockedAudit.log.mockResolvedValue(undefined);
 
       const result = await propertyService.updateListingStatus('prop-1', 'approved');
@@ -326,7 +352,7 @@ describe('property.service', () => {
 
     it('rejects invalid transition closed -> live', async () => {
       const fakeListing = { id: 'listing-1', propertyId: 'prop-1', status: 'closed' };
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as any);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as unknown as Listing);
 
       await expect(propertyService.updateListingStatus('prop-1', 'live')).rejects.toThrow(
         ValidationError,

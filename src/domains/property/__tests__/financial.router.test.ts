@@ -1,5 +1,6 @@
 import express from 'express';
 import request from 'supertest';
+import type { FinancialReport } from '@prisma/client';
 import { financialRouter } from '../financial.router';
 import * as financialService from '../financial.service';
 
@@ -15,15 +16,17 @@ function createTestApp() {
 
   // Mock authenticated seller
   app.use((req, _res, next) => {
-    (req as any).isAuthenticated = () => true;
-    (req as any).user = {
-      id: 'seller-1',
-      role: 'seller',
-      name: 'Test Seller',
-      email: 'test@test.com',
-      twoFactorEnabled: false,
-      twoFactorVerified: false,
-    };
+    Object.assign(req, {
+      isAuthenticated: () => true,
+      user: {
+        id: 'seller-1',
+        role: 'seller',
+        name: 'Test Seller',
+        email: 'test@test.com',
+        twoFactorEnabled: false,
+        twoFactorVerified: false,
+      },
+    });
     next();
   });
 
@@ -38,15 +41,17 @@ function createAgentTestApp() {
   app.use(express.urlencoded({ extended: true }));
 
   app.use((req, _res, next) => {
-    (req as any).isAuthenticated = () => true;
-    (req as any).user = {
-      id: 'agent-1',
-      role: 'agent',
-      name: 'Test Agent',
-      email: 'agent@test.com',
-      twoFactorEnabled: false,
-      twoFactorVerified: false,
-    };
+    Object.assign(req, {
+      isAuthenticated: () => true,
+      user: {
+        id: 'agent-1',
+        role: 'agent',
+        name: 'Test Agent',
+        email: 'agent@test.com',
+        twoFactorEnabled: false,
+        twoFactorVerified: false,
+      },
+    });
     next();
   });
 
@@ -65,7 +70,7 @@ describe('financial.router', () => {
         id: 'report-1',
         version: 1,
         reportData: { outputs: { netCashProceeds: 127857 } },
-      } as any);
+      } as unknown as FinancialReport);
       mockService.generateNarrative.mockResolvedValue(undefined);
 
       const app = createTestApp();
@@ -105,7 +110,7 @@ describe('financial.router', () => {
       mockService.getReportsForSeller.mockResolvedValue([
         { id: 'r1', version: 2 },
         { id: 'r2', version: 1 },
-      ] as any[]);
+      ] as unknown as FinancialReport[]);
 
       const app = createTestApp();
       const res = await request(app).get('/seller/financial');
@@ -123,7 +128,7 @@ describe('financial.router', () => {
         id: 'report-1',
         sellerId: 'seller-1',
         reportData: {},
-      } as any);
+      } as unknown as FinancialReport);
 
       const app = createTestApp();
       const res = await request(app).get('/seller/financial/report/report-1');

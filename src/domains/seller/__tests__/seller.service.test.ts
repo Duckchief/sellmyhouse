@@ -4,6 +4,9 @@ import * as notificationRepo from '../../notification/notification.repository';
 import * as auditService from '../../shared/audit.service';
 import { NotFoundError, ValidationError } from '../../shared/errors';
 import { TOTAL_ONBOARDING_STEPS } from '../seller.types';
+import type { Seller, VideoTutorial } from '@prisma/client';
+
+type SellerWithRelations = Awaited<ReturnType<typeof sellerRepo.getSellerWithRelations>>;
 
 jest.mock('../seller.repository');
 jest.mock('../../notification/notification.repository');
@@ -21,7 +24,7 @@ describe('seller.service', () => {
       mockedSellerRepo.findById.mockResolvedValue({
         id: 'seller-1',
         onboardingStep: 0,
-      } as any);
+      } as Seller);
 
       const result = await sellerService.getOnboardingStatus('seller-1');
 
@@ -36,7 +39,7 @@ describe('seller.service', () => {
       mockedSellerRepo.findById.mockResolvedValue({
         id: 'seller-1',
         onboardingStep: TOTAL_ONBOARDING_STEPS,
-      } as any);
+      } as Seller);
 
       const result = await sellerService.getOnboardingStatus('seller-1');
 
@@ -56,11 +59,11 @@ describe('seller.service', () => {
       mockedSellerRepo.findById.mockResolvedValue({
         id: 'seller-1',
         onboardingStep: 1,
-      } as any);
+      } as Seller);
       mockedSellerRepo.updateOnboardingStep.mockResolvedValue({
         id: 'seller-1',
         onboardingStep: 2,
-      } as any);
+      } as Seller);
 
       const result = await sellerService.completeOnboardingStep({
         sellerId: 'seller-1',
@@ -75,7 +78,7 @@ describe('seller.service', () => {
       mockedSellerRepo.findById.mockResolvedValue({
         id: 'seller-1',
         onboardingStep: 0,
-      } as any);
+      } as Seller);
 
       await expect(
         sellerService.completeOnboardingStep({
@@ -89,7 +92,7 @@ describe('seller.service', () => {
       mockedSellerRepo.findById.mockResolvedValue({
         id: 'seller-1',
         onboardingStep: 3,
-      } as any);
+      } as Seller);
 
       await expect(
         sellerService.completeOnboardingStep({
@@ -103,7 +106,7 @@ describe('seller.service', () => {
       mockedSellerRepo.findById.mockResolvedValue({
         id: 'seller-1',
         onboardingStep: 1,
-      } as any);
+      } as Seller);
 
       await expect(
         sellerService.completeOnboardingStep({
@@ -117,7 +120,7 @@ describe('seller.service', () => {
       mockedSellerRepo.findById.mockResolvedValue({
         id: 'seller-1',
         onboardingStep: 3,
-      } as any);
+      } as Seller);
 
       await expect(
         sellerService.completeOnboardingStep({
@@ -131,7 +134,7 @@ describe('seller.service', () => {
       mockedSellerRepo.findById.mockResolvedValue({
         id: 'seller-1',
         onboardingStep: TOTAL_ONBOARDING_STEPS,
-      } as any);
+      } as Seller);
 
       await expect(
         sellerService.completeOnboardingStep({
@@ -145,11 +148,11 @@ describe('seller.service', () => {
       mockedSellerRepo.findById.mockResolvedValue({
         id: 'seller-1',
         onboardingStep: 0,
-      } as any);
+      } as Seller);
       mockedSellerRepo.updateOnboardingStep.mockResolvedValue({
         id: 'seller-1',
         onboardingStep: 1,
-      } as any);
+      } as Seller);
 
       await sellerService.completeOnboardingStep({
         sellerId: 'seller-1',
@@ -180,7 +183,7 @@ describe('seller.service', () => {
         transactions: [],
         consentRecords: [],
         caseFlags: [],
-      } as any);
+      } as unknown as SellerWithRelations);
       mockedNotificationRepo.countUnreadForRecipient.mockResolvedValue(5);
 
       const result = await sellerService.getDashboardOverview('seller-1');
@@ -211,7 +214,7 @@ describe('seller.service', () => {
         consentTimestamp: new Date('2026-01-01'),
         consentWithdrawnAt: null,
         status: 'active',
-      } as any);
+      } as Seller);
       mockedSellerRepo.getConsentHistory.mockResolvedValue([]);
 
       const result = await sellerService.getMyData('seller-1');
@@ -231,7 +234,7 @@ describe('seller.service', () => {
         { id: 't1', category: 'photography', title: 'Photo tips', orderIndex: 1 },
         { id: 't2', category: 'photography', title: 'Lighting', orderIndex: 2 },
         { id: 't3', category: 'process', title: 'Timeline', orderIndex: 1 },
-      ] as any);
+      ] as VideoTutorial[]);
 
       const result = await sellerService.getTutorialsGrouped();
 

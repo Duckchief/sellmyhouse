@@ -5,11 +5,13 @@ jest.mock('../../../infra/database/prisma', () => ({
   prisma: {
     seller: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
     agent: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       update: jest.fn(),
     },
     consentRecord: {
@@ -117,6 +119,33 @@ describe('AuthRepository', () => {
         data: { failedLoginAttempts: 0, loginLockedUntil: null },
       });
     });
+
+    it('setSellerPasswordResetToken sets token and expiry', async () => {
+      prisma.seller.update.mockResolvedValue({});
+      const expiry = new Date('2026-03-12T01:00:00Z');
+      await authRepo.setSellerPasswordResetToken('s1', 'hashed-token', expiry);
+      expect(prisma.seller.update).toHaveBeenCalledWith({
+        where: { id: 's1' },
+        data: { passwordResetToken: 'hashed-token', passwordResetExpiry: expiry },
+      });
+    });
+
+    it('findSellerByResetToken queries with findFirst and correct where clause', async () => {
+      prisma.seller.findFirst.mockResolvedValue(null);
+      await authRepo.findSellerByResetToken('hashed-token');
+      expect(prisma.seller.findFirst).toHaveBeenCalledWith({
+        where: { passwordResetToken: 'hashed-token' },
+      });
+    });
+
+    it('clearSellerPasswordResetToken sets both fields to null', async () => {
+      prisma.seller.update.mockResolvedValue({});
+      await authRepo.clearSellerPasswordResetToken('s1');
+      expect(prisma.seller.update).toHaveBeenCalledWith({
+        where: { id: 's1' },
+        data: { passwordResetToken: null, passwordResetExpiry: null },
+      });
+    });
   });
 
   describe('agent', () => {
@@ -162,6 +191,33 @@ describe('AuthRepository', () => {
       expect(prisma.agent.update).toHaveBeenCalledWith({
         where: { id: 'a1' },
         data: { failedLoginAttempts: 0, loginLockedUntil: null },
+      });
+    });
+
+    it('setAgentPasswordResetToken sets token and expiry', async () => {
+      prisma.agent.update.mockResolvedValue({});
+      const expiry = new Date('2026-03-12T01:00:00Z');
+      await authRepo.setAgentPasswordResetToken('a1', 'hashed-token', expiry);
+      expect(prisma.agent.update).toHaveBeenCalledWith({
+        where: { id: 'a1' },
+        data: { passwordResetToken: 'hashed-token', passwordResetExpiry: expiry },
+      });
+    });
+
+    it('findAgentByResetToken queries with findFirst and correct where clause', async () => {
+      prisma.agent.findFirst.mockResolvedValue(null);
+      await authRepo.findAgentByResetToken('hashed-token');
+      expect(prisma.agent.findFirst).toHaveBeenCalledWith({
+        where: { passwordResetToken: 'hashed-token' },
+      });
+    });
+
+    it('clearAgentPasswordResetToken sets both fields to null', async () => {
+      prisma.agent.update.mockResolvedValue({});
+      await authRepo.clearAgentPasswordResetToken('a1');
+      expect(prisma.agent.update).toHaveBeenCalledWith({
+        where: { id: 'a1' },
+        data: { passwordResetToken: null, passwordResetExpiry: null },
       });
     });
   });

@@ -106,6 +106,26 @@ export function resetSellerLoginAttempts(id: string) {
   });
 }
 
+export function setSellerPasswordResetToken(id: string, hashedToken: string, expiry: Date) {
+  return prisma.seller.update({
+    where: { id },
+    data: { passwordResetToken: hashedToken, passwordResetExpiry: expiry },
+  });
+}
+
+export function findSellerByResetToken(hashedToken: string) {
+  return prisma.seller.findFirst({
+    where: { passwordResetToken: hashedToken },
+  });
+}
+
+export function clearSellerPasswordResetToken(id: string) {
+  return prisma.seller.update({
+    where: { id },
+    data: { passwordResetToken: null, passwordResetExpiry: null },
+  });
+}
+
 // ─── Agent ─────────────────────────────────────────────────
 
 export function findAgentByEmail(email: string) {
@@ -183,6 +203,26 @@ export function resetAgentLoginAttempts(id: string) {
   return prisma.agent.update({
     where: { id },
     data: { failedLoginAttempts: 0, loginLockedUntil: null },
+  });
+}
+
+export function setAgentPasswordResetToken(id: string, hashedToken: string, expiry: Date) {
+  return prisma.agent.update({
+    where: { id },
+    data: { passwordResetToken: hashedToken, passwordResetExpiry: expiry },
+  });
+}
+
+export function findAgentByResetToken(hashedToken: string) {
+  return prisma.agent.findFirst({
+    where: { passwordResetToken: hashedToken },
+  });
+}
+
+export function clearAgentPasswordResetToken(id: string) {
+  return prisma.agent.update({
+    where: { id },
+    data: { passwordResetToken: null, passwordResetExpiry: null },
   });
 }
 

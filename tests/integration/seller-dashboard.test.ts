@@ -114,9 +114,7 @@ describe('Seller Dashboard Integration', () => {
   describe('GET /seller/onboarding/step/:step — HTMX partial', () => {
     it('returns 200 with partial content for step 1 when HX-Request header is present', async () => {
       const { agent } = await loginAsSeller({ onboardingStep: 0 });
-      const res = await agent
-        .get('/seller/onboarding/step/1')
-        .set('HX-Request', 'true');
+      const res = await agent.get('/seller/onboarding/step/1').set('HX-Request', 'true');
       expect(res.status).toBe(200);
       // Should be HTML fragment, not a full page (no <html> wrapper expected)
       expect(res.text).toBeTruthy();
@@ -130,17 +128,13 @@ describe('Seller Dashboard Integration', () => {
 
     it('returns 400 for step 0 (out of range)', async () => {
       const { agent } = await loginAsSeller({ onboardingStep: 0 });
-      const res = await agent
-        .get('/seller/onboarding/step/0')
-        .set('HX-Request', 'true');
+      const res = await agent.get('/seller/onboarding/step/0').set('HX-Request', 'true');
       expect(res.status).toBe(400);
     });
 
     it('returns 400 for step 6 (out of range)', async () => {
       const { agent } = await loginAsSeller({ onboardingStep: 0 });
-      const res = await agent
-        .get('/seller/onboarding/step/6')
-        .set('HX-Request', 'true');
+      const res = await agent.get('/seller/onboarding/step/6').set('HX-Request', 'true');
       expect(res.status).toBe(400);
     });
   });

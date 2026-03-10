@@ -47,8 +47,7 @@ describe('seller.service', () => {
     it('throws NotFoundError for nonexistent seller', async () => {
       mockedSellerRepo.findById.mockResolvedValue(null);
 
-      await expect(sellerService.getOnboardingStatus('bad-id'))
-        .rejects.toThrow(NotFoundError);
+      await expect(sellerService.getOnboardingStatus('bad-id')).rejects.toThrow(NotFoundError);
     });
   });
 
@@ -68,8 +67,7 @@ describe('seller.service', () => {
         step: 2,
       });
 
-      expect(mockedSellerRepo.updateOnboardingStep)
-        .toHaveBeenCalledWith('seller-1', 2);
+      expect(mockedSellerRepo.updateOnboardingStep).toHaveBeenCalledWith('seller-1', 2);
       expect(result.onboardingStep).toBe(2);
     });
 
@@ -79,10 +77,12 @@ describe('seller.service', () => {
         onboardingStep: 0,
       } as any);
 
-      await expect(sellerService.completeOnboardingStep({
-        sellerId: 'seller-1',
-        step: 0,
-      })).rejects.toThrow(ValidationError);
+      await expect(
+        sellerService.completeOnboardingStep({
+          sellerId: 'seller-1',
+          step: 0,
+        }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('rejects step beyond total', async () => {
@@ -91,10 +91,12 @@ describe('seller.service', () => {
         onboardingStep: 3,
       } as any);
 
-      await expect(sellerService.completeOnboardingStep({
-        sellerId: 'seller-1',
-        step: TOTAL_ONBOARDING_STEPS + 1,
-      })).rejects.toThrow(ValidationError);
+      await expect(
+        sellerService.completeOnboardingStep({
+          sellerId: 'seller-1',
+          step: TOTAL_ONBOARDING_STEPS + 1,
+        }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('rejects skipping steps', async () => {
@@ -103,10 +105,12 @@ describe('seller.service', () => {
         onboardingStep: 1,
       } as any);
 
-      await expect(sellerService.completeOnboardingStep({
-        sellerId: 'seller-1',
-        step: 3,
-      })).rejects.toThrow(ValidationError);
+      await expect(
+        sellerService.completeOnboardingStep({
+          sellerId: 'seller-1',
+          step: 3,
+        }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('rejects going backward', async () => {
@@ -115,10 +119,12 @@ describe('seller.service', () => {
         onboardingStep: 3,
       } as any);
 
-      await expect(sellerService.completeOnboardingStep({
-        sellerId: 'seller-1',
-        step: 2,
-      })).rejects.toThrow(ValidationError);
+      await expect(
+        sellerService.completeOnboardingStep({
+          sellerId: 'seller-1',
+          step: 2,
+        }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('rejects completing step when already fully onboarded', async () => {
@@ -127,10 +133,12 @@ describe('seller.service', () => {
         onboardingStep: TOTAL_ONBOARDING_STEPS,
       } as any);
 
-      await expect(sellerService.completeOnboardingStep({
-        sellerId: 'seller-1',
-        step: TOTAL_ONBOARDING_STEPS + 1,
-      })).rejects.toThrow(ValidationError);
+      await expect(
+        sellerService.completeOnboardingStep({
+          sellerId: 'seller-1',
+          step: TOTAL_ONBOARDING_STEPS + 1,
+        }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('logs audit entry on step completion', async () => {
@@ -187,8 +195,7 @@ describe('seller.service', () => {
     it('throws NotFoundError for nonexistent seller', async () => {
       mockedSellerRepo.getSellerWithRelations.mockResolvedValue(null);
 
-      await expect(sellerService.getDashboardOverview('bad-id'))
-        .rejects.toThrow(NotFoundError);
+      await expect(sellerService.getDashboardOverview('bad-id')).rejects.toThrow(NotFoundError);
     });
   });
 

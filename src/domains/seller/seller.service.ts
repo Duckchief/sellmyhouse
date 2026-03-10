@@ -28,17 +28,13 @@ export async function completeOnboardingStep(
 
   // Validate bounds first
   if (input.step < 1 || input.step > TOTAL_ONBOARDING_STEPS) {
-    throw new ValidationError(
-      `Step must be between 1 and ${TOTAL_ONBOARDING_STEPS}.`,
-    );
+    throw new ValidationError(`Step must be between 1 and ${TOTAL_ONBOARDING_STEPS}.`);
   }
 
   // Validate sequential progression
   const expectedStep = seller.onboardingStep + 1;
   if (input.step !== expectedStep) {
-    throw new ValidationError(
-      `Cannot complete step ${input.step}. Expected step ${expectedStep}.`,
-    );
+    throw new ValidationError(`Cannot complete step ${input.step}. Expected step ${expectedStep}.`);
   }
 
   const updated = await sellerRepo.updateOnboardingStep(input.sellerId, input.step);
@@ -129,14 +125,34 @@ export async function getTutorialsGrouped(): Promise<Record<string, any[]>> {
 
 export function getTimelineMilestones(
   propertyStatus: string | null,
-  transactionStatus: string | null,
+  _transactionStatus: string | null,
 ): TimelineMilestone[] {
   const milestones: TimelineMilestone[] = [
-    { label: 'Property Listed', status: 'upcoming', date: null, description: 'Your property is live on the market' },
+    {
+      label: 'Property Listed',
+      status: 'upcoming',
+      date: null,
+      description: 'Your property is live on the market',
+    },
     { label: 'Viewings', status: 'upcoming', date: null, description: 'Buyers view your home' },
-    { label: 'Offer Received', status: 'upcoming', date: null, description: 'A buyer makes an offer' },
-    { label: 'OTP Issued', status: 'upcoming', date: null, description: 'Option to Purchase signed' },
-    { label: 'OTP Exercised', status: 'upcoming', date: null, description: 'Buyer exercises the option' },
+    {
+      label: 'Offer Received',
+      status: 'upcoming',
+      date: null,
+      description: 'A buyer makes an offer',
+    },
+    {
+      label: 'OTP Issued',
+      status: 'upcoming',
+      date: null,
+      description: 'Option to Purchase signed',
+    },
+    {
+      label: 'OTP Exercised',
+      status: 'upcoming',
+      date: null,
+      description: 'Buyer exercises the option',
+    },
     { label: 'Completion', status: 'upcoming', date: null, description: 'Sale completed' },
   ];
 
@@ -160,11 +176,46 @@ export function getTimelineMilestones(
 
 export function getDocumentChecklist(propertyStatus: string | null): DocumentChecklistItem[] {
   const items: DocumentChecklistItem[] = [
-    { id: 'nric', label: 'NRIC', description: 'Identity document for verification', required: true, status: 'not_uploaded', applicableStages: ['draft', 'listed'] },
-    { id: 'marriage-cert', label: 'Marriage Certificate', description: 'If property is jointly owned', required: false, status: 'not_uploaded', applicableStages: ['draft', 'listed'] },
-    { id: 'eligibility-letter', label: 'HDB Eligibility Letter', description: 'From HDB after resale application', required: true, status: 'not_uploaded', applicableStages: ['under_option', 'completing'] },
-    { id: 'otp-scan', label: 'Signed OTP', description: 'Scanned copy of signed Option to Purchase', required: true, status: 'not_uploaded', applicableStages: ['under_option'] },
-    { id: 'estate-agency-agreement', label: 'Estate Agency Agreement', description: 'CEA Form 1 signed with agent', required: true, status: 'not_uploaded', applicableStages: ['draft', 'listed'] },
+    {
+      id: 'nric',
+      label: 'NRIC',
+      description: 'Identity document for verification',
+      required: true,
+      status: 'not_uploaded',
+      applicableStages: ['draft', 'listed'],
+    },
+    {
+      id: 'marriage-cert',
+      label: 'Marriage Certificate',
+      description: 'If property is jointly owned',
+      required: false,
+      status: 'not_uploaded',
+      applicableStages: ['draft', 'listed'],
+    },
+    {
+      id: 'eligibility-letter',
+      label: 'HDB Eligibility Letter',
+      description: 'From HDB after resale application',
+      required: true,
+      status: 'not_uploaded',
+      applicableStages: ['under_option', 'completing'],
+    },
+    {
+      id: 'otp-scan',
+      label: 'Signed OTP',
+      description: 'Scanned copy of signed Option to Purchase',
+      required: true,
+      status: 'not_uploaded',
+      applicableStages: ['under_option'],
+    },
+    {
+      id: 'estate-agency-agreement',
+      label: 'Estate Agency Agreement',
+      description: 'CEA Form 1 signed with agent',
+      required: true,
+      status: 'not_uploaded',
+      applicableStages: ['draft', 'listed'],
+    },
   ];
 
   if (!propertyStatus) return items;
@@ -185,10 +236,7 @@ function buildOnboardingStatus(step: number): OnboardingStatus {
   };
 }
 
-function buildNextSteps(
-  onboarding: OnboardingStatus,
-  property: any,
-): NextStep[] {
+function buildNextSteps(onboarding: OnboardingStatus, property: any): NextStep[] {
   const steps: NextStep[] = [];
 
   if (!onboarding.isComplete) {

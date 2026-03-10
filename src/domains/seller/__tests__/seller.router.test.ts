@@ -31,7 +31,14 @@ function createTestApp() {
 
   // Mock authenticated seller
   app.use((req, _res, next) => {
-    req.user = { id: 'seller-1', role: 'seller', email: 'test@test.local', name: 'Test', twoFactorEnabled: false, twoFactorVerified: false };
+    req.user = {
+      id: 'seller-1',
+      role: 'seller',
+      email: 'test@test.local',
+      name: 'Test',
+      twoFactorEnabled: false,
+      twoFactorVerified: false,
+    };
     req.isAuthenticated = (() => true) as typeof req.isAuthenticated;
     next();
   });
@@ -51,7 +58,14 @@ describe('seller.router', () => {
   describe('GET /seller/dashboard', () => {
     it('redirects to onboarding if not complete', async () => {
       mockedService.getDashboardOverview.mockResolvedValue({
-        seller: { id: 'seller-1', name: 'Test', email: 'test@test.local', phone: '91234567', status: 'lead', onboardingStep: 2 },
+        seller: {
+          id: 'seller-1',
+          name: 'Test',
+          email: 'test@test.local',
+          phone: '91234567',
+          status: 'lead',
+          onboardingStep: 2,
+        },
         onboarding: { currentStep: 2, isComplete: false, completedSteps: [1, 2] },
         propertyStatus: null,
         transactionStatus: null,
@@ -67,7 +81,14 @@ describe('seller.router', () => {
 
     it('renders dashboard when onboarding is complete', async () => {
       mockedService.getDashboardOverview.mockResolvedValue({
-        seller: { id: 'seller-1', name: 'Test', email: 'test@test.local', phone: '91234567', status: 'engaged', onboardingStep: 5 },
+        seller: {
+          id: 'seller-1',
+          name: 'Test',
+          email: 'test@test.local',
+          phone: '91234567',
+          status: 'engaged',
+          onboardingStep: 5,
+        },
         onboarding: { currentStep: 5, isComplete: true, completedSteps: [1, 2, 3, 4, 5] },
         propertyStatus: null,
         transactionStatus: null,
@@ -82,7 +103,14 @@ describe('seller.router', () => {
 
     it('returns HTMX partial when hx-request is set', async () => {
       mockedService.getDashboardOverview.mockResolvedValue({
-        seller: { id: 'seller-1', name: 'Test', email: 'test@test.local', phone: '91234567', status: 'engaged', onboardingStep: 5 },
+        seller: {
+          id: 'seller-1',
+          name: 'Test',
+          email: 'test@test.local',
+          phone: '91234567',
+          status: 'engaged',
+          onboardingStep: 5,
+        },
         onboarding: { currentStep: 5, isComplete: true, completedSteps: [1, 2, 3, 4, 5] },
         propertyStatus: null,
         transactionStatus: null,
@@ -90,9 +118,7 @@ describe('seller.router', () => {
         nextSteps: [],
       });
 
-      const res = await request(app)
-        .get('/seller/dashboard')
-        .set('HX-Request', 'true');
+      const res = await request(app).get('/seller/dashboard').set('HX-Request', 'true');
 
       expect(res.status).toBe(200);
     });
@@ -129,9 +155,7 @@ describe('seller.router', () => {
     it('completes step and returns next step partial for HTMX', async () => {
       mockedService.completeOnboardingStep.mockResolvedValue({ onboardingStep: 2 });
 
-      const res = await request(app)
-        .post('/seller/onboarding/step/2')
-        .set('HX-Request', 'true');
+      const res = await request(app).post('/seller/onboarding/step/2').set('HX-Request', 'true');
 
       expect(res.status).toBe(200);
       expect(mockedService.completeOnboardingStep).toHaveBeenCalledWith({
@@ -158,9 +182,18 @@ describe('seller.router', () => {
     it('renders My Data page', async () => {
       mockedService.getMyData.mockResolvedValue({
         personalInfo: { name: 'Test', email: 'test@test.local', phone: '91234567' },
-        consentStatus: { service: true, marketing: false, consentTimestamp: new Date(), withdrawnAt: null },
+        consentStatus: {
+          service: true,
+          marketing: false,
+          consentTimestamp: new Date(),
+          withdrawnAt: null,
+        },
         consentHistory: [],
-        dataActions: { canRequestCorrection: true, canRequestDeletion: true, canWithdrawConsent: true },
+        dataActions: {
+          canRequestCorrection: true,
+          canRequestDeletion: true,
+          canWithdrawConsent: true,
+        },
       });
 
       const res = await request(app).get('/seller/my-data');

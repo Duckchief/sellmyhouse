@@ -7,10 +7,7 @@ export async function findById(id: string): Promise<Seller | null> {
   });
 }
 
-export async function updateOnboardingStep(
-  id: string,
-  step: number,
-): Promise<Seller> {
+export async function updateOnboardingStep(id: string, step: number): Promise<Seller> {
   return prisma.seller.update({
     where: { id },
     data: { onboardingStep: step },

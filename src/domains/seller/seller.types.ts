@@ -48,7 +48,10 @@ export interface SellerMyData {
     consentTimestamp: Date | null;
     withdrawnAt: Date | null;
   };
-  consentHistory: Pick<ConsentRecord, 'id' | 'purposeService' | 'purposeMarketing' | 'consentGivenAt' | 'consentWithdrawnAt'>[];
+  consentHistory: Pick<
+    ConsentRecord,
+    'id' | 'purposeService' | 'purposeMarketing' | 'consentGivenAt' | 'consentWithdrawnAt'
+  >[];
   dataActions: {
     canRequestCorrection: boolean;
     canRequestDeletion: boolean;

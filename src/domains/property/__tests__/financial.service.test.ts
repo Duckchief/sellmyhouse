@@ -45,7 +45,7 @@ describe('financial.service', () => {
       mockRepo.findLatestForProperty.mockResolvedValue(null);
       mockRepo.create.mockResolvedValue({ id: 'test-report-id', version: 1 } as any);
 
-      const result = await financialService.calculateAndCreateReport({
+      await financialService.calculateAndCreateReport({
         sellerId: 'seller-1',
         propertyId: 'property-1',
         calculationInput: sampleInput,

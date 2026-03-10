@@ -62,8 +62,9 @@ describe('financial.validator', () => {
     });
 
     it('throws for missing sale price', () => {
-      const { salePrice, ...rest } = validBody;
-      expect(() => validateCalculationInput(rest as any)).toThrow('Sale price is required');
+      const body = { ...validBody };
+      delete (body as Record<string, unknown>).salePrice;
+      expect(() => validateCalculationInput(body)).toThrow('Sale price is required');
     });
   });
 

@@ -43,3 +43,17 @@ export interface BackupCodeVerifyInput {
   role: UserRole;
   code: string;
 }
+
+export interface PasswordResetRequestInput {
+  email: string;
+}
+
+export interface PasswordResetInput {
+  token: string;
+  newPassword: string;
+}
+
+export interface LoginLockoutCheck {
+  isLocked: boolean;
+  lockedUntil: Date | null;
+}

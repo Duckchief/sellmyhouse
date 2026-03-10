@@ -85,7 +85,7 @@ viewingRouter.delete(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      await viewingService.cancelSlot(req.params.id, user.id);
+      await viewingService.cancelSlot(req.params.id as string, user.id);
 
       if (req.headers['hx-request']) {
         return res.send(''); // HTMX removes the element
@@ -104,10 +104,10 @@ viewingRouter.post(
     try {
       const user = req.user as AuthenticatedUser;
       const input = validateFeedback(req.body);
-      await viewingService.submitFeedback(req.params.id, user.id, input);
+      await viewingService.submitFeedback(req.params.id as string, user.id, input);
 
       if (req.headers['hx-request']) {
-        return res.render('partials/seller/feedback-saved', { viewingId: req.params.id });
+        return res.render('partials/seller/feedback-saved', { viewingId: req.params.id as string });
       }
       return res.json({ success: true, message: 'Feedback saved' });
     } catch (err) {
@@ -122,10 +122,10 @@ viewingRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      await viewingService.markNoShow(req.params.id, user.id);
+      await viewingService.markNoShow(req.params.id as string, user.id);
 
       if (req.headers['hx-request']) {
-        return res.render('partials/seller/viewing-status', { viewingId: req.params.id, status: 'no_show' });
+        return res.render('partials/seller/viewing-status', { viewingId: req.params.id as string, status: 'no_show' });
       }
       return res.json({ success: true, message: 'Marked as no-show' });
     } catch (err) {
@@ -140,10 +140,10 @@ viewingRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      await viewingService.markCompleted(req.params.id, user.id);
+      await viewingService.markCompleted(req.params.id as string, user.id);
 
       if (req.headers['hx-request']) {
-        return res.render('partials/seller/viewing-status', { viewingId: req.params.id, status: 'completed' });
+        return res.render('partials/seller/viewing-status', { viewingId: req.params.id as string, status: 'completed' });
       }
       return res.json({ success: true, message: 'Marked as completed' });
     } catch (err) {
@@ -158,7 +158,7 @@ viewingRouter.get(
   '/view/:propertySlug',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const pageData = await viewingService.getPublicBookingPage(req.params.propertySlug);
+      const pageData = await viewingService.getPublicBookingPage(req.params.propertySlug as string);
       if (!pageData) return res.status(404).render('404');
 
       return res.render('public/viewing-booking', {
@@ -228,13 +228,13 @@ viewingRouter.get(
   '/view/cancel/:viewingId/:cancelToken',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const viewing = await viewingService.getViewingByCancelToken(req.params.cancelToken);
+      const viewing = await viewingService.getViewingByCancelToken(req.params.cancelToken as string);
       if (!viewing) return res.status(404).render('404');
 
       return res.render('public/cancel-confirmation', {
         viewing,
-        viewingId: req.params.viewingId,
-        cancelToken: req.params.cancelToken,
+        viewingId: req.params.viewingId as string,
+        cancelToken: req.params.cancelToken as string,
       });
     } catch (err) {
       next(err);
@@ -246,7 +246,7 @@ viewingRouter.post(
   '/view/cancel/:viewingId/:cancelToken',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await viewingService.cancelViewing(req.params.viewingId, req.params.cancelToken);
+      await viewingService.cancelViewing(req.params.viewingId as string, req.params.cancelToken as string);
 
       return res.render('public/cancel-success');
     } catch (err) {

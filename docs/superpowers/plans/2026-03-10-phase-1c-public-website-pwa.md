@@ -673,53 +673,9 @@ git commit -m "feat: add lead router with rate limiting and bot detection"
 
 ---
 
-### Task 6: Register new routers in app.ts and update CSP
+### ~~Task 6: SKIPPED — merged into Task 8~~
 
-**Files:**
-- Modify: `src/infra/http/app.ts`
-
-- [ ] **Step 1: Update app.ts**
-
-Add imports at top of `src/infra/http/app.ts`:
-
-```typescript
-import { publicRouter } from '../../domains/public/public.router';
-import { leadRouter } from '../../domains/lead/lead.router';
-```
-
-Add `workerSrc: ["'self'"]` to the CSP directives object (after `frameSrc`):
-
-```typescript
-workerSrc: ["'self'"],
-```
-
-Add routers in the Routes section, before `app.use(healthRouter)`:
-
-```typescript
-app.use(publicRouter);
-app.use(leadRouter);
-```
-
-Note: `publicRouter` must be registered BEFORE `healthRouter` so `/` route is handled by publicRouter, not a catch-all. Actually, since routes are matched by path, order between publicRouter and healthRouter doesn't matter as long as they don't conflict. Register after healthRouter for clarity:
-
-```typescript
-// Routes
-app.use(healthRouter);
-app.use(publicRouter);
-app.use(leadRouter);
-app.use(authRouter);
-```
-
-- [ ] **Step 2: Commit**
-
-```bash
-git add src/infra/http/app.ts
-git commit -m "feat: register public and lead routers, add worker-src to CSP"
-```
-
-Note: `publicRouter` doesn't exist yet — it will be created in Task 7. This commit may cause a build error. **Alternative:** defer this step to after Task 7 and combine. For cleanliness, do this step after Task 7 instead.
-
-**Revised:** Move this task to after Task 7 (public router creation).
+Router registration deferred to Task 8 (after public router is created in Task 7).
 
 ---
 
@@ -814,6 +770,16 @@ import { leadRouter } from '../../domains/lead/lead.router';
 ```
 
 Add `workerSrc: ["'self'"]` to the CSP `directives` object after the `frameSrc` line.
+
+Add a `formatPrice` filter after the existing `date` filter:
+
+```typescript
+// Add price formatting filter (e.g., 500000 → "500,000")
+env.addFilter('formatPrice', (val: unknown) => {
+  const num = Number(val);
+  return isNaN(num) ? String(val) : num.toLocaleString('en-SG');
+});
+```
 
 Update the Routes section to:
 
@@ -1172,22 +1138,22 @@ Create `src/views/partials/public/report-results.njk`:
   </div>
   <div class="border border-gray-200 rounded-xl p-4 text-center">
     <div class="text-xs text-gray-400 mb-1">{{ "Min Price" | t }}</div>
-    <div class="text-2xl font-bold">{{ "S$" }}{{ report.min | replace(".", ",") }}</div>
+    <div class="text-2xl font-bold">S${{ report.min | formatPrice }}</div>
   </div>
   <div class="border border-gray-200 rounded-xl p-4 text-center">
     <div class="text-xs text-gray-400 mb-1">{{ "Median Price" | t }}</div>
-    <div class="text-2xl font-bold text-[#c8553d]">{{ "S$" }}{{ report.median | replace(".", ",") }}</div>
+    <div class="text-2xl font-bold text-[#c8553d]">S${{ report.median | formatPrice }}</div>
   </div>
   <div class="border border-gray-200 rounded-xl p-4 text-center">
     <div class="text-xs text-gray-400 mb-1">{{ "Max Price" | t }}</div>
-    <div class="text-2xl font-bold">{{ "S$" }}{{ report.max | replace(".", ",") }}</div>
+    <div class="text-2xl font-bold">S${{ report.max | formatPrice }}</div>
   </div>
 </div>
 
 {# Avg price per sqm #}
 <div class="border border-gray-200 rounded-xl p-4 mb-6">
   <div class="text-xs text-gray-400 mb-1">{{ "Average Price per sqm" | t }}</div>
-  <div class="text-xl font-bold">{{ "S$" }}{{ report.avgPricePerSqm | string | replace(".", ",") }}{{ "/sqm" }}</div>
+  <div class="text-xl font-bold">S${{ report.avgPricePerSqm | formatPrice }}/sqm</div>
 </div>
 
 {# Recent transactions table #}
@@ -1212,7 +1178,7 @@ Create `src/views/partials/public/report-results.njk`:
           <td class="py-2 pr-4">{{ txn.streetName }}</td>
           <td class="py-2 pr-4">{{ txn.storeyRange }}</td>
           <td class="py-2 pr-4">{{ txn.flatModel }}</td>
-          <td class="py-2 text-right text-[#c8553d] font-semibold">{{ "S$" }}{{ txn.resalePrice }}</td>
+          <td class="py-2 text-right text-[#c8553d] font-semibold">S${{ txn.resalePrice | formatPrice }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -1639,6 +1605,26 @@ describe('Public routes', () => {
       expect(manifest.name).toBe('SellMyHomeNow.sg');
       expect(manifest.start_url).toBe('/');
       expect(manifest.display).toBe('standalone');
+    });
+  });
+
+  describe('GET /api/hdb/report', () => {
+    it('returns report data for known town/type', async () => {
+      const res = await request(app)
+        .get('/api/hdb/report?town=ANG+MO+KIO&flatType=4+ROOM&months=24');
+      // May return 200 with empty report if no data in test DB
+      expect(res.status).toBe(200);
+    });
+
+    it('handles unknown town gracefully', async () => {
+      const res = await request(app)
+        .get('/api/hdb/report?town=NONEXISTENT&flatType=4+ROOM&months=24');
+      expect(res.status).toBe(200);
+    });
+
+    it('requires town and flatType parameters', async () => {
+      const res = await request(app).get('/api/hdb/report');
+      expect(res.status).toBe(400);
     });
   });
 });

@@ -314,6 +314,7 @@ model Seller {
   consentTimestamp         DateTime?              @map("consent_timestamp")
   consentWithdrawnAt       DateTime?              @map("consent_withdrawn_at")
   leadSource              LeadSource?            @map("lead_source")
+  onboardingStep          Int                    @default(0) @map("onboarding_step")
   twoFactorSecret         String?                @map("two_factor_secret")
   twoFactorEnabled        Boolean                @default(false) @map("two_factor_enabled")
   twoFactorBackupCodes    Json?                  @map("two_factor_backup_codes")

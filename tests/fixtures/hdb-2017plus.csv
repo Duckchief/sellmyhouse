@@ -1,0 +1,6 @@
+month,town,flat_type,block,street_name,storey_range,floor_area_sqm,flat_model,lease_commence_date,remaining_lease,resale_price
+2017-01,TAMPINES,4 ROOM,497,TAMPINES ST 43,10 TO 12,91,Model A,1989,72 years 06 months,395000
+2020-06,BEDOK,3 ROOM,108,BEDOK NORTH RD,07 TO 09,67,New Generation,1980,58 years 04 months,290000
+2023-01,ANG MO KIO,5 ROOM,562,ANG MO KIO AVE 3,04 TO 06,123,Improved,1984,57 years 03 months,620000
+2024-06,WOODLANDS,4 ROOM,672,WOODLANDS DR 71,01 TO 03,93,Model A,1997,70 years 01 months,430000
+2024-12,TAMPINES,4 ROOM,853,TAMPINES ST 83,07 TO 09,93,Model A,1988,61 years 04 months,520000

@@ -140,7 +140,7 @@ sellerRouter.post(
           !flatModel ||
           !leaseCommenceDate
         ) {
-          return res.render('partials/seller/onboarding-step-2', {
+          return res.status(400).render('partials/seller/onboarding-step-2', {
             towns: HDB_TOWNS,
             flatTypes: HDB_FLAT_TYPES,
             error: 'All property fields are required.',

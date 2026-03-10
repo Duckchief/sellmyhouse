@@ -113,8 +113,9 @@ describe('photo.service', () => {
     });
 
     it('rejects an image smaller than 800px on the longest edge', async () => {
-      const sharp = require('sharp');
-      sharp.mockImplementationOnce(() => ({
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const sharpMock = require('sharp');
+      sharpMock.mockImplementationOnce(() => ({
         metadata: jest.fn().mockResolvedValue({ width: 600, height: 400, format: 'jpeg' }),
         resize: jest.fn().mockReturnThis(),
         jpeg: jest.fn().mockReturnThis(),
@@ -130,8 +131,9 @@ describe('photo.service', () => {
     });
 
     it('accepts image exactly at 800px minimum', async () => {
-      const sharp = require('sharp');
-      sharp.mockImplementationOnce(() => ({
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const sharpMock = require('sharp');
+      sharpMock.mockImplementationOnce(() => ({
         metadata: jest.fn().mockResolvedValue({ width: 800, height: 600, format: 'jpeg' }),
         resize: jest.fn().mockReturnThis(),
         jpeg: jest.fn().mockReturnThis(),
@@ -150,7 +152,7 @@ describe('photo.service', () => {
   describe('processAndSavePhoto', () => {
     it('saves original and optimized files (localStorage.save called twice)', async () => {
       const buffer = Buffer.from('fake-image-data');
-      const result = await photoService.processAndSavePhoto(
+      await photoService.processAndSavePhoto(
         buffer,
         'my-photo.jpg',
         'image/jpeg',
@@ -159,10 +161,7 @@ describe('photo.service', () => {
       );
 
       expect(mockedStorage.save).toHaveBeenCalledTimes(2);
-      expect(mockedStorage.save).toHaveBeenCalledWith(
-        expect.stringContaining('original'),
-        buffer,
-      );
+      expect(mockedStorage.save).toHaveBeenCalledWith(expect.stringContaining('original'), buffer);
       expect(mockedStorage.save).toHaveBeenCalledWith(
         expect.stringContaining('optimized'),
         expect.any(Buffer),
@@ -191,12 +190,19 @@ describe('photo.service', () => {
     });
 
     it('uses sharp to resize and convert to JPEG', async () => {
-      const sharp = require('sharp');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const sharpMock = require('sharp');
       const buffer = Buffer.from('fake-image-data');
-      await photoService.processAndSavePhoto(buffer, 'photo.jpg', 'image/jpeg', 'seller-1', 'prop-1');
+      await photoService.processAndSavePhoto(
+        buffer,
+        'photo.jpg',
+        'image/jpeg',
+        'seller-1',
+        'prop-1',
+      );
 
       // sharp is called at least twice (once for optimize, once for metadata)
-      expect(sharp).toHaveBeenCalled();
+      expect(sharpMock).toHaveBeenCalled();
     });
   });
 
@@ -372,9 +378,9 @@ describe('photo.service', () => {
     it('throws NotFoundError when no active listing exists', async () => {
       mockedRepo.findActiveListingForProperty.mockResolvedValue(null);
 
-      await expect(
-        photoService.reorderPhotos('bad-prop', ['photo-1']),
-      ).rejects.toThrow(NotFoundError);
+      await expect(photoService.reorderPhotos('bad-prop', ['photo-1'])).rejects.toThrow(
+        NotFoundError,
+      );
     });
   });
 

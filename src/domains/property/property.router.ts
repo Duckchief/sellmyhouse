@@ -3,13 +3,17 @@ import multer from 'multer';
 import { validationResult } from 'express-validator';
 import * as propertyService from './property.service';
 import * as photoService from './photo.service';
-import { validatePropertyUpdate, validatePhotoReorder, validatePhotoId } from './property.validator';
+import {
+  validatePropertyUpdate,
+  validatePhotoReorder,
+  validatePhotoId,
+} from './property.validator';
 import { HDB_TOWNS, HDB_FLAT_TYPES } from './property.types';
 import type { PhotoRecord } from './property.types';
 import { requireAuth, requireRole } from '@/infra/http/middleware/require-auth';
 import { localStorage } from '@/infra/storage/local-storage';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
-import { NotFoundError, ValidationError } from '@/domains/shared/errors';
+import { NotFoundError } from '@/domains/shared/errors';
 
 export const propertyRouter = Router();
 
@@ -119,8 +123,7 @@ propertyRouter.put(
         // Handle asking price separately — compare numerically
         if (askingPrice !== undefined) {
           const newPrice = parseFloat(askingPrice);
-          const currentPrice =
-            property.askingPrice !== null ? Number(property.askingPrice) : null;
+          const currentPrice = property.askingPrice !== null ? Number(property.askingPrice) : null;
           if (currentPrice !== newPrice) {
             property = await propertyService.updateAskingPrice(property.id, user.id, newPrice);
           }
@@ -188,11 +191,7 @@ propertyRouter.post(
         });
       }
 
-      const validation = await photoService.validateImage(
-        file.buffer,
-        file.mimetype,
-        file.size,
-      );
+      const validation = await photoService.validateImage(file.buffer, file.mimetype, file.size);
 
       if (!validation.valid) {
         const photos = await photoService.getPhotosForProperty(property.id);

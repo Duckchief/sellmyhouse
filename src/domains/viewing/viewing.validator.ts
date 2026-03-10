@@ -18,7 +18,8 @@ export function validateCreateSlot(body: Record<string, unknown>): CreateSlotInp
   const dateStr = String(body.date || '');
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) throw new ValidationError('Invalid date');
-  if (date < new Date(new Date().toDateString())) throw new ValidationError('Date must be in the future');
+  if (date < new Date(new Date().toDateString()))
+    throw new ValidationError('Date must be in the future');
 
   const startTime = String(body.startTime || '');
   if (!TIME_REGEX.test(startTime)) throw new ValidationError('Start time must be HH:MM format');
@@ -28,7 +29,7 @@ export function validateCreateSlot(body: Record<string, unknown>): CreateSlotInp
 
   if (endTime <= startTime) throw new ValidationError('End time must be after start time');
 
-  const slotType = (String(body.slotType || 'single')) as 'single' | 'group';
+  const slotType = String(body.slotType || 'single') as 'single' | 'group';
   if (!['single', 'group'].includes(slotType)) throw new ValidationError('Invalid slot type');
 
   let maxViewers = 1;
@@ -50,14 +51,16 @@ export function validateCreateBulkSlots(body: Record<string, unknown>): CreateBu
 
   const startDate = new Date(String(body.startDate || ''));
   if (isNaN(startDate.getTime())) throw new ValidationError('Invalid start date');
-  if (startDate < new Date(new Date().toDateString())) throw new ValidationError('Start date must be in the future');
+  if (startDate < new Date(new Date().toDateString()))
+    throw new ValidationError('Start date must be in the future');
 
   const endDate = new Date(String(body.endDate || ''));
   if (isNaN(endDate.getTime())) throw new ValidationError('Invalid end date');
   if (endDate <= startDate) throw new ValidationError('End date must be after start date');
 
   const diffWeeks = (endDate.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000);
-  if (diffWeeks > MAX_BULK_WEEKS) throw new ValidationError(`Date range cannot exceed ${MAX_BULK_WEEKS} weeks`);
+  if (diffWeeks > MAX_BULK_WEEKS)
+    throw new ValidationError(`Date range cannot exceed ${MAX_BULK_WEEKS} weeks`);
 
   const dayOfWeek = Number(body.dayOfWeek);
   if (isNaN(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
@@ -77,7 +80,7 @@ export function validateCreateBulkSlots(body: Record<string, unknown>): CreateBu
     throw new ValidationError('Slot duration must be between 5 and 120 minutes');
   }
 
-  const slotType = (String(body.slotType || 'single')) as 'single' | 'group';
+  const slotType = String(body.slotType || 'single') as 'single' | 'group';
   if (!['single', 'group'].includes(slotType)) throw new ValidationError('Invalid slot type');
 
   let maxViewers = 1;
@@ -88,7 +91,17 @@ export function validateCreateBulkSlots(body: Record<string, unknown>): CreateBu
     }
   }
 
-  return { propertyId, startDate, endDate, dayOfWeek, startTime, endTime, slotDurationMinutes, slotType, maxViewers };
+  return {
+    propertyId,
+    startDate,
+    endDate,
+    dayOfWeek,
+    startTime,
+    endTime,
+    slotDurationMinutes,
+    slotType,
+    maxViewers,
+  };
 }
 
 export function validateBookingForm(body: Record<string, unknown>): BookingFormInput {
@@ -97,11 +110,14 @@ export function validateBookingForm(body: Record<string, unknown>): BookingFormI
 
   const phone = String(body.phone || '').replace(/\s/g, '');
   if (!SG_PHONE_REGEX.test(phone)) {
-    throw new ValidationError('Please enter a valid Singapore mobile number (8 digits starting with 8 or 9)');
+    throw new ValidationError(
+      'Please enter a valid Singapore mobile number (8 digits starting with 8 or 9)',
+    );
   }
 
   const viewerType = String(body.viewerType || '') as 'buyer' | 'agent';
-  if (!['buyer', 'agent'].includes(viewerType)) throw new ValidationError('Viewer type must be buyer or agent');
+  if (!['buyer', 'agent'].includes(viewerType))
+    throw new ValidationError('Viewer type must be buyer or agent');
 
   let agentName: string | undefined;
   let agentCeaReg: string | undefined;
@@ -112,7 +128,9 @@ export function validateBookingForm(body: Record<string, unknown>): BookingFormI
     agentCeaReg = String(body.agentCeaReg || '').trim();
     agentAgencyName = String(body.agentAgencyName || '').trim();
     if (!agentName || !agentCeaReg || !agentAgencyName) {
-      throw new ValidationError('Agent name, CEA registration, and agency name are required for agent viewers');
+      throw new ValidationError(
+        'Agent name, CEA registration, and agency name are required for agent viewers',
+      );
     }
   }
 
@@ -125,7 +143,18 @@ export function validateBookingForm(body: Record<string, unknown>): BookingFormI
   const website = body.website ? String(body.website) : undefined;
   const formLoadedAt = body.formLoadedAt ? Number(body.formLoadedAt) : undefined;
 
-  return { name, phone, viewerType, agentName, agentCeaReg, agentAgencyName, consentService, slotId, website, formLoadedAt };
+  return {
+    name,
+    phone,
+    viewerType,
+    agentName,
+    agentCeaReg,
+    agentAgencyName,
+    consentService,
+    slotId,
+    website,
+    formLoadedAt,
+  };
 }
 
 export function validateOtp(body: Record<string, unknown>): VerifyOtpInput {
@@ -147,7 +176,12 @@ export function validateFeedback(body: Record<string, unknown>): ViewingFeedback
   if (feedback.length > 1000) throw new ValidationError('Feedback must be 1000 characters or less');
 
   const interestRating = Number(body.interestRating);
-  if (isNaN(interestRating) || interestRating < 1 || interestRating > 5 || !Number.isInteger(interestRating)) {
+  if (
+    isNaN(interestRating) ||
+    interestRating < 1 ||
+    interestRating > 5 ||
+    !Number.isInteger(interestRating)
+  ) {
     throw new ValidationError('Interest rating must be an integer between 1 and 5');
   }
 

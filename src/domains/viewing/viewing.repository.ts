@@ -92,7 +92,13 @@ export async function createViewingWithLock(data: {
   return prisma.$transaction(async (tx) => {
     // Lock the slot row to prevent concurrent bookings
     const [slot] = await tx.$queryRaw<
-      { id: string; current_bookings: number; max_viewers: number; slot_type: string; status: string }[]
+      {
+        id: string;
+        current_bookings: number;
+        max_viewers: number;
+        slot_type: string;
+        status: string;
+      }[]
     >`SELECT id, current_bookings, max_viewers, slot_type, status FROM viewing_slots WHERE id = ${data.viewingSlotId} FOR UPDATE`;
 
     if (!slot) throw new Error('Slot not found');

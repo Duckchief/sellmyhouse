@@ -34,15 +34,15 @@ describe('viewing.validator', () => {
     });
 
     it('rejects past date', () => {
-      expect(() =>
-        validateCreateSlot({ ...validInput, date: '2020-01-01' }),
-      ).toThrow(ValidationError);
+      expect(() => validateCreateSlot({ ...validInput, date: '2020-01-01' })).toThrow(
+        ValidationError,
+      );
     });
 
     it('rejects invalid time format', () => {
-      expect(() =>
-        validateCreateSlot({ ...validInput, startTime: '25:00' }),
-      ).toThrow(ValidationError);
+      expect(() => validateCreateSlot({ ...validInput, startTime: '25:00' })).toThrow(
+        ValidationError,
+      );
     });
 
     it('rejects end time before start time', () => {
@@ -52,9 +52,9 @@ describe('viewing.validator', () => {
     });
 
     it('requires maxViewers for group slots', () => {
-      expect(() =>
-        validateCreateSlot({ ...validInput, slotType: 'group' }),
-      ).toThrow(ValidationError);
+      expect(() => validateCreateSlot({ ...validInput, slotType: 'group' })).toThrow(
+        ValidationError,
+      );
     });
   });
 
@@ -76,21 +76,21 @@ describe('viewing.validator', () => {
     });
 
     it('rejects endDate before startDate', () => {
-      expect(() =>
-        validateCreateBulkSlots({ ...validInput, endDate: '2026-03-01' }),
-      ).toThrow(ValidationError);
+      expect(() => validateCreateBulkSlots({ ...validInput, endDate: '2026-03-01' })).toThrow(
+        ValidationError,
+      );
     });
 
     it('rejects range exceeding 8 weeks', () => {
-      expect(() =>
-        validateCreateBulkSlots({ ...validInput, endDate: '2026-07-01' }),
-      ).toThrow(ValidationError);
+      expect(() => validateCreateBulkSlots({ ...validInput, endDate: '2026-07-01' })).toThrow(
+        ValidationError,
+      );
     });
 
     it('rejects invalid dayOfWeek', () => {
-      expect(() =>
-        validateCreateBulkSlots({ ...validInput, dayOfWeek: '7' }),
-      ).toThrow(ValidationError);
+      expect(() => validateCreateBulkSlots({ ...validInput, dayOfWeek: '7' })).toThrow(
+        ValidationError,
+      );
     });
   });
 
@@ -123,33 +123,31 @@ describe('viewing.validator', () => {
     });
 
     it('rejects invalid SG phone', () => {
-      expect(() =>
-        validateBookingForm({ ...validInput, phone: '12345678' }),
-      ).toThrow(ValidationError);
+      expect(() => validateBookingForm({ ...validInput, phone: '12345678' })).toThrow(
+        ValidationError,
+      );
     });
 
     it('rejects phone not starting with 8 or 9', () => {
-      expect(() =>
-        validateBookingForm({ ...validInput, phone: '71234567' }),
-      ).toThrow(ValidationError);
+      expect(() => validateBookingForm({ ...validInput, phone: '71234567' })).toThrow(
+        ValidationError,
+      );
     });
 
     it('requires agent fields when viewerType is agent', () => {
-      expect(() =>
-        validateBookingForm({ ...validInput, viewerType: 'agent' }),
-      ).toThrow(ValidationError);
+      expect(() => validateBookingForm({ ...validInput, viewerType: 'agent' })).toThrow(
+        ValidationError,
+      );
     });
 
     it('requires consent', () => {
-      expect(() =>
-        validateBookingForm({ ...validInput, consentService: 'false' }),
-      ).toThrow(ValidationError);
+      expect(() => validateBookingForm({ ...validInput, consentService: 'false' })).toThrow(
+        ValidationError,
+      );
     });
 
     it('rejects missing name', () => {
-      expect(() =>
-        validateBookingForm({ ...validInput, name: '' }),
-      ).toThrow(ValidationError);
+      expect(() => validateBookingForm({ ...validInput, name: '' })).toThrow(ValidationError);
     });
   });
 
@@ -190,9 +188,9 @@ describe('viewing.validator', () => {
     });
 
     it('rejects feedback over 1000 chars', () => {
-      expect(() =>
-        validateFeedback({ feedback: 'a'.repeat(1001), interestRating: '3' }),
-      ).toThrow(ValidationError);
+      expect(() => validateFeedback({ feedback: 'a'.repeat(1001), interestRating: '3' })).toThrow(
+        ValidationError,
+      );
     });
   });
 });

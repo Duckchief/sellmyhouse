@@ -31,19 +31,25 @@ describe('viewing.service', () => {
 
   describe('createSlot', () => {
     it('creates a single slot with defaults', async () => {
-      mockedRepo.findPropertyById.mockResolvedValue({ id: 'prop-1', sellerId: 'seller-1' } as never);
+      mockedRepo.findPropertyById.mockResolvedValue({
+        id: 'prop-1',
+        sellerId: 'seller-1',
+      } as never);
       mockedRepo.createSlot.mockResolvedValue({
         id: 'test-id-123',
         propertyId: 'prop-1',
         status: 'available',
       } as never);
 
-      await viewingService.createSlot({
-        propertyId: 'prop-1',
-        date: new Date('2026-04-15'),
-        startTime: '10:00',
-        endTime: '10:15',
-      }, 'seller-1');
+      await viewingService.createSlot(
+        {
+          propertyId: 'prop-1',
+          date: new Date('2026-04-15'),
+          startTime: '10:00',
+          endTime: '10:15',
+        },
+        'seller-1',
+      );
 
       expect(mockedRepo.createSlot).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -61,19 +67,25 @@ describe('viewing.service', () => {
 
   describe('createBulkSlots', () => {
     it('generates correct number of slots for weekly recurring', async () => {
-      mockedRepo.findPropertyById.mockResolvedValue({ id: 'prop-1', sellerId: 'seller-1' } as never);
+      mockedRepo.findPropertyById.mockResolvedValue({
+        id: 'prop-1',
+        sellerId: 'seller-1',
+      } as never);
       mockedRepo.createManySlots.mockResolvedValue({ count: 32 });
 
       // 4 Saturdays, 2-hour window with 15-min slots = 4 * 8 = 32 slots
-      await viewingService.createBulkSlots({
-        propertyId: 'prop-1',
-        startDate: new Date('2026-04-04'), // Saturday
-        endDate: new Date('2026-04-25'),   // 4th Saturday
-        dayOfWeek: 6,
-        startTime: '10:00',
-        endTime: '12:00',
-        slotDurationMinutes: 15,
-      }, 'seller-1');
+      await viewingService.createBulkSlots(
+        {
+          propertyId: 'prop-1',
+          startDate: new Date('2026-04-04'), // Saturday
+          endDate: new Date('2026-04-25'), // 4th Saturday
+          dayOfWeek: 6,
+          startTime: '10:00',
+          endTime: '12:00',
+          slotDurationMinutes: 15,
+        },
+        'seller-1',
+      );
 
       const callArg = mockedRepo.createManySlots.mock.calls[0][0];
       expect(callArg.length).toBe(32); // 4 Saturdays * 8 slots each
@@ -158,18 +170,18 @@ describe('viewing.service', () => {
     it('rejects duplicate booking', async () => {
       mockedRepo.findDuplicateBooking.mockResolvedValue({ id: 'existing' } as never);
 
-      await expect(
-        viewingService.initiateBooking(validInput, '127.0.0.1'),
-      ).rejects.toThrow(ConflictError);
+      await expect(viewingService.initiateBooking(validInput, '127.0.0.1')).rejects.toThrow(
+        ConflictError,
+      );
     });
 
     it('rejects when daily booking limit exceeded', async () => {
       mockedRepo.findDuplicateBooking.mockResolvedValue(null);
       mockedRepo.countBookingsToday.mockResolvedValue(BOOKINGS_PER_PHONE_PER_DAY);
 
-      await expect(
-        viewingService.initiateBooking(validInput, '127.0.0.1'),
-      ).rejects.toThrow(ValidationError);
+      await expect(viewingService.initiateBooking(validInput, '127.0.0.1')).rejects.toThrow(
+        ValidationError,
+      );
     });
 
     it('creates booking with OTP for new viewer', async () => {
@@ -194,11 +206,13 @@ describe('viewing.service', () => {
 
       const result = await viewingService.initiateBooking(validInput, '127.0.0.1');
 
-      expect(result).toEqual(expect.objectContaining({
-        viewingId: 'test-id-123',
-        status: 'pending_otp',
-        isReturningViewer: false,
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          viewingId: 'test-id-123',
+          status: 'pending_otp',
+          isReturningViewer: false,
+        }),
+      );
       expect(mockedNotification.send).toHaveBeenCalled(); // OTP sent
     });
 
@@ -230,10 +244,12 @@ describe('viewing.service', () => {
 
       const result = await viewingService.initiateBooking(validInput, '127.0.0.1');
 
-      expect(result).toEqual(expect.objectContaining({
-        status: 'scheduled',
-        isReturningViewer: true,
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          status: 'scheduled',
+          isReturningViewer: true,
+        }),
+      );
       expect(mockedRepo.incrementBookings).toHaveBeenCalledWith('viewer-1');
     });
 
@@ -349,9 +365,9 @@ describe('viewing.service', () => {
         status: 'cancelled',
       } as never);
 
-      await expect(
-        viewingService.cancelViewing('v-1', 'cancel-token'),
-      ).rejects.toThrow(ValidationError);
+      await expect(viewingService.cancelViewing('v-1', 'cancel-token')).rejects.toThrow(
+        ValidationError,
+      );
     });
   });
 
@@ -476,7 +492,10 @@ describe('viewing.service', () => {
 
   describe('getViewingStats', () => {
     it('returns aggregated stats', async () => {
-      mockedRepo.findPropertyById.mockResolvedValue({ id: 'prop-1', sellerId: 'seller-1' } as never);
+      mockedRepo.findPropertyById.mockResolvedValue({
+        id: 'prop-1',
+        sellerId: 'seller-1',
+      } as never);
       mockedRepo.getViewingStats.mockResolvedValue({
         totalViewings: 10,
         upcomingCount: 3,

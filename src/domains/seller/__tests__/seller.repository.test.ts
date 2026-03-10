@@ -1,0 +1,126 @@
+import * as sellerRepo from '../seller.repository';
+
+jest.mock('../../../infra/database/prisma', () => ({
+  prisma: {
+    seller: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    consentRecord: {
+      findMany: jest.fn(),
+    },
+    videoTutorial: {
+      findMany: jest.fn(),
+    },
+  },
+  createId: jest.fn().mockReturnValue('test-seller-id'),
+}));
+
+const { prisma } = jest.requireMock('../../../infra/database/prisma');
+
+describe('seller.repository', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  describe('findById', () => {
+    it('returns seller when found', async () => {
+      const mockSeller = {
+        id: 'seller-1',
+        name: 'Test Seller',
+        email: 'test@test.local',
+        phone: '91234567',
+        onboardingStep: 0,
+        status: 'lead',
+      };
+      prisma.seller.findUnique.mockResolvedValue(mockSeller);
+
+      const result = await sellerRepo.findById('seller-1');
+
+      expect(result).toEqual(mockSeller);
+      expect(prisma.seller.findUnique).toHaveBeenCalledWith({
+        where: { id: 'seller-1' },
+      });
+    });
+
+    it('returns null when not found', async () => {
+      prisma.seller.findUnique.mockResolvedValue(null);
+
+      const result = await sellerRepo.findById('nonexistent');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('updateOnboardingStep', () => {
+    it('updates the onboarding step', async () => {
+      const updated = { id: 'seller-1', onboardingStep: 2 };
+      prisma.seller.update.mockResolvedValue(updated);
+
+      const result = await sellerRepo.updateOnboardingStep('seller-1', 2);
+
+      expect(result).toEqual(updated);
+      expect(prisma.seller.update).toHaveBeenCalledWith({
+        where: { id: 'seller-1' },
+        data: { onboardingStep: 2 },
+      });
+    });
+  });
+
+  describe('getSellerWithRelations', () => {
+    it('includes properties, transactions, consent records, and case flags', async () => {
+      const mockSeller = {
+        id: 'seller-1',
+        name: 'Test',
+        properties: [{ id: 'prop-1', status: 'draft' }],
+        transactions: [],
+        consentRecords: [],
+        caseFlags: [],
+      };
+      prisma.seller.findUnique.mockResolvedValue(mockSeller);
+
+      const result = await sellerRepo.getSellerWithRelations('seller-1');
+
+      expect(result).toEqual(mockSeller);
+      expect(prisma.seller.findUnique).toHaveBeenCalledWith({
+        where: { id: 'seller-1' },
+        include: {
+          properties: true,
+          transactions: true,
+          consentRecords: { orderBy: { consentGivenAt: 'desc' } },
+          caseFlags: { where: { status: { not: 'resolved' } } },
+        },
+      });
+    });
+  });
+
+  describe('getConsentHistory', () => {
+    it('returns consent records for seller', async () => {
+      const records = [{ id: 'cr-1', purposeService: true }];
+      prisma.consentRecord.findMany.mockResolvedValue(records);
+
+      const result = await sellerRepo.getConsentHistory('seller-1');
+
+      expect(result).toEqual(records);
+      expect(prisma.consentRecord.findMany).toHaveBeenCalledWith({
+        where: { subjectType: 'seller', subjectId: 'seller-1' },
+        orderBy: { consentGivenAt: 'desc' },
+      });
+    });
+  });
+
+  describe('findTutorialsGroupedByCategory', () => {
+    it('returns tutorials ordered by category and index', async () => {
+      const tutorials = [
+        { id: 't1', category: 'photography', orderIndex: 1 },
+        { id: 't2', category: 'process', orderIndex: 1 },
+      ];
+      prisma.videoTutorial.findMany.mockResolvedValue(tutorials);
+
+      const result = await sellerRepo.findTutorialsGroupedByCategory();
+
+      expect(result).toEqual(tutorials);
+      expect(prisma.videoTutorial.findMany).toHaveBeenCalledWith({
+        orderBy: [{ category: 'asc' }, { orderIndex: 'asc' }],
+      });
+    });
+  });
+});

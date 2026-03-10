@@ -14,6 +14,7 @@ import { agentSettingsRouter } from '../../domains/agent-settings/agent-settings
 import { notificationRouter } from '../../domains/notification/notification.router';
 import { publicRouter } from '../../domains/public/public.router';
 import { leadRouter } from '../../domains/lead/lead.router';
+import { sellerRouter } from '../../domains/seller/seller.router';
 
 function validateEnv() {
   const required = ['SESSION_SECRET', 'DATABASE_URL', 'ENCRYPTION_KEY'];
@@ -98,6 +99,7 @@ export function createApp() {
   app.use(agentSettingsRouter);
   app.use('/api', apiRateLimiter);
   app.use(notificationRouter);
+  app.use(sellerRouter);
 
   // Error handling (must be last)
   app.use(errorHandler);

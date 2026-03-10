@@ -7,6 +7,7 @@ const config: Config = {
   testMatch: ['**/*.test.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@paralleldrive/cuid2$': '<rootDir>/tests/mocks/cuid2.ts',
   },
   clearMocks: true,
   collectCoverageFrom: [

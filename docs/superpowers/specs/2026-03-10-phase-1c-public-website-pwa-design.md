@@ -50,27 +50,29 @@ Full domain module for lead capture.
   - Timing: reject submissions under 3 seconds (bot detection)
 - `lead.service.ts` — business logic:
   - Check for duplicate phone (existing lead/engaged/active seller)
-  - Create Seller record (status: `lead`, leadSource from UTM/referrer)
+  - Create Seller record (status: `lead`, `agentId: null` — assigned later by agent, leadSource from UTM/referrer)
   - Create ConsentRecord (service consent required, marketing consent optional)
   - Log to AuditLog
-  - Notify agent via notification service
+  - Notify agent: look up agents with `role: admin` and send in-app notification. If no admin agents exist, log a warning.
 - `lead.repository.ts` — Prisma operations: find seller by phone, create seller, create consent record
-- `lead.router.ts` — `POST /api/leads` with rate limit (3 submissions/hour/IP)
+- `lead.router.ts` — `POST /api/leads` with dedicated rate limiter (3 submissions/hour/IP), separate from the global API rate limiter
 
 ### 2.3 HDB Domain (existing — `src/domains/hdb/`)
 
-Add new service method and repository query.
+`getMarketReport()` already exists in `service.ts` with tests. Extend it to support the storey range filter and ensure it returns the data the template needs.
 
-- `service.ts` — add `getMarketReport(town, flatType, storeyRange?, dateRangeMonths?)`:
-  - Returns: transaction count, min price, median price, max price, avg price per sqm, recent transactions (top 5 by date, sorted by price desc)
-- `repository.ts` — add `findForReport()` query with optional storey range and date range filters
-- Date range mapping: 6M=6, 1Y=12, 2Y=24 (default), 5Y=60, 10Y=120, 20Y=240, All=no filter
+- `service.ts` — update existing `getMarketReport()` to accept optional `storeyRange` parameter
+- `repository.ts` — add `getDistinctStoreyRanges()` for populating the dropdown; update `findTransactions()` to support optional storey range filter
+- Recent transactions: top 5 most recent by month, then sorted by price descending
+- Date range mapping: 6M=6, 1Y=12, 2Y=24 (default), 5Y=60, 10Y=120, 20Y=240, All=0 (no date filter applied)
+
+Note: HDB domain files use `service.ts`/`repository.ts` naming (without `hdb.` prefix) from Phase 1A. Retain existing naming for consistency within the domain.
 
 ## 3. Homepage Layout
 
 Sections in order:
 
-1. **Header** — dark nav (#1a1a2e): "SellMyHome**Now**.sg" logo, nav links (Market Report, Login), "Get Started" pill button (accent)
+1. **Header** — dark nav (#1a1a2e): "SellMyHome**Now**.sg" logo, nav links (Market Report, Login), "Get Started" pill button (accent). The dark header is specific to the public layout. Create a separate `partials/public/header.njk` for public pages; the existing `partials/header.njk` remains for authenticated layouts.
 2. **Hero** — dark background, "Sell Your HDB for **$1,499**" ($1,499 in accent), subtitle, dual CTAs: "Get Started" (accent pill) + "Free Market Report" (dark pill)
 3. **Accent bar** — 4px #c8553d strip
 4. **How It Works** — 3 cards with numbered accent circles:
@@ -86,6 +88,8 @@ Sections in order:
 7. **Footer** — 3 columns: brand description, Quick Links (HDB Market Report, Privacy Policy, Terms of Service), Regulatory (Huttons, CEA licence, agent name + CEA reg)
 
 "Get Started" CTA scrolls to the lead capture section. "Free Market Report" links to `/market-report`.
+
+**Layout note:** The homepage has full-width sections (hero, accent bar, dark backgrounds). The `public.njk` layout's `max-w-7xl` wrapper is too restrictive. The homepage should extend `base.njk` directly and manage its own width per section. Other public pages (privacy, terms, market report) can use `public.njk`.
 
 ## 4. HDB Market Report Page
 
@@ -111,6 +115,8 @@ Own page at `/market-report` (not inline on homepage).
 **Fields:**
 - Full Name (required)
 - Mobile Number (required, placeholder: 91234567)
+
+Email is not collected at lead stage. It is captured during seller onboarding (Phase 2).
 
 **PDPA consent checkboxes:**
 - "I consent to SellMyHomeNow.sg collecting and using my personal data to provide property selling services. [Privacy Policy link] *" (required)
@@ -162,6 +168,8 @@ Simple informational bottom banner: "This site uses essential cookies only." wit
 
 **App icons:** Placeholder SVG-based icons using brand colours with "SMH" text. Replace with designed icons later.
 
+**CSP:** The existing CSP in `app.ts` allows `'self'` for scripts and `'unsafe-inline'`, which is sufficient for service worker registration. Explicitly add `worker-src: 'self'` to CSP directives for clarity.
+
 ## 9. Testing
 
 ### Unit Tests
@@ -207,14 +215,17 @@ Simple informational bottom banner: "This site uses essential cookies only." wit
 - `tests/integration/public.test.ts`
 - `tests/integration/lead.test.ts`
 
+### New Files (additional)
+- `src/views/partials/public/header.njk` — dark nav header for public pages
+- `src/views/partials/public/footer.njk` — 3-column footer with regulatory info
+
 ### Modified Files
-- `src/domains/hdb/service.ts` — add `getMarketReport()`
-- `src/domains/hdb/repository.ts` — add report query
-- `src/domains/hdb/__tests__/service.test.ts` — tests for new method
-- `src/infra/http/app.ts` — register public + lead routers
+- `src/domains/hdb/service.ts` — update `getMarketReport()` to accept storey range filter
+- `src/domains/hdb/repository.ts` — add `getDistinctStoreyRanges()`, update `findTransactions()` for storey range
+- `src/domains/hdb/__tests__/service.test.ts` — tests for storey range filter
+- `src/infra/http/app.ts` — register public + lead routers, add `worker-src: 'self'` to CSP
 - `src/views/layouts/base.njk` — PWA meta tags + service worker registration
-- `src/views/partials/header.njk` — nav matching design (Market Report, Login, Get Started pill)
-- `src/views/partials/footer.njk` — 3-column footer with regulatory info
+- `src/views/layouts/public.njk` — include public-specific header/footer partials
 - `tests/fixtures/factory.ts` — add lead/consent factories
 
 ### Not Changed

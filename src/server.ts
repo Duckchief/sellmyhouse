@@ -3,9 +3,25 @@ dotenv.config();
 
 import { createApp } from './infra/http/app';
 import { logger } from './infra/logger';
+import { registerJob, startJobs } from './infra/jobs/runner';
+import { HdbSyncService } from './domains/hdb/sync.service';
 
 const app = createApp();
 const port = parseInt(process.env.PORT || '3000', 10);
+
+// Register cron jobs
+registerJob(
+  'hdb-data-sync',
+  '0 3 * * 0', // Every Sunday at 3am
+  async () => {
+    const syncService = new HdbSyncService();
+    await syncService.sync();
+  },
+  'Asia/Singapore',
+);
+
+// Start cron jobs and server
+startJobs();
 
 app.listen(port, () => {
   logger.info(`Server running on port ${port}`);

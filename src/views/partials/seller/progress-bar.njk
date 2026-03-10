@@ -1,0 +1,24 @@
+<div class="mb-8">
+  <div class="flex items-center justify-between mb-2">
+    {% for i in range(1, 6) %}
+    <div class="flex items-center {% if i < 5 %}flex-1{% endif %}">
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+        {% if i <= status.currentStep %}bg-blue-600 text-white
+        {% elif i == status.currentStep + 1 %}bg-blue-100 text-blue-600 border-2 border-blue-600
+        {% else %}bg-gray-200 text-gray-500{% endif %}">
+        {% if i <= status.currentStep %}&#10003;{% else %}{{ i }}{% endif %}
+      </div>
+      {% if i < 5 %}
+      <div class="flex-1 h-1 mx-2 {% if i <= status.currentStep %}bg-blue-600{% else %}bg-gray-200{% endif %}"></div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="flex justify-between text-xs text-gray-500">
+    <span>{{ "Welcome" | t }}</span>
+    <span>{{ "Property" | t }}</span>
+    <span>{{ "Finances" | t }}</span>
+    <span>{{ "Photos" | t }}</span>
+    <span>{{ "Agreement" | t }}</span>
+  </div>
+</div>

@@ -69,3 +69,17 @@ export function findByWhatsAppMessageId(messageId: string) {
     where: { whatsappMessageId: messageId },
   });
 }
+
+export async function countUnreadForRecipient(
+  recipientType: 'seller' | 'agent',
+  recipientId: string,
+): Promise<number> {
+  return prisma.notification.count({
+    where: {
+      recipientType,
+      recipientId,
+      status: { not: 'read' },
+      channel: 'in_app',
+    },
+  });
+}

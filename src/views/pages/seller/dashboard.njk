@@ -1,0 +1,32 @@
+{% extends "layouts/seller.njk" %}
+
+{% block title %}{{ "Dashboard" | t }} — SellMyHomeNow.sg{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">{{ "Welcome back, " | t }}{{ overview.seller.name }}</h1>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  {# Main content - 2 cols #}
+  <div class="lg:col-span-2">
+    {% include "partials/seller/dashboard-overview.njk" %}
+
+    {# Notifications preview #}
+    {% if overview.unreadNotificationCount > 0 %}
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold">{{ "Notifications" | t }}</h2>
+        <a href="/seller/notifications" class="text-sm text-blue-600 hover:underline">{{ "View all" | t }}</a>
+      </div>
+      <p class="text-sm text-gray-600">
+        {{ "You have" | t }} {{ overview.unreadNotificationCount }} {{ "unread notification(s)" | t }}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+
+  {# Sidebar - 1 col #}
+  <div class="space-y-6">
+    {% include "partials/seller/timeline.njk" %}
+  </div>
+</div>
+{% endblock %}

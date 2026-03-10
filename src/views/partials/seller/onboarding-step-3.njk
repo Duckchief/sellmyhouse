@@ -1,0 +1,36 @@
+<div class="bg-white rounded-lg shadow p-6">
+  <h2 class="text-xl font-semibold mb-4">{{ "Your Financial Situation" | t }}</h2>
+
+  <p class="text-gray-600 mb-4">{{ "These details help us estimate your net sale proceeds. You can skip any field you're unsure about and fill it in later." | t }}</p>
+
+  <form id="financial-form" class="space-y-4">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Outstanding Loan Balance ($)" | t }}</label>
+      <input type="number" name="outstandingLoan" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g. 200000" disabled>
+      <p class="text-xs text-gray-500 mt-1">{{ "Check your latest HDB or bank statement" | t }}</p>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">{{ "CPF OA Used for This Flat ($)" | t }}</label>
+      <input type="number" name="cpfUsed" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g. 50000" disabled>
+      <p class="text-xs text-gray-500 mt-1">
+        <a href="https://my.cpf.gov.sg" target="_blank" class="text-blue-600 hover:underline">{{ "Not sure? Check my.cpf.gov.sg →" | t }}</a>
+      </p>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Year of Purchase" | t }}</label>
+      <input type="number" name="yearOfPurchase" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g. 2015" disabled>
+    </div>
+    <p class="text-sm text-amber-600">{{ "Financial inputs will be fully functional in a future update." | t }}</p>
+  </form>
+
+  <div class="mt-6">
+    <button
+      hx-post="/seller/onboarding/step/3"
+      hx-target="#onboarding-step"
+      hx-swap="innerHTML"
+      class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition"
+    >
+      {{ "Continue" | t }}
+    </button>
+  </div>
+</div>

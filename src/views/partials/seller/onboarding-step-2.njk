@@ -1,0 +1,44 @@
+<div class="bg-white rounded-lg shadow p-6">
+  <h2 class="text-xl font-semibold mb-4">{{ "Your Property Details" | t }}</h2>
+
+  <p class="text-gray-600 mb-4">{{ "Enter your flat details below. These will be used to generate your financial report and listing." | t }}</p>
+
+  <form id="property-form" class="space-y-4">
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Town" | t }}</label>
+        <select name="town" class="w-full border border-gray-300 rounded-md px-3 py-2" disabled>
+          <option>{{ "Coming in Phase 2B" | t }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Flat Type" | t }}</label>
+        <select name="flatType" class="w-full border border-gray-300 rounded-md px-3 py-2" disabled>
+          <option>{{ "Coming in Phase 2B" | t }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Block" | t }}</label>
+        <input type="text" name="block" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g. 123" disabled>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Street" | t }}</label>
+        <input type="text" name="street" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g. Tampines St 11" disabled>
+      </div>
+    </div>
+    <p class="text-sm text-amber-600">{{ "Property form fields will be fully functional in the next update." | t }}</p>
+  </form>
+
+  <div class="mt-6">
+    <button
+      hx-post="/seller/onboarding/step/2"
+      hx-target="#onboarding-step"
+      hx-swap="innerHTML"
+      class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition"
+    >
+      {{ "Continue" | t }}
+    </button>
+  </div>
+</div>

@@ -1,0 +1,20 @@
+{% extends "layouts/seller.njk" %}
+
+{% block title %}{{ "Onboarding" | t }} — SellMyHomeNow.sg{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <h1 class="text-2xl font-bold mb-6">{{ "Get Started" | t }}</h1>
+
+  {% include "partials/seller/progress-bar.njk" %}
+
+  <div id="onboarding-step"
+       hx-get="/seller/onboarding/step/{{ status.currentStep + 1 }}"
+       hx-trigger="load"
+       hx-swap="innerHTML">
+    <div class="flex items-center justify-center p-8">
+      <span class="text-gray-400">{{ "Loading..." | t }}</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

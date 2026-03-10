@@ -8,6 +8,7 @@ jest.mock('../../../infra/database/prisma', () => ({
       findMany: jest.fn(),
       findUnique: jest.fn(),
       findFirst: jest.fn(),
+      count: jest.fn(),
     },
   },
   createId: jest.fn().mockReturnValue('test-notif-id'),
@@ -91,6 +92,22 @@ describe('NotificationRepository', () => {
 
     expect(prisma.notification.findFirst).toHaveBeenCalledWith({
       where: { whatsappMessageId: 'wamid.123' },
+    });
+  });
+
+  it('countUnreadForRecipient returns count of unread in-app notifications', async () => {
+    prisma.notification.count.mockResolvedValue(3);
+
+    const result = await repo.countUnreadForRecipient('seller', 's1');
+
+    expect(result).toBe(3);
+    expect(prisma.notification.count).toHaveBeenCalledWith({
+      where: {
+        recipientType: 'seller',
+        recipientId: 's1',
+        status: { not: 'read' },
+        channel: 'in_app',
+      },
     });
   });
 });

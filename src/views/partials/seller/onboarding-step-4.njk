@@ -1,0 +1,36 @@
+<div class="bg-white rounded-lg shadow p-6">
+  <h2 class="text-xl font-semibold mb-4">{{ "Take Photos of Your Home" | t }}</h2>
+
+  <div class="space-y-4 text-gray-700">
+    <div class="bg-blue-50 border border-blue-200 rounded p-4">
+      <p class="font-medium mb-2">{{ "Watch: How to take great listing photos" | t }}</p>
+      <a href="/seller/tutorials" class="text-blue-600 hover:underline text-sm">
+        {{ "View Photo Tutorial →" | t }}
+      </a>
+    </div>
+
+    <p>{{ "We recommend taking photos of:" | t }}</p>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>{{ "Living room" | t }}</li>
+      <li>{{ "Kitchen" | t }}</li>
+      <li>{{ "Master bedroom" | t }}</li>
+      <li>{{ "Other bedrooms" | t }}</li>
+      <li>{{ "Bathrooms" | t }}</li>
+      <li>{{ "Balcony / view" | t }}</li>
+      <li>{{ "Corridor / entrance" | t }}</li>
+    </ul>
+
+    <p class="text-sm text-gray-500">{{ "You can upload photos now or later from your dashboard." | t }}</p>
+  </div>
+
+  <div class="mt-6">
+    <button
+      hx-post="/seller/onboarding/step/4"
+      hx-target="#onboarding-step"
+      hx-swap="innerHTML"
+      class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition"
+    >
+      {{ "I'll take photos — Continue" | t }}
+    </button>
+  </div>
+</div>

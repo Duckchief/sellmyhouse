@@ -1,11 +1,5 @@
 /** Flat types for resale levy lookup */
-export type FlatType =
-  | '2 ROOM'
-  | '3 ROOM'
-  | '4 ROOM'
-  | '5 ROOM'
-  | 'EXECUTIVE'
-  | 'MULTI-GENERATION';
+export type FlatType = '2 ROOM' | '3 ROOM' | '4 ROOM' | '5 ROOM' | 'EXECUTIVE' | 'MULTI-GENERATION';
 
 export type SubsidyType = 'subsidised' | 'non_subsidised';
 

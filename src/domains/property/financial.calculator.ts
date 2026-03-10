@@ -2,6 +2,7 @@ import type {
   FinancialCalculationInput,
   FinancialCalculationOutput,
   CpfBreakdown,
+  FlatType,
 } from './financial.types';
 import { calculateCpfAccruedInterest, estimateCpfUsage } from './cpf-interest';
 import { getResaleLevy } from './resale-levy';
@@ -74,7 +75,7 @@ function calculateCpfBreakdown(
   warnings: string[],
 ): CpfBreakdown {
   const isEstimated = oaUsed === null;
-  const actualOaUsed = oaUsed ?? estimateCpfUsage(flatType as any);
+  const actualOaUsed = oaUsed ?? estimateCpfUsage(flatType as FlatType);
 
   if (isEstimated && actualOaUsed > 0) {
     warnings.push(

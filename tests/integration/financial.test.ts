@@ -1,5 +1,6 @@
 import { testPrisma, cleanDatabase } from '../helpers/prisma';
 import { factory } from '../fixtures/factory';
+import type { FinancialReportData } from '../../src/domains/property/financial.types';
 
 // Override DATABASE_URL so the app's Prisma client uses the test DB
 process.env.DATABASE_URL =
@@ -70,7 +71,7 @@ describe('Financial Engine — Integration', () => {
       expect(fromDb!.sellerId).toBe(seller.id);
       expect(fromDb!.propertyId).toBe(property.id);
 
-      const reportData = fromDb!.reportData as any;
+      const reportData = fromDb!.reportData as unknown as FinancialReportData;
       expect(reportData.outputs.commission).toBe(1633.91);
       expect(reportData.outputs.netCashProceeds).toBeDefined();
     });

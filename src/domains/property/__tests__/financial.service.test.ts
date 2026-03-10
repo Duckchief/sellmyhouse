@@ -4,7 +4,8 @@ import * as settingsService from '@/domains/shared/settings.service';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as auditService from '@/domains/shared/audit.service';
 import * as notificationService from '@/domains/notification/notification.service';
-import type { FinancialCalculationInput } from '../financial.types';
+import type { FinancialCalculationInput, FinancialReportData } from '../financial.types';
+import type { FinancialReport } from '@prisma/client';
 
 jest.mock('../financial.repository');
 jest.mock('@/domains/shared/settings.service');
@@ -43,7 +44,10 @@ describe('financial.service', () => {
   describe('calculateAndCreateReport', () => {
     it('creates a report with version 1 for new property', async () => {
       mockRepo.findLatestForProperty.mockResolvedValue(null);
-      mockRepo.create.mockResolvedValue({ id: 'test-report-id', version: 1 } as any);
+      mockRepo.create.mockResolvedValue({
+        id: 'test-report-id',
+        version: 1,
+      } as unknown as FinancialReport);
 
       await financialService.calculateAndCreateReport({
         sellerId: 'seller-1',
@@ -71,8 +75,13 @@ describe('financial.service', () => {
     });
 
     it('increments version for existing reports', async () => {
-      mockRepo.findLatestForProperty.mockResolvedValue({ version: 3 } as any);
-      mockRepo.create.mockResolvedValue({ id: 'test-report-id', version: 4 } as any);
+      mockRepo.findLatestForProperty.mockResolvedValue({
+        version: 3,
+      } as unknown as FinancialReport);
+      mockRepo.create.mockResolvedValue({
+        id: 'test-report-id',
+        version: 4,
+      } as unknown as FinancialReport);
 
       await financialService.calculateAndCreateReport({
         sellerId: 'seller-1',
@@ -86,7 +95,10 @@ describe('financial.service', () => {
 
     it('uses commission from SystemSetting, never hardcoded', async () => {
       mockRepo.findLatestForProperty.mockResolvedValue(null);
-      mockRepo.create.mockResolvedValue({ id: 'test-report-id', version: 1 } as any);
+      mockRepo.create.mockResolvedValue({
+        id: 'test-report-id',
+        version: 1,
+      } as unknown as FinancialReport);
 
       await financialService.calculateAndCreateReport({
         sellerId: 'seller-1',
@@ -97,7 +109,7 @@ describe('financial.service', () => {
 
       expect(mockSettings.getCommission).toHaveBeenCalled();
       const createCall = mockRepo.create.mock.calls[0][0];
-      const reportData = createCall.reportData as any;
+      const reportData = createCall.reportData as unknown as FinancialReportData;
       expect(reportData.outputs.commission).toBe(1633.91);
     });
   });
@@ -126,14 +138,14 @@ describe('financial.service', () => {
           },
           metadata: { town: 'TAMPINES', flatType: '4 ROOM' },
         },
-      } as any;
+      } as unknown as FinancialReport;
       mockRepo.findById.mockResolvedValue(report);
       mockAI.generateText.mockResolvedValue({
         text: 'Your estimated net proceeds are...',
         provider: 'anthropic',
         model: 'claude-sonnet-4-20250514',
       });
-      mockRepo.updateNarrative.mockResolvedValue({} as any);
+      mockRepo.updateNarrative.mockResolvedValue({} as unknown as FinancialReport);
 
       await financialService.generateNarrative('report-1');
 
@@ -166,9 +178,9 @@ describe('financial.service', () => {
         aiNarrative: 'Some narrative',
         approvedAt: null,
         sentToSellerAt: null,
-      } as any;
+      } as unknown as FinancialReport;
       mockRepo.findById.mockResolvedValue(report);
-      mockRepo.approve.mockResolvedValue({} as any);
+      mockRepo.approve.mockResolvedValue({} as unknown as FinancialReport);
 
       await financialService.approveReport({
         reportId: 'report-1',
@@ -197,7 +209,7 @@ describe('financial.service', () => {
         id: 'report-1',
         aiNarrative: null,
         approvedAt: null,
-      } as any);
+      } as unknown as FinancialReport);
       await expect(
         financialService.approveReport({ reportId: 'report-1', agentId: 'agent-1' }),
       ).rejects.toThrow('cannot be approved');
@@ -209,7 +221,7 @@ describe('financial.service', () => {
         aiNarrative: 'text',
         approvedAt: new Date(),
         sentToSellerAt: new Date(),
-      } as any);
+      } as unknown as FinancialReport);
       await expect(
         financialService.approveReport({ reportId: 'report-1', agentId: 'agent-1' }),
       ).rejects.toThrow('already been sent');
@@ -226,9 +238,9 @@ describe('financial.service', () => {
         approvedAt: new Date(),
         sentToSellerAt: null,
         reportData: { metadata: { flatType: '4 ROOM', town: 'TAMPINES' } },
-      } as any;
+      } as unknown as FinancialReport;
       mockRepo.findById.mockResolvedValue(report);
-      mockRepo.markSent.mockResolvedValue({} as any);
+      mockRepo.markSent.mockResolvedValue({} as unknown as FinancialReport);
       mockNotification.send.mockResolvedValue(undefined);
 
       await financialService.sendReport({
@@ -258,7 +270,7 @@ describe('financial.service', () => {
         id: 'report-1',
         approvedAt: null,
         sentToSellerAt: null,
-      } as any);
+      } as unknown as FinancialReport);
       await expect(
         financialService.sendReport({ reportId: 'report-1', agentId: 'a', channel: 'whatsapp' }),
       ).rejects.toThrow('must be approved');
@@ -269,7 +281,7 @@ describe('financial.service', () => {
         id: 'report-1',
         approvedAt: new Date(),
         sentToSellerAt: new Date(),
-      } as any);
+      } as unknown as FinancialReport);
       await expect(
         financialService.sendReport({ reportId: 'report-1', agentId: 'a', channel: 'email' }),
       ).rejects.toThrow('already been sent');
@@ -278,7 +290,7 @@ describe('financial.service', () => {
 
   describe('getReport', () => {
     it('returns report by id', async () => {
-      const report = { id: 'report-1' } as any;
+      const report = { id: 'report-1' } as unknown as FinancialReport;
       mockRepo.findById.mockResolvedValue(report);
       const result = await financialService.getReport('report-1');
       expect(result).toEqual(report);
@@ -292,7 +304,7 @@ describe('financial.service', () => {
 
   describe('getReportsForSeller', () => {
     it('returns all reports for seller', async () => {
-      const reports = [{ id: 'r1' }, { id: 'r2' }] as any[];
+      const reports = [{ id: 'r1' }, { id: 'r2' }] as unknown as FinancialReport[];
       mockRepo.findAllForSeller.mockResolvedValue(reports);
       const result = await financialService.getReportsForSeller('seller-1');
       expect(result).toEqual(reports);

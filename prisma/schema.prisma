@@ -11,6 +11,841 @@ datasource db {
 // NOTE: All IDs use cuid2, generated in application code via @paralleldrive/cuid2.
 // Prisma schema has no @default() on id fields — IDs are passed in create() calls.
 
+// ─── Enums ──────────────────────────────────────────────────
+
+enum AgentRole {
+  admin
+  agent
+}
+
+enum SellerStatus {
+  lead
+  engaged
+  active
+  completed
+  archived
+}
+
+enum NotificationPreference {
+  whatsapp_and_email
+  email_only
+}
+
+enum LeadSource {
+  website
+  tiktok
+  instagram
+  referral
+  walkin
+  other
+}
+
+enum BuyerStatus {
+  lead
+  active
+  completed
+  archived
+}
+
+enum PropertyStatus {
+  draft
+  listed
+  offer_received
+  under_option
+  completing
+  completed
+  withdrawn
+}
+
+enum ListingStatus {
+  draft
+  pending_review
+  approved
+  live
+  paused
+  closed
+}
+
+enum PortalName {
+  propertyguru
+  ninety_nine_co
+  srx
+  other
+}
+
+enum PortalListingStatus {
+  ready
+  posted
+  expired
+}
+
+enum ViewerType {
+  buyer
+  agent
+}
+
+enum ViewingStatus {
+  pending_otp
+  scheduled
+  completed
+  cancelled
+  no_show
+}
+
+enum SlotType {
+  single
+  group
+}
+
+enum SlotStatus {
+  available
+  booked
+  full
+  cancelled
+}
+
+enum OfferStatus {
+  pending
+  countered
+  accepted
+  rejected
+  expired
+}
+
+enum TransactionStatus {
+  option_issued
+  option_exercised
+  completing
+  completed
+  fallen_through
+}
+
+enum OtpStatus {
+  prepared
+  sent_to_seller
+  signed_by_seller
+  returned
+  issued_to_buyer
+  exercised
+  expired
+}
+
+enum InvoiceStatus {
+  pending_upload
+  uploaded
+  sent_to_client
+  paid
+}
+
+enum AgreementType {
+  non_exclusive
+  exclusive
+}
+
+enum AgreementStatus {
+  draft
+  sent_to_seller
+  signed
+  active
+  terminated
+  expired
+}
+
+enum RiskLevel {
+  standard
+  enhanced
+}
+
+enum SubjectType {
+  seller
+  buyer
+  counterparty
+}
+
+enum ConsentSubjectType {
+  seller
+  buyer
+}
+
+enum RecipientType {
+  seller
+  agent
+}
+
+enum NotificationChannel {
+  whatsapp
+  email
+  in_app
+}
+
+enum NotificationStatus {
+  pending
+  sent
+  delivered
+  failed
+  read
+}
+
+enum VideoCategory {
+  photography
+  forms
+  process
+  financial
+}
+
+enum HdbSource {
+  csv_seed
+  datagov_sync
+}
+
+enum HdbSyncStatus {
+  success
+  failed
+}
+
+enum TestimonialStatus {
+  pending_review
+  approved
+  rejected
+}
+
+enum ReferralStatus {
+  link_generated
+  clicked
+  lead_created
+  transaction_completed
+}
+
+enum CaseFlagType {
+  deceased_estate
+  divorce
+  mop_not_met
+  eip_restriction
+  pr_quota
+  bank_loan
+  court_order
+  other
+}
+
+enum CaseFlagStatus {
+  identified
+  in_progress
+  resolved
+  out_of_scope
+}
+
+enum DeletionTargetType {
+  lead
+  transaction
+  cdd_documents
+  consent_record
+}
+
+enum DeletionRequestStatus {
+  flagged
+  pending_review
+  approved
+  executed
+  rejected
+}
+
+enum CorrectionRequestStatus {
+  pending
+  in_progress
+  completed
+  rejected
+}
+
+enum MarketContentStatus {
+  ai_generated
+  pending_review
+  approved
+  rejected
+  published
+}
+
+// ─── Models ─────────────────────────────────────────────────
+
+model Agent {
+  id                        String    @id
+  name                      String
+  email                     String    @unique
+  phone                     String
+  ceaRegNo                  String    @map("cea_reg_no")
+  passwordHash              String    @map("password_hash")
+  role                      AgentRole @default(agent)
+  isActive                  Boolean   @default(true) @map("is_active")
+  twoFactorSecret           String?   @map("two_factor_secret")
+  twoFactorEnabled          Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorBackupCodes      Json?     @map("two_factor_backup_codes")
+  failedTwoFactorAttempts   Int       @default(0) @map("failed_two_factor_attempts")
+  twoFactorLockedUntil      DateTime? @map("two_factor_locked_until")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+
+  sellers                   Seller[]
+  buyers                    Buyer[]
+  listingsApprovedDesc      Listing[]              @relation("DescriptionApprover")
+  listingsApprovedPhoto     Listing[]              @relation("PhotosApprover")
+  financialReports          FinancialReport[]
+  cddRecords                CddRecord[]
+  estateAgencyAgreements    EstateAgencyAgreement[]
+  testimonials              Testimonial[]
+  marketContentApproved     MarketContent[]        @relation("ContentApprover")
+  deletionReviews           DataDeletionRequest[]  @relation("DeletionReviewer")
+  correctionProcessed       DataCorrectionRequest[] @relation("CorrectionProcessor")
+
+  @@map("agents")
+}
+
+model Seller {
+  id                      String                 @id
+  name                    String
+  email                   String?                @unique
+  phone                   String                 @unique
+  passwordHash            String?                @map("password_hash")
+  agentId                 String?                @map("agent_id")
+  agent                   Agent?                 @relation(fields: [agentId], references: [id])
+  status                  SellerStatus           @default(lead)
+  notificationPreference  NotificationPreference @default(whatsapp_and_email) @map("notification_preference")
+  consentService          Boolean                @default(false) @map("consent_service")
+  consentMarketing        Boolean                @default(false) @map("consent_marketing")
+  consentTimestamp         DateTime?              @map("consent_timestamp")
+  consentWithdrawnAt       DateTime?              @map("consent_withdrawn_at")
+  leadSource              LeadSource?            @map("lead_source")
+  twoFactorSecret         String?                @map("two_factor_secret")
+  twoFactorEnabled        Boolean                @default(false) @map("two_factor_enabled")
+  twoFactorBackupCodes    Json?                  @map("two_factor_backup_codes")
+  failedTwoFactorAttempts Int                    @default(0) @map("failed_two_factor_attempts")
+  twoFactorLockedUntil    DateTime?              @map("two_factor_locked_until")
+  createdAt               DateTime               @default(now()) @map("created_at")
+  updatedAt               DateTime               @updatedAt @map("updated_at")
+
+  properties              Property[]
+  transactions            Transaction[]
+  financialReports        FinancialReport[]
+  consentRecords          ConsentRecord[]
+  estateAgencyAgreements  EstateAgencyAgreement[]
+  testimonials            Testimonial[]
+  referralsGiven          Referral[]             @relation("Referrer")
+  referralsReceived       Referral[]             @relation("ReferredSeller")
+  caseFlags               CaseFlag[]
+  correctionRequests      DataCorrectionRequest[]
+
+  @@index([agentId, status])
+  @@index([leadSource])
+  @@map("sellers")
+}
+
+model Buyer {
+  id                 String      @id
+  name               String
+  email              String?     @unique
+  phone              String      @unique
+  passwordHash       String?     @map("password_hash")
+  agentId            String?     @map("agent_id")
+  agent              Agent?      @relation(fields: [agentId], references: [id])
+  status             BuyerStatus @default(lead)
+  consentService     Boolean     @default(false) @map("consent_service")
+  consentMarketing   Boolean     @default(false) @map("consent_marketing")
+  consentTimestamp    DateTime?   @map("consent_timestamp")
+  consentWithdrawnAt DateTime?   @map("consent_withdrawn_at")
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
+
+  transactions Transaction[]
+
+  @@map("buyers")
+}
+
+model Property {
+  id                String         @id
+  sellerId          String         @map("seller_id")
+  seller            Seller         @relation(fields: [sellerId], references: [id])
+  town              String
+  street            String
+  block             String
+  flatType          String         @map("flat_type")
+  storeyRange       String         @map("storey_range")
+  floorAreaSqm      Float          @map("floor_area_sqm")
+  flatModel         String         @map("flat_model")
+  leaseCommenceDate Int            @map("lease_commence_date")
+  remainingLease    String?        @map("remaining_lease")
+  askingPrice       Decimal?       @map("asking_price") @db.Decimal(12, 2)
+  priceHistory      Json?          @default("[]") @map("price_history")
+  status            PropertyStatus @default(draft)
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  listings         Listing[]
+  viewings         Viewing[]
+  viewingSlots     ViewingSlot[]
+  offers           Offer[]
+  transactions     Transaction[]
+  financialReports FinancialReport[]
+
+  @@map("properties")
+}
+
+model Listing {
+  id                          String        @id
+  propertyId                  String        @map("property_id")
+  property                    Property      @relation(fields: [propertyId], references: [id])
+  title                       String?
+  description                 String?
+  descriptionApprovedByAgentId String?      @map("description_approved_by_agent_id")
+  descriptionApprover         Agent?        @relation("DescriptionApprover", fields: [descriptionApprovedByAgentId], references: [id])
+  descriptionApprovedAt       DateTime?     @map("description_approved_at")
+  photos                      Json?         @default("[]")
+  photosApprovedByAgentId     String?       @map("photos_approved_by_agent_id")
+  photosApprover              Agent?        @relation("PhotosApprover", fields: [photosApprovedByAgentId], references: [id])
+  photosApprovedAt            DateTime?     @map("photos_approved_at")
+  status                      ListingStatus @default(draft)
+  createdAt                   DateTime      @default(now()) @map("created_at")
+  updatedAt                   DateTime      @updatedAt @map("updated_at")
+
+  portalListings PortalListing[]
+
+  @@map("listings")
+}
+
+model PortalListing {
+  id                 String              @id
+  listingId          String              @map("listing_id")
+  listing            Listing             @relation(fields: [listingId], references: [id])
+  portalName         PortalName          @map("portal_name")
+  portalReadyContent Json?               @map("portal_ready_content")
+  postedManuallyAt   DateTime?           @map("posted_manually_at")
+  portalListingUrl   String?             @map("portal_listing_url")
+  status             PortalListingStatus @default(ready)
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  @@map("portal_listings")
+}
+
+model VerifiedViewer {
+  id              String     @id
+  name            String
+  phone           String     @unique
+  phoneVerifiedAt DateTime?  @map("phone_verified_at")
+  viewerType      ViewerType @map("viewer_type")
+  agentName       String?    @map("agent_name")
+  agentCeaReg     String?    @map("agent_cea_reg")
+  agentAgencyName String?    @map("agent_agency_name")
+  consentService  Boolean    @default(false) @map("consent_service")
+  totalBookings   Int        @default(0) @map("total_bookings")
+  lastBookingAt   DateTime?  @map("last_booking_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+
+  viewings Viewing[]
+
+  @@map("verified_viewers")
+}
+
+model ViewingSlot {
+  id              String     @id
+  propertyId      String     @map("property_id")
+  property        Property   @relation(fields: [propertyId], references: [id])
+  date            DateTime   @db.Date
+  startTime       String     @map("start_time")
+  endTime         String     @map("end_time")
+  durationMinutes Int        @default(15) @map("duration_minutes")
+  slotType        SlotType   @default(single) @map("slot_type")
+  maxViewers      Int        @default(1) @map("max_viewers")
+  currentBookings Int        @default(0) @map("current_bookings")
+  status          SlotStatus @default(available)
+  createdAt       DateTime   @default(now()) @map("created_at")
+
+  viewings Viewing[]
+
+  @@index([propertyId, date, status])
+  @@map("viewing_slots")
+}
+
+model Viewing {
+  id               String         @id
+  propertyId       String         @map("property_id")
+  property         Property       @relation(fields: [propertyId], references: [id])
+  viewingSlotId    String         @map("viewing_slot_id")
+  viewingSlot      ViewingSlot    @relation(fields: [viewingSlotId], references: [id])
+  verifiedViewerId String         @map("verified_viewer_id")
+  verifiedViewer   VerifiedViewer @relation(fields: [verifiedViewerId], references: [id])
+  cancelToken      String         @unique @map("cancel_token")
+  status           ViewingStatus  @default(pending_otp)
+  scheduledAt      DateTime       @map("scheduled_at")
+  completedAt      DateTime?      @map("completed_at")
+  feedback         String?
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([propertyId, scheduledAt])
+  @@map("viewings")
+}
+
+model Offer {
+  id               String      @id
+  propertyId       String      @map("property_id")
+  property         Property    @relation(fields: [propertyId], references: [id])
+  buyerName        String      @map("buyer_name")
+  buyerPhone       String      @map("buyer_phone")
+  buyerAgentName   String?     @map("buyer_agent_name")
+  buyerAgentCeaReg String?     @map("buyer_agent_cea_reg")
+  isCoBroke        Boolean     @default(false) @map("is_co_broke")
+  offerAmount      Decimal     @map("offer_amount") @db.Decimal(12, 2)
+  status           OfferStatus @default(pending)
+  notes            String?
+  parentOfferId    String?     @map("parent_offer_id")
+  parentOffer      Offer?      @relation("OfferChain", fields: [parentOfferId], references: [id])
+  counterOffers    Offer[]     @relation("OfferChain")
+  counterAmount    Decimal?    @map("counter_amount") @db.Decimal(12, 2)
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  @@index([propertyId, status])
+  @@map("offers")
+}
+
+model Transaction {
+  id                   String            @id
+  propertyId           String            @map("property_id")
+  property             Property          @relation(fields: [propertyId], references: [id])
+  sellerId             String            @map("seller_id")
+  seller               Seller            @relation(fields: [sellerId], references: [id])
+  buyerId              String?           @map("buyer_id")
+  buyer                Buyer?            @relation(fields: [buyerId], references: [id])
+  agreedPrice          Decimal           @map("agreed_price") @db.Decimal(12, 2)
+  optionFee            Decimal?          @map("option_fee") @db.Decimal(12, 2)
+  optionDate           DateTime?         @map("option_date")
+  exerciseDeadline     DateTime?         @map("exercise_deadline")
+  exerciseDate         DateTime?         @map("exercise_date")
+  completionDate       DateTime?         @map("completion_date")
+  status               TransactionStatus @default(option_issued)
+  hdbApplicationStatus String?           @map("hdb_application_status")
+  hdbAppointmentDate   DateTime?         @map("hdb_appointment_date")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+
+  otp               Otp?
+  commissionInvoice CommissionInvoice?
+  testimonial       Testimonial?
+
+  @@index([sellerId, status])
+  @@map("transactions")
+}
+
+model Otp {
+  id                    String    @id
+  transactionId         String    @unique @map("transaction_id")
+  transaction           Transaction @relation(fields: [transactionId], references: [id])
+  hdbSerialNumber       String    @map("hdb_serial_number")
+  status                OtpStatus @default(prepared)
+  scannedCopyPath       String?   @map("scanned_copy_path")
+  scannedCopyDeletedAt  DateTime? @map("scanned_copy_deleted_at")
+  agentReviewedAt       DateTime? @map("agent_reviewed_at")
+  agentReviewNotes      String?   @map("agent_review_notes")
+  preparedAt            DateTime  @default(now()) @map("prepared_at")
+  issuedAt              DateTime? @map("issued_at")
+  exercisedAt           DateTime? @map("exercised_at")
+  expiredAt             DateTime? @map("expired_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@map("otps")
+}
+
+model CommissionInvoice {
+  id                String        @id
+  transactionId     String        @unique @map("transaction_id")
+  transaction       Transaction   @relation(fields: [transactionId], references: [id])
+  invoiceFilePath   String?       @map("invoice_file_path")
+  invoiceDeletedAt  DateTime?     @map("invoice_deleted_at")
+  invoiceNumber     String?       @map("invoice_number")
+  amount            Decimal       @default(1499) @db.Decimal(12, 2)
+  gstAmount         Decimal       @default(134.91) @map("gst_amount") @db.Decimal(12, 2)
+  totalAmount       Decimal       @default(1633.91) @map("total_amount") @db.Decimal(12, 2)
+  status            InvoiceStatus @default(pending_upload)
+  uploadedAt        DateTime?     @map("uploaded_at")
+  sentAt            DateTime?     @map("sent_at")
+  sentVia           String?       @map("sent_via")
+  paidAt            DateTime?     @map("paid_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  @@map("commission_invoices")
+}
+
+model EstateAgencyAgreement {
+  id                     String          @id
+  sellerId               String          @map("seller_id")
+  seller                 Seller          @relation(fields: [sellerId], references: [id])
+  agentId                String          @map("agent_id")
+  agent                  Agent           @relation(fields: [agentId], references: [id])
+  agreementType          AgreementType   @default(non_exclusive) @map("agreement_type")
+  formType               String          @default("CEA Form 1") @map("form_type")
+  commissionAmount       Decimal         @default(1499) @map("commission_amount") @db.Decimal(12, 2)
+  commissionGstInclusive Boolean         @default(false) @map("commission_gst_inclusive")
+  coBrokingAllowed       Boolean         @default(true) @map("co_broking_allowed")
+  coBrokingTerms         String          @default("Co-broking welcomed. Commission is not shared. Buyer's agent is paid by their own client.") @map("co_broking_terms")
+  signedAt               DateTime?       @map("signed_at")
+  signedCopyPath         String?         @map("signed_copy_path")
+  signedCopyDeletedAt    DateTime?       @map("signed_copy_deleted_at")
+  videoCallConfirmedAt   DateTime?       @map("video_call_confirmed_at")
+  videoCallNotes         String?         @map("video_call_notes")
+  expiryDate             DateTime?       @map("expiry_date")
+  status                 AgreementStatus @default(draft)
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
+
+  @@map("estate_agency_agreements")
+}
+
+model FinancialReport {
+  id                String   @id
+  sellerId          String   @map("seller_id")
+  seller            Seller   @relation(fields: [sellerId], references: [id])
+  propertyId        String   @map("property_id")
+  property          Property @relation(fields: [propertyId], references: [id])
+  reportData        Json     @map("report_data")
+  aiNarrative       String?  @map("ai_narrative")
+  aiProvider        String?  @map("ai_provider")
+  aiModel           String?  @map("ai_model")
+  generatedAt       DateTime @default(now()) @map("generated_at")
+  reviewedByAgentId String?  @map("reviewed_by_agent_id")
+  reviewedByAgent   Agent?   @relation(fields: [reviewedByAgentId], references: [id])
+  reviewedAt        DateTime? @map("reviewed_at")
+  reviewNotes       String?  @map("review_notes")
+  approvedAt        DateTime? @map("approved_at")
+  sentToSellerAt    DateTime? @map("sent_to_seller_at")
+  sentVia           String?  @map("sent_via")
+  version           Int      @default(1)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@map("financial_reports")
+}
+
+model CddRecord {
+  id                String      @id
+  subjectType       SubjectType @map("subject_type")
+  subjectId         String      @map("subject_id")
+  fullName          String      @map("full_name")
+  nricLast4         String      @map("nric_last4")
+  dateOfBirth       DateTime?   @map("date_of_birth")
+  nationality       String?
+  occupation        String?
+  riskLevel         RiskLevel   @default(standard) @map("risk_level")
+  identityVerified  Boolean     @default(false) @map("identity_verified")
+  verifiedByAgentId String      @map("verified_by_agent_id")
+  verifiedByAgent   Agent       @relation(fields: [verifiedByAgentId], references: [id])
+  verifiedAt        DateTime?   @map("verified_at")
+  documents         Json?       @default("[]")
+  notes             String?
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  @@map("cdd_records")
+}
+
+model ConsentRecord {
+  id                 String             @id
+  subjectType        ConsentSubjectType @map("subject_type")
+  subjectId          String             @map("subject_id")
+  purposeService     Boolean            @default(false) @map("purpose_service")
+  purposeMarketing   Boolean            @default(false) @map("purpose_marketing")
+  consentGivenAt     DateTime           @default(now()) @map("consent_given_at")
+  consentWithdrawnAt DateTime?          @map("consent_withdrawn_at")
+  withdrawalChannel  String?            @map("withdrawal_channel")
+  ipAddress          String?            @map("ip_address")
+  userAgent          String?            @map("user_agent")
+  seller             Seller?            @relation(fields: [subjectId], references: [id])
+  createdAt          DateTime           @default(now()) @map("created_at")
+
+  @@map("consent_records")
+}
+
+model Notification {
+  id                String              @id
+  recipientType     RecipientType       @map("recipient_type")
+  recipientId       String              @map("recipient_id")
+  channel           NotificationChannel
+  templateName      String              @map("template_name")
+  content           String
+  status            NotificationStatus  @default(pending)
+  sentAt            DateTime?           @map("sent_at")
+  deliveredAt       DateTime?           @map("delivered_at")
+  readAt            DateTime?           @map("read_at")
+  whatsappMessageId String?             @map("whatsapp_message_id")
+  error             String?
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  @@index([recipientType, recipientId, status])
+  @@map("notifications")
+}
+
+model VideoTutorial {
+  id          String        @id
+  title       String
+  slug        String        @unique
+  description String?
+  youtubeUrl  String        @map("youtube_url")
+  category    VideoCategory
+  orderIndex  Int           @default(0) @map("order_index")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  @@map("video_tutorials")
+}
+
+model HdbTransaction {
+  id                String    @id
+  month             String
+  town              String
+  flatType          String    @map("flat_type")
+  block             String
+  streetName        String    @map("street_name")
+  storeyRange       String    @map("storey_range")
+  floorAreaSqm      Float     @map("floor_area_sqm")
+  flatModel         String    @map("flat_model")
+  leaseCommenceDate Int       @map("lease_commence_date")
+  remainingLease    String?   @map("remaining_lease")
+  resalePrice       Decimal   @map("resale_price") @db.Decimal(12, 2)
+  source            HdbSource @default(csv_seed)
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  @@index([town, flatType, month])
+  @@map("hdb_transactions")
+}
+
+model HdbDataSync {
+  id           String        @id
+  syncedAt     DateTime      @default(now()) @map("synced_at")
+  recordsAdded Int           @map("records_added")
+  recordsTotal Int           @map("records_total")
+  source       String
+  status       HdbSyncStatus
+  error        String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  @@map("hdb_data_syncs")
+}
+
+model Testimonial {
+  id                String            @id
+  sellerId          String            @map("seller_id")
+  seller            Seller            @relation(fields: [sellerId], references: [id])
+  transactionId     String            @unique @map("transaction_id")
+  transaction       Transaction       @relation(fields: [transactionId], references: [id])
+  content           String
+  rating            Int
+  sellerName        String            @map("seller_name")
+  sellerTown        String            @map("seller_town")
+  status            TestimonialStatus @default(pending_review)
+  approvedByAgentId String?           @map("approved_by_agent_id")
+  approvedByAgent   Agent?            @relation(fields: [approvedByAgentId], references: [id])
+  approvedAt        DateTime?         @map("approved_at")
+  displayOnWebsite  Boolean           @default(false) @map("display_on_website")
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  @@map("testimonials")
+}
+
+model Referral {
+  id               String         @id
+  referrerSellerId String         @map("referrer_seller_id")
+  referrer         Seller         @relation("Referrer", fields: [referrerSellerId], references: [id])
+  referralCode     String         @unique @map("referral_code")
+  referredName     String?        @map("referred_name")
+  referredPhone    String?        @map("referred_phone")
+  referredSellerId String?        @map("referred_seller_id")
+  referredSeller   Seller?        @relation("ReferredSeller", fields: [referredSellerId], references: [id])
+  status           ReferralStatus @default(link_generated)
+  clickCount       Int            @default(0) @map("click_count")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  convertedAt      DateTime?      @map("converted_at")
+
+  @@map("referrals")
+}
+
+model CaseFlag {
+  id               String         @id
+  sellerId         String         @map("seller_id")
+  seller           Seller         @relation(fields: [sellerId], references: [id])
+  flagType         CaseFlagType   @map("flag_type")
+  description      String
+  status           CaseFlagStatus @default(identified)
+  guidanceProvided String?        @map("guidance_provided")
+  resolvedAt       DateTime?      @map("resolved_at")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  @@map("case_flags")
+}
+
+model DataDeletionRequest {
+  id                String                @id
+  targetType        DeletionTargetType    @map("target_type")
+  targetId          String                @map("target_id")
+  reason            String?
+  retentionRule     String?               @map("retention_rule")
+  flaggedAt         DateTime              @default(now()) @map("flagged_at")
+  reviewedByAgentId String?               @map("reviewed_by_agent_id")
+  reviewedByAgent   Agent?                @relation("DeletionReviewer", fields: [reviewedByAgentId], references: [id])
+  reviewedAt        DateTime?             @map("reviewed_at")
+  reviewNotes       String?               @map("review_notes")
+  executedAt        DateTime?             @map("executed_at")
+  status            DeletionRequestStatus @default(flagged)
+  details           Json?
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([targetType, targetId])
+  @@map("data_deletion_requests")
+}
+
+model DataCorrectionRequest {
+  id                 String                  @id
+  sellerId           String                  @map("seller_id")
+  seller             Seller                  @relation(fields: [sellerId], references: [id])
+  fieldName          String                  @map("field_name")
+  currentValue       String?                 @map("current_value")
+  requestedValue     String                  @map("requested_value")
+  reason             String?
+  status             CorrectionRequestStatus @default(pending)
+  processedByAgentId String?                 @map("processed_by_agent_id")
+  processedByAgent   Agent?                  @relation("CorrectionProcessor", fields: [processedByAgentId], references: [id])
+  processedAt        DateTime?               @map("processed_at")
+  processNotes       String?                 @map("process_notes")
+  createdAt          DateTime                @default(now()) @map("created_at")
+  updatedAt          DateTime                @updatedAt @map("updated_at")
+
+  @@map("data_correction_requests")
+}
+
+model MarketContent {
+  id                String              @id
+  town              String
+  flatType          String              @map("flat_type")
+  period            String
+  rawData           Json                @map("raw_data")
+  aiNarrative       String?             @map("ai_narrative")
+  aiProvider        String?             @map("ai_provider")
+  aiModel           String?             @map("ai_model")
+  status            MarketContentStatus @default(ai_generated)
+  tiktokFormat      String?             @map("tiktok_format")
+  instagramFormat   String?             @map("instagram_format")
+  linkedinFormat    String?             @map("linkedin_format")
+  approvedByAgentId String?             @map("approved_by_agent_id")
+  approvedByAgent   Agent?              @relation("ContentApprover", fields: [approvedByAgentId], references: [id])
+  approvedAt        DateTime?           @map("approved_at")
+  publishedAt       DateTime?           @map("published_at")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([town, flatType])
+  @@map("market_contents")
+}
+
 model SystemSetting {
   id               String   @id
   key              String   @unique

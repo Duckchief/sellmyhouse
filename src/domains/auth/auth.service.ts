@@ -1,0 +1,232 @@
+import bcrypt from 'bcrypt';
+import { generateSecret as otpGenerateSecret, generateURI, verifySync } from 'otplib';
+import QRCode from 'qrcode';
+import crypto from 'crypto';
+import * as authRepo from './auth.repository';
+import * as auditService from '../shared/audit.service';
+import { encrypt, decrypt } from '../shared/encryption';
+import { ValidationError, ConflictError, UnauthorizedError } from '../shared/errors';
+import type {
+  SellerRegistrationInput,
+  TotpSetupResult,
+  TotpVerifyInput,
+  BackupCodeVerifyInput,
+  UserRole,
+} from './auth.types';
+
+const BCRYPT_ROUNDS = 12;
+const BACKUP_CODE_COUNT = 8;
+const MAX_2FA_FAILURES = 5;
+const LOCKOUT_MINUTES = 30;
+
+export async function registerSeller(input: SellerRegistrationInput) {
+  if (!input.consentService) {
+    throw new ValidationError('Service consent is required', {
+      consentService: 'You must consent to our service terms to register',
+    });
+  }
+
+  const existing = await authRepo.findSellerByEmail(input.email);
+  if (existing) {
+    throw new ConflictError('An account with this email already exists');
+  }
+
+  const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
+
+  const seller = await authRepo.createSeller({
+    name: input.name,
+    email: input.email,
+    phone: input.phone,
+    passwordHash,
+    consentService: input.consentService,
+    consentMarketing: input.consentMarketing,
+  });
+
+  await authRepo.createConsentRecord({
+    subjectType: 'seller',
+    subjectId: seller.id,
+    purposeService: input.consentService,
+    purposeMarketing: input.consentMarketing,
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent,
+  });
+
+  await auditService.log({
+    action: 'seller.registered',
+    entityType: 'seller',
+    entityId: seller.id,
+    details: { email: input.email },
+    ipAddress: input.ipAddress,
+  });
+
+  return seller;
+}
+
+export async function loginSeller(email: string, password: string) {
+  const seller = await authRepo.findSellerByEmail(email);
+  if (!seller || !seller.passwordHash) return null;
+
+  const valid = await bcrypt.compare(password, seller.passwordHash);
+  if (!valid) return null;
+
+  return seller;
+}
+
+export async function loginAgent(email: string, password: string) {
+  const agent = await authRepo.findAgentByEmail(email);
+  if (!agent) return null;
+  if (!agent.isActive) return null;
+
+  const valid = await bcrypt.compare(password, agent.passwordHash);
+  if (!valid) return null;
+
+  return agent;
+}
+
+export async function setup2FA(
+  userId: string,
+  role: UserRole,
+): Promise<TotpSetupResult> {
+  const secret = otpGenerateSecret();
+  const issuer = role === 'seller' ? 'SellMyHomeNow (Seller)' : 'SellMyHomeNow (Agent)';
+  const otpAuthUrl = generateURI({ issuer, label: userId, secret });
+  const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
+
+  // Generate backup codes
+  const backupCodes: string[] = [];
+  const hashedCodes: string[] = [];
+  for (let i = 0; i < BACKUP_CODE_COUNT; i++) {
+    const code = crypto.randomBytes(4).toString('hex'); // 8 char hex
+    backupCodes.push(code);
+    hashedCodes.push(await bcrypt.hash(code, BCRYPT_ROUNDS));
+  }
+
+  const encryptedSecret = encrypt(secret);
+
+  const updateFn =
+    role === 'seller' ? authRepo.updateSellerTwoFactor : authRepo.updateAgentTwoFactor;
+
+  await updateFn(userId, {
+    twoFactorSecret: encryptedSecret,
+    twoFactorEnabled: true,
+    twoFactorBackupCodes: hashedCodes,
+  });
+
+  await auditService.log({
+    action: '2fa.setup',
+    entityType: role,
+    entityId: userId,
+    details: { method: 'totp' },
+  });
+
+  return { secret, otpAuthUrl, qrCodeDataUrl, backupCodes };
+}
+
+export async function verify2FA(input: TotpVerifyInput): Promise<boolean> {
+  const record = await getRecordForRole(input.userId, input.role);
+  if (!record) throw new UnauthorizedError('User not found');
+
+  // Check lockout
+  if (record.twoFactorLockedUntil && record.twoFactorLockedUntil > new Date()) {
+    throw new UnauthorizedError('2FA is temporarily locked. Please try again later.');
+  }
+
+  if (!record.twoFactorSecret) {
+    throw new UnauthorizedError('2FA is not set up');
+  }
+
+  const secret = decrypt(record.twoFactorSecret);
+  const result = verifySync({ secret, token: input.token });
+  const isValid = result.valid;
+
+  if (!isValid) {
+    const incrementFn =
+      input.role === 'seller'
+        ? authRepo.incrementSellerFailedTwoFactor
+        : authRepo.incrementAgentFailedTwoFactor;
+    await incrementFn(input.userId);
+
+    const newFailures = record.failedTwoFactorAttempts + 1;
+    if (newFailures >= MAX_2FA_FAILURES) {
+      const lockUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
+      const lockFn =
+        input.role === 'seller'
+          ? authRepo.lockSellerTwoFactor
+          : authRepo.lockAgentTwoFactor;
+      await lockFn(input.userId, lockUntil);
+    }
+
+    return false;
+  }
+
+  // Reset failures on success
+  const resetFn =
+    input.role === 'seller'
+      ? authRepo.resetSellerFailedTwoFactor
+      : authRepo.resetAgentFailedTwoFactor;
+  await resetFn(input.userId);
+
+  return true;
+}
+
+export async function verifyBackupCode(input: BackupCodeVerifyInput): Promise<boolean> {
+  const record = await getRecordForRole(input.userId, input.role);
+  if (!record) throw new UnauthorizedError('User not found');
+
+  const storedCodes = (record.twoFactorBackupCodes as string[]) || [];
+  if (storedCodes.length === 0) return false;
+
+  for (let i = 0; i < storedCodes.length; i++) {
+    const matches = await bcrypt.compare(input.code, storedCodes[i]);
+    if (matches) {
+      // Remove used code
+      const remaining = [...storedCodes.slice(0, i), ...storedCodes.slice(i + 1)];
+      const updateFn =
+        input.role === 'seller'
+          ? authRepo.updateSellerBackupCodes
+          : authRepo.updateAgentBackupCodes;
+      await updateFn(input.userId, remaining);
+
+      await auditService.log({
+        action: '2fa.backup_code_used',
+        entityType: input.role,
+        entityId: input.userId,
+        details: { remainingCodes: remaining.length },
+      });
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export async function changePassword(
+  userId: string,
+  role: UserRole,
+  newPassword: string,
+) {
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+  const updateFn =
+    role === 'seller'
+      ? authRepo.updateSellerPasswordHash
+      : authRepo.updateAgentPasswordHash;
+  await updateFn(userId, passwordHash);
+
+  await auditService.log({
+    action: 'password.changed',
+    entityType: role,
+    entityId: userId,
+    details: {},
+  });
+}
+
+// ─── Helpers ───────────────────────────────────────────────
+
+async function getRecordForRole(userId: string, role: UserRole) {
+  if (role === 'seller') {
+    return authRepo.findSellerById(userId);
+  }
+  return authRepo.findAgentById(userId);
+}

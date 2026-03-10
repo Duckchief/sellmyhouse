@@ -1,0 +1,83 @@
+{% extends "layouts/agent.njk" %}
+
+{% block title %}{{ "Agent Settings" | t }} — SellMyHomeNow{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <h1 class="text-2xl font-bold mb-8">{{ "Communication Settings" | t }}</h1>
+
+  {# WhatsApp Settings #}
+  <div class="bg-white shadow rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">{{ "WhatsApp (Meta Business API)" | t }}</h2>
+    <form
+      hx-post="/agent/settings/whatsapp"
+      hx-target="#whatsapp-result"
+      hx-swap="innerHTML"
+      class="space-y-4"
+    >
+      <div id="whatsapp-result"></div>
+
+      {% set waKeys = ['whatsapp_phone_number_id', 'whatsapp_api_token', 'whatsapp_business_account_id'] %}
+      {% for key in waKeys %}
+        <div>
+          <label for="{{ key }}" class="block text-sm font-medium text-gray-700">{{ key | replace('_', ' ') | capitalize }}</label>
+          <input type="{{ 'password' if 'token' in key else 'text' }}" id="{{ key }}" name="{{ key }}"
+            placeholder="{% for s in settings %}{% if s.key == key and s.maskedValue %}{{ s.maskedValue }}{% endif %}{% endfor %}"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" />
+        </div>
+      {% endfor %}
+
+      <div class="flex gap-2">
+        <button type="submit"
+          class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700">
+          {{ "Save WhatsApp Settings" | t }}
+        </button>
+        <button type="button"
+          hx-post="/agent/settings/test/whatsapp"
+          hx-target="#whatsapp-result"
+          hx-swap="innerHTML"
+          class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300">
+          {{ "Test Connection" | t }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {# Email/SMTP Settings #}
+  <div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-lg font-semibold mb-4">{{ "Email (SMTP)" | t }}</h2>
+    <form
+      hx-post="/agent/settings/email"
+      hx-target="#email-result"
+      hx-swap="innerHTML"
+      class="space-y-4"
+    >
+      <div id="email-result"></div>
+
+      {% set smtpKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from_email', 'smtp_from_name'] %}
+      {% for key in smtpKeys %}
+        <div>
+          <label for="{{ key }}" class="block text-sm font-medium text-gray-700">{{ key | replace('_', ' ') | capitalize }}</label>
+          <input type="{{ 'password' if 'pass' in key else 'text' }}" id="{{ key }}" name="{{ key }}"
+            placeholder="{% for s in settings %}{% if s.key == key and s.maskedValue %}{{ s.maskedValue }}{% endif %}{% endfor %}"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" />
+        </div>
+      {% endfor %}
+
+      <div class="flex gap-2">
+        <button type="submit"
+          class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700">
+          {{ "Save Email Settings" | t }}
+        </button>
+        <button type="button"
+          hx-post="/agent/settings/test/email"
+          hx-target="#email-result"
+          hx-swap="innerHTML"
+          class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300">
+          {{ "Test Connection" | t }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

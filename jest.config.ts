@@ -8,6 +8,7 @@ const config: Config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@paralleldrive/cuid2$': '<rootDir>/tests/mocks/cuid2.ts',
+    '^otplib$': '<rootDir>/tests/mocks/otplib.ts',
   },
   clearMocks: true,
   collectCoverageFrom: [

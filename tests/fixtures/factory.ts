@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { testPrisma } from '../helpers/prisma';
 import { createId } from '@paralleldrive/cuid2';
+import { encrypt } from '../../src/domains/shared/encryption';
 
 export const factory = {
   async systemSetting(overrides: {
@@ -65,6 +66,7 @@ export const factory = {
     name?: string;
     email?: string;
     phone?: string;
+    passwordHash?: string;
     agentId?: string;
     status?: 'lead' | 'engaged' | 'active' | 'completed' | 'archived';
     consentService?: boolean;
@@ -78,6 +80,7 @@ export const factory = {
         name: overrides?.name ?? 'Test Seller',
         email: overrides?.email ?? `seller-${id}@test.local`,
         phone: overrides?.phone ?? `8${id.slice(0, 7)}`,
+        passwordHash: overrides?.passwordHash ?? null,
         agentId: overrides?.agentId,
         status: overrides?.status ?? 'lead',
         consentService: overrides?.consentService ?? true,
@@ -147,6 +150,63 @@ export const factory = {
         remainingLease: overrides?.remainingLease ?? '68 years 03 months',
         resalePrice: overrides?.resalePrice ?? 500000,
         source: overrides?.source ?? 'csv_seed',
+      },
+    });
+  },
+
+  async consentRecord(overrides: {
+    subjectType: 'seller' | 'buyer';
+    subjectId: string;
+    purposeService?: boolean;
+    purposeMarketing?: boolean;
+    ipAddress?: string;
+    userAgent?: string;
+  }) {
+    return testPrisma.consentRecord.create({
+      data: {
+        id: createId(),
+        subjectType: overrides.subjectType,
+        subjectId: overrides.subjectId,
+        purposeService: overrides.purposeService ?? true,
+        purposeMarketing: overrides.purposeMarketing ?? false,
+        ipAddress: overrides.ipAddress ?? '127.0.0.1',
+        userAgent: overrides.userAgent ?? 'test-agent',
+      },
+    });
+  },
+
+  async agentSetting(overrides: {
+    agentId: string;
+    key: string;
+    value: string;
+  }) {
+    return testPrisma.agentSetting.create({
+      data: {
+        id: createId(),
+        agentId: overrides.agentId,
+        key: overrides.key,
+        encryptedValue: encrypt(overrides.value),
+      },
+    });
+  },
+
+  async notification(overrides: {
+    recipientType: 'seller' | 'agent';
+    recipientId: string;
+    channel?: 'whatsapp' | 'email' | 'in_app';
+    templateName?: string;
+    content?: string;
+    status?: 'pending' | 'sent' | 'delivered' | 'failed' | 'read';
+  }) {
+    return testPrisma.notification.create({
+      data: {
+        id: createId(),
+        recipientType: overrides.recipientType,
+        recipientId: overrides.recipientId,
+        channel: overrides.channel ?? 'in_app',
+        templateName: overrides.templateName ?? 'generic',
+        content: overrides.content ?? 'Test notification',
+        status: overrides.status ?? 'pending',
       },
     });
   },

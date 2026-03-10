@@ -2,11 +2,29 @@ import express from 'express';
 import nunjucks from 'nunjucks';
 import helmet from 'helmet';
 import path from 'path';
+import passport from 'passport';
 import { requestLogger } from './middleware/request-logger';
 import { errorHandler } from './middleware/error-handler';
+import { createSessionMiddleware } from './middleware/session';
+import { configurePassport } from './middleware/passport';
+import { apiRateLimiter } from './middleware/rate-limit';
 import { healthRouter } from './health.router';
+import { authRouter } from '../../domains/auth/auth.router';
+import { agentSettingsRouter } from '../../domains/agent-settings/agent-settings.router';
+import { notificationRouter } from '../../domains/notification/notification.router';
+
+function validateEnv() {
+  const required = ['SESSION_SECRET', 'DATABASE_URL', 'ENCRYPTION_KEY'];
+  for (const key of required) {
+    if (!process.env[key]) {
+      throw new Error(`Missing required environment variable: ${key}`);
+    }
+  }
+}
 
 export function createApp() {
+  validateEnv();
+
   const app = express();
 
   // Nunjucks setup — resolve from project root so it works in both dev and Docker
@@ -52,13 +70,23 @@ export function createApp() {
   // Static files
   app.use(express.static(path.resolve('public')));
 
-  // Request logging (skip health checks)
+  // Session + Passport
+  app.use(createSessionMiddleware());
+  configurePassport();
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // Request logging (skip in test)
   if (process.env.NODE_ENV !== 'test') {
     app.use(requestLogger);
   }
 
   // Routes
   app.use(healthRouter);
+  app.use(authRouter);
+  app.use(agentSettingsRouter);
+  app.use('/api', apiRateLimiter);
+  app.use(notificationRouter);
 
   // Error handling (must be last)
   app.use(errorHandler);

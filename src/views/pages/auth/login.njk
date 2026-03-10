@@ -1,0 +1,116 @@
+{% extends "layouts/public.njk" %}
+
+{% block title %}{{ "Log In" | t }} — SellMyHomeNow{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-10">
+  <h1 class="text-2xl font-bold mb-6">{{ "Log In" | t }}</h1>
+
+  {% if error %}
+    <div class="mb-4 rounded-md bg-red-50 p-4">
+      <p class="text-sm text-red-700">{{ error }}</p>
+    </div>
+  {% endif %}
+
+  <div class="mb-6">
+    <div class="flex border-b border-gray-200" role="tablist">
+      <button id="tab-seller" role="tab" aria-selected="true"
+        class="px-4 py-2 text-sm font-medium text-indigo-600 border-b-2 border-indigo-600"
+        onclick="switchTab('seller')">
+        {{ "Seller" | t }}
+      </button>
+      <button id="tab-agent" role="tab" aria-selected="false"
+        class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700"
+        onclick="switchTab('agent')">
+        {{ "Agent" | t }}
+      </button>
+    </div>
+  </div>
+
+  <div id="seller-form">
+    <form
+      hx-post="/auth/login/seller"
+      hx-target="#seller-messages"
+      hx-swap="innerHTML"
+      class="space-y-4"
+    >
+      <div id="seller-messages"></div>
+
+      <div>
+        <label for="seller-email" class="block text-sm font-medium text-gray-700">{{ "Email" | t }}</label>
+        <input type="email" id="seller-email" name="email" required
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+      </div>
+
+      <div>
+        <label for="seller-password" class="block text-sm font-medium text-gray-700">{{ "Password" | t }}</label>
+        <input type="password" id="seller-password" name="password" required
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+      </div>
+
+      <button type="submit"
+        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+        {{ "Log In as Seller" | t }}
+      </button>
+    </form>
+  </div>
+
+  <div id="agent-form" class="hidden">
+    <form
+      hx-post="/auth/login/agent"
+      hx-target="#agent-messages"
+      hx-swap="innerHTML"
+      class="space-y-4"
+    >
+      <div id="agent-messages"></div>
+
+      <div>
+        <label for="agent-email" class="block text-sm font-medium text-gray-700">{{ "Email" | t }}</label>
+        <input type="email" id="agent-email" name="email" required
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+      </div>
+
+      <div>
+        <label for="agent-password" class="block text-sm font-medium text-gray-700">{{ "Password" | t }}</label>
+        <input type="password" id="agent-password" name="password" required
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+      </div>
+
+      <button type="submit"
+        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+        {{ "Log In as Agent" | t }}
+      </button>
+    </form>
+  </div>
+
+  <p class="mt-4 text-center text-sm text-gray-600">
+    {{ "Don't have an account?" | t }}
+    <a href="/auth/register" class="font-medium text-indigo-600 hover:text-indigo-500">{{ "Register" | t }}</a>
+  </p>
+</div>
+
+<script>
+function switchTab(tab) {
+  var sellerForm = document.getElementById('seller-form');
+  var agentForm = document.getElementById('agent-form');
+  var tabSeller = document.getElementById('tab-seller');
+  var tabAgent = document.getElementById('tab-agent');
+
+  if (tab === 'seller') {
+    sellerForm.classList.remove('hidden');
+    agentForm.classList.add('hidden');
+    tabSeller.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
+    tabSeller.classList.remove('text-gray-500');
+    tabAgent.classList.remove('text-indigo-600', 'border-b-2', 'border-indigo-600');
+    tabAgent.classList.add('text-gray-500');
+  } else {
+    agentForm.classList.remove('hidden');
+    sellerForm.classList.add('hidden');
+    tabAgent.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
+    tabAgent.classList.remove('text-gray-500');
+    tabSeller.classList.remove('text-indigo-600', 'border-b-2', 'border-indigo-600');
+    tabSeller.classList.add('text-gray-500');
+  }
+}
+</script>
+{% endblock %}

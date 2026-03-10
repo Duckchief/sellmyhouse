@@ -18,6 +18,7 @@ const TEMPLATES: Record<string, string> = {
   document_ready: 'A document is ready for your review: {{documentName}}.',
   invoice_uploaded: 'Your commission invoice has been uploaded for {{address}}.',
   agreement_sent: 'The estate agency agreement for {{address}} has been sent to you.',
+  financial_report_ready: 'Your financial report for {{address}} is ready. {{message}}',
   generic: '{{message}}',
 };
 

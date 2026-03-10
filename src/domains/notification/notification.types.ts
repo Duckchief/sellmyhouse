@@ -14,6 +14,7 @@ export type NotificationTemplateName =
   | 'document_ready'
   | 'invoice_uploaded'
   | 'agreement_sent'
+  | 'financial_report_ready'
   | 'generic';
 
 export interface SendNotificationInput {

@@ -8,3 +8,4 @@ coverage/
 .prisma/
 prisma/migrations/*.sql.bak
 .DS_Store
+data/hdb/*.csv

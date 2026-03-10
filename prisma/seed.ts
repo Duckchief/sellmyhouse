@@ -1,12 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import { seedSystemSettings } from './seeds/system-settings';
+import { seedHdbTransactions } from './seeds/hdb-transactions';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('Starting seed...');
   await seedSystemSettings(prisma);
-  // HDB transaction seed will be added in Task 10
+  await seedHdbTransactions(prisma);
   console.log('Seed completed.');
 }
 

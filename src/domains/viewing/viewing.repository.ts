@@ -1,0 +1,321 @@
+import { prisma } from '@/infra/database/prisma';
+import type { SlotType, SlotStatus, ViewingStatus } from '@prisma/client';
+
+// ─── Slots ───────────────────────────────────────────────
+
+export async function createSlot(data: {
+  id: string;
+  propertyId: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  slotType: SlotType;
+  maxViewers: number;
+}) {
+  return prisma.viewingSlot.create({ data });
+}
+
+export async function createManySlots(
+  data: {
+    id: string;
+    propertyId: string;
+    date: Date;
+    startTime: string;
+    endTime: string;
+    durationMinutes: number;
+    slotType: SlotType;
+    maxViewers: number;
+  }[],
+) {
+  return prisma.viewingSlot.createMany({ data });
+}
+
+export async function findSlotById(id: string) {
+  return prisma.viewingSlot.findUnique({
+    where: { id },
+    include: { viewings: { include: { verifiedViewer: true } }, property: true },
+  });
+}
+
+export async function findSlotsByPropertyAndDateRange(
+  propertyId: string,
+  startDate: Date,
+  endDate: Date,
+) {
+  return prisma.viewingSlot.findMany({
+    where: {
+      propertyId,
+      date: { gte: startDate, lte: endDate },
+    },
+    include: { viewings: { include: { verifiedViewer: true } } },
+    orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+  });
+}
+
+export async function updateSlotStatus(
+  id: string,
+  data: { status?: SlotStatus; currentBookings?: number },
+) {
+  return prisma.viewingSlot.update({ where: { id }, data });
+}
+
+export async function cancelSlotAndViewings(slotId: string) {
+  return prisma.$transaction(async (tx) => {
+    // Cancel all viewings for this slot
+    await tx.viewing.updateMany({
+      where: { viewingSlotId: slotId, status: { notIn: ['cancelled'] } },
+      data: { status: 'cancelled' },
+    });
+
+    // Cancel the slot and reset bookings
+    return tx.viewingSlot.update({
+      where: { id: slotId },
+      data: { status: 'cancelled', currentBookings: 0 },
+    });
+  });
+}
+
+// ─── Bookings ────────────────────────────────────────────
+
+export async function createViewingWithLock(data: {
+  id: string;
+  propertyId: string;
+  viewingSlotId: string;
+  verifiedViewerId: string;
+  cancelToken: string;
+  status: ViewingStatus;
+  scheduledAt: Date;
+  otpHash?: string;
+  otpExpiresAt?: Date;
+}) {
+  return prisma.$transaction(async (tx) => {
+    // Lock the slot row to prevent concurrent bookings
+    const [slot] = await tx.$queryRaw<
+      { id: string; current_bookings: number; max_viewers: number; slot_type: string; status: string }[]
+    >`SELECT id, current_bookings, max_viewers, slot_type, status FROM viewing_slots WHERE id = ${data.viewingSlotId} FOR UPDATE`;
+
+    if (!slot) throw new Error('Slot not found');
+    if (slot.status === 'cancelled') throw new Error('Slot is cancelled');
+    if (slot.status === 'full') throw new Error('Slot is full');
+    if (slot.slot_type === 'single' && slot.current_bookings >= 1) throw new Error('Slot is full');
+    if (slot.current_bookings >= slot.max_viewers) throw new Error('Slot is full');
+
+    // Create the viewing
+    const viewing = await tx.viewing.create({ data });
+
+    // Increment bookings and update status
+    const newBookings = slot.current_bookings + 1;
+    let newStatus: SlotStatus = 'booked';
+    if (slot.slot_type === 'single') {
+      newStatus = 'booked';
+    } else if (newBookings >= slot.max_viewers) {
+      newStatus = 'full';
+    }
+
+    await tx.viewingSlot.update({
+      where: { id: data.viewingSlotId },
+      data: { currentBookings: { increment: 1 }, status: newStatus },
+    });
+
+    return viewing;
+  });
+}
+
+export async function findViewingById(id: string) {
+  return prisma.viewing.findUnique({
+    where: { id },
+    include: { viewingSlot: true, verifiedViewer: true, property: true },
+  });
+}
+
+export async function findViewingByCancelToken(cancelToken: string) {
+  return prisma.viewing.findUnique({
+    where: { cancelToken },
+    include: { viewingSlot: true, verifiedViewer: true, property: true },
+  });
+}
+
+export async function updateViewingStatus(
+  id: string,
+  data: {
+    status?: ViewingStatus;
+    completedAt?: Date;
+    feedback?: string;
+    interestRating?: number;
+    otpHash?: string;
+    otpExpiresAt?: Date;
+    otpAttempts?: number;
+  },
+) {
+  return prisma.viewing.update({ where: { id }, data });
+}
+
+export async function findViewingsBySlot(slotId: string) {
+  return prisma.viewing.findMany({
+    where: { viewingSlotId: slotId, status: { notIn: ['cancelled'] } },
+    include: { verifiedViewer: true },
+  });
+}
+
+export async function findDuplicateBooking(phone: string, slotId: string) {
+  return prisma.viewing.findFirst({
+    where: {
+      viewingSlotId: slotId,
+      verifiedViewer: { phone },
+      status: { notIn: ['cancelled'] },
+    },
+  });
+}
+
+export async function countBookingsToday(phone: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  return prisma.viewing.count({
+    where: {
+      verifiedViewer: { phone },
+      createdAt: { gte: today, lt: tomorrow },
+      status: { notIn: ['cancelled'] },
+    },
+  });
+}
+
+// ─── Viewers ─────────────────────────────────────────────
+
+export async function findVerifiedViewerByPhone(phone: string) {
+  return prisma.verifiedViewer.findUnique({ where: { phone } });
+}
+
+export async function createVerifiedViewer(data: {
+  id: string;
+  name: string;
+  phone: string;
+  viewerType: 'buyer' | 'agent';
+  agentName?: string;
+  agentCeaReg?: string;
+  agentAgencyName?: string;
+  consentService: boolean;
+}) {
+  return prisma.verifiedViewer.create({ data });
+}
+
+export async function incrementNoShow(viewerId: string) {
+  return prisma.verifiedViewer.update({
+    where: { id: viewerId },
+    data: { noShowCount: { increment: 1 } },
+  });
+}
+
+export async function incrementBookings(viewerId: string) {
+  return prisma.verifiedViewer.update({
+    where: { id: viewerId },
+    data: {
+      totalBookings: { increment: 1 },
+      lastBookingAt: new Date(),
+    },
+  });
+}
+
+// ─── Queries ─────────────────────────────────────────────
+
+export async function findUpcomingViewingsForProperty(propertyId: string) {
+  return prisma.viewing.findMany({
+    where: {
+      propertyId,
+      status: 'scheduled',
+      scheduledAt: { gte: new Date() },
+    },
+    include: { viewingSlot: true, verifiedViewer: true },
+    orderBy: { scheduledAt: 'asc' },
+  });
+}
+
+export async function getViewingStats(propertyId: string) {
+  const totalViewings = await prisma.viewing.count({
+    where: { propertyId, status: { notIn: ['cancelled', 'pending_otp'] } },
+  });
+
+  const upcomingCount = await prisma.viewing.count({
+    where: { propertyId, status: 'scheduled', scheduledAt: { gte: new Date() } },
+  });
+
+  const noShowCount = await prisma.viewing.count({
+    where: { propertyId, status: 'no_show' },
+  });
+
+  const avgRating = await prisma.$queryRaw<{ avg: number | null }[]>`
+    SELECT AVG(interest_rating)::float as avg
+    FROM viewings
+    WHERE property_id = ${propertyId}
+      AND interest_rating IS NOT NULL
+  `;
+
+  return {
+    totalViewings,
+    upcomingCount,
+    noShowCount,
+    averageInterestRating: avgRating[0]?.avg ?? null,
+  };
+}
+
+export async function findViewingsNeedingReminder(fromMinutes: number, toMinutes: number) {
+  const now = new Date();
+  const from = new Date(now.getTime() + fromMinutes * 60000);
+  const to = new Date(now.getTime() + toMinutes * 60000);
+
+  return prisma.viewing.findMany({
+    where: {
+      status: 'scheduled',
+      scheduledAt: { gte: from, lte: to },
+    },
+    include: { viewingSlot: true, verifiedViewer: true, property: true },
+  });
+}
+
+export async function findTodaysViewingsGroupedBySeller() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  return prisma.viewing.findMany({
+    where: {
+      status: 'scheduled',
+      scheduledAt: { gte: today, lt: tomorrow },
+    },
+    include: {
+      viewingSlot: true,
+      verifiedViewer: true,
+      property: { include: { seller: true } },
+    },
+    orderBy: { scheduledAt: 'asc' },
+  });
+}
+
+export async function findViewingsNeedingFeedbackPrompt() {
+  const oneHourAgoIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+  return prisma.$queryRaw`
+    SELECT v.*, vs.date, vs.end_time, vs.start_time,
+           p.seller_id, p.town, p.street
+    FROM viewings v
+    JOIN viewing_slots vs ON v.viewing_slot_id = vs.id
+    JOIN properties p ON v.property_id = p.id
+    WHERE v.status = 'completed'
+      AND v.feedback IS NULL
+      AND (vs.date + vs.end_time::time) < ${oneHourAgoIso}::timestamptz
+  `;
+}
+
+export async function findPropertyById(id: string) {
+  return prisma.property.findUnique({ where: { id } });
+}
+
+export async function findPropertyBySlug(slug: string) {
+  return prisma.property.findFirst({
+    where: { slug, status: 'listed' },
+  });
+}

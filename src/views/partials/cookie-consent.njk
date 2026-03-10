@@ -1,0 +1,11 @@
+<div id="cookie-banner" class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 shadow-lg p-4 z-50 hidden">
+  <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <p class="text-sm text-gray-600">{{ "This site uses essential cookies only for session management and security." | t }}</p>
+    <button onclick="document.getElementById('cookie-banner').remove(); localStorage.setItem('cookieConsent','ok')" class="bg-[#1a1a2e] text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-[#2d2d4a] flex-shrink-0">{{ "OK" | t }}</button>
+  </div>
+</div>
+<script>
+  if (!localStorage.getItem('cookieConsent')) {
+    document.getElementById('cookie-banner').classList.remove('hidden');
+  }
+</script>

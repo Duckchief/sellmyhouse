@@ -147,8 +147,20 @@ describe('Seller Dashboard Integration', () => {
     it('completes steps 1-5 sequentially and redirects to dashboard', async () => {
       const { agent, seller } = await loginAsSeller({ onboardingStep: 0 });
 
+      const step2Body = {
+        town: 'ANG MO KIO',
+        street: 'ANG MO KIO AVE 3',
+        block: '123',
+        flatType: '4 ROOM',
+        storeyRange: '07 TO 09',
+        floorAreaSqm: '93',
+        flatModel: 'New Generation',
+        leaseCommenceDate: '1985',
+      };
+
       for (let step = 1; step <= 5; step++) {
-        const res = await agent.post(`/seller/onboarding/step/${step}`).type('form').send({});
+        const body = step === 2 ? step2Body : {};
+        const res = await agent.post(`/seller/onboarding/step/${step}`).type('form').send(body);
 
         if (step < 5) {
           // Intermediate step: redirect back to onboarding wizard

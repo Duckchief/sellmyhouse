@@ -3,42 +3,125 @@
 
   <p class="text-gray-600 mb-4">{{ "Enter your flat details below. These will be used to generate your financial report and listing." | t }}</p>
 
-  <form id="property-form" class="space-y-4">
-    <div class="grid grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Town" | t }}</label>
-        <select name="town" class="w-full border border-gray-300 rounded-md px-3 py-2" disabled>
-          <option>{{ "Coming in Phase 2B" | t }}</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Flat Type" | t }}</label>
-        <select name="flatType" class="w-full border border-gray-300 rounded-md px-3 py-2" disabled>
-          <option>{{ "Coming in Phase 2B" | t }}</option>
-        </select>
-      </div>
+  {% if error %}
+    <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+      {{ error }}
     </div>
-    <div class="grid grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Block" | t }}</label>
-        <input type="text" name="block" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g. 123" disabled>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Street" | t }}</label>
-        <input type="text" name="street" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g. Tampines St 11" disabled>
-      </div>
-    </div>
-    <p class="text-sm text-amber-600">{{ "Property form fields will be fully functional in the next update." | t }}</p>
-  </form>
+  {% endif %}
 
-  <div class="mt-6">
-    <button
-      hx-post="/seller/onboarding/step/2"
-      hx-target="#onboarding-step"
-      hx-swap="innerHTML"
-      class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition"
-    >
-      {{ "Continue" | t }}
-    </button>
-  </div>
+  <form
+    hx-post="/seller/onboarding/step/2"
+    hx-target="#onboarding-step"
+    hx-swap="innerHTML"
+    class="space-y-4"
+  >
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="town">{{ "Town" | t }}</label>
+        <select id="town" name="town" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">{{ "Select a town" | t }}</option>
+          {% for t in towns %}
+            <option value="{{ t }}" {% if property and property.town === t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="flatType">{{ "Flat Type" | t }}</label>
+        <select id="flatType" name="flatType" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">{{ "Select flat type" | t }}</option>
+          {% for ft in flatTypes %}
+            <option value="{{ ft }}" {% if property and property.flatType === ft %}selected{% endif %}>{{ ft }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="block">{{ "Block" | t }}</label>
+        <input
+          type="text"
+          id="block"
+          name="block"
+          value="{{ property.block if property else '' }}"
+          placeholder="{{ 'e.g. 123' | t }}"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="street">{{ "Street" | t }}</label>
+        <input
+          type="text"
+          id="street"
+          name="street"
+          value="{{ property.street if property else '' }}"
+          placeholder="{{ 'e.g. Tampines St 11' | t }}"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="storeyRange">{{ "Storey Range" | t }}</label>
+        <input
+          type="text"
+          id="storeyRange"
+          name="storeyRange"
+          value="{{ property.storeyRange if property else '' }}"
+          placeholder="{{ 'e.g. 07 TO 09' | t }}"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="floorAreaSqm">{{ "Floor Area (sqm)" | t }}</label>
+        <input
+          type="number"
+          id="floorAreaSqm"
+          name="floorAreaSqm"
+          value="{{ property.floorAreaSqm if property else '' }}"
+          placeholder="{{ 'e.g. 95' | t }}"
+          step="0.1"
+          min="1"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="flatModel">{{ "Flat Model" | t }}</label>
+        <input
+          type="text"
+          id="flatModel"
+          name="flatModel"
+          value="{{ property.flatModel if property else '' }}"
+          placeholder="{{ 'e.g. Model A' | t }}"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="leaseCommenceDate">{{ "Lease Commence Year" | t }}</label>
+        <input
+          type="number"
+          id="leaseCommenceDate"
+          name="leaseCommenceDate"
+          value="{{ property.leaseCommenceDate if property else '' }}"
+          placeholder="{{ 'e.g. 1995' | t }}"
+          min="1960"
+          max="2030"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+      </div>
+    </div>
+
+    <div class="mt-6">
+      <button
+        type="submit"
+        class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition"
+      >
+        {{ "Save & Continue" | t }}
+      </button>
+    </div>
+  </form>
 </div>

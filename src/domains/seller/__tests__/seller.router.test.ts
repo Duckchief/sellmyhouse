@@ -1,13 +1,16 @@
 import * as sellerService from '../seller.service';
+import * as propertyService from '../../property/property.service';
 import { TOTAL_ONBOARDING_STEPS } from '../seller.types';
 
 jest.mock('../seller.service');
+jest.mock('../../property/property.service');
 jest.mock('../../notification/notification.repository', () => ({
   countUnreadForRecipient: jest.fn().mockResolvedValue(0),
   findUnreadForRecipient: jest.fn().mockResolvedValue([]),
 }));
 
 const mockedService = jest.mocked(sellerService);
+const mockedPropertyService = jest.mocked(propertyService);
 
 import request from 'supertest';
 import express from 'express';
@@ -154,8 +157,22 @@ describe('seller.router', () => {
   describe('POST /seller/onboarding/step/:step', () => {
     it('completes step and returns next step partial for HTMX', async () => {
       mockedService.completeOnboardingStep.mockResolvedValue({ onboardingStep: 2 });
+      mockedPropertyService.getPropertyForSeller.mockResolvedValue(null);
+      mockedPropertyService.createProperty.mockResolvedValue({} as never);
 
-      const res = await request(app).post('/seller/onboarding/step/2').set('HX-Request', 'true');
+      const res = await request(app)
+        .post('/seller/onboarding/step/2')
+        .set('HX-Request', 'true')
+        .send({
+          town: 'TAMPINES',
+          street: 'Tampines St 11',
+          block: '123',
+          flatType: '4 ROOM',
+          storeyRange: '07 TO 09',
+          floorAreaSqm: '95',
+          flatModel: 'Model A',
+          leaseCommenceDate: '1995',
+        });
 
       expect(res.status).toBe(200);
       expect(mockedService.completeOnboardingStep).toHaveBeenCalledWith({

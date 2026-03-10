@@ -1,1 +1,31 @@
-<div>partial</div>
+<div class="bg-white rounded-lg shadow p-6">
+  <h2 class="text-xl font-semibold mb-4">{{ "Welcome to SellMyHomeNow.sg" | t }}</h2>
+
+  <div class="space-y-4 text-gray-700">
+    <p>{{ "We're here to help you sell your HDB flat at a fixed fee of $1,499 + GST. Here's how it works:" | t }}</p>
+
+    <ul class="list-disc pl-5 space-y-2">
+      <li>{{ "You take the photos and conduct the viewings — we guide you every step of the way" | t }}</li>
+      <li>{{ "Your agent reviews everything and handles the complex parts — negotiations, paperwork, compliance" | t }}</li>
+      <li>{{ "No AI-generated content reaches anyone without your agent's review and approval" | t }}</li>
+    </ul>
+
+    <div class="bg-blue-50 border border-blue-200 rounded p-4">
+      <p class="font-medium mb-2">{{ "Recommended: Watch the complete HDB resale timeline video" | t }}</p>
+      <a href="/seller/tutorials" class="text-blue-600 hover:underline text-sm">
+        {{ "View Video Tutorials →" | t }}
+      </a>
+    </div>
+  </div>
+
+  <div class="mt-6">
+    <button
+      hx-post="/seller/onboarding/step/1"
+      hx-target="#onboarding-step"
+      hx-swap="innerHTML"
+      class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition"
+    >
+      {{ "I understand the process — Continue" | t }}
+    </button>
+  </div>
+</div>

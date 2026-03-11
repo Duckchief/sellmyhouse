@@ -260,6 +260,7 @@ export const factory = {
     aiProvider?: string;
     aiModel?: string;
     version?: number;
+    status?: 'draft' | 'ai_generated' | 'pending_review' | 'approved' | 'rejected' | 'sent';
     reviewedByAgentId?: string;
     approvedAt?: Date;
     sentToSellerAt?: Date;
@@ -284,10 +285,57 @@ export const factory = {
         aiProvider: overrides.aiProvider,
         aiModel: overrides.aiModel,
         version: overrides.version ?? 1,
+        status: overrides.status ?? 'draft',
         reviewedByAgentId: overrides.reviewedByAgentId,
         approvedAt: overrides.approvedAt,
         sentToSellerAt: overrides.sentToSellerAt,
         sentVia: overrides.sentVia,
+      },
+    });
+  },
+
+  async documentChecklist(overrides: {
+    sellerId: string;
+    propertyId: string;
+    items?: Record<string, unknown>[];
+    status?: 'draft' | 'ai_generated' | 'pending_review' | 'approved' | 'rejected' | 'sent';
+    reviewedByAgentId?: string;
+    reviewedAt?: Date;
+    reviewNotes?: string;
+    approvedAt?: Date;
+  }) {
+    return testPrisma.documentChecklist.create({
+      data: {
+        id: createId(),
+        sellerId: overrides.sellerId,
+        propertyId: overrides.propertyId,
+        items: (overrides.items ?? []) as Prisma.InputJsonValue,
+        status: overrides.status ?? 'draft',
+        reviewedByAgentId: overrides.reviewedByAgentId,
+        reviewedAt: overrides.reviewedAt,
+        reviewNotes: overrides.reviewNotes,
+        approvedAt: overrides.approvedAt,
+      },
+    });
+  },
+
+  async estateAgencyAgreement(overrides: {
+    sellerId: string;
+    agentId: string;
+    status?: 'draft' | 'sent_to_seller' | 'signed' | 'active' | 'terminated' | 'expired';
+    signedAt?: Date;
+    signedCopyPath?: string;
+    expiryDate?: Date;
+  }) {
+    return testPrisma.estateAgencyAgreement.create({
+      data: {
+        id: createId(),
+        sellerId: overrides.sellerId,
+        agentId: overrides.agentId,
+        status: overrides.status ?? 'draft',
+        signedAt: overrides.signedAt,
+        signedCopyPath: overrides.signedCopyPath,
+        expiryDate: overrides.expiryDate,
       },
     });
   },

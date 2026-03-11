@@ -20,6 +20,13 @@ export type NotificationTemplateName =
   | 'agreement_sent'
   | 'financial_report_ready'
   | 'offer_analysis_shared'
+  | 'otp_exercise_reminder_14d'
+  | 'otp_exercise_reminder_7d'
+  | 'otp_exercise_reminder_3d'
+  | 'otp_exercise_reminder_1d'
+  | 'post_completion_day1'
+  | 'post_completion_day7'
+  | 'post_completion_day14'
   | 'generic';
 
 export interface EmailAttachment {

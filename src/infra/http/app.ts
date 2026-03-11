@@ -18,6 +18,7 @@ import { sellerRouter } from '../../domains/seller/seller.router';
 import { propertyRouter } from '../../domains/property/property.router';
 import { financialRouter } from '../../domains/property/financial.router';
 import { viewingRouter } from '../../domains/viewing/viewing.router';
+import { offerRouter } from '../../domains/offer/offer.router';
 import { agentRouter } from '../../domains/agent/agent.router';
 import { reviewRouter } from '../../domains/review/review.router';
 import { adminRouter } from '../../domains/admin/admin.router';
@@ -118,6 +119,7 @@ export function createApp() {
   app.use(propertyRouter);
   app.use(financialRouter);
   app.use(viewingRouter);
+  app.use(offerRouter);
   app.use(agentRouter);
   app.use(reviewRouter);
   app.use(adminRouter);

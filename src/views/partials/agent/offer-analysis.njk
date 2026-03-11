@@ -1,0 +1,7 @@
+{# partials/agent/offer-analysis.njk #}
+<div class="offer-analysis" data-offer-id="{{ offer.id }}">
+  {% if offer.aiAnalysis %}
+    <p>{{ offer.aiAnalysis }}</p>
+    <p class="status">Status: {{ offer.aiAnalysisStatus }}</p>
+  {% endif %}
+</div>

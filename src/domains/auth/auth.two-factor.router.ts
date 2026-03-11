@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import * as authService from './auth.service';
+import * as auditService from '../shared/audit.service';
 import { totpValidation, backupCodeValidation } from './auth.validator';
 import { requireAuth } from '../../infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from './auth.types';
@@ -70,13 +71,31 @@ twoFactorRouter.post(
       }
 
       const user = req.user as AuthenticatedUser;
-      const isValid = await authService.verify2FA({
-        userId: user.id,
-        role: user.role,
-        token: req.body.token,
-      });
+      let isValid: boolean;
+      try {
+        isValid = await authService.verify2FA({
+          userId: user.id,
+          role: user.role,
+          token: req.body.token,
+        });
+      } catch (err) {
+        // Log 2FA lockout
+        await auditService.log({
+          action: 'auth.2fa_locked',
+          entityType: user.role === 'seller' ? 'Seller' : 'Agent',
+          entityId: user.id,
+          details: {},
+        });
+        throw err;
+      }
 
       if (!isValid) {
+        await auditService.log({
+          action: 'auth.2fa_failed',
+          entityType: user.role === 'seller' ? 'Seller' : 'Agent',
+          entityId: user.id,
+          details: {},
+        });
         if (req.headers['hx-request']) {
           return res.status(401).render('partials/auth/form-error', {
             message: 'Invalid verification code',
@@ -86,6 +105,13 @@ twoFactorRouter.post(
           .status(401)
           .render('pages/auth/2fa-verify', { error: 'Invalid verification code' });
       }
+
+      await auditService.log({
+        action: 'auth.2fa_verified',
+        entityType: user.role === 'seller' ? 'Seller' : 'Agent',
+        entityId: user.id,
+        details: {},
+      });
 
       // Update session to mark 2FA as verified
       user.twoFactorVerified = true;

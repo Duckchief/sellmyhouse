@@ -5,7 +5,9 @@ jest.mock('nodemailer');
 jest.mock('nunjucks', () => {
   const mockEnv = {
     addFilter: jest.fn(),
-    render: jest.fn((template: string, ctx: Record<string, unknown>) => `<rendered>${ctx.content}</rendered>`),
+    render: jest.fn(
+      (template: string, ctx: Record<string, unknown>) => `<rendered>${ctx.content}</rendered>`,
+    ),
   };
   return {
     configure: jest.fn().mockReturnValue(mockEnv),

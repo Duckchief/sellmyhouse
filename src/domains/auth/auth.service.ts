@@ -54,7 +54,7 @@ export async function registerSeller(input: SellerRegistrationInput) {
   });
 
   await auditService.log({
-    action: 'seller.registered',
+    action: 'auth.seller_registered',
     entityType: 'seller',
     entityId: seller.id,
     details: { email: input.email },
@@ -77,6 +77,12 @@ export async function loginSeller(email: string, password: string) {
   }
 
   if (!passwordValid) {
+    await auditService.log({
+      action: 'auth.login_failed',
+      entityType: 'Seller',
+      entityId: seller.id,
+      details: { reason: 'invalid_password' },
+    });
     await authRepo.incrementSellerFailedLoginAttempts(seller.id);
     if (seller.failedLoginAttempts + 1 >= MAX_LOGIN_FAILURES) {
       const lockUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
@@ -96,6 +102,13 @@ export async function loginSeller(email: string, password: string) {
     await authRepo.resetSellerLoginAttempts(seller.id);
   }
 
+  await auditService.log({
+    action: 'auth.login_success',
+    entityType: 'Seller',
+    entityId: seller.id,
+    details: {},
+  });
+
   return seller;
 }
 
@@ -113,6 +126,12 @@ export async function loginAgent(email: string, password: string) {
   }
 
   if (!passwordValid) {
+    await auditService.log({
+      action: 'auth.login_failed',
+      entityType: 'Agent',
+      entityId: agent.id,
+      details: { reason: 'invalid_password' },
+    });
     await authRepo.incrementAgentFailedLoginAttempts(agent.id);
     if (agent.failedLoginAttempts + 1 >= MAX_LOGIN_FAILURES) {
       const lockUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
@@ -131,6 +150,13 @@ export async function loginAgent(email: string, password: string) {
   if (agent.failedLoginAttempts > 0 || agent.loginLockedUntil) {
     await authRepo.resetAgentLoginAttempts(agent.id);
   }
+
+  await auditService.log({
+    action: 'auth.login_success',
+    entityType: 'Agent',
+    entityId: agent.id,
+    details: {},
+  });
 
   return agent;
 }
@@ -162,7 +188,7 @@ export async function setup2FA(userId: string, role: UserRole): Promise<TotpSetu
   });
 
   await auditService.log({
-    action: '2fa.setup',
+    action: 'auth.2fa_setup',
     entityType: role,
     entityId: userId,
     details: { method: 'totp' },
@@ -235,7 +261,7 @@ export async function verifyBackupCode(input: BackupCodeVerifyInput): Promise<bo
       );
 
       await auditService.log({
-        action: '2fa.backup_code_used',
+        action: 'auth.2fa_backup_used',
         entityType: input.role,
         entityId: input.userId,
         details: { remainingCodes: remaining.length },
@@ -263,7 +289,7 @@ export async function changePassword(
   await authRepo.invalidateUserSessions(userId, currentSessionId);
 
   await auditService.log({
-    action: 'password.changed',
+    action: 'auth.password_changed',
     entityType: role,
     entityId: userId,
     details: {},

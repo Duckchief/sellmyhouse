@@ -254,14 +254,14 @@ export function clearAgentPasswordResetToken(id: string) {
 export async function invalidateUserSessions(userId: string, exceptSessionId?: string) {
   if (exceptSessionId) {
     await prisma.$executeRawUnsafe(
-      `DELETE FROM "session" WHERE sess::text LIKE $1 AND sid != $2`,
-      `%"id":"${userId}"%`,
+      `DELETE FROM "session" WHERE sess::jsonb #>> '{passport,user,id}' = $1 AND sid != $2`,
+      userId,
       exceptSessionId,
     );
   } else {
     await prisma.$executeRawUnsafe(
-      `DELETE FROM "session" WHERE sess::text LIKE $1`,
-      `%"id":"${userId}"%`,
+      `DELETE FROM "session" WHERE sess::jsonb #>> '{passport,user,id}' = $1`,
+      userId,
     );
   }
 }

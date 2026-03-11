@@ -83,3 +83,42 @@ export async function countUnreadForRecipient(
     },
   });
 }
+
+export async function findSellerNotificationPreference(sellerId: string): Promise<string | null> {
+  const seller = await prisma.seller.findUnique({
+    where: { id: sellerId },
+    select: { notificationPreference: true },
+  });
+  return seller?.notificationPreference ?? null;
+}
+
+export async function findSellerMarketingConsent(sellerId: string): Promise<boolean> {
+  const seller = await prisma.seller.findUnique({
+    where: { id: sellerId },
+    select: { consentMarketing: true },
+  });
+  return seller?.consentMarketing ?? false;
+}
+
+export async function withdrawMarketingConsent(sellerId: string): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    await tx.seller.update({
+      where: { id: sellerId },
+      data: { consentMarketing: false, consentWithdrawnAt: new Date() },
+    });
+
+    await tx.consentRecord.create({
+      data: {
+        id: createId(),
+        subjectType: 'seller',
+        subjectId: sellerId,
+        purposeService: true,
+        purposeMarketing: false,
+        consentGivenAt: new Date(),
+        consentWithdrawnAt: new Date(),
+        ipAddress: 'unsubscribe-link',
+        userAgent: 'email-unsubscribe',
+      },
+    });
+  });
+}

@@ -87,7 +87,7 @@ describe('AuthService', () => {
       );
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'seller.registered',
+          action: 'auth.seller_registered',
           entityType: 'seller',
           entityId: 'new-seller',
         }),
@@ -459,7 +459,7 @@ describe('AuthService', () => {
       );
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: '2fa.backup_code_used',
+          action: 'auth.2fa_backup_used',
           details: { remainingCodes: 2 },
         }),
       );
@@ -492,7 +492,7 @@ describe('AuthService', () => {
       expect(authRepo.updateSellerPasswordHash).toHaveBeenCalledWith('s1', 'hashed-password');
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'password.changed',
+          action: 'auth.password_changed',
           entityType: 'seller',
           entityId: 's1',
         }),

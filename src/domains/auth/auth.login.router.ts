@@ -3,8 +3,10 @@ import passport from 'passport';
 import { validationResult } from 'express-validator';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import * as authService from './auth.service';
+import * as auditService from '../shared/audit.service';
 import { loginValidation, forgotPasswordRules, resetPasswordRules } from './auth.validator';
 import { authRateLimiter } from '../../infra/http/middleware/rate-limit';
+import { ValidationError } from '../shared/errors';
 import type { AuthenticatedUser } from './auth.types';
 
 export const loginRouter = Router();
@@ -139,7 +141,16 @@ loginRouter.post(
 
 // ─── Logout ────────────────────────────────────────────────
 
-loginRouter.post('/auth/logout', (req: Request, res: Response) => {
+loginRouter.post('/auth/logout', async (req: Request, res: Response) => {
+  const user = req.user as AuthenticatedUser | undefined;
+  if (user) {
+    await auditService.log({
+      action: 'auth.logout',
+      entityType: user.role === 'seller' ? 'Seller' : 'Agent',
+      entityId: user.id,
+      details: {},
+    });
+  }
   req.logout(() => {
     req.session?.destroy(() => {
       res.redirect('/');
@@ -219,8 +230,12 @@ loginRouter.post(
       // Try seller first, then agent
       try {
         await authService.resetPassword(token, req.body.password, 'seller');
-      } catch {
-        await authService.resetPassword(token, req.body.password, 'agent');
+      } catch (err) {
+        if (err instanceof ValidationError) {
+          await authService.resetPassword(token, req.body.password, 'agent');
+        } else {
+          throw err;
+        }
       }
 
       if (req.headers['hx-request']) {

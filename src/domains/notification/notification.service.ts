@@ -10,7 +10,6 @@ import type {
   DncCheckResult,
 } from './notification.types';
 import { NOTIFICATION_TEMPLATES, WHATSAPP_TEMPLATE_STATUS } from './notification.templates';
-import { prisma, createId } from '../../infra/database/prisma';
 import * as auditService from '../shared/audit.service';
 
 async function resolveChannel(
@@ -19,24 +18,16 @@ async function resolveChannel(
 ): Promise<NotificationChannel> {
   if (recipientType !== 'seller') return 'whatsapp'; // agents use both by default
 
-  const seller = await prisma.seller.findUnique({
-    where: { id: recipientId },
-    select: { notificationPreference: true },
-  });
+  const preference = await notificationRepo.findSellerNotificationPreference(recipientId);
 
-  if (seller?.notificationPreference === 'email_only') return 'email';
+  if (preference === 'email_only') return 'email';
   return 'whatsapp';
 }
 
 async function checkMarketingConsent(recipientId: string, recipientType: string): Promise<boolean> {
   if (recipientType !== 'seller') return true;
 
-  const seller = await prisma.seller.findUnique({
-    where: { id: recipientId },
-    select: { consentMarketing: true },
-  });
-
-  return seller?.consentMarketing ?? false;
+  return notificationRepo.findSellerMarketingConsent(recipientId);
 }
 
 export async function checkDnc(_phone: string): Promise<DncCheckResult> {
@@ -290,7 +281,10 @@ export function verifyWebhookSignature(rawBody: Buffer, signature: string | unde
 
   const expectedSignature = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
 
-  return `sha256=${expectedSignature}` === signature;
+  const expected = Buffer.from(`sha256=${expectedSignature}`);
+  const actual = Buffer.from(signature);
+  if (expected.length !== actual.length) return false;
+  return crypto.timingSafeEqual(expected, actual);
 }
 
 function renderTemplate(templateName: string, data: Record<string, string>): string {
@@ -309,26 +303,7 @@ export function generateUnsubscribeToken(sellerId: string): string {
 }
 
 export async function handleUnsubscribe(sellerId: string): Promise<void> {
-  await prisma.$transaction(async (tx) => {
-    await tx.seller.update({
-      where: { id: sellerId },
-      data: { consentMarketing: false, consentWithdrawnAt: new Date() },
-    });
-
-    await tx.consentRecord.create({
-      data: {
-        id: createId(),
-        subjectType: 'seller',
-        subjectId: sellerId,
-        purposeService: true,
-        purposeMarketing: false,
-        consentGivenAt: new Date(),
-        consentWithdrawnAt: new Date(),
-        ipAddress: 'unsubscribe-link',
-        userAgent: 'email-unsubscribe',
-      },
-    });
-  });
+  await notificationRepo.withdrawMarketingConsent(sellerId);
 
   await auditService.log({
     action: 'consent.marketing_withdrawn',

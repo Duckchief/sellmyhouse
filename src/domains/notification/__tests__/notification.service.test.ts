@@ -91,28 +91,12 @@ jest.mock('../notification.repository');
 jest.mock('../providers/whatsapp.provider');
 jest.mock('../providers/email.provider');
 
-jest.mock('../../../infra/database/prisma', () => ({
-  prisma: {
-    seller: { findUnique: jest.fn() },
-    notification: {
-      create: jest.fn().mockResolvedValue({ id: 'notif-1' }),
-      update: jest.fn(),
-      findMany: jest.fn(),
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      count: jest.fn(),
-    },
-  },
-  createId: jest.fn().mockReturnValue('test-id'),
-}));
-
 jest.mock('../../shared/audit.service');
 
 const notificationRepo = jest.requireMock('../notification.repository');
 const { WhatsAppProvider } = jest.requireMock('../providers/whatsapp.provider');
 const { EmailProvider } = jest.requireMock('../providers/email.provider');
 const auditService = jest.requireMock('../../shared/audit.service');
-const { prisma } = jest.requireMock('../../../infra/database/prisma');
 
 describe('NotificationService', () => {
   beforeEach(() => {
@@ -125,12 +109,11 @@ describe('NotificationService', () => {
     auditService.log = jest.fn().mockResolvedValue(undefined);
 
     // Default seller: whatsapp_and_email preference, no marketing consent
-    prisma.seller.findUnique = jest.fn().mockResolvedValue({
-      id: 'seller-1',
-      notificationPreference: 'whatsapp_and_email',
-      consentService: true,
-      consentMarketing: false,
-    });
+    notificationRepo.findSellerNotificationPreference = jest
+      .fn()
+      .mockResolvedValue('whatsapp_and_email');
+    notificationRepo.findSellerMarketingConsent = jest.fn().mockResolvedValue(false);
+    notificationRepo.withdrawMarketingConsent = jest.fn().mockResolvedValue(undefined);
   });
 
   describe('send', () => {
@@ -193,12 +176,7 @@ describe('NotificationService', () => {
     };
 
     it('uses email when seller preference is email_only', async () => {
-      prisma.seller.findUnique = jest.fn().mockResolvedValue({
-        id: 'seller-1',
-        notificationPreference: 'email_only',
-        consentService: true,
-        consentMarketing: false,
-      });
+      notificationRepo.findSellerNotificationPreference = jest.fn().mockResolvedValue('email_only');
       EmailProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: '<msg>' });
       WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.1' });
 
@@ -209,12 +187,9 @@ describe('NotificationService', () => {
     });
 
     it('uses whatsapp when seller preference is whatsapp_and_email', async () => {
-      prisma.seller.findUnique = jest.fn().mockResolvedValue({
-        id: 'seller-1',
-        notificationPreference: 'whatsapp_and_email',
-        consentService: true,
-        consentMarketing: false,
-      });
+      notificationRepo.findSellerNotificationPreference = jest
+        .fn()
+        .mockResolvedValue('whatsapp_and_email');
       WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.1' });
 
       await service.send(input, 'agent-1');
@@ -230,8 +205,8 @@ describe('NotificationService', () => {
         'agent-1',
       );
 
-      // prisma.seller.findUnique should NOT have been called for non-seller
-      expect(prisma.seller.findUnique).not.toHaveBeenCalled();
+      // findSellerNotificationPreference should NOT have been called for non-seller
+      expect(notificationRepo.findSellerNotificationPreference).not.toHaveBeenCalled();
       expect(WhatsAppProvider.prototype.send).toHaveBeenCalled();
     });
   });
@@ -245,12 +220,7 @@ describe('NotificationService', () => {
     };
 
     it('blocks marketing notification without consent', async () => {
-      prisma.seller.findUnique = jest.fn().mockResolvedValue({
-        id: 'seller-1',
-        notificationPreference: 'whatsapp_and_email',
-        consentService: true,
-        consentMarketing: false,
-      });
+      notificationRepo.findSellerMarketingConsent = jest.fn().mockResolvedValue(false);
 
       await service.send({ ...input, notificationType: 'marketing' }, 'agent-1');
 
@@ -262,12 +232,7 @@ describe('NotificationService', () => {
     });
 
     it('still creates in-app notification even when marketing is blocked', async () => {
-      prisma.seller.findUnique = jest.fn().mockResolvedValue({
-        id: 'seller-1',
-        notificationPreference: 'whatsapp_and_email',
-        consentService: true,
-        consentMarketing: false,
-      });
+      notificationRepo.findSellerMarketingConsent = jest.fn().mockResolvedValue(false);
 
       await service.send({ ...input, notificationType: 'marketing' }, 'agent-1');
 
@@ -278,12 +243,7 @@ describe('NotificationService', () => {
     });
 
     it('allows marketing notification with consent', async () => {
-      prisma.seller.findUnique = jest.fn().mockResolvedValue({
-        id: 'seller-1',
-        notificationPreference: 'whatsapp_and_email',
-        consentService: true,
-        consentMarketing: true,
-      });
+      notificationRepo.findSellerMarketingConsent = jest.fn().mockResolvedValue(true);
       WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.1' });
 
       await service.send({ ...input, notificationType: 'marketing' }, 'agent-1');
@@ -439,12 +399,7 @@ describe('NotificationService', () => {
     });
 
     it('logs notification.failed on send failure', async () => {
-      prisma.seller.findUnique = jest.fn().mockResolvedValue({
-        id: 'seller-1',
-        notificationPreference: 'email_only',
-        consentService: true,
-        consentMarketing: false,
-      });
+      notificationRepo.findSellerNotificationPreference = jest.fn().mockResolvedValue('email_only');
       EmailProvider.prototype.send = jest.fn().mockRejectedValue(new Error('Email send failed'));
 
       await service.send(input, 'agent-1');
@@ -527,21 +482,9 @@ describe('NotificationService', () => {
 
   describe('handleUnsubscribe', () => {
     it('withdraws marketing consent and creates consent record', async () => {
-      const mockPrisma = jest.requireMock('../../../infra/database/prisma');
-      mockPrisma.prisma.seller = {
-        ...mockPrisma.prisma.seller,
-        update: jest.fn().mockResolvedValue({}),
-      };
-      mockPrisma.prisma.consentRecord = { create: jest.fn().mockResolvedValue({}) };
-      mockPrisma.prisma.$transaction = jest
-        .fn()
-        .mockImplementation(async (fn: (tx: typeof mockPrisma.prisma) => Promise<void>) =>
-          fn(mockPrisma.prisma),
-        );
-
       await service.handleUnsubscribe('seller-1');
 
-      expect(mockPrisma.prisma.$transaction).toHaveBeenCalled();
+      expect(notificationRepo.withdrawMarketingConsent).toHaveBeenCalledWith('seller-1');
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'consent.marketing_withdrawn' }),
       );

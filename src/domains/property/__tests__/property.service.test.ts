@@ -2,7 +2,7 @@ import * as propertyService from '../property.service';
 import * as propertyRepo from '../property.repository';
 import * as auditService from '../../shared/audit.service';
 import * as reviewService from '../../review/review.service';
-import { NotFoundError, ForbiddenError, ValidationError } from '../../shared/errors';
+import { NotFoundError, ForbiddenError, ValidationError, ComplianceError } from '../../shared/errors';
 import type { Property, Listing } from '@prisma/client';
 import type { PropertyWithListing } from '../property.types';
 
@@ -363,6 +363,39 @@ describe('property.service', () => {
       await expect(propertyService.updateListingStatus('prop-1', 'live')).rejects.toThrow(
         ValidationError,
       );
+    });
+
+    it('calls checkComplianceGate when transitioning to live and updates on success', async () => {
+      const fakeListing = { id: 'listing-1', propertyId: 'prop-1', status: 'approved' };
+      const fakeProperty = { id: 'prop-1', sellerId: 'seller-1', listings: [fakeListing] };
+      const updatedListing = { ...fakeListing, status: 'live' };
+
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as unknown as Listing);
+      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as unknown as PropertyWithListing);
+      mockedRepo.updateListingStatus.mockResolvedValue(updatedListing as unknown as Listing);
+      mockedReviewService.checkComplianceGate.mockResolvedValue(undefined);
+      mockedAudit.log.mockResolvedValue(undefined);
+
+      const result = await propertyService.updateListingStatus('prop-1', 'live');
+
+      expect(mockedReviewService.checkComplianceGate).toHaveBeenCalledWith('eaa_signed', 'seller-1');
+      expect(mockedRepo.updateListingStatus).toHaveBeenCalledWith('listing-1', 'live');
+      expect(result).toEqual(updatedListing);
+    });
+
+    it('rejects update when checkComplianceGate fails with ComplianceError', async () => {
+      const fakeListing = { id: 'listing-1', propertyId: 'prop-1', status: 'approved' };
+      const fakeProperty = { id: 'prop-1', sellerId: 'seller-1', listings: [fakeListing] };
+      const complianceError = new ComplianceError('EAA must be signed before listing can go live');
+
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as unknown as Listing);
+      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as unknown as PropertyWithListing);
+      mockedReviewService.checkComplianceGate.mockRejectedValue(complianceError);
+
+      await expect(propertyService.updateListingStatus('prop-1', 'live')).rejects.toThrow(
+        ComplianceError,
+      );
+      expect(mockedRepo.updateListingStatus).not.toHaveBeenCalled();
     });
   });
 });

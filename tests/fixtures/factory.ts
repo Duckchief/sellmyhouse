@@ -388,4 +388,71 @@ export const factory = {
       },
     });
   },
+
+  async transaction(overrides: {
+    propertyId: string;
+    sellerId: string;
+    agreedPrice?: number;
+    status?: 'option_issued' | 'option_exercised' | 'completing' | 'completed' | 'fallen_through';
+    completionDate?: Date;
+    exerciseDeadline?: Date;
+  }) {
+    return testPrisma.transaction.create({
+      data: {
+        id: createId(),
+        propertyId: overrides.propertyId,
+        sellerId: overrides.sellerId,
+        agreedPrice: overrides.agreedPrice ?? 600000,
+        status: overrides.status ?? 'option_issued',
+        completionDate: overrides.completionDate ?? null,
+        exerciseDeadline: overrides.exerciseDeadline ?? null,
+      },
+    });
+  },
+
+  async otp(overrides: {
+    transactionId: string;
+    hdbSerialNumber?: string;
+    status?: 'prepared' | 'sent_to_seller' | 'signed_by_seller' | 'returned' | 'issued_to_buyer' | 'exercised' | 'expired';
+    issuedAt?: Date;
+    agentReviewedAt?: Date;
+    scannedCopyPathSeller?: string;
+    scannedCopyPathReturned?: string;
+  }) {
+    return testPrisma.otp.create({
+      data: {
+        id: createId(),
+        transactionId: overrides.transactionId,
+        hdbSerialNumber: overrides.hdbSerialNumber ?? 'SN-001',
+        status: overrides.status ?? 'prepared',
+        issuedAt: overrides.issuedAt ?? null,
+        agentReviewedAt: overrides.agentReviewedAt ?? null,
+        scannedCopyPathSeller: overrides.scannedCopyPathSeller ?? null,
+        scannedCopyPathReturned: overrides.scannedCopyPathReturned ?? null,
+      },
+    });
+  },
+
+  async commissionInvoice(overrides: {
+    transactionId: string;
+    status?: 'pending_upload' | 'uploaded' | 'sent_to_client' | 'paid';
+    invoiceFilePath?: string;
+    invoiceNumber?: string;
+    amount?: number;
+    gstAmount?: number;
+    totalAmount?: number;
+  }) {
+    return testPrisma.commissionInvoice.create({
+      data: {
+        id: createId(),
+        transactionId: overrides.transactionId,
+        status: overrides.status ?? 'pending_upload',
+        invoiceFilePath: overrides.invoiceFilePath ?? null,
+        invoiceNumber: overrides.invoiceNumber ?? null,
+        amount: overrides.amount ?? 1499,
+        gstAmount: overrides.gstAmount ?? 134.91,
+        totalAmount: overrides.totalAmount ?? 1633.91,
+      },
+    });
+  },
 };

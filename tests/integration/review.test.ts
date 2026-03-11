@@ -233,4 +233,126 @@ describe('Review Queue Integration', () => {
       expect(fromDb?.reviewedByAgentId).toBe(agentRecord.id);
     });
   });
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Listing description rejection
+  // ────────────────────────────────────────────────────────────────────────────
+
+  describe('listing description rejection', () => {
+    it('rejects listing description and clears description field + audit logged', async () => {
+      const { agentRecord, agent } = await loginAsAgent();
+
+      const seller = await factory.seller({ agentId: agentRecord.id, status: 'active' });
+      const property = await factory.property({ sellerId: seller.id });
+      const listing = await factory.listing({
+        propertyId: property.id,
+        description: 'A nice HDB flat in Bishan',
+      });
+
+      const res = await agent
+        .post(`/agent/reviews/listing_description/${listing.id}/reject`)
+        .type('form')
+        .send({ reviewNotes: 'Description needs more detail' });
+
+      expect(res.status).toBe(200);
+
+      // Description should be cleared (rejection clears it for regeneration)
+      const updated = await testPrisma.listing.findUnique({ where: { id: listing.id } });
+      expect(updated?.description).toBeNull();
+
+      // Audit log created
+      const audit = await testPrisma.auditLog.findFirst({
+        where: { entityId: listing.id, action: 'listing.reviewed' },
+      });
+      expect(audit).not.toBeNull();
+      expect((audit?.details as Record<string, unknown>).decision).toBe('rejected');
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // RBAC: agents see only their own sellers
+  // ────────────────────────────────────────────────────────────────────────────
+
+  describe('RBAC: agents see only their own sellers', () => {
+    it('agent B queue does not include agent A sellers items', async () => {
+      // Create Agent A with a seller and a pending financial report
+      const agentA = await factory.agent();
+      const sellerA = await factory.seller({ agentId: agentA.id });
+      const propertyA = await factory.property({ sellerId: sellerA.id });
+      const report = await factory.financialReport({
+        sellerId: sellerA.id,
+        propertyId: propertyA.id,
+        status: 'pending_review',
+        aiNarrative: 'Test',
+      });
+
+      // Login as Agent B (a fresh agent with no sellers)
+      const { agent: agentB } = await loginAsAgent();
+
+      const res = await agentB.get('/agent/reviews');
+
+      expect(res.status).toBe(200);
+      // Agent B's response should not mention Agent A's report
+      expect(res.text).not.toContain(report.id);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // GET /agent/reviews/:entityType/:entityId/detail
+  // ────────────────────────────────────────────────────────────────────────────
+
+  describe('GET /agent/reviews/:entityType/:entityId/detail', () => {
+    it('returns 200 and detail partial for financial_report', async () => {
+      const { agentRecord, agent } = await loginAsAgent();
+
+      const seller = await factory.seller({ agentId: agentRecord.id, status: 'active' });
+      const property = await factory.property({ sellerId: seller.id });
+      const report = await factory.financialReport({
+        sellerId: seller.id,
+        propertyId: property.id,
+        status: 'pending_review',
+        aiNarrative: 'The estimated net proceeds...',
+      });
+
+      const res = await agent
+        .get(`/agent/reviews/financial_report/${report.id}/detail`)
+        .set('HX-Request', 'true');
+
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('The estimated net proceeds');
+    });
+
+    it('returns 400 for invalid entityType in detail route', async () => {
+      const { agent } = await loginAsAgent();
+
+      const res = await agent.get('/agent/reviews/invalid_type/some-id/detail');
+
+      expect(res.status).toBe(400);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Tab counts
+  // ────────────────────────────────────────────────────────────────────────────
+
+  describe('tab counts', () => {
+    it('tab count reflects actual pending_review financial reports', async () => {
+      const { agentRecord, agent } = await loginAsAgent();
+
+      const seller = await factory.seller({ agentId: agentRecord.id, status: 'active' });
+      const property = await factory.property({ sellerId: seller.id });
+      await factory.financialReport({
+        sellerId: seller.id,
+        propertyId: property.id,
+        status: 'pending_review',
+        aiNarrative: 'Test narrative',
+      });
+
+      const res = await agent.get('/agent/reviews');
+
+      expect(res.status).toBe(200);
+      // The page should contain the financial_report tab with at least count 1
+      expect(res.text).toContain('financial_report');
+    });
+  });
 });

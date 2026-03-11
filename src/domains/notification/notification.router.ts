@@ -1,7 +1,9 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
 import * as notificationService from './notification.service';
 import { requireAuth } from '../../infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from '../auth/auth.types';
+import { markAsReadRules, webhookPayloadRules } from './notification.validator';
 
 export const notificationRouter = Router();
 
@@ -27,8 +29,13 @@ notificationRouter.get(
 notificationRouter.post(
   '/api/notifications/:id/read',
   requireAuth(),
+  markAsReadRules,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
       await notificationService.markAsRead(req.params.id as string);
       res.json({ success: true });
     } catch (err) {
@@ -40,8 +47,14 @@ notificationRouter.post(
 // WhatsApp webhook — Meta delivery receipts
 notificationRouter.post(
   '/api/webhook/whatsapp',
+  webhookPayloadRules,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
       const signature = req.headers['x-hub-signature-256'] as string | undefined;
 
       // Verify signature if webhook token is configured

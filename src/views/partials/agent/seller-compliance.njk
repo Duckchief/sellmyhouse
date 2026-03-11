@@ -1,0 +1,45 @@
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold mb-4">{{ "CDD Status" | t }}</h3>
+    <span class="px-2 py-1 text-xs rounded-full
+      {% if compliance.cdd.status == 'verified' %}bg-green-100 text-green-800
+      {% elif compliance.cdd.status == 'pending' %}bg-yellow-100 text-yellow-800
+      {% else %}bg-gray-100 text-gray-800{% endif %}">{{ compliance.cdd.status | t }}</span>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold mb-4">{{ "Estate Agency Agreement" | t }}</h3>
+    <span class="px-2 py-1 text-xs rounded-full
+      {% if compliance.eaa.status == 'signed' %}bg-green-100 text-green-800
+      {% elif compliance.eaa.status == 'sent' %}bg-yellow-100 text-yellow-800
+      {% elif compliance.eaa.status == 'draft' %}bg-blue-100 text-blue-800
+      {% else %}bg-gray-100 text-gray-800{% endif %}">{{ compliance.eaa.status | t }}</span>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold mb-4">{{ "Consent" | t }}</h3>
+    <dl class="space-y-2 text-sm">
+      <div class="flex justify-between"><dt class="text-gray-500">{{ "Service" | t }}</dt><dd>{% if compliance.consent.service %}✓{% else %}✗{% endif %}</dd></div>
+      <div class="flex justify-between"><dt class="text-gray-500">{{ "Marketing" | t }}</dt><dd>{% if compliance.consent.marketing %}✓{% else %}✗{% endif %}</dd></div>
+      {% if compliance.consent.withdrawnAt %}
+      <div class="text-xs text-red-500">{{ "Withdrawn:" | t }} {{ compliance.consent.withdrawnAt }}</div>
+      {% endif %}
+    </dl>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold mb-4">{{ "Case Flags" | t }}</h3>
+    {% if compliance.caseFlags.length == 0 %}
+    <p class="text-sm text-gray-500">{{ "No active flags" | t }}</p>
+    {% else %}
+    <div class="space-y-2">
+      {% for flag in compliance.caseFlags %}
+      <div class="text-sm border-l-2 border-yellow-500 pl-3">
+        <div class="font-medium">{{ flag.flagType }}</div>
+        <div class="text-gray-500">{{ flag.description }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>

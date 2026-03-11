@@ -1,0 +1,9 @@
+{% extends "layouts/agent.njk" %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">{{ "Pipeline Overview" | t }}</h1>
+
+<div id="pipeline-content" hx-get="/agent/dashboard" hx-trigger="load" hx-swap="innerHTML" hx-headers='{"HX-Request": "true"}'>
+  <div class="text-gray-500">{{ "Loading..." | t }}</div>
+</div>
+{% endblock %}

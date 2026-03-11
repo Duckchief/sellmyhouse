@@ -4,28 +4,7 @@ import { EmailProvider } from './providers/email.provider';
 import { WhatsAppProvider } from './providers/whatsapp.provider';
 import { logger } from '../../infra/logger';
 import type { SendNotificationInput, NotificationChannel } from './notification.types';
-
-// Template store — simple {{key}} interpolation
-const TEMPLATES: Record<string, string> = {
-  welcome_seller: 'Welcome to SellMyHomeNow, {{name}}! Your account is ready.',
-  viewing_booked: 'A viewing has been booked for {{address}} on {{date}}.',
-  viewing_booked_seller:
-    'New viewing booked for {{address}} on {{date}} at {{time}}. Viewer: {{viewerName}} ({{viewerType}}).{{noShowWarning}}',
-  viewing_cancelled: 'The viewing for {{address}} on {{date}} has been cancelled.',
-  viewing_reminder: 'Reminder: Viewing for {{address}} is scheduled for {{date}}.',
-  viewing_reminder_viewer: 'Reminder: Your viewing at {{address}} is at {{time}} today.',
-  viewing_feedback_prompt:
-    'How did the viewing go for {{address}} on {{date}}? Please log your feedback.',
-  offer_received: 'An offer of ${{amount}} has been received for {{address}}.',
-  offer_countered: 'A counter-offer of ${{amount}} has been made for {{address}}.',
-  offer_accepted: 'The offer for {{address}} has been accepted. Congratulations!',
-  transaction_update: 'Transaction update for {{address}}: {{status}}.',
-  document_ready: 'A document is ready for your review: {{documentName}}.',
-  invoice_uploaded: 'Your commission invoice has been uploaded for {{address}}.',
-  agreement_sent: 'The estate agency agreement for {{address}} has been sent to you.',
-  financial_report_ready: 'Your financial report for {{address}} is ready. {{message}}',
-  generic: '{{message}}',
-};
+import { NOTIFICATION_TEMPLATES } from './notification.templates';
 
 export async function send(input: SendNotificationInput, agentId: string): Promise<void> {
   const content = renderTemplate(input.templateName, input.templateData);
@@ -158,6 +137,6 @@ export function verifyWebhookSignature(rawBody: Buffer, signature: string | unde
 }
 
 function renderTemplate(templateName: string, data: Record<string, string>): string {
-  const template = TEMPLATES[templateName] || TEMPLATES.generic;
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => data[key] || '');
+  const template = NOTIFICATION_TEMPLATES[templateName as keyof typeof NOTIFICATION_TEMPLATES] ?? NOTIFICATION_TEMPLATES.generic;
+  return template.body.replace(/\{\{(\w+)\}\}/g, (_, key) => data[key] || '');
 }

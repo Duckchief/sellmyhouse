@@ -35,10 +35,14 @@ function createTestApp(user?: { id: string; role: string }) {
     next();
   });
 
-  // Mock nunjucks render
-  app.set('view engine', 'njk');
-  app.engine('njk', (_path: string, _options: object, callback: Function) => {
-    callback(null, '<html></html>');
+  // Override res.render to avoid view lookup issues in tests
+  app.use((_req, res, next) => {
+    const originalRender = res.render.bind(res);
+    res.render = ((_view: string, _options?: object) => {
+      res.status(200).send('<html></html>');
+    }) as typeof res.render;
+    void originalRender; // suppress unused
+    next();
   });
 
   app.use(agentRouter);

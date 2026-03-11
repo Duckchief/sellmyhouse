@@ -74,6 +74,17 @@ export async function updateAiAnalysis(id: string, data: UpdateAiAnalysisData) {
 }
 
 /**
+ * Updates only the AI analysis status, without modifying content or provider/model fields.
+ * This prevents accidentally overwriting null fields with empty strings.
+ */
+export async function updateAiAnalysisStatus(id: string, status: string) {
+  return prisma.offer.update({
+    where: { id },
+    data: { aiAnalysisStatus: status },
+  });
+}
+
+/**
  * Expires all pending and countered offers for a property, except the accepted one.
  * Called when an offer is accepted — closes all other open negotiation threads.
  */

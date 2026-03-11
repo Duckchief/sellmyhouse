@@ -91,6 +91,24 @@ describe('offer.repository', () => {
     });
   });
 
+  describe('updateAiAnalysisStatus', () => {
+    it('updates only the AI analysis status without modifying other fields', async () => {
+      const offer = await factory.offer({ propertyId });
+      await offerRepo.updateAiAnalysis(offer.id, {
+        aiAnalysis: 'Original analysis',
+        aiAnalysisProvider: 'anthropic',
+        aiAnalysisModel: 'claude-sonnet-4-20250514',
+        aiAnalysisStatus: 'generated',
+      });
+
+      const updated = await offerRepo.updateAiAnalysisStatus(offer.id, 'reviewed');
+      expect(updated.aiAnalysisStatus).toBe('reviewed');
+      expect(updated.aiAnalysis).toBe('Original analysis');
+      expect(updated.aiAnalysisProvider).toBe('anthropic');
+      expect(updated.aiAnalysisModel).toBe('claude-sonnet-4-20250514');
+    });
+  });
+
   describe('expirePendingAndCounteredSiblings', () => {
     it('sets all pending and countered siblings to expired', async () => {
       const pending1 = await factory.offer({ propertyId, status: 'pending' });

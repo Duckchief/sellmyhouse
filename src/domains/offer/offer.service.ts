@@ -75,8 +75,8 @@ export async function createOffer(input: CreateOfferServiceInput) {
       recipientId: input.sellerId,
       templateName: 'offer_received',
       templateData: {
-        buyerName: input.buyerName,
-        offerAmount: String(input.offerAmount),
+        address: 'Property listing', // TODO: fetch actual address from property
+        amount: String(input.offerAmount),
       },
     },
     input.agentId,
@@ -206,12 +206,13 @@ export async function reviewAiAnalysis(input: { offerId: string; agentId: string
     throw new ValidationError('No AI analysis exists for this offer');
   }
 
-  const updated = await offerRepo.updateAiAnalysis(input.offerId, {
-    aiAnalysis: offer.aiAnalysis,
-    aiAnalysisProvider: offer.aiAnalysisProvider ?? '',
-    aiAnalysisModel: offer.aiAnalysisModel ?? '',
-    aiAnalysisStatus: AI_ANALYSIS_STATUS.REVIEWED,
-  });
+  if (offer.aiAnalysisStatus !== AI_ANALYSIS_STATUS.GENERATED) {
+    throw new ValidationError(
+      `AI analysis cannot be reviewed from status '${offer.aiAnalysisStatus}'`,
+    );
+  }
+
+  const updated = await offerRepo.updateAiAnalysisStatus(input.offerId, AI_ANALYSIS_STATUS.REVIEWED);
 
   await auditService.log({
     agentId: input.agentId,
@@ -239,12 +240,7 @@ export async function shareAiAnalysis(input: {
     throw new ValidationError('AI analysis must be reviewed before sharing');
   }
 
-  const updated = await offerRepo.updateAiAnalysis(input.offerId, {
-    aiAnalysis: offer.aiAnalysis,
-    aiAnalysisProvider: offer.aiAnalysisProvider ?? '',
-    aiAnalysisModel: offer.aiAnalysisModel ?? '',
-    aiAnalysisStatus: AI_ANALYSIS_STATUS.SHARED,
-  });
+  const updated = await offerRepo.updateAiAnalysisStatus(input.offerId, AI_ANALYSIS_STATUS.SHARED);
 
   await notificationService.send(
     {

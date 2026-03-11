@@ -213,14 +213,11 @@ describe('offer.service', () => {
     it('sets aiAnalysisStatus to reviewed', async () => {
       const offer = makeOffer({ aiAnalysis: 'some analysis', aiAnalysisStatus: 'generated' });
       mockOfferRepo.findById.mockResolvedValue(offer as never);
-      mockOfferRepo.updateAiAnalysis.mockResolvedValue({ ...offer, aiAnalysisStatus: 'reviewed' } as never);
+      mockOfferRepo.updateAiAnalysisStatus.mockResolvedValue({ ...offer, aiAnalysisStatus: 'reviewed' } as never);
 
       await offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1' });
 
-      expect(mockOfferRepo.updateAiAnalysis).toHaveBeenCalledWith(
-        'offer-1',
-        expect.objectContaining({ aiAnalysisStatus: 'reviewed' }),
-      );
+      expect(mockOfferRepo.updateAiAnalysisStatus).toHaveBeenCalledWith('offer-1', 'reviewed');
     });
 
     it('throws ValidationError if no AI analysis to review', async () => {
@@ -231,20 +228,26 @@ describe('offer.service', () => {
         ValidationError,
       );
     });
+
+    it('throws ValidationError if analysis is already reviewed or shared', async () => {
+      const offer = makeOffer({ aiAnalysis: 'some analysis', aiAnalysisStatus: 'reviewed' });
+      mockOfferRepo.findById.mockResolvedValue(offer as never);
+
+      await expect(
+        offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
+    });
   });
 
   describe('shareAiAnalysis', () => {
     it('shares analysis after it has been reviewed', async () => {
       const offer = makeOffer({ aiAnalysis: 'some analysis', aiAnalysisStatus: 'reviewed' });
       mockOfferRepo.findById.mockResolvedValue(offer as never);
-      mockOfferRepo.updateAiAnalysis.mockResolvedValue({ ...offer, aiAnalysisStatus: 'shared' } as never);
+      mockOfferRepo.updateAiAnalysisStatus.mockResolvedValue({ ...offer, aiAnalysisStatus: 'shared' } as never);
 
       await offerService.shareAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1', sellerId: 'seller-1' });
 
-      expect(mockOfferRepo.updateAiAnalysis).toHaveBeenCalledWith(
-        'offer-1',
-        expect.objectContaining({ aiAnalysisStatus: 'shared' }),
-      );
+      expect(mockOfferRepo.updateAiAnalysisStatus).toHaveBeenCalledWith('offer-1', 'shared');
       expect(mockNotification.send).toHaveBeenCalledTimes(1);
     });
 

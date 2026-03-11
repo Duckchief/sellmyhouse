@@ -143,16 +143,28 @@ describe('createAgent', () => {
 
 describe('deactivateAgent', () => {
   it('throws ValidationError when agent has active sellers', async () => {
-    mockAdminRepo.findAgentById.mockResolvedValue({ id: 'a1', name: 'A', email: 'a@t.com', isActive: true });
+    mockAdminRepo.findAgentById.mockResolvedValue({
+      id: 'a1',
+      name: 'A',
+      email: 'a@t.com',
+      isActive: true,
+    });
     mockAdminRepo.countActiveSellers.mockResolvedValue(3);
 
     const { ValidationError } = await import('@/domains/shared/errors');
-    await expect(adminService.deactivateAgent('a1', 'admin-1')).rejects.toBeInstanceOf(ValidationError);
+    await expect(adminService.deactivateAgent('a1', 'admin-1')).rejects.toBeInstanceOf(
+      ValidationError,
+    );
     expect(mockAdminRepo.updateAgentStatus).not.toHaveBeenCalled();
   });
 
   it('deactivates and audits when no active sellers', async () => {
-    mockAdminRepo.findAgentById.mockResolvedValue({ id: 'a1', name: 'A', email: 'a@t.com', isActive: true });
+    mockAdminRepo.findAgentById.mockResolvedValue({
+      id: 'a1',
+      name: 'A',
+      email: 'a@t.com',
+      isActive: true,
+    });
     mockAdminRepo.countActiveSellers.mockResolvedValue(0);
     mockAdminRepo.updateAgentStatus.mockResolvedValue(undefined);
 
@@ -169,7 +181,12 @@ describe('deactivateAgent', () => {
 
 describe('reactivateAgent', () => {
   it('reactivates and audits', async () => {
-    mockAdminRepo.findAgentById.mockResolvedValue({ id: 'a1', name: 'A', email: 'a@t.com', isActive: false });
+    mockAdminRepo.findAgentById.mockResolvedValue({
+      id: 'a1',
+      name: 'A',
+      email: 'a@t.com',
+      isActive: false,
+    });
     mockAdminRepo.updateAgentStatus.mockResolvedValue(undefined);
 
     await adminService.reactivateAgent('a1', 'admin-1');
@@ -185,15 +202,27 @@ describe('reactivateAgent', () => {
 
 describe('anonymiseAgent', () => {
   it('throws ValidationError when agent has active sellers', async () => {
-    mockAdminRepo.findAgentById.mockResolvedValue({ id: 'a1', name: 'A', email: 'a@t.com', isActive: true });
+    mockAdminRepo.findAgentById.mockResolvedValue({
+      id: 'a1',
+      name: 'A',
+      email: 'a@t.com',
+      isActive: true,
+    });
     mockAdminRepo.countActiveSellers.mockResolvedValue(1);
 
     const { ValidationError } = await import('@/domains/shared/errors');
-    await expect(adminService.anonymiseAgent('a1', 'admin-1')).rejects.toBeInstanceOf(ValidationError);
+    await expect(adminService.anonymiseAgent('a1', 'admin-1')).rejects.toBeInstanceOf(
+      ValidationError,
+    );
   });
 
   it('anonymises fields and audits', async () => {
-    mockAdminRepo.findAgentById.mockResolvedValue({ id: 'a1', name: 'Agent A', email: 'a@t.com', isActive: true });
+    mockAdminRepo.findAgentById.mockResolvedValue({
+      id: 'a1',
+      name: 'Agent A',
+      email: 'a@t.com',
+      isActive: true,
+    });
     mockAdminRepo.countActiveSellers.mockResolvedValue(0);
     mockAdminRepo.anonymiseAgent.mockResolvedValue(undefined);
 
@@ -211,15 +240,27 @@ describe('anonymiseAgent', () => {
 describe('reassignSeller', () => {
   it('validates new agent is active before reassigning', async () => {
     mockAdminRepo.findSellerById.mockResolvedValue({ id: 's1', agentId: 'a1', name: 'Seller' });
-    mockAdminRepo.findAgentById.mockResolvedValue({ id: 'a2', name: 'B', email: 'b@t.com', isActive: false });
+    mockAdminRepo.findAgentById.mockResolvedValue({
+      id: 'a2',
+      name: 'B',
+      email: 'b@t.com',
+      isActive: false,
+    });
 
     const { ValidationError } = await import('@/domains/shared/errors');
-    await expect(adminService.reassignSeller('s1', 'a2', 'admin-1')).rejects.toBeInstanceOf(ValidationError);
+    await expect(adminService.reassignSeller('s1', 'a2', 'admin-1')).rejects.toBeInstanceOf(
+      ValidationError,
+    );
   });
 
   it('reassigns and audits with fromAgentId and toAgentId', async () => {
     mockAdminRepo.findSellerById.mockResolvedValue({ id: 's1', agentId: 'a1', name: 'Seller' });
-    mockAdminRepo.findAgentById.mockResolvedValue({ id: 'a2', name: 'B', email: 'b@t.com', isActive: true });
+    mockAdminRepo.findAgentById.mockResolvedValue({
+      id: 'a2',
+      name: 'B',
+      email: 'b@t.com',
+      isActive: true,
+    });
     mockAdminRepo.assignSeller.mockResolvedValue(undefined);
 
     await adminService.reassignSeller('s1', 'a2', 'admin-1');
@@ -239,17 +280,23 @@ describe('reassignSeller', () => {
 describe('updateSetting', () => {
   it('rejects negative commission_amount', async () => {
     const { ValidationError } = await import('@/domains/shared/errors');
-    await expect(adminService.updateSetting('commission_amount', '-500', 'admin-1')).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      adminService.updateSetting('commission_amount', '-500', 'admin-1'),
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 
   it('rejects transaction_retention_years < 5 (AML/CFT minimum)', async () => {
     const { ValidationError } = await import('@/domains/shared/errors');
-    await expect(adminService.updateSetting('transaction_retention_years', '3', 'admin-1')).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      adminService.updateSetting('transaction_retention_years', '3', 'admin-1'),
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 
   it('rejects unknown setting key', async () => {
     const { ValidationError } = await import('@/domains/shared/errors');
-    await expect(adminService.updateSetting('unknown_key', 'value', 'admin-1')).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      adminService.updateSetting('unknown_key', 'value', 'admin-1'),
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 
   it('saves valid value and audits with old and new values', async () => {
@@ -274,11 +321,20 @@ describe('updateSetting', () => {
 
     await adminService.updateSetting('commission_amount', '1600', 'admin-1');
 
-    expect(mockSettingsRepo.upsert).toHaveBeenCalledWith('commission_amount', '1600', expect.any(String), 'admin-1');
+    expect(mockSettingsRepo.upsert).toHaveBeenCalledWith(
+      'commission_amount',
+      '1600',
+      expect.any(String),
+      'admin-1',
+    );
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'setting.changed',
-        details: expect.objectContaining({ key: 'commission_amount', oldValue: '1499', newValue: '1600' }),
+        details: expect.objectContaining({
+          key: 'commission_amount',
+          oldValue: '1499',
+          newValue: '1600',
+        }),
       }),
     );
   });

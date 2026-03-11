@@ -98,12 +98,15 @@ describe('POST /admin/team — create agent', () => {
     const { agent } = await loginAsAdmin();
     const ceaRegNo = `R0${Date.now().toString().slice(-5)}A`;
 
-    const res = await agent.post('/admin/team').type('form').send({
-      name: 'New Agent',
-      email: `newagent-${Date.now()}@test.local`,
-      phone: '91234567',
-      ceaRegNo,
-    });
+    const res = await agent
+      .post('/admin/team')
+      .type('form')
+      .send({
+        name: 'New Agent',
+        email: `newagent-${Date.now()}@test.local`,
+        phone: '91234567',
+        ceaRegNo,
+      });
 
     expect([200, 302]).toContain(res.status);
 
@@ -117,12 +120,15 @@ describe('POST /admin/team — create agent', () => {
     const { agent } = await loginAsAdmin();
     const ceaRegNo = `R1${Date.now().toString().slice(-5)}B`;
 
-    await agent.post('/admin/team').type('form').send({
-      name: 'Audit Agent',
-      email: `audit-${Date.now()}@test.local`,
-      phone: '91234568',
-      ceaRegNo,
-    });
+    await agent
+      .post('/admin/team')
+      .type('form')
+      .send({
+        name: 'Audit Agent',
+        email: `audit-${Date.now()}@test.local`,
+        phone: '91234568',
+        ceaRegNo,
+      });
 
     const auditEntry = await testPrisma.auditLog.findFirst({
       where: { action: 'agent.created' },

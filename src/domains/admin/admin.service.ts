@@ -236,11 +236,7 @@ export async function reassignSeller(
 
 // ─── Settings ────────────────────────────────────────────────
 
-export async function updateSetting(
-  key: string,
-  value: string,
-  adminId: string,
-): Promise<void> {
+export async function updateSetting(key: string, value: string, adminId: string): Promise<void> {
   const validator = SETTING_VALIDATORS[key as SettingKey];
   if (!validator) {
     throw new ValidationError(`Unknown setting key: ${key}`);

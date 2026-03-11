@@ -2,11 +2,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import * as adminService from './admin.service';
-import {
-  validateAgentCreate,
-  validateSettingUpdate,
-  validateAssign,
-} from './admin.validator';
+import { validateAgentCreate, validateSettingUpdate, validateAssign } from './admin.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import { NotFoundError } from '@/domains/shared/errors';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';

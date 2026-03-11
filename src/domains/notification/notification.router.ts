@@ -62,7 +62,7 @@ notificationRouter.post(
       // Verify signature if webhook token is configured
       if (process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
         if (!rawBody || !notificationService.verifyWebhookSignature(rawBody, signature)) {
-          return res.status(401).json({ error: 'Invalid signature' });
+          return res.status(403).json({ error: 'Invalid signature' });
         }
       }
 

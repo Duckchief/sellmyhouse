@@ -13,6 +13,10 @@ export interface ReviewQueueResult {
 /** Map MarketContentStatus 'published' → 'sent'; all others pass through */
 export function mapMcsToFrs(status: string): FinancialReportStatus {
   if (status === 'published') return 'sent';
+  const valid: readonly string[] = ['draft', 'ai_generated', 'pending_review', 'approved', 'rejected', 'sent'];
+  if (!valid.includes(status)) {
+    throw new Error(`Unexpected MarketContentStatus value: ${status}`);
+  }
   return status as FinancialReportStatus;
 }
 
@@ -23,12 +27,18 @@ export function buildAddress(town: string, street: string, block: string): strin
 export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResult> {
   const sellerWhere = agentId ? { agentId } : {};
 
+  // MarketContent has no sellerId/propertyId — global content queue
+  const marketContentRecords = agentId
+    ? []
+    : await prisma.marketContent.findMany({
+        where: { status: 'pending_review' },
+      });
+
   const [
     financialReports,
     listingDescs,
     listingPhotos,
     weeklyUpdates,
-    marketContent,
     docChecklists,
   ] = await Promise.all([
     prisma.financialReport.findMany({
@@ -69,12 +79,6 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
         property: { select: { town: true, street: true, block: true } },
       },
     }),
-    // MarketContent has no sellerId/propertyId — global content queue
-    agentId
-      ? Promise.resolve([])
-      : prisma.marketContent.findMany({
-          where: { status: 'pending_review' },
-        }),
     prisma.documentChecklist.findMany({
       where: { status: 'pending_review', seller: sellerWhere },
       include: {
@@ -131,7 +135,7 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
       submittedAt: w.createdAt,
       priority: now - w.createdAt.getTime(),
     })),
-    ...(Array.isArray(marketContent) ? marketContent : []).map((m) => ({
+    ...marketContentRecords.map((m) => ({
       id: m.id,
       entityType: 'market_content' as EntityType,
       entityId: m.id,
@@ -161,14 +165,24 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
     listing_description: listingDescs.length,
     listing_photos: listingPhotos.length,
     weekly_update: weeklyUpdates.length,
-    market_content: Array.isArray(marketContent) ? marketContent.length : 0,
+    market_content: marketContentRecords.length,
     document_checklist: docChecklists.length,
   };
 
   return { items, countByType, totalCount: items.length };
 }
 
-export async function getDetailForReview(entityType: EntityType, entityId: string) {
+export async function getDetailForReview(
+  entityType: EntityType,
+  entityId: string,
+): Promise<
+  | Awaited<ReturnType<typeof prisma.financialReport.findUnique>>
+  | Awaited<ReturnType<typeof prisma.listing.findUnique>>
+  | Awaited<ReturnType<typeof prisma.weeklyUpdate.findUnique>>
+  | Awaited<ReturnType<typeof prisma.marketContent.findUnique>>
+  | Awaited<ReturnType<typeof prisma.documentChecklist.findUnique>>
+  | undefined
+> {
   switch (entityType) {
     case 'financial_report':
       return prisma.financialReport.findUnique({
@@ -195,6 +209,10 @@ export async function getDetailForReview(entityType: EntityType, entityId: strin
         where: { id: entityId },
         include: { seller: true, property: true },
       });
+    default: {
+      const _exhaustive: never = entityType;
+      return undefined;
+    }
   }
 }
 

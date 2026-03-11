@@ -248,17 +248,94 @@ export async function verifyBackupCode(input: BackupCodeVerifyInput): Promise<bo
   return false;
 }
 
-export async function changePassword(userId: string, role: UserRole, newPassword: string) {
+export async function changePassword(
+  userId: string,
+  role: UserRole,
+  newPassword: string,
+  currentSessionId?: string,
+) {
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
 
   const updateFn =
     role === 'seller' ? authRepo.updateSellerPasswordHash : authRepo.updateAgentPasswordHash;
   await updateFn(userId, passwordHash);
 
+  await authRepo.invalidateUserSessions(userId, currentSessionId);
+
   await auditService.log({
     action: 'password.changed',
     entityType: role,
     entityId: userId,
+    details: {},
+  });
+}
+
+export async function requestPasswordReset(
+  email: string,
+  role: UserRole,
+): Promise<{ token: string; userId: string } | null> {
+  const findFn = role === 'seller' ? authRepo.findSellerByEmail : authRepo.findAgentByEmail;
+  const user = await findFn(email);
+
+  if (!user) {
+    return null;
+  }
+
+  const token = crypto.randomBytes(64).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  const setTokenFn =
+    role === 'seller' ? authRepo.setSellerPasswordResetToken : authRepo.setAgentPasswordResetToken;
+  await setTokenFn(user.id, hashedToken, expiry);
+
+  await auditService.log({
+    action: 'auth.password_reset_requested',
+    entityType: role,
+    entityId: user.id,
+    details: { email },
+  });
+
+  return { token, userId: user.id };
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+  role: UserRole,
+): Promise<void> {
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+  const findFn =
+    role === 'seller' ? authRepo.findSellerByResetToken : authRepo.findAgentByResetToken;
+  const user = await findFn(hashedToken);
+
+  if (!user) {
+    throw new ValidationError('Invalid or expired reset token');
+  }
+
+  if (!user.passwordResetExpiry || user.passwordResetExpiry < new Date()) {
+    throw new ValidationError('Invalid or expired reset token');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+  const updateFn =
+    role === 'seller' ? authRepo.updateSellerPasswordHash : authRepo.updateAgentPasswordHash;
+  await updateFn(user.id, passwordHash);
+
+  const clearTokenFn =
+    role === 'seller'
+      ? authRepo.clearSellerPasswordResetToken
+      : authRepo.clearAgentPasswordResetToken;
+  await clearTokenFn(user.id);
+
+  await authRepo.invalidateUserSessions(user.id);
+
+  await auditService.log({
+    action: 'auth.password_reset_completed',
+    entityType: role,
+    entityId: user.id,
     details: {},
   });
 }

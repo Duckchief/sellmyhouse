@@ -484,6 +484,7 @@ describe('AuthService', () => {
   describe('changePassword', () => {
     it('hashes new password with bcrypt cost 12 and logs audit', async () => {
       authRepo.updateSellerPasswordHash = jest.fn().mockResolvedValue({});
+      authRepo.invalidateUserSessions = jest.fn().mockResolvedValue(undefined);
 
       await authService.changePassword('s1', 'seller', 'newpassword');
 
@@ -495,6 +496,107 @@ describe('AuthService', () => {
           entityType: 'seller',
           entityId: 's1',
         }),
+      );
+    });
+
+    it('invalidates other sessions on password change', async () => {
+      authRepo.updateSellerPasswordHash = jest.fn().mockResolvedValue({});
+      authRepo.invalidateUserSessions = jest.fn().mockResolvedValue(undefined);
+
+      await authService.changePassword('s1', 'seller', 'newpassword', 'session-123');
+
+      expect(authRepo.invalidateUserSessions).toHaveBeenCalledWith('s1', 'session-123');
+    });
+  });
+
+  describe('requestPasswordReset', () => {
+    it('generates token and stores SHA-256 hash with 1-hour expiry', async () => {
+      authRepo.findSellerByEmail = jest
+        .fn()
+        .mockResolvedValue({ id: 's1', email: 'test@test.com' });
+      authRepo.setSellerPasswordResetToken = jest.fn().mockResolvedValue({});
+
+      const result = await authService.requestPasswordReset('test@test.com', 'seller');
+
+      expect(result).not.toBeNull();
+      expect(result!.token).toHaveLength(128); // 64 bytes = 128 hex chars
+      expect(authRepo.setSellerPasswordResetToken).toHaveBeenCalledWith(
+        's1',
+        expect.any(String), // SHA-256 hash
+        expect.any(Date), // 1-hour expiry
+      );
+    });
+
+    it('returns null for non-existent email (no error)', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue(null);
+      const result = await authService.requestPasswordReset('noone@test.com', 'seller');
+      expect(result).toBeNull();
+    });
+
+    it('audit logs the reset request', async () => {
+      authRepo.findSellerByEmail = jest
+        .fn()
+        .mockResolvedValue({ id: 's1', email: 'test@test.com' });
+      authRepo.setSellerPasswordResetToken = jest.fn().mockResolvedValue({});
+
+      await authService.requestPasswordReset('test@test.com', 'seller');
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.password_reset_requested' }),
+      );
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('resets password when token is valid and not expired', async () => {
+      authRepo.findSellerByResetToken = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordResetToken: 'hashed',
+        passwordResetExpiry: new Date(Date.now() + 3600000),
+      });
+      authRepo.updateSellerPasswordHash = jest.fn().mockResolvedValue({});
+      authRepo.clearSellerPasswordResetToken = jest.fn().mockResolvedValue({});
+      authRepo.invalidateUserSessions = jest.fn().mockResolvedValue(undefined);
+
+      await authService.resetPassword('valid-token', 'newpassword123', 'seller');
+
+      expect(authRepo.updateSellerPasswordHash).toHaveBeenCalledWith('s1', expect.any(String));
+      expect(authRepo.clearSellerPasswordResetToken).toHaveBeenCalledWith('s1');
+      expect(authRepo.invalidateUserSessions).toHaveBeenCalledWith('s1');
+    });
+
+    it('throws ValidationError for expired token', async () => {
+      authRepo.findSellerByResetToken = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordResetToken: 'hashed',
+        passwordResetExpiry: new Date(Date.now() - 1000),
+      });
+
+      await expect(
+        authService.resetPassword('expired-token', 'newpassword', 'seller'),
+      ).rejects.toThrow('Invalid or expired reset token');
+    });
+
+    it('throws ValidationError for invalid token', async () => {
+      authRepo.findSellerByResetToken = jest.fn().mockResolvedValue(null);
+
+      await expect(authService.resetPassword('bad-token', 'newpassword', 'seller')).rejects.toThrow(
+        'Invalid or expired reset token',
+      );
+    });
+
+    it('audit logs the password reset', async () => {
+      authRepo.findSellerByResetToken = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordResetToken: 'hashed',
+        passwordResetExpiry: new Date(Date.now() + 3600000),
+      });
+      authRepo.updateSellerPasswordHash = jest.fn().mockResolvedValue({});
+      authRepo.clearSellerPasswordResetToken = jest.fn().mockResolvedValue({});
+      authRepo.invalidateUserSessions = jest.fn().mockResolvedValue(undefined);
+
+      await authService.resetPassword('token', 'newpass', 'seller');
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.password_reset_completed' }),
       );
     });
   });

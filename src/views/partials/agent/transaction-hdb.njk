@@ -1,4 +1,4 @@
 {# partials/agent/transaction-hdb.njk #}
 <div class="hdb-status" data-tx-id="{{ tx.id }}">
-  <p>HDB Status: {{ tx.hdbApplicationStatus }}</p>
+  <p>{{ "HDB Status:" | t }} {{ tx.hdbApplicationStatus }}</p>
 </div>

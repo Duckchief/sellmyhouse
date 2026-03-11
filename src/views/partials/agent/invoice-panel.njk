@@ -1,5 +1,5 @@
 {# partials/agent/invoice-panel.njk #}
 <div class="invoice-panel" data-invoice-id="{{ invoice.id }}">
-  <p>Invoice Status: {{ invoice.status }}</p>
-  <p>Invoice #: {{ invoice.invoiceNumber }}</p>
+  <p>{{ "Invoice Status:" | t }} {{ invoice.status }}</p>
+  <p>{{ "Invoice #:" | t }} {{ invoice.invoiceNumber }}</p>
 </div>

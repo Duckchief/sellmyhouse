@@ -1,18 +1,24 @@
 import * as propertyService from '../property.service';
 import * as propertyRepo from '../property.repository';
 import * as auditService from '../../shared/audit.service';
+import * as reviewService from '../../review/review.service';
 import { NotFoundError, ForbiddenError, ValidationError } from '../../shared/errors';
 import type { Property, Listing } from '@prisma/client';
 import type { PropertyWithListing } from '../property.types';
 
 jest.mock('../property.repository');
 jest.mock('../../shared/audit.service');
+jest.mock('../../review/review.service');
 
 const mockedRepo = jest.mocked(propertyRepo);
 const mockedAudit = jest.mocked(auditService);
+const mockedReviewService = jest.mocked(reviewService);
 
 describe('property.service', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedReviewService.checkComplianceGate.mockResolvedValue(undefined);
+  });
 
   // ─── createProperty ────────────────────────────────────────
 

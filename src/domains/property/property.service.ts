@@ -3,6 +3,7 @@ import * as auditService from '../shared/audit.service';
 import { NotFoundError, ForbiddenError, ValidationError } from '../shared/errors';
 import { canTransitionListing } from './property.types';
 import type { CreatePropertyInput, UpdatePropertyInput } from './property.types';
+import { checkComplianceGate } from '@/domains/review/review.service';
 
 export async function createProperty(input: CreatePropertyInput) {
   const property = await propertyRepo.create(input);
@@ -93,6 +94,13 @@ export async function updateListingStatus(propertyId: string, newStatus: string)
     throw new ValidationError(
       `Cannot transition listing from '${listing.status}' to '${newStatus}'`,
     );
+  }
+
+  // Gate 2: EAA must be signed before listing can go live
+  if (newStatus === 'live') {
+    const property = await propertyRepo.findByIdWithListings(propertyId);
+    if (!property) throw new NotFoundError('Property', propertyId);
+    await checkComplianceGate('eaa_signed', property.sellerId);
   }
 
   const updated = await propertyRepo.updateListingStatus(listing.id, newStatus);

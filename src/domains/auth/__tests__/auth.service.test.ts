@@ -102,16 +102,35 @@ describe('AuthService', () => {
       expect(result).toBeNull();
     });
 
+    it('runs bcrypt.compare even when email not found (prevents timing attack)', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue(null);
+      const result = await authService.loginSeller('noone@test.com', 'wrong');
+      expect(result).toBeNull();
+      expect(bcrypt.compare).toHaveBeenCalled();
+    });
+
     it('returns null when password is wrong', async () => {
-      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({ id: 's1', passwordHash: 'hash' });
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: null,
+      });
       bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementSellerFailedLoginAttempts = jest.fn().mockResolvedValue({});
 
       const result = await authService.loginSeller('test@example.com', 'wrong');
       expect(result).toBeNull();
     });
 
     it('returns seller when credentials are correct', async () => {
-      const seller = { id: 's1', passwordHash: 'hash', email: 'test@example.com' };
+      const seller = {
+        id: 's1',
+        passwordHash: 'hash',
+        email: 'test@example.com',
+        failedLoginAttempts: 0,
+        loginLockedUntil: null,
+      };
       authRepo.findSellerByEmail = jest.fn().mockResolvedValue(seller);
       bcrypt.compare = jest.fn().mockResolvedValue(true);
 
@@ -120,19 +139,207 @@ describe('AuthService', () => {
     });
   });
 
+  describe('loginSeller — login lockout', () => {
+    it('returns locked error when seller login is locked', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordHash: 'hash',
+        failedLoginAttempts: 5,
+        loginLockedUntil: new Date(Date.now() + 60000),
+      });
+
+      await expect(authService.loginSeller('test@example.com', 'password')).rejects.toThrow(
+        'Account is temporarily locked. Please try again later.',
+      );
+    });
+
+    it('increments failed attempts on wrong password', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementSellerFailedLoginAttempts = jest.fn().mockResolvedValue({});
+
+      await authService.loginSeller('test@example.com', 'wrong');
+
+      expect(authRepo.incrementSellerFailedLoginAttempts).toHaveBeenCalledWith('s1');
+    });
+
+    it('locks account after 5 failed attempts', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordHash: 'hash',
+        failedLoginAttempts: 4,
+        loginLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementSellerFailedLoginAttempts = jest.fn().mockResolvedValue({});
+      authRepo.lockSellerLogin = jest.fn().mockResolvedValue({});
+
+      await authService.loginSeller('test@example.com', 'wrong');
+
+      expect(authRepo.lockSellerLogin).toHaveBeenCalledWith('s1', expect.any(Date));
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'auth.login_locked',
+          entityType: 'seller',
+          entityId: 's1',
+        }),
+      );
+    });
+
+    it('resets failed attempts on successful login', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordHash: 'hash',
+        failedLoginAttempts: 3,
+        loginLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(true);
+      authRepo.resetSellerLoginAttempts = jest.fn().mockResolvedValue({});
+
+      await authService.loginSeller('test@example.com', 'password');
+
+      expect(authRepo.resetSellerLoginAttempts).toHaveBeenCalledWith('s1');
+    });
+
+    it('allows login when lockout has expired', async () => {
+      const seller = {
+        id: 's1',
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: new Date(Date.now() - 60000),
+      };
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue(seller);
+      bcrypt.compare = jest.fn().mockResolvedValue(true);
+      authRepo.resetSellerLoginAttempts = jest.fn().mockResolvedValue({});
+
+      const result = await authService.loginSeller('test@example.com', 'password');
+      expect(result).toBe(seller);
+    });
+  });
+
   describe('loginAgent', () => {
     it('returns null for inactive agent', async () => {
-      authRepo.findAgentByEmail = jest
-        .fn()
-        .mockResolvedValue({ id: 'a1', isActive: false, passwordHash: 'hash' });
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue({
+        id: 'a1',
+        isActive: false,
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: null,
+      });
       const result = await authService.loginAgent('agent@test.local', 'password');
       expect(result).toBeNull();
     });
 
     it('returns agent when credentials are correct', async () => {
-      const agent = { id: 'a1', isActive: true, passwordHash: 'hash' };
+      const agent = {
+        id: 'a1',
+        isActive: true,
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: null,
+      };
       authRepo.findAgentByEmail = jest.fn().mockResolvedValue(agent);
       bcrypt.compare = jest.fn().mockResolvedValue(true);
+
+      const result = await authService.loginAgent('agent@test.local', 'password');
+      expect(result).toBe(agent);
+    });
+
+    it('runs bcrypt.compare even when email not found (prevents timing attack)', async () => {
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue(null);
+      const result = await authService.loginAgent('noone@test.com', 'wrong');
+      expect(result).toBeNull();
+      expect(bcrypt.compare).toHaveBeenCalled();
+    });
+  });
+
+  describe('loginAgent — login lockout', () => {
+    it('returns locked error when agent login is locked', async () => {
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue({
+        id: 'a1',
+        isActive: true,
+        passwordHash: 'hash',
+        failedLoginAttempts: 5,
+        loginLockedUntil: new Date(Date.now() + 60000),
+      });
+
+      await expect(authService.loginAgent('agent@test.local', 'password')).rejects.toThrow(
+        'Account is temporarily locked. Please try again later.',
+      );
+    });
+
+    it('increments failed attempts on wrong password', async () => {
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue({
+        id: 'a1',
+        isActive: true,
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementAgentFailedLoginAttempts = jest.fn().mockResolvedValue({});
+
+      await authService.loginAgent('agent@test.local', 'wrong');
+
+      expect(authRepo.incrementAgentFailedLoginAttempts).toHaveBeenCalledWith('a1');
+    });
+
+    it('locks account after 5 failed attempts', async () => {
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue({
+        id: 'a1',
+        isActive: true,
+        passwordHash: 'hash',
+        failedLoginAttempts: 4,
+        loginLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementAgentFailedLoginAttempts = jest.fn().mockResolvedValue({});
+      authRepo.lockAgentLogin = jest.fn().mockResolvedValue({});
+
+      await authService.loginAgent('agent@test.local', 'wrong');
+
+      expect(authRepo.lockAgentLogin).toHaveBeenCalledWith('a1', expect.any(Date));
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'auth.login_locked',
+          entityType: 'agent',
+          entityId: 'a1',
+        }),
+      );
+    });
+
+    it('resets failed attempts on successful login', async () => {
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue({
+        id: 'a1',
+        isActive: true,
+        passwordHash: 'hash',
+        failedLoginAttempts: 3,
+        loginLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(true);
+      authRepo.resetAgentLoginAttempts = jest.fn().mockResolvedValue({});
+
+      await authService.loginAgent('agent@test.local', 'password');
+
+      expect(authRepo.resetAgentLoginAttempts).toHaveBeenCalledWith('a1');
+    });
+
+    it('allows login when lockout has expired', async () => {
+      const agent = {
+        id: 'a1',
+        isActive: true,
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: new Date(Date.now() - 60000),
+      };
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue(agent);
+      bcrypt.compare = jest.fn().mockResolvedValue(true);
+      authRepo.resetAgentLoginAttempts = jest.fn().mockResolvedValue({});
 
       const result = await authService.loginAgent('agent@test.local', 'password');
       expect(result).toBe(agent);

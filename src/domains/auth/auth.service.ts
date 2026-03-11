@@ -18,6 +18,8 @@ const BCRYPT_ROUNDS = 12;
 const BACKUP_CODE_COUNT = 8;
 const MAX_2FA_FAILURES = 5;
 const LOCKOUT_MINUTES = 30;
+const MAX_LOGIN_FAILURES = 5;
+const DUMMY_HASH = '$2b$12$LJ3m4ys3Lk0TSwMCkGRNnuV6B5rl.LCbQiAsl/RIccJxO3bFG8V2a';
 
 export async function registerSeller(input: SellerRegistrationInput) {
   if (!input.consentService) {
@@ -64,21 +66,71 @@ export async function registerSeller(input: SellerRegistrationInput) {
 
 export async function loginSeller(email: string, password: string) {
   const seller = await authRepo.findSellerByEmail(email);
-  if (!seller || !seller.passwordHash) return null;
+  const hashToCompare = seller?.passwordHash ?? DUMMY_HASH;
+  const passwordValid = await bcrypt.compare(password, hashToCompare);
 
-  const valid = await bcrypt.compare(password, seller.passwordHash);
-  if (!valid) return null;
+  if (!seller) return null;
+
+  // Check login lockout
+  if (seller.loginLockedUntil && seller.loginLockedUntil > new Date()) {
+    throw new UnauthorizedError('Account is temporarily locked. Please try again later.');
+  }
+
+  if (!passwordValid) {
+    await authRepo.incrementSellerFailedLoginAttempts(seller.id);
+    if (seller.failedLoginAttempts + 1 >= MAX_LOGIN_FAILURES) {
+      const lockUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
+      await authRepo.lockSellerLogin(seller.id, lockUntil);
+      await auditService.log({
+        action: 'auth.login_locked',
+        entityType: 'seller',
+        entityId: seller.id,
+        details: { reason: 'Too many failed login attempts' },
+      });
+    }
+    return null;
+  }
+
+  // Success — reset failed attempts
+  if (seller.failedLoginAttempts > 0 || seller.loginLockedUntil) {
+    await authRepo.resetSellerLoginAttempts(seller.id);
+  }
 
   return seller;
 }
 
 export async function loginAgent(email: string, password: string) {
   const agent = await authRepo.findAgentByEmail(email);
+  const hashToCompare = agent?.passwordHash ?? DUMMY_HASH;
+  const passwordValid = await bcrypt.compare(password, hashToCompare);
+
   if (!agent) return null;
   if (!agent.isActive) return null;
 
-  const valid = await bcrypt.compare(password, agent.passwordHash);
-  if (!valid) return null;
+  // Check login lockout
+  if (agent.loginLockedUntil && agent.loginLockedUntil > new Date()) {
+    throw new UnauthorizedError('Account is temporarily locked. Please try again later.');
+  }
+
+  if (!passwordValid) {
+    await authRepo.incrementAgentFailedLoginAttempts(agent.id);
+    if (agent.failedLoginAttempts + 1 >= MAX_LOGIN_FAILURES) {
+      const lockUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
+      await authRepo.lockAgentLogin(agent.id, lockUntil);
+      await auditService.log({
+        action: 'auth.login_locked',
+        entityType: 'agent',
+        entityId: agent.id,
+        details: { reason: 'Too many failed login attempts' },
+      });
+    }
+    return null;
+  }
+
+  // Success — reset failed attempts
+  if (agent.failedLoginAttempts > 0 || agent.loginLockedUntil) {
+    await authRepo.resetAgentLoginAttempts(agent.id);
+  }
 
   return agent;
 }

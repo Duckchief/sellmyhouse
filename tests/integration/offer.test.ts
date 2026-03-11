@@ -1,130 +1,126 @@
+// tests/integration/offer.test.ts
 import { factory } from '../fixtures/factory';
 import { testPrisma } from '../helpers/prisma';
-import * as offerRepo from '@/domains/offer/offer.repository';
-import { createId } from '@paralleldrive/cuid2';
+import * as offerService from '../../src/domains/offer/offer.service';
+import * as aiFacade from '../../src/domains/shared/ai/ai.facade';
+import * as notificationService from '../../src/domains/notification/notification.service';
 
-describe('offer.repository', () => {
+jest.mock('../../src/domains/shared/ai/ai.facade');
+jest.mock('../../src/domains/notification/notification.service');
+
+const mockAiFacade = jest.mocked(aiFacade);
+const mockNotification = jest.mocked(notificationService);
+
+describe('offer integration', () => {
   let agentId: string;
   let sellerId: string;
   let propertyId: string;
 
   beforeEach(async () => {
     await testPrisma.offer.deleteMany();
+    await testPrisma.portalListing.deleteMany();
+    await testPrisma.listing.deleteMany();
     await testPrisma.property.deleteMany();
     await testPrisma.seller.deleteMany();
     await testPrisma.agent.deleteMany();
+    await testPrisma.systemSetting.deleteMany();
+
+    mockNotification.send.mockResolvedValue(undefined as never);
 
     const agent = await factory.agent();
     agentId = agent.id;
     const seller = await factory.seller({ agentId });
     sellerId = seller.id;
-    const property = await factory.property({ sellerId });
+    const property = await factory.property({ sellerId, town: 'TAMPINES', flatType: '4 ROOM' });
     propertyId = property.id;
+
+    await factory.systemSetting({ key: 'offer_ai_analysis_enabled', value: 'false' });
   });
 
-  describe('create', () => {
-    it('creates an offer record', async () => {
-      const id = createId();
-      const offer = await offerRepo.create({
-        id,
-        propertyId,
-        buyerName: 'John Doe',
-        buyerPhone: '91234567',
-        isCoBroke: false,
-        offerAmount: 600000,
-      });
-      expect(offer.id).toBe(id);
-      expect(offer.status).toBe('pending');
-      expect(offer.propertyId).toBe(propertyId);
+  it('records an offer and notifies seller', async () => {
+    const offer = await offerService.createOffer({
+      propertyId,
+      sellerId,
+      town: 'TAMPINES',
+      flatType: '4 ROOM',
+      buyerName: 'John Buyer',
+      buyerPhone: '91234567',
+      isCoBroke: false,
+      offerAmount: 600000,
+      agentId,
     });
+
+    expect(offer.id).toBeDefined();
+    expect(offer.status).toBe('pending');
+    expect(mockNotification.send).toHaveBeenCalledTimes(1);
   });
 
-  describe('findById', () => {
-    it('returns offer by id', async () => {
-      const created = await factory.offer({ propertyId });
-      const found = await offerRepo.findById(created.id);
-      expect(found?.id).toBe(created.id);
+  it('creates counter-offer chain and sets parent to countered', async () => {
+    const original = await factory.offer({ propertyId, offerAmount: 600000 });
+
+    await offerService.counterOffer({
+      parentOfferId: original.id,
+      counterAmount: 650000,
+      agentId,
     });
 
-    it('returns null for unknown id', async () => {
-      const found = await offerRepo.findById('nonexistent');
-      expect(found).toBeNull();
-    });
+    const updatedParent = await testPrisma.offer.findUnique({ where: { id: original.id } });
+    const children = await testPrisma.offer.findMany({ where: { parentOfferId: original.id } });
+
+    expect(updatedParent?.status).toBe('countered');
+    expect(children).toHaveLength(1);
+    expect(Number(children[0]?.counterAmount)).toBe(650000);
   });
 
-  describe('findByPropertyId', () => {
-    it('returns all offers for a property including counter-offer chain', async () => {
-      const offer1 = await factory.offer({ propertyId });
-      const offer2 = await factory.offer({ propertyId });
-      const results = await offerRepo.findByPropertyId(propertyId);
-      expect(results.length).toBeGreaterThanOrEqual(2);
-      const ids = results.map((o) => o.id);
-      expect(ids).toContain(offer1.id);
-      expect(ids).toContain(offer2.id);
-    });
+  it('accepts offer and expires all pending/countered siblings', async () => {
+    const accepted = await factory.offer({ propertyId, status: 'pending' });
+    const sibling1 = await factory.offer({ propertyId, status: 'pending' });
+    const sibling2 = await factory.offer({ propertyId, status: 'countered' });
+    const rejected = await factory.offer({ propertyId, status: 'rejected' });
 
-    it('returns empty array for property with no offers', async () => {
-      const results = await offerRepo.findByPropertyId(propertyId);
-      expect(results).toEqual([]);
-    });
+    await offerService.acceptOffer({ offerId: accepted.id, agentId });
+
+    const [updatedAccepted, updatedSibling1, updatedSibling2, updatedRejected] = await Promise.all([
+      testPrisma.offer.findUnique({ where: { id: accepted.id } }),
+      testPrisma.offer.findUnique({ where: { id: sibling1.id } }),
+      testPrisma.offer.findUnique({ where: { id: sibling2.id } }),
+      testPrisma.offer.findUnique({ where: { id: rejected.id } }),
+    ]);
+
+    expect(updatedAccepted?.status).toBe('accepted');
+    expect(updatedSibling1?.status).toBe('expired');
+    expect(updatedSibling2?.status).toBe('expired');
+    expect(updatedRejected?.status).toBe('rejected'); // unchanged
   });
 
-  describe('updateStatus', () => {
-    it('updates offer status', async () => {
-      const offer = await factory.offer({ propertyId });
-      const updated = await offerRepo.updateStatus(offer.id, 'accepted');
-      expect(updated.status).toBe('accepted');
+  it('HITL: blocks sharing AI analysis before review', async () => {
+    const offer = await factory.offer({ propertyId });
+    await testPrisma.offer.update({
+      where: { id: offer.id },
+      data: { aiAnalysis: 'Test analysis', aiAnalysisStatus: 'generated' },
     });
+
+    await expect(
+      offerService.shareAiAnalysis({ offerId: offer.id, agentId, sellerId }),
+    ).rejects.toThrow('must be reviewed');
   });
 
-  describe('updateAiAnalysis', () => {
-    it('stores AI analysis data on offer', async () => {
-      const offer = await factory.offer({ propertyId });
-      const updated = await offerRepo.updateAiAnalysis(offer.id, {
-        aiAnalysis: 'This offer is below market median.',
+  it('HITL: allows sharing AI analysis after review', async () => {
+    const offer = await factory.offer({ propertyId });
+    await testPrisma.offer.update({
+      where: { id: offer.id },
+      data: {
+        aiAnalysis: 'Test analysis',
         aiAnalysisProvider: 'anthropic',
-        aiAnalysisModel: 'claude-sonnet-4-20250514',
-        aiAnalysisStatus: 'generated',
-      });
-      expect(updated.aiAnalysis).toBe('This offer is below market median.');
-      expect(updated.aiAnalysisStatus).toBe('generated');
+        aiAnalysisModel: 'claude-test',
+        aiAnalysisStatus: 'reviewed',
+      },
     });
-  });
 
-  describe('updateAiAnalysisStatus', () => {
-    it('updates only the AI analysis status without modifying other fields', async () => {
-      const offer = await factory.offer({ propertyId });
-      await offerRepo.updateAiAnalysis(offer.id, {
-        aiAnalysis: 'Original analysis',
-        aiAnalysisProvider: 'anthropic',
-        aiAnalysisModel: 'claude-sonnet-4-20250514',
-        aiAnalysisStatus: 'generated',
-      });
+    await offerService.shareAiAnalysis({ offerId: offer.id, agentId, sellerId });
 
-      const updated = await offerRepo.updateAiAnalysisStatus(offer.id, 'reviewed');
-      expect(updated.aiAnalysisStatus).toBe('reviewed');
-      expect(updated.aiAnalysis).toBe('Original analysis');
-      expect(updated.aiAnalysisProvider).toBe('anthropic');
-      expect(updated.aiAnalysisModel).toBe('claude-sonnet-4-20250514');
-    });
-  });
-
-  describe('expirePendingAndCounteredSiblings', () => {
-    it('sets all pending and countered siblings to expired', async () => {
-      const pending1 = await factory.offer({ propertyId, status: 'pending' });
-      const pending2 = await factory.offer({ propertyId, status: 'pending' });
-      const countered = await factory.offer({ propertyId, status: 'countered' });
-      const rejected = await factory.offer({ propertyId, status: 'rejected' });
-
-      await offerRepo.expirePendingAndCounteredSiblings(propertyId, pending1.id);
-
-      const updated2 = await offerRepo.findById(pending2.id);
-      const updatedCountered = await offerRepo.findById(countered.id);
-      const updatedRejected = await offerRepo.findById(rejected.id);
-
-      expect(updated2?.status).toBe('expired');
-      expect(updatedCountered?.status).toBe('expired');
-      expect(updatedRejected?.status).toBe('rejected'); // not changed
-    });
+    const updated = await testPrisma.offer.findUnique({ where: { id: offer.id } });
+    expect(updated?.aiAnalysisStatus).toBe('shared');
+    expect(mockNotification.send).toHaveBeenCalled();
   });
 });

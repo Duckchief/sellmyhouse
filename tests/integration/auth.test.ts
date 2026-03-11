@@ -55,7 +55,7 @@ describe('Auth Integration', () => {
 
       // Verify audit log created
       const audit = await testPrisma.auditLog.findFirst({
-        where: { entityId: seller!.id, action: 'seller.registered' },
+        where: { entityId: seller!.id, action: 'auth.seller_registered' },
       });
       expect(audit).not.toBeNull();
     });
@@ -134,7 +134,7 @@ describe('Auth Integration', () => {
         .send({ email: 'agent@test.local', password: 'agentpass' });
 
       expect(res.status).toBe(302);
-      expect(res.headers.location).toBe('/agent/dashboard');
+      expect(res.headers.location).toBe('/auth/2fa/setup');
     });
   });
 });

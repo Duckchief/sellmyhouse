@@ -2,14 +2,17 @@
 
 {% block body %}
 <div class="flex min-h-screen">
-  <aside class="w-64 bg-indigo-900 text-white p-4">
-    <div class="text-lg font-bold mb-6">Admin Portal</div>
-    <nav class="space-y-2">
-      <a href="/admin/dashboard" class="block px-3 py-2 rounded hover:bg-indigo-800">Dashboard</a>
-      <!-- Phase 3 will add more nav items -->
+  <aside class="w-64 bg-indigo-900 text-white p-4 flex-shrink-0">
+    <div class="text-lg font-bold mb-6">{{ "Admin Portal" | t }}</div>
+    <nav class="space-y-1">
+      <a href="/admin/dashboard" class="block px-3 py-2 rounded hover:bg-indigo-800 text-sm">{{ "Dashboard" | t }}</a>
+      <a href="/admin/team" class="block px-3 py-2 rounded hover:bg-indigo-800 text-sm">{{ "Team" | t }}</a>
+      <a href="/admin/sellers" class="block px-3 py-2 rounded hover:bg-indigo-800 text-sm">{{ "Sellers" | t }}</a>
+      <a href="/admin/settings" class="block px-3 py-2 rounded hover:bg-indigo-800 text-sm">{{ "Settings" | t }}</a>
+      <a href="/admin/hdb" class="block px-3 py-2 rounded hover:bg-indigo-800 text-sm">{{ "HDB Data" | t }}</a>
     </nav>
   </aside>
-  <main class="flex-1 p-8">
+  <main class="flex-1 p-8 overflow-auto">
     {% block content %}{% endblock %}
   </main>
 </div>

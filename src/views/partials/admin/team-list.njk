@@ -1,0 +1,60 @@
+<div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+      <tr>
+        <th class="px-4 py-3 text-left">{{ "Name" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Email" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "CEA Reg" | t }}</th>
+        <th class="px-4 py-3 text-center">{{ "Active Sellers" | t }}</th>
+        <th class="px-4 py-3 text-center">{{ "Completed" | t }}</th>
+        <th class="px-4 py-3 text-center">{{ "Status" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Actions" | t }}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y">
+      {% for member in team %}
+      <tr class="hover:bg-gray-50" id="agent-row-{{ member.id }}">
+        <td class="px-4 py-3 font-medium">
+          <a href="/admin/team/{{ member.id }}/pipeline" class="text-indigo-600 hover:underline">{{ member.name }}</a>
+        </td>
+        <td class="px-4 py-3 text-gray-600">{{ member.email }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ member.ceaRegNo }}</td>
+        <td class="px-4 py-3 text-center">{{ member.activeSellersCount }}</td>
+        <td class="px-4 py-3 text-center">{{ member.completedCount }}</td>
+        <td class="px-4 py-3 text-center">
+          {% if member.isActive %}
+            <span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">{{ "Active" | t }}</span>
+          {% else %}
+            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">{{ "Inactive" | t }}</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3">
+          <div class="flex gap-2">
+            {% if member.isActive %}
+              <button
+                class="text-xs text-amber-600 hover:underline"
+                hx-post="/admin/team/{{ member.id }}/deactivate"
+                hx-target="#action-result"
+                hx-confirm="{{ 'Deactivate this agent?' | t }}"
+              >{{ "Deactivate" | t }}</button>
+            {% else %}
+              <button
+                class="text-xs text-green-600 hover:underline"
+                hx-post="/admin/team/{{ member.id }}/reactivate"
+                hx-target="#action-result"
+              >{{ "Reactivate" | t }}</button>
+            {% endif %}
+            <button
+              class="text-xs text-red-600 hover:underline"
+              hx-get="/admin/team/{{ member.id }}/anonymise-confirm"
+              hx-target="#modal-container"
+            >{{ "Anonymise" | t }}</button>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">{{ "No agents found." | t }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -64,12 +64,12 @@ describe('validateTransition', () => {
 
 describe('checkComplianceGate - eaa_signed', () => {
   it('passes when EAA status is signed', async () => {
-    mockRepo.findActiveEaa.mockResolvedValue({ id: '1', status: 'signed' } as unknown);
+    mockRepo.findActiveEaa.mockResolvedValue({ id: '1', status: 'signed' } as unknown as Awaited<ReturnType<typeof reviewRepo.findActiveEaa>>);
     await expect(checkComplianceGate('eaa_signed', 'seller-1')).resolves.toBeUndefined();
   });
 
   it('passes when EAA status is active', async () => {
-    mockRepo.findActiveEaa.mockResolvedValue({ id: '1', status: 'active' } as unknown);
+    mockRepo.findActiveEaa.mockResolvedValue({ id: '1', status: 'active' } as unknown as Awaited<ReturnType<typeof reviewRepo.findActiveEaa>>);
     await expect(checkComplianceGate('eaa_signed', 'seller-1')).resolves.toBeUndefined();
   });
 
@@ -101,7 +101,7 @@ describe('checkComplianceGate - cdd_complete', () => {
     mockRepo.findVerifiedSellerCdd.mockResolvedValue({
       id: '1',
       identityVerified: true,
-    } as unknown);
+    } as unknown as Awaited<ReturnType<typeof reviewRepo.findVerifiedSellerCdd>>);
     await expect(checkComplianceGate('cdd_complete', 'seller-1')).resolves.toBeUndefined();
   });
 

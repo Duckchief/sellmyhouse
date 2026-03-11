@@ -50,7 +50,7 @@ describe('agent.service', () => {
           leadSource: 'website',
           createdAt: fiveHoursAgo,
           status: 'lead',
-        } as unknown,
+        } as unknown as Awaited<ReturnType<typeof agentRepo.getLeadQueue>>[0],
       ]);
       mockRepo.getWelcomeNotificationStatus.mockResolvedValue(new Map([['seller-1', true]]));
 
@@ -104,7 +104,7 @@ describe('agent.service', () => {
         name: 'John Tan',
         status: 'active',
         properties: [],
-      } as unknown);
+      } as unknown as Awaited<ReturnType<typeof agentRepo.getSellerDetail>>);
 
       const result = await agentService.getSellerDetail('seller-1', 'agent-1');
 

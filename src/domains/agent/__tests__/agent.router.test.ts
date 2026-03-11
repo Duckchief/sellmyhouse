@@ -128,7 +128,7 @@ describe('agent.router', () => {
         id: 'seller-1',
         name: 'John',
         status: 'active',
-      } as unknown);
+      } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
 
       const res = await request(app).get('/agent/sellers/seller-1');
       expect(res.status).toBe(200);

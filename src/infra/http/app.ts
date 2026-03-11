@@ -19,6 +19,7 @@ import { propertyRouter } from '../../domains/property/property.router';
 import { financialRouter } from '../../domains/property/financial.router';
 import { viewingRouter } from '../../domains/viewing/viewing.router';
 import { agentRouter } from '../../domains/agent/agent.router';
+import { reviewRouter } from '../../domains/review/review.router';
 
 function validateEnv() {
   const required = ['SESSION_SECRET', 'DATABASE_URL', 'ENCRYPTION_KEY'];
@@ -117,6 +118,7 @@ export function createApp() {
   app.use(financialRouter);
   app.use(viewingRouter);
   app.use(agentRouter);
+  app.use(reviewRouter);
 
   // Error handling (must be last)
   app.use(errorHandler);

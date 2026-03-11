@@ -257,6 +257,15 @@ enum CorrectionRequestStatus {
   rejected
 }
 
+enum FinancialReportStatus {
+  draft
+  ai_generated
+  pending_review
+  approved
+  rejected
+  sent
+}
+
 enum MarketContentStatus {
   ai_generated
   pending_review
@@ -300,6 +309,8 @@ model Agent {
   deletionReviews           DataDeletionRequest[]  @relation("DeletionReviewer")
   correctionProcessed       DataCorrectionRequest[] @relation("CorrectionProcessor")
   agentSettings             AgentSetting[]
+  weeklyUpdatesReviewed      WeeklyUpdate[]           @relation("WeeklyUpdateReviewer")
+  documentChecklistsReviewed DocumentChecklist[]      @relation("DocumentChecklistReviewer")
 
   @@map("agents")
 }
@@ -342,6 +353,8 @@ model Seller {
   referralsReceived       Referral[]             @relation("ReferredSeller")
   caseFlags               CaseFlag[]
   correctionRequests      DataCorrectionRequest[]
+  weeklyUpdates           WeeklyUpdate[]
+  documentChecklists      DocumentChecklist[]
 
   @@index([agentId, status])
   @@index([leadSource])
@@ -394,7 +407,9 @@ model Property {
   viewingSlots     ViewingSlot[]
   offers           Offer[]
   transactions     Transaction[]
-  financialReports FinancialReport[]
+  financialReports   FinancialReport[]
+  weeklyUpdates      WeeklyUpdate[]
+  documentChecklists DocumentChecklist[]
 
   @@map("properties")
 }
@@ -635,8 +650,9 @@ model FinancialReport {
   approvedAt        DateTime? @map("approved_at")
   sentToSellerAt    DateTime? @map("sent_to_seller_at")
   sentVia           String?  @map("sent_via")
-  version           Int      @default(1)
-  createdAt         DateTime @default(now()) @map("created_at")
+  version           Int                   @default(1)
+  status            FinancialReportStatus @default(draft) @map("status")
+  createdAt         DateTime              @default(now()) @map("created_at")
 
   @@map("financial_reports")
 }
@@ -902,4 +918,49 @@ model AgentSetting {
 
   @@unique([agentId, key])
   @@map("agent_settings")
+}
+
+model WeeklyUpdate {
+  id                String                @id
+  sellerId          String                @map("seller_id")
+  seller            Seller                @relation(fields: [sellerId], references: [id])
+  propertyId        String                @map("property_id")
+  property          Property              @relation(fields: [propertyId], references: [id])
+  weekOf            DateTime              @map("week_of") @db.Date
+  content           String?
+  aiNarrative       String?               @map("ai_narrative")
+  aiProvider        String?               @map("ai_provider")
+  aiModel           String?               @map("ai_model")
+  status            FinancialReportStatus @default(draft) @map("status")
+  reviewedByAgentId String?               @map("reviewed_by_agent_id")
+  reviewedByAgent   Agent?                @relation("WeeklyUpdateReviewer", fields: [reviewedByAgentId], references: [id])
+  reviewedAt        DateTime?             @map("reviewed_at")
+  reviewNotes       String?               @map("review_notes")
+  approvedAt        DateTime?             @map("approved_at")
+  sentToSellerAt    DateTime?             @map("sent_to_seller_at")
+  createdAt         DateTime              @default(now()) @map("created_at")
+
+  @@index([status])
+  @@index([sellerId, status])
+  @@map("weekly_updates")
+}
+
+model DocumentChecklist {
+  id                String                @id
+  sellerId          String                @map("seller_id")
+  seller            Seller                @relation(fields: [sellerId], references: [id])
+  propertyId        String                @map("property_id")
+  property          Property              @relation(fields: [propertyId], references: [id])
+  items             Json                  @default("[]")
+  status            FinancialReportStatus @default(draft) @map("status")
+  reviewedByAgentId String?               @map("reviewed_by_agent_id")
+  reviewedByAgent   Agent?                @relation("DocumentChecklistReviewer", fields: [reviewedByAgentId], references: [id])
+  reviewedAt        DateTime?             @map("reviewed_at")
+  reviewNotes       String?               @map("review_notes")
+  approvedAt        DateTime?             @map("approved_at")
+  createdAt         DateTime              @default(now()) @map("created_at")
+
+  @@index([status])
+  @@index([sellerId, status])
+  @@map("document_checklists")
 }

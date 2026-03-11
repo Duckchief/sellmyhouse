@@ -1,0 +1,39 @@
+<div class="bg-white border-l-2 border-purple-600 h-full flex flex-col">
+  <div class="p-4 border-b border-gray-200">
+    <div class="font-bold text-gray-900">{{ "Listing Photos" | t }}</div>
+    <div class="text-sm text-gray-500 mt-1">{{ detail.property.seller.name }} · {{ detail.property.town }}</div>
+  </div>
+  <div class="flex-1 overflow-y-auto p-4">
+    {% set photos = detail.photos | default([]) %}
+    {% if photos | length > 0 %}
+    <div class="grid grid-cols-2 gap-2">
+      {% for photo in photos %}
+      {# Photos served via authenticated endpoint — never directly from /uploads/ #}
+      <img src="/agent/files/{{ photo.filename }}" alt="{{ photo.caption }}"
+           class="w-full h-32 object-cover rounded border">
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-500">{{ "No photos uploaded." | t }}</p>
+    {% endif %}
+  </div>
+  <div class="p-4 border-t border-gray-200 space-y-3">
+    <form hx-post="/agent/reviews/listing_photos/{{ detail.id }}/approve"
+          hx-target="#review-row-{{ detail.id }}-photos"
+          hx-swap="outerHTML">
+      <button type="submit" class="w-full bg-green-600 text-white py-2 rounded font-medium hover:bg-green-700">
+        {{ "Approve Photos" | t }}
+      </button>
+    </form>
+    <form hx-post="/agent/reviews/listing_photos/{{ detail.id }}/reject"
+          hx-target="#review-row-{{ detail.id }}-photos"
+          hx-swap="outerHTML">
+      <textarea name="reviewNotes" required rows="3"
+                class="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none"
+                placeholder="{{ 'Rejection notes (required)...' | t }}"></textarea>
+      <button type="submit" class="w-full mt-2 bg-red-600 text-white py-2 rounded font-medium hover:bg-red-700">
+        {{ "Reject Photos" | t }}
+      </button>
+    </form>
+  </div>
+</div>

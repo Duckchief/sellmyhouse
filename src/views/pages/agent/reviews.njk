@@ -1,0 +1,49 @@
+{% extends "layouts/agent.njk" %}
+
+{% block content %}
+<div class="flex h-full gap-6">
+  {# Left: tabbed queue #}
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-gray-900">{{ "Review Queue" | t }}</h1>
+      <span class="text-sm text-gray-500">{{ queue.totalCount }} {{ "pending" | t }}</span>
+    </div>
+
+    {# Tabs #}
+    <div class="flex border-b border-gray-200 mb-4 text-sm overflow-x-auto">
+      {% set tabs = [
+        { key: 'all', label: 'All', count: queue.totalCount },
+        { key: 'financial_report', label: 'Financial Reports', count: queue.countByType.financial_report },
+        { key: 'listing_description', label: 'Descriptions', count: queue.countByType.listing_description },
+        { key: 'listing_photos', label: 'Photos', count: queue.countByType.listing_photos },
+        { key: 'market_content', label: 'Market Content', count: queue.countByType.market_content },
+        { key: 'weekly_update', label: 'Weekly Updates', count: queue.countByType.weekly_update },
+        { key: 'document_checklist', label: 'Doc Checklists', count: queue.countByType.document_checklist }
+      ] %}
+      {% for tab in tabs %}
+      <a href="/agent/reviews?tab={{ tab.key }}"
+         hx-get="/agent/reviews?tab={{ tab.key }}"
+         hx-target="#review-queue-body"
+         hx-push-url="true"
+         class="px-4 py-2 whitespace-nowrap border-b-2 transition-colors
+           {% if activeTab == tab.key %}border-blue-600 text-blue-600 font-medium{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
+        {{ tab.label | t }}
+        {% if tab.count > 0 %}
+        <span class="ml-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{{ tab.count }}</span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+
+    {# Queue body #}
+    <div id="review-queue-body">
+      {% include "partials/agent/review-queue.njk" %}
+    </div>
+  </div>
+
+  {# Right: slide-out detail panel #}
+  <div id="review-detail-panel" class="w-96 flex-shrink-0 hidden">
+    {# Populated via HTMX on row click #}
+  </div>
+</div>
+{% endblock %}

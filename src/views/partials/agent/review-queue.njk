@@ -1,0 +1,33 @@
+{% set filtered = queue.items %}
+{% if activeTab and activeTab != 'all' %}
+  {% set filtered = [] %}
+  {% for item in queue.items %}
+    {% if item.entityType == activeTab %}
+      {% set filtered = (filtered.push(item), filtered) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% if filtered | length == 0 %}
+<div class="text-center py-16 text-gray-400">
+  <p class="text-lg">{{ "No items pending review" | t }}</p>
+</div>
+{% else %}
+<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wider">
+      <tr>
+        <th class="px-4 py-3">{{ "Seller" | t }}</th>
+        <th class="px-4 py-3">{{ "Type" | t }}</th>
+        <th class="px-4 py-3">{{ "Property" | t }}</th>
+        <th class="px-4 py-3">{{ "Age" | t }}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for item in filtered %}
+      {% include "partials/agent/review-row.njk" %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}

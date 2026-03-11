@@ -4,10 +4,42 @@ import { EmailProvider } from './providers/email.provider';
 import { WhatsAppProvider } from './providers/whatsapp.provider';
 import { logger } from '../../infra/logger';
 import type { SendNotificationInput, NotificationChannel } from './notification.types';
-import { NOTIFICATION_TEMPLATES } from './notification.templates';
+import { NOTIFICATION_TEMPLATES, WHATSAPP_TEMPLATE_STATUS } from './notification.templates';
+import { prisma } from '../../infra/database/prisma';
+import * as auditService from '../shared/audit.service';
+
+async function resolveChannel(
+  recipientId: string,
+  recipientType: string,
+): Promise<NotificationChannel> {
+  if (recipientType !== 'seller') return 'whatsapp'; // agents use both by default
+
+  const seller = await prisma.seller.findUnique({
+    where: { id: recipientId },
+    select: { notificationPreference: true },
+  });
+
+  if (seller?.notificationPreference === 'email_only') return 'email';
+  return 'whatsapp';
+}
+
+async function checkMarketingConsent(
+  recipientId: string,
+  recipientType: string,
+): Promise<boolean> {
+  if (recipientType !== 'seller') return true;
+
+  const seller = await prisma.seller.findUnique({
+    where: { id: recipientId },
+    select: { consentMarketing: true },
+  });
+
+  return seller?.consentMarketing ?? false;
+}
 
 export async function send(input: SendNotificationInput, agentId: string): Promise<void> {
   const content = renderTemplate(input.templateName, input.templateData);
+  const notificationType = input.notificationType || 'transactional';
 
   // Always create in-app notification
   const inAppRecord = await notificationRepo.create({
@@ -19,8 +51,27 @@ export async function send(input: SendNotificationInput, agentId: string): Promi
   });
   await notificationRepo.updateStatus(inAppRecord.id, 'sent', { sentAt: new Date() });
 
-  // Determine preferred external channel
-  const preferredChannel = input.preferredChannel || 'whatsapp';
+  // Check marketing consent
+  if (notificationType === 'marketing') {
+    const hasConsent = await checkMarketingConsent(input.recipientId, input.recipientType);
+    if (!hasConsent) {
+      await auditService.log({
+        action: 'notification.marketing_blocked',
+        entityType: 'notification',
+        entityId: inAppRecord.id,
+        details: {
+          recipientType: input.recipientType,
+          recipientId: input.recipientId,
+          templateName: input.templateName,
+        },
+      });
+      return; // Only in-app delivered
+    }
+  }
+
+  // Resolve preferred channel based on seller preference
+  const preferredChannel =
+    input.preferredChannel || (await resolveChannel(input.recipientId, input.recipientType));
 
   if (preferredChannel === 'whatsapp' || preferredChannel === 'email') {
     await sendExternal(input, content, agentId, preferredChannel);
@@ -33,16 +84,31 @@ async function sendExternal(
   agentId: string,
   primaryChannel: NotificationChannel,
 ): Promise<void> {
+  // Amendment F: Check WhatsApp template approval status
+  let resolvedChannel = primaryChannel;
+  if (resolvedChannel === 'whatsapp') {
+    const templateStatus =
+      WHATSAPP_TEMPLATE_STATUS[input.templateName as keyof typeof WHATSAPP_TEMPLATE_STATUS];
+    if (templateStatus !== 'approved') {
+      logger.info(
+        { templateName: input.templateName, status: templateStatus },
+        'WhatsApp template not approved, falling back to email',
+      );
+      resolvedChannel = 'email';
+    }
+  }
+
   const record = await notificationRepo.create({
     recipientType: input.recipientType,
     recipientId: input.recipientId,
-    channel: primaryChannel,
+    channel: resolvedChannel,
     templateName: input.templateName,
     content,
   });
 
   try {
-    const provider = primaryChannel === 'whatsapp' ? new WhatsAppProvider() : new EmailProvider();
+    const provider =
+      resolvedChannel === 'whatsapp' ? new WhatsAppProvider() : new EmailProvider();
 
     const result = await provider.send(input.recipientId, content, agentId);
     await notificationRepo.updateStatus(record.id, 'sent', {
@@ -51,11 +117,11 @@ async function sendExternal(
     });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    logger.warn({ err, channel: primaryChannel }, 'Primary notification channel failed');
+    logger.warn({ err, channel: resolvedChannel }, 'Primary notification channel failed');
     await notificationRepo.updateStatus(record.id, 'failed', { error: errorMessage });
 
     // Fallback: WhatsApp → email
-    if (primaryChannel === 'whatsapp') {
+    if (resolvedChannel === 'whatsapp') {
       try {
         const fallbackRecord = await notificationRepo.create({
           recipientType: input.recipientType,
@@ -137,6 +203,8 @@ export function verifyWebhookSignature(rawBody: Buffer, signature: string | unde
 }
 
 function renderTemplate(templateName: string, data: Record<string, string>): string {
-  const template = NOTIFICATION_TEMPLATES[templateName as keyof typeof NOTIFICATION_TEMPLATES] ?? NOTIFICATION_TEMPLATES.generic;
+  const template =
+    NOTIFICATION_TEMPLATES[templateName as keyof typeof NOTIFICATION_TEMPLATES] ??
+    NOTIFICATION_TEMPLATES.generic;
   return template.body.replace(/\{\{(\w+)\}\}/g, (_, key) => data[key] || '');
 }

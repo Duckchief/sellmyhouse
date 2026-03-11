@@ -79,5 +79,19 @@ describe('portal.formatter', () => {
       const result = formatForPortal(makeInput({ portal: 'ninety_nine_co' }));
       expect(result.portal).toBe('ninety_nine_co');
     });
+
+    it('returns empty photos array when photos JSON is invalid', () => {
+      const input = makeInput();
+      (input.listing as never as { photos: string }).photos = 'not-valid-json';
+      const result = formatForPortal(input);
+      expect(result.photos).toEqual([]);
+    });
+
+    it('uses fallback title when listing.title is null', () => {
+      const input = makeInput();
+      (input.listing as never as { title: null }).title = null;
+      const result = formatForPortal(input);
+      expect(result.title).toBe('4 ROOM HDB Flat for Sale in TAMPINES');
+    });
   });
 });

@@ -161,4 +161,44 @@ describe('AuthRouter', () => {
       expect(res.headers.location).toBe('/');
     });
   });
+
+  describe('agent 2FA enforcement', () => {
+    it('redirects agent without 2FA to /auth/2fa/setup on login', async () => {
+      authService.loginAgent = jest.fn().mockResolvedValue({
+        id: 'a1',
+        email: 'agent@test.com',
+        name: 'Agent',
+        twoFactorEnabled: false,
+        isActive: true,
+        role: 'agent',
+      });
+
+      const res = await request(app)
+        .post('/auth/login/agent')
+        .type('form')
+        .send({ email: 'agent@test.com', password: 'pass123' });
+
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toBe('/auth/2fa/setup');
+    });
+
+    it('redirects agent with 2FA to /auth/2fa/verify on login', async () => {
+      authService.loginAgent = jest.fn().mockResolvedValue({
+        id: 'a1',
+        email: 'agent@test.com',
+        name: 'Agent',
+        twoFactorEnabled: true,
+        isActive: true,
+        role: 'agent',
+      });
+
+      const res = await request(app)
+        .post('/auth/login/agent')
+        .type('form')
+        .send({ email: 'agent@test.com', password: 'pass123' });
+
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toBe('/auth/2fa/verify');
+    });
+  });
 });

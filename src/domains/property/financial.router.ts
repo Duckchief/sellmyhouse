@@ -5,7 +5,7 @@ import {
   validateApproveInput,
   validateSendInput,
 } from './financial.validator';
-import { requireAuth, requireRole } from '@/infra/http/middleware/require-auth';
+import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 
 export const financialRouter = Router();
@@ -80,11 +80,12 @@ financialRouter.get(
   },
 );
 
-// Agent routes — require agent or admin role
+// Agent routes — require agent or admin role with 2FA
 financialRouter.post(
   '/api/v1/financial/report/:id/approve',
   requireAuth(),
   requireRole('agent', 'admin'),
+  requireTwoFactor(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
@@ -107,6 +108,7 @@ financialRouter.post(
   '/api/v1/financial/report/:id/send',
   requireAuth(),
   requireRole('agent', 'admin'),
+  requireTwoFactor(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;

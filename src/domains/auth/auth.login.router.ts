@@ -129,17 +129,13 @@ loginRouter.post(
           return res.redirect('/auth/2fa/verify');
         }
 
-        // Agent without 2FA — will be redirected to setup in Task 11
-        // For now, set 24hr session (Amendment E)
-        if (req.session) {
-          req.session.cookie.maxAge = 24 * 60 * 60 * 1000;
-        }
-
+        // Agent must set up 2FA before accessing dashboard
+        const redirectUrl = '/auth/2fa/setup';
         if (req.headers['hx-request']) {
-          res.set('HX-Redirect', '/agent/dashboard');
+          res.set('HX-Redirect', redirectUrl);
           return res.sendStatus(200);
         }
-        return res.redirect('/agent/dashboard');
+        return res.redirect(redirectUrl);
       });
     })(req, res, next);
   },

@@ -531,6 +531,10 @@ model Offer {
   parentOffer      Offer?      @relation("OfferChain", fields: [parentOfferId], references: [id])
   counterOffers    Offer[]     @relation("OfferChain")
   counterAmount    Decimal?    @map("counter_amount") @db.Decimal(12, 2)
+  aiAnalysis       String?     @map("ai_analysis")
+  aiAnalysisProvider String?   @map("ai_analysis_provider")
+  aiAnalysisModel  String?     @map("ai_analysis_model")
+  aiAnalysisStatus String?     @map("ai_analysis_status")
   createdAt        DateTime    @default(now()) @map("created_at")
   updatedAt        DateTime    @updatedAt @map("updated_at")
 

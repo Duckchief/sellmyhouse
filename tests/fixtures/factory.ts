@@ -415,7 +415,7 @@ export const factory = {
     hdbSerialNumber?: string;
     status?: 'prepared' | 'sent_to_seller' | 'signed_by_seller' | 'returned' | 'issued_to_buyer' | 'exercised' | 'expired';
     issuedAt?: Date;
-    agentReviewedAt?: Date;
+    agentReviewedAt?: Date | null;
     scannedCopyPathSeller?: string;
     scannedCopyPathReturned?: string;
   }) {

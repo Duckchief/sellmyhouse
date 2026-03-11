@@ -1,6 +1,6 @@
 // src/domains/transaction/__tests__/transaction.repository.test.ts
-import { factory } from '../../../tests/fixtures/factory';
-import { testPrisma } from '../../../tests/helpers/prisma';
+import { factory } from '../../../../tests/fixtures/factory';
+import { testPrisma } from '../../../../tests/helpers/prisma';
 import * as txRepo from '../transaction.repository';
 import { createId } from '@paralleldrive/cuid2';
 

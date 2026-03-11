@@ -87,7 +87,7 @@ describe('AuthService', () => {
       );
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'seller.registered',
+          action: 'auth.seller_registered',
           entityType: 'seller',
           entityId: 'new-seller',
         }),
@@ -102,16 +102,35 @@ describe('AuthService', () => {
       expect(result).toBeNull();
     });
 
+    it('runs bcrypt.compare even when email not found (prevents timing attack)', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue(null);
+      const result = await authService.loginSeller('noone@test.com', 'wrong');
+      expect(result).toBeNull();
+      expect(bcrypt.compare).toHaveBeenCalled();
+    });
+
     it('returns null when password is wrong', async () => {
-      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({ id: 's1', passwordHash: 'hash' });
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: null,
+      });
       bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementSellerFailedLoginAttempts = jest.fn().mockResolvedValue({});
 
       const result = await authService.loginSeller('test@example.com', 'wrong');
       expect(result).toBeNull();
     });
 
     it('returns seller when credentials are correct', async () => {
-      const seller = { id: 's1', passwordHash: 'hash', email: 'test@example.com' };
+      const seller = {
+        id: 's1',
+        passwordHash: 'hash',
+        email: 'test@example.com',
+        failedLoginAttempts: 0,
+        loginLockedUntil: null,
+      };
       authRepo.findSellerByEmail = jest.fn().mockResolvedValue(seller);
       bcrypt.compare = jest.fn().mockResolvedValue(true);
 
@@ -120,19 +139,207 @@ describe('AuthService', () => {
     });
   });
 
+  describe('loginSeller — login lockout', () => {
+    it('returns locked error when seller login is locked', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordHash: 'hash',
+        failedLoginAttempts: 5,
+        loginLockedUntil: new Date(Date.now() + 60000),
+      });
+
+      await expect(authService.loginSeller('test@example.com', 'password')).rejects.toThrow(
+        'Account is temporarily locked. Please try again later.',
+      );
+    });
+
+    it('increments failed attempts on wrong password', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementSellerFailedLoginAttempts = jest.fn().mockResolvedValue({});
+
+      await authService.loginSeller('test@example.com', 'wrong');
+
+      expect(authRepo.incrementSellerFailedLoginAttempts).toHaveBeenCalledWith('s1');
+    });
+
+    it('locks account after 5 failed attempts', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordHash: 'hash',
+        failedLoginAttempts: 4,
+        loginLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementSellerFailedLoginAttempts = jest.fn().mockResolvedValue({});
+      authRepo.lockSellerLogin = jest.fn().mockResolvedValue({});
+
+      await authService.loginSeller('test@example.com', 'wrong');
+
+      expect(authRepo.lockSellerLogin).toHaveBeenCalledWith('s1', expect.any(Date));
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'auth.login_locked',
+          entityType: 'seller',
+          entityId: 's1',
+        }),
+      );
+    });
+
+    it('resets failed attempts on successful login', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordHash: 'hash',
+        failedLoginAttempts: 3,
+        loginLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(true);
+      authRepo.resetSellerLoginAttempts = jest.fn().mockResolvedValue({});
+
+      await authService.loginSeller('test@example.com', 'password');
+
+      expect(authRepo.resetSellerLoginAttempts).toHaveBeenCalledWith('s1');
+    });
+
+    it('allows login when lockout has expired', async () => {
+      const seller = {
+        id: 's1',
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: new Date(Date.now() - 60000),
+      };
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue(seller);
+      bcrypt.compare = jest.fn().mockResolvedValue(true);
+      authRepo.resetSellerLoginAttempts = jest.fn().mockResolvedValue({});
+
+      const result = await authService.loginSeller('test@example.com', 'password');
+      expect(result).toBe(seller);
+    });
+  });
+
   describe('loginAgent', () => {
     it('returns null for inactive agent', async () => {
-      authRepo.findAgentByEmail = jest
-        .fn()
-        .mockResolvedValue({ id: 'a1', isActive: false, passwordHash: 'hash' });
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue({
+        id: 'a1',
+        isActive: false,
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: null,
+      });
       const result = await authService.loginAgent('agent@test.local', 'password');
       expect(result).toBeNull();
     });
 
     it('returns agent when credentials are correct', async () => {
-      const agent = { id: 'a1', isActive: true, passwordHash: 'hash' };
+      const agent = {
+        id: 'a1',
+        isActive: true,
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: null,
+      };
       authRepo.findAgentByEmail = jest.fn().mockResolvedValue(agent);
       bcrypt.compare = jest.fn().mockResolvedValue(true);
+
+      const result = await authService.loginAgent('agent@test.local', 'password');
+      expect(result).toBe(agent);
+    });
+
+    it('runs bcrypt.compare even when email not found (prevents timing attack)', async () => {
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue(null);
+      const result = await authService.loginAgent('noone@test.com', 'wrong');
+      expect(result).toBeNull();
+      expect(bcrypt.compare).toHaveBeenCalled();
+    });
+  });
+
+  describe('loginAgent — login lockout', () => {
+    it('returns locked error when agent login is locked', async () => {
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue({
+        id: 'a1',
+        isActive: true,
+        passwordHash: 'hash',
+        failedLoginAttempts: 5,
+        loginLockedUntil: new Date(Date.now() + 60000),
+      });
+
+      await expect(authService.loginAgent('agent@test.local', 'password')).rejects.toThrow(
+        'Account is temporarily locked. Please try again later.',
+      );
+    });
+
+    it('increments failed attempts on wrong password', async () => {
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue({
+        id: 'a1',
+        isActive: true,
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementAgentFailedLoginAttempts = jest.fn().mockResolvedValue({});
+
+      await authService.loginAgent('agent@test.local', 'wrong');
+
+      expect(authRepo.incrementAgentFailedLoginAttempts).toHaveBeenCalledWith('a1');
+    });
+
+    it('locks account after 5 failed attempts', async () => {
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue({
+        id: 'a1',
+        isActive: true,
+        passwordHash: 'hash',
+        failedLoginAttempts: 4,
+        loginLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementAgentFailedLoginAttempts = jest.fn().mockResolvedValue({});
+      authRepo.lockAgentLogin = jest.fn().mockResolvedValue({});
+
+      await authService.loginAgent('agent@test.local', 'wrong');
+
+      expect(authRepo.lockAgentLogin).toHaveBeenCalledWith('a1', expect.any(Date));
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'auth.login_locked',
+          entityType: 'agent',
+          entityId: 'a1',
+        }),
+      );
+    });
+
+    it('resets failed attempts on successful login', async () => {
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue({
+        id: 'a1',
+        isActive: true,
+        passwordHash: 'hash',
+        failedLoginAttempts: 3,
+        loginLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(true);
+      authRepo.resetAgentLoginAttempts = jest.fn().mockResolvedValue({});
+
+      await authService.loginAgent('agent@test.local', 'password');
+
+      expect(authRepo.resetAgentLoginAttempts).toHaveBeenCalledWith('a1');
+    });
+
+    it('allows login when lockout has expired', async () => {
+      const agent = {
+        id: 'a1',
+        isActive: true,
+        passwordHash: 'hash',
+        failedLoginAttempts: 0,
+        loginLockedUntil: new Date(Date.now() - 60000),
+      };
+      authRepo.findAgentByEmail = jest.fn().mockResolvedValue(agent);
+      bcrypt.compare = jest.fn().mockResolvedValue(true);
+      authRepo.resetAgentLoginAttempts = jest.fn().mockResolvedValue({});
 
       const result = await authService.loginAgent('agent@test.local', 'password');
       expect(result).toBe(agent);
@@ -228,14 +435,14 @@ describe('AuthService', () => {
   });
 
   describe('verifyBackupCode', () => {
-    it('returns true and removes used code', async () => {
+    it('returns true and removes used code atomically', async () => {
       authRepo.findSellerById = jest.fn().mockResolvedValue({
         id: 's1',
         twoFactorBackupCodes: ['hash1', 'hash2', 'hash3'],
       });
       // Match second code
       bcrypt.compare = jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
-      authRepo.updateSellerBackupCodes = jest.fn().mockResolvedValue({});
+      authRepo.removeBackupCodeAtomically = jest.fn().mockResolvedValue(['hash1', 'hash3']);
 
       const result = await authService.verifyBackupCode({
         userId: 's1',
@@ -244,13 +451,15 @@ describe('AuthService', () => {
       });
 
       expect(result).toBe(true);
-      expect(authRepo.updateSellerBackupCodes).toHaveBeenCalledWith(
+      expect(authRepo.removeBackupCodeAtomically).toHaveBeenCalledWith(
         's1',
-        ['hash1', 'hash3'], // hash2 removed
+        'seller',
+        1, // index of matched code (hash2)
+        ['hash1', 'hash2', 'hash3'],
       );
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: '2fa.backup_code_used',
+          action: 'auth.2fa_backup_used',
           details: { remainingCodes: 2 },
         }),
       );
@@ -275,6 +484,7 @@ describe('AuthService', () => {
   describe('changePassword', () => {
     it('hashes new password with bcrypt cost 12 and logs audit', async () => {
       authRepo.updateSellerPasswordHash = jest.fn().mockResolvedValue({});
+      authRepo.invalidateUserSessions = jest.fn().mockResolvedValue(undefined);
 
       await authService.changePassword('s1', 'seller', 'newpassword');
 
@@ -282,10 +492,111 @@ describe('AuthService', () => {
       expect(authRepo.updateSellerPasswordHash).toHaveBeenCalledWith('s1', 'hashed-password');
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'password.changed',
+          action: 'auth.password_changed',
           entityType: 'seller',
           entityId: 's1',
         }),
+      );
+    });
+
+    it('invalidates other sessions on password change', async () => {
+      authRepo.updateSellerPasswordHash = jest.fn().mockResolvedValue({});
+      authRepo.invalidateUserSessions = jest.fn().mockResolvedValue(undefined);
+
+      await authService.changePassword('s1', 'seller', 'newpassword', 'session-123');
+
+      expect(authRepo.invalidateUserSessions).toHaveBeenCalledWith('s1', 'session-123');
+    });
+  });
+
+  describe('requestPasswordReset', () => {
+    it('generates token and stores SHA-256 hash with 1-hour expiry', async () => {
+      authRepo.findSellerByEmail = jest
+        .fn()
+        .mockResolvedValue({ id: 's1', email: 'test@test.com' });
+      authRepo.setSellerPasswordResetToken = jest.fn().mockResolvedValue({});
+
+      const result = await authService.requestPasswordReset('test@test.com', 'seller');
+
+      expect(result).not.toBeNull();
+      expect(result!.token).toHaveLength(128); // 64 bytes = 128 hex chars
+      expect(authRepo.setSellerPasswordResetToken).toHaveBeenCalledWith(
+        's1',
+        expect.any(String), // SHA-256 hash
+        expect.any(Date), // 1-hour expiry
+      );
+    });
+
+    it('returns null for non-existent email (no error)', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue(null);
+      const result = await authService.requestPasswordReset('noone@test.com', 'seller');
+      expect(result).toBeNull();
+    });
+
+    it('audit logs the reset request', async () => {
+      authRepo.findSellerByEmail = jest
+        .fn()
+        .mockResolvedValue({ id: 's1', email: 'test@test.com' });
+      authRepo.setSellerPasswordResetToken = jest.fn().mockResolvedValue({});
+
+      await authService.requestPasswordReset('test@test.com', 'seller');
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.password_reset_requested' }),
+      );
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('resets password when token is valid and not expired', async () => {
+      authRepo.findSellerByResetToken = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordResetToken: 'hashed',
+        passwordResetExpiry: new Date(Date.now() + 3600000),
+      });
+      authRepo.updateSellerPasswordHash = jest.fn().mockResolvedValue({});
+      authRepo.clearSellerPasswordResetToken = jest.fn().mockResolvedValue({});
+      authRepo.invalidateUserSessions = jest.fn().mockResolvedValue(undefined);
+
+      await authService.resetPassword('valid-token', 'newpassword123', 'seller');
+
+      expect(authRepo.updateSellerPasswordHash).toHaveBeenCalledWith('s1', expect.any(String));
+      expect(authRepo.clearSellerPasswordResetToken).toHaveBeenCalledWith('s1');
+      expect(authRepo.invalidateUserSessions).toHaveBeenCalledWith('s1');
+    });
+
+    it('throws ValidationError for expired token', async () => {
+      authRepo.findSellerByResetToken = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordResetToken: 'hashed',
+        passwordResetExpiry: new Date(Date.now() - 1000),
+      });
+
+      await expect(
+        authService.resetPassword('expired-token', 'newpassword', 'seller'),
+      ).rejects.toThrow('Invalid or expired reset token');
+    });
+
+    it('throws ValidationError for invalid token', async () => {
+      authRepo.findSellerByResetToken = jest.fn().mockResolvedValue(null);
+
+      await expect(authService.resetPassword('bad-token', 'newpassword', 'seller')).rejects.toThrow(
+        'Invalid or expired reset token',
+      );
+    });
+
+    it('audit logs the password reset', async () => {
+      authRepo.findSellerByResetToken = jest.fn().mockResolvedValue({
+        id: 's1',
+        passwordResetToken: 'hashed',
+        passwordResetExpiry: new Date(Date.now() + 3600000),
+      });
+      authRepo.updateSellerPasswordHash = jest.fn().mockResolvedValue({});
+      authRepo.clearSellerPasswordResetToken = jest.fn().mockResolvedValue({});
+      authRepo.invalidateUserSessions = jest.fn().mockResolvedValue(undefined);
+
+      await authService.resetPassword('token', 'newpass', 'seller');
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.password_reset_completed' }),
       );
     });
   });

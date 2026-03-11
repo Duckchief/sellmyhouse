@@ -1,6 +1,7 @@
 export type NotificationChannel = 'whatsapp' | 'email' | 'in_app';
 export type NotificationStatus = 'pending' | 'sent' | 'delivered' | 'failed' | 'read';
 export type RecipientType = 'seller' | 'agent' | 'viewer';
+export type NotificationType = 'transactional' | 'marketing';
 
 export type NotificationTemplateName =
   | 'welcome_seller'
@@ -20,12 +21,27 @@ export type NotificationTemplateName =
   | 'financial_report_ready'
   | 'generic';
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+}
+
+export interface DncCheckResult {
+  blocked: boolean;
+  reason?: string;
+}
+
 export interface SendNotificationInput {
   recipientType: RecipientType;
   recipientId: string;
   templateName: NotificationTemplateName;
   templateData: Record<string, string>;
   preferredChannel?: NotificationChannel;
+  notificationType?: NotificationType; // defaults to 'transactional'
+  attachments?: EmailAttachment[];
+  recipientPhone?: string;
+  recipientEmail?: string;
 }
 
 export interface NotificationRecord {
@@ -45,5 +61,10 @@ export interface NotificationRecord {
 }
 
 export interface ChannelProvider {
-  send(recipientId: string, content: string, agentId: string): Promise<{ messageId?: string }>;
+  send(
+    recipientId: string,
+    content: string,
+    agentId: string,
+    options?: { subject?: string; attachments?: EmailAttachment[]; unsubscribeUrl?: string },
+  ): Promise<{ messageId?: string }>;
 }

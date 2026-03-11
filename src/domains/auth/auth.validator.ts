@@ -25,3 +25,15 @@ export const totpValidation = [
 export const backupCodeValidation = [
   body('code').trim().notEmpty().withMessage('Backup code is required'),
 ];
+
+export const forgotPasswordRules = [
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+];
+
+export const resetPasswordRules = [
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  body('password')
+    .matches(/[a-zA-Z]/)
+    .withMessage('Password must contain at least one letter'),
+  body('password').matches(/[0-9]/).withMessage('Password must contain at least one number'),
+];

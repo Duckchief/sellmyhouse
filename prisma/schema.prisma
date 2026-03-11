@@ -281,6 +281,10 @@ model Agent {
   twoFactorBackupCodes      Json?     @map("two_factor_backup_codes")
   failedTwoFactorAttempts   Int       @default(0) @map("failed_two_factor_attempts")
   twoFactorLockedUntil      DateTime? @map("two_factor_locked_until")
+  failedLoginAttempts       Int       @default(0) @map("failed_login_attempts")
+  loginLockedUntil          DateTime? @map("login_locked_until")
+  passwordResetToken        String?   @map("password_reset_token")
+  passwordResetExpiry       DateTime? @map("password_reset_expiry")
   createdAt                 DateTime  @default(now()) @map("created_at")
   updatedAt                 DateTime  @updatedAt @map("updated_at")
 
@@ -321,6 +325,10 @@ model Seller {
   twoFactorBackupCodes    Json?                  @map("two_factor_backup_codes")
   failedTwoFactorAttempts Int                    @default(0) @map("failed_two_factor_attempts")
   twoFactorLockedUntil    DateTime?              @map("two_factor_locked_until")
+  failedLoginAttempts     Int                    @default(0) @map("failed_login_attempts")
+  loginLockedUntil        DateTime?              @map("login_locked_until")
+  passwordResetToken      String?                @map("password_reset_token")
+  passwordResetExpiry     DateTime?              @map("password_reset_expiry")
   createdAt               DateTime               @default(now()) @map("created_at")
   updatedAt               DateTime               @updatedAt @map("updated_at")
 

@@ -89,5 +89,21 @@ describe('AgentSettingsService', () => {
       expect(result.length).toBe(9); // 3 WhatsApp + 6 SMTP
       expect(result.every((r) => r.maskedValue === null)).toBe(true);
     });
+
+    it('returns null maskedValue when decrypt throws', async () => {
+      encryption.decrypt = jest.fn().mockImplementation(() => {
+        throw new Error('Decryption failed');
+      });
+      repo.findAllForAgent = jest
+        .fn()
+        .mockResolvedValue([
+          { key: 'whatsapp_api_token', encryptedValue: 'corrupt-enc', updatedAt: new Date() },
+        ]);
+
+      const result = await service.getSettingsView('agent1');
+
+      const tokenView = result.find((r) => r.key === 'whatsapp_api_token');
+      expect(tokenView?.maskedValue).toBeNull();
+    });
   });
 });

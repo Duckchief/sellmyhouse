@@ -18,6 +18,8 @@ const BCRYPT_ROUNDS = 12;
 const BACKUP_CODE_COUNT = 8;
 const MAX_2FA_FAILURES = 5;
 const LOCKOUT_MINUTES = 30;
+const MAX_LOGIN_FAILURES = 5;
+const DUMMY_HASH = '$2b$12$LJ3m4ys3Lk0TSwMCkGRNnuV6B5rl.LCbQiAsl/RIccJxO3bFG8V2a';
 
 export async function registerSeller(input: SellerRegistrationInput) {
   if (!input.consentService) {
@@ -52,7 +54,7 @@ export async function registerSeller(input: SellerRegistrationInput) {
   });
 
   await auditService.log({
-    action: 'seller.registered',
+    action: 'auth.seller_registered',
     entityType: 'seller',
     entityId: seller.id,
     details: { email: input.email },
@@ -64,21 +66,97 @@ export async function registerSeller(input: SellerRegistrationInput) {
 
 export async function loginSeller(email: string, password: string) {
   const seller = await authRepo.findSellerByEmail(email);
-  if (!seller || !seller.passwordHash) return null;
+  const hashToCompare = seller?.passwordHash ?? DUMMY_HASH;
+  const passwordValid = await bcrypt.compare(password, hashToCompare);
 
-  const valid = await bcrypt.compare(password, seller.passwordHash);
-  if (!valid) return null;
+  if (!seller) return null;
+
+  // Check login lockout
+  if (seller.loginLockedUntil && seller.loginLockedUntil > new Date()) {
+    throw new UnauthorizedError('Account is temporarily locked. Please try again later.');
+  }
+
+  if (!passwordValid) {
+    await auditService.log({
+      action: 'auth.login_failed',
+      entityType: 'Seller',
+      entityId: seller.id,
+      details: { reason: 'invalid_password' },
+    });
+    await authRepo.incrementSellerFailedLoginAttempts(seller.id);
+    if (seller.failedLoginAttempts + 1 >= MAX_LOGIN_FAILURES) {
+      const lockUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
+      await authRepo.lockSellerLogin(seller.id, lockUntil);
+      await auditService.log({
+        action: 'auth.login_locked',
+        entityType: 'seller',
+        entityId: seller.id,
+        details: { reason: 'Too many failed login attempts' },
+      });
+    }
+    return null;
+  }
+
+  // Success — reset failed attempts
+  if (seller.failedLoginAttempts > 0 || seller.loginLockedUntil) {
+    await authRepo.resetSellerLoginAttempts(seller.id);
+  }
+
+  await auditService.log({
+    action: 'auth.login_success',
+    entityType: 'Seller',
+    entityId: seller.id,
+    details: {},
+  });
 
   return seller;
 }
 
 export async function loginAgent(email: string, password: string) {
   const agent = await authRepo.findAgentByEmail(email);
+  const hashToCompare = agent?.passwordHash ?? DUMMY_HASH;
+  const passwordValid = await bcrypt.compare(password, hashToCompare);
+
   if (!agent) return null;
   if (!agent.isActive) return null;
 
-  const valid = await bcrypt.compare(password, agent.passwordHash);
-  if (!valid) return null;
+  // Check login lockout
+  if (agent.loginLockedUntil && agent.loginLockedUntil > new Date()) {
+    throw new UnauthorizedError('Account is temporarily locked. Please try again later.');
+  }
+
+  if (!passwordValid) {
+    await auditService.log({
+      action: 'auth.login_failed',
+      entityType: 'Agent',
+      entityId: agent.id,
+      details: { reason: 'invalid_password' },
+    });
+    await authRepo.incrementAgentFailedLoginAttempts(agent.id);
+    if (agent.failedLoginAttempts + 1 >= MAX_LOGIN_FAILURES) {
+      const lockUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
+      await authRepo.lockAgentLogin(agent.id, lockUntil);
+      await auditService.log({
+        action: 'auth.login_locked',
+        entityType: 'agent',
+        entityId: agent.id,
+        details: { reason: 'Too many failed login attempts' },
+      });
+    }
+    return null;
+  }
+
+  // Success — reset failed attempts
+  if (agent.failedLoginAttempts > 0 || agent.loginLockedUntil) {
+    await authRepo.resetAgentLoginAttempts(agent.id);
+  }
+
+  await auditService.log({
+    action: 'auth.login_success',
+    entityType: 'Agent',
+    entityId: agent.id,
+    details: {},
+  });
 
   return agent;
 }
@@ -110,7 +188,7 @@ export async function setup2FA(userId: string, role: UserRole): Promise<TotpSetu
   });
 
   await auditService.log({
-    action: '2fa.setup',
+    action: 'auth.2fa_setup',
     entityType: role,
     entityId: userId,
     details: { method: 'totp' },
@@ -174,16 +252,16 @@ export async function verifyBackupCode(input: BackupCodeVerifyInput): Promise<bo
   for (let i = 0; i < storedCodes.length; i++) {
     const matches = await bcrypt.compare(input.code, storedCodes[i]);
     if (matches) {
-      // Remove used code
-      const remaining = [...storedCodes.slice(0, i), ...storedCodes.slice(i + 1)];
-      const updateFn =
-        input.role === 'seller'
-          ? authRepo.updateSellerBackupCodes
-          : authRepo.updateAgentBackupCodes;
-      await updateFn(input.userId, remaining);
+      // Remove used code atomically (prevents race condition)
+      const remaining = await authRepo.removeBackupCodeAtomically(
+        input.userId,
+        input.role,
+        i,
+        storedCodes,
+      );
 
       await auditService.log({
-        action: '2fa.backup_code_used',
+        action: 'auth.2fa_backup_used',
         entityType: input.role,
         entityId: input.userId,
         details: { remainingCodes: remaining.length },
@@ -196,17 +274,94 @@ export async function verifyBackupCode(input: BackupCodeVerifyInput): Promise<bo
   return false;
 }
 
-export async function changePassword(userId: string, role: UserRole, newPassword: string) {
+export async function changePassword(
+  userId: string,
+  role: UserRole,
+  newPassword: string,
+  currentSessionId?: string,
+) {
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
 
   const updateFn =
     role === 'seller' ? authRepo.updateSellerPasswordHash : authRepo.updateAgentPasswordHash;
   await updateFn(userId, passwordHash);
 
+  await authRepo.invalidateUserSessions(userId, currentSessionId);
+
   await auditService.log({
-    action: 'password.changed',
+    action: 'auth.password_changed',
     entityType: role,
     entityId: userId,
+    details: {},
+  });
+}
+
+export async function requestPasswordReset(
+  email: string,
+  role: UserRole,
+): Promise<{ token: string; userId: string } | null> {
+  const findFn = role === 'seller' ? authRepo.findSellerByEmail : authRepo.findAgentByEmail;
+  const user = await findFn(email);
+
+  if (!user) {
+    return null;
+  }
+
+  const token = crypto.randomBytes(64).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  const setTokenFn =
+    role === 'seller' ? authRepo.setSellerPasswordResetToken : authRepo.setAgentPasswordResetToken;
+  await setTokenFn(user.id, hashedToken, expiry);
+
+  await auditService.log({
+    action: 'auth.password_reset_requested',
+    entityType: role,
+    entityId: user.id,
+    details: { email },
+  });
+
+  return { token, userId: user.id };
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+  role: UserRole,
+): Promise<void> {
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+  const findFn =
+    role === 'seller' ? authRepo.findSellerByResetToken : authRepo.findAgentByResetToken;
+  const user = await findFn(hashedToken);
+
+  if (!user) {
+    throw new ValidationError('Invalid or expired reset token');
+  }
+
+  if (!user.passwordResetExpiry || user.passwordResetExpiry < new Date()) {
+    throw new ValidationError('Invalid or expired reset token');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+  const updateFn =
+    role === 'seller' ? authRepo.updateSellerPasswordHash : authRepo.updateAgentPasswordHash;
+  await updateFn(user.id, passwordHash);
+
+  const clearTokenFn =
+    role === 'seller'
+      ? authRepo.clearSellerPasswordResetToken
+      : authRepo.clearAgentPasswordResetToken;
+  await clearTokenFn(user.id);
+
+  await authRepo.invalidateUserSessions(user.id);
+
+  await auditService.log({
+    action: 'auth.password_reset_completed',
+    entityType: role,
+    entityId: user.id,
     details: {},
   });
 }

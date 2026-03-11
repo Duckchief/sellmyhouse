@@ -46,6 +46,10 @@ describe('lead.service', () => {
       twoFactorBackupCodes: null,
       failedTwoFactorAttempts: 0,
       twoFactorLockedUntil: null,
+      failedLoginAttempts: 0,
+      loginLockedUntil: null,
+      passwordResetToken: null,
+      passwordResetExpiry: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -135,6 +139,10 @@ describe('lead.service', () => {
       twoFactorBackupCodes: null,
       failedTwoFactorAttempts: 0,
       twoFactorLockedUntil: null,
+      failedLoginAttempts: 0,
+      loginLockedUntil: null,
+      passwordResetToken: null,
+      passwordResetExpiry: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

@@ -85,6 +85,47 @@ export function updateSellerBackupCodes(id: string, codes: Prisma.InputJsonValue
   });
 }
 
+export function incrementSellerFailedLoginAttempts(id: string) {
+  return prisma.seller.update({
+    where: { id },
+    data: { failedLoginAttempts: { increment: 1 } },
+  });
+}
+
+export function lockSellerLogin(id: string, until: Date) {
+  return prisma.seller.update({
+    where: { id },
+    data: { loginLockedUntil: until, failedLoginAttempts: 0 },
+  });
+}
+
+export function resetSellerLoginAttempts(id: string) {
+  return prisma.seller.update({
+    where: { id },
+    data: { failedLoginAttempts: 0, loginLockedUntil: null },
+  });
+}
+
+export function setSellerPasswordResetToken(id: string, hashedToken: string, expiry: Date) {
+  return prisma.seller.update({
+    where: { id },
+    data: { passwordResetToken: hashedToken, passwordResetExpiry: expiry },
+  });
+}
+
+export function findSellerByResetToken(hashedToken: string) {
+  return prisma.seller.findFirst({
+    where: { passwordResetToken: hashedToken },
+  });
+}
+
+export function clearSellerPasswordResetToken(id: string) {
+  return prisma.seller.update({
+    where: { id },
+    data: { passwordResetToken: null, passwordResetExpiry: null },
+  });
+}
+
 // ─── Agent ─────────────────────────────────────────────────
 
 export function findAgentByEmail(email: string) {
@@ -142,6 +183,87 @@ export function updateAgentBackupCodes(id: string, codes: Prisma.InputJsonValue)
     where: { id },
     data: { twoFactorBackupCodes: codes },
   });
+}
+
+export async function removeBackupCodeAtomically(
+  userId: string,
+  role: 'seller' | 'agent' | 'admin',
+  codeIndex: number,
+  currentCodes: string[],
+) {
+  const remaining = [...currentCodes.slice(0, codeIndex), ...currentCodes.slice(codeIndex + 1)];
+  return prisma.$transaction(async (tx) => {
+    if (role === 'seller') {
+      await tx.seller.update({
+        where: { id: userId },
+        data: { twoFactorBackupCodes: remaining },
+      });
+    } else {
+      await tx.agent.update({
+        where: { id: userId },
+        data: { twoFactorBackupCodes: remaining },
+      });
+    }
+    return remaining;
+  });
+}
+
+export function incrementAgentFailedLoginAttempts(id: string) {
+  return prisma.agent.update({
+    where: { id },
+    data: { failedLoginAttempts: { increment: 1 } },
+  });
+}
+
+export function lockAgentLogin(id: string, until: Date) {
+  return prisma.agent.update({
+    where: { id },
+    data: { loginLockedUntil: until, failedLoginAttempts: 0 },
+  });
+}
+
+export function resetAgentLoginAttempts(id: string) {
+  return prisma.agent.update({
+    where: { id },
+    data: { failedLoginAttempts: 0, loginLockedUntil: null },
+  });
+}
+
+export function setAgentPasswordResetToken(id: string, hashedToken: string, expiry: Date) {
+  return prisma.agent.update({
+    where: { id },
+    data: { passwordResetToken: hashedToken, passwordResetExpiry: expiry },
+  });
+}
+
+export function findAgentByResetToken(hashedToken: string) {
+  return prisma.agent.findFirst({
+    where: { passwordResetToken: hashedToken },
+  });
+}
+
+export function clearAgentPasswordResetToken(id: string) {
+  return prisma.agent.update({
+    where: { id },
+    data: { passwordResetToken: null, passwordResetExpiry: null },
+  });
+}
+
+// ─── Session Invalidation ───────────────────────────────────
+
+export async function invalidateUserSessions(userId: string, exceptSessionId?: string) {
+  if (exceptSessionId) {
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "session" WHERE sess::jsonb #>> '{passport,user,id}' = $1 AND sid != $2`,
+      userId,
+      exceptSessionId,
+    );
+  } else {
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "session" WHERE sess::jsonb #>> '{passport,user,id}' = $1`,
+      userId,
+    );
+  }
 }
 
 // ─── ConsentRecord ─────────────────────────────────────────

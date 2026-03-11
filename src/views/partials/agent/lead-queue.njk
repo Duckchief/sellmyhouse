@@ -1,0 +1,34 @@
+{% if leads.length == 0 %}
+<div class="text-gray-500 py-8 text-center">{{ "No new leads" | t }}</div>
+{% else %}
+<div class="bg-white rounded-lg shadow overflow-hidden">
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Name" | t }}</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Phone" | t }}</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Source" | t }}</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Time" | t }}</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Notified" | t }}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200">
+      {% for lead in leads %}
+      <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='/agent/sellers/{{ lead.id }}'">
+        <td class="px-4 py-3 text-sm font-medium">{{ lead.name }}</td>
+        <td class="px-4 py-3 text-sm text-gray-500">{{ lead.phone }}</td>
+        <td class="px-4 py-3 text-sm text-gray-500">{{ lead.leadSource or "—" }}</td>
+        <td class="px-4 py-3 text-sm text-gray-500">{{ lead.createdAt }}</td>
+        <td class="px-4 py-3 text-sm">
+          {% if lead.welcomeNotificationSent %}
+          <span class="text-green-600">✓</span>
+          {% else %}
+          <span class="text-gray-300">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}

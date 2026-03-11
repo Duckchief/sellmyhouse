@@ -1,0 +1,122 @@
+import type { SellerStatus, LeadSource } from '@prisma/client';
+
+export interface PipelineStage {
+  status: SellerStatus;
+  count: number;
+  totalValue: number; // sum of asking prices (converted from Decimal at repo boundary)
+}
+
+export interface ActivityItem {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  details: Record<string, unknown>;
+  createdAt: Date;
+}
+
+export interface PipelineOverview {
+  stages: PipelineStage[];
+  recentActivity: ActivityItem[];
+  pendingReviewCount: number;
+}
+
+export interface SellerListFilter {
+  agentId?: string;
+  status?: SellerStatus;
+  town?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  leadSource?: LeadSource;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface SellerListItem {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string;
+  status: SellerStatus;
+  leadSource: LeadSource | null;
+  createdAt: Date;
+  property: {
+    id: string;
+    town: string;
+    flatType: string;
+    askingPrice: number | null;
+    status: string;
+  } | null;
+}
+
+export interface SellerListResult {
+  sellers: SellerListItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface LeadQueueItem {
+  id: string;
+  name: string;
+  phone: string;
+  leadSource: LeadSource | null;
+  createdAt: Date;
+  timeSinceCreation: number; // milliseconds
+  welcomeNotificationSent: boolean;
+}
+
+export interface SellerDetail {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string;
+  status: SellerStatus;
+  leadSource: LeadSource | null;
+  agentId: string | null;
+  onboardingStep: number;
+  consentService: boolean;
+  consentMarketing: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  property: {
+    id: string;
+    town: string;
+    street: string;
+    block: string;
+    flatType: string;
+    storeyRange: string;
+    floorAreaSqm: number;
+    flatModel: string;
+    leaseCommenceDate: number;
+    askingPrice: number | null;
+    priceHistory: unknown;
+    status: string;
+    listing: {
+      id: string;
+      status: string;
+      title: string | null;
+      description: string | null;
+    } | null;
+  } | null;
+}
+
+export interface ComplianceStatus {
+  cdd: { status: 'verified' | 'pending' | 'not_started'; verifiedAt: Date | null };
+  eaa: { status: 'signed' | 'sent' | 'draft' | 'not_started'; signedAt: Date | null };
+  consent: { service: boolean; marketing: boolean; withdrawnAt: Date | null };
+  caseFlags: { id: string; flagType: string; status: string; description: string }[];
+}
+
+export interface NotificationHistoryItem {
+  id: string;
+  channel: string;
+  templateName: string;
+  content: string;
+  status: string;
+  sentAt: Date | null;
+  deliveredAt: Date | null;
+  createdAt: Date;
+}

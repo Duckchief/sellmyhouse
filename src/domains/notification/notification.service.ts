@@ -4,7 +4,11 @@ import * as notificationRepo from './notification.repository';
 import { EmailProvider } from './providers/email.provider';
 import { WhatsAppProvider } from './providers/whatsapp.provider';
 import { logger } from '../../infra/logger';
-import type { SendNotificationInput, NotificationChannel, DncCheckResult } from './notification.types';
+import type {
+  SendNotificationInput,
+  NotificationChannel,
+  DncCheckResult,
+} from './notification.types';
 import { NOTIFICATION_TEMPLATES, WHATSAPP_TEMPLATE_STATUS } from './notification.templates';
 import { prisma, createId } from '../../infra/database/prisma';
 import * as auditService from '../shared/audit.service';
@@ -24,10 +28,7 @@ async function resolveChannel(
   return 'whatsapp';
 }
 
-async function checkMarketingConsent(
-  recipientId: string,
-  recipientType: string,
-): Promise<boolean> {
+async function checkMarketingConsent(recipientId: string, recipientType: string): Promise<boolean> {
   if (recipientType !== 'seller') return true;
 
   const seller = await prisma.seller.findUnique({
@@ -142,8 +143,7 @@ async function sendExternal(
   });
 
   try {
-    const provider =
-      resolvedChannel === 'whatsapp' ? new WhatsAppProvider() : new EmailProvider();
+    const provider = resolvedChannel === 'whatsapp' ? new WhatsAppProvider() : new EmailProvider();
 
     const result = await provider.send(input.recipientId, content, agentId);
     await notificationRepo.updateStatus(record.id, 'sent', {

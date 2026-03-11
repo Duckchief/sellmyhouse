@@ -23,9 +23,7 @@ export const whatsappSettingsRules = [
 
 export const smtpSettingsRules = [
   body('smtp_host').isString().trim().notEmpty().withMessage('SMTP host is required'),
-  body('smtp_port')
-    .isInt({ min: 1, max: 65535 })
-    .withMessage('Port must be between 1 and 65535'),
+  body('smtp_port').isInt({ min: 1, max: 65535 }).withMessage('Port must be between 1 and 65535'),
   body('smtp_user').isString().trim().notEmpty().withMessage('SMTP user is required'),
   body('smtp_pass').isString().trim().notEmpty().withMessage('SMTP password is required'),
   body('smtp_from_email').isEmail().withMessage('Valid from email is required'),

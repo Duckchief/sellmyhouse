@@ -96,9 +96,7 @@ describe('EmailProvider', () => {
     mockSmtpSettings(sendMail);
 
     // Start the send, then run all pending timers to skip backoff delays
-    const resultPromise = provider
-      .send('test@test.com', '<p>Hi</p>', 'agent1')
-      .catch((err) => err);
+    const resultPromise = provider.send('test@test.com', '<p>Hi</p>', 'agent1').catch((err) => err);
 
     await jest.runAllTimersAsync();
 
@@ -132,8 +130,6 @@ describe('EmailProvider', () => {
     await jest.runAllTimersAsync();
     await resultPromise;
 
-    expect(sendMail).toHaveBeenCalledWith(
-      expect.objectContaining({ subject: 'Custom Subject' }),
-    );
+    expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({ subject: 'Custom Subject' }));
   });
 });

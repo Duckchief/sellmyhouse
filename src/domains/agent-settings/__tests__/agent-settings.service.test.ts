@@ -94,9 +94,11 @@ describe('AgentSettingsService', () => {
       encryption.decrypt = jest.fn().mockImplementation(() => {
         throw new Error('Decryption failed');
       });
-      repo.findAllForAgent = jest.fn().mockResolvedValue([
-        { key: 'whatsapp_api_token', encryptedValue: 'corrupt-enc', updatedAt: new Date() },
-      ]);
+      repo.findAllForAgent = jest
+        .fn()
+        .mockResolvedValue([
+          { key: 'whatsapp_api_token', encryptedValue: 'corrupt-enc', updatedAt: new Date() },
+        ]);
 
       const result = await service.getSettingsView('agent1');
 

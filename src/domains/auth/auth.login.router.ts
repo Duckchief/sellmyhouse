@@ -3,11 +3,7 @@ import passport from 'passport';
 import { validationResult } from 'express-validator';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import * as authService from './auth.service';
-import {
-  loginValidation,
-  forgotPasswordRules,
-  resetPasswordRules,
-} from './auth.validator';
+import { loginValidation, forgotPasswordRules, resetPasswordRules } from './auth.validator';
 import { authRateLimiter } from '../../infra/http/middleware/rate-limit';
 import type { AuthenticatedUser } from './auth.types';
 
@@ -168,7 +164,9 @@ loginRouter.post(
         if (req.headers['hx-request']) {
           return res.render('partials/auth/form-error', { message: 'Please enter a valid email' });
         }
-        return res.status(400).render('pages/auth/forgot-password', { error: 'Please enter a valid email' });
+        return res
+          .status(400)
+          .render('pages/auth/forgot-password', { error: 'Please enter a valid email' });
       }
 
       // Try both seller and agent

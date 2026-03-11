@@ -9,20 +9,62 @@ jest.mock('../notification.templates', () => ({
       subject: 'Welcome to SellMyHomeNow',
       body: 'Welcome to SellMyHomeNow, {{name}}! Your account is ready.',
     },
-    viewing_booked: { subject: 'Viewing Booked', body: 'A viewing has been booked for {{address}} on {{date}}.' },
-    viewing_booked_seller: { subject: 'New Viewing Booked', body: 'New viewing booked for {{address}} on {{date}} at {{time}}. Viewer: {{viewerName}} ({{viewerType}}).{{noShowWarning}}' },
-    viewing_cancelled: { subject: 'Viewing Cancelled', body: 'The viewing for {{address}} on {{date}} has been cancelled.' },
-    viewing_reminder: { subject: 'Reminder', body: 'Reminder: Viewing for {{address}} is scheduled for {{date}}.' },
-    viewing_reminder_viewer: { subject: 'Reminder', body: 'Reminder: Your viewing at {{address}} is at {{time}} today.' },
-    viewing_feedback_prompt: { subject: 'Feedback', body: 'How did the viewing go for {{address}} on {{date}}?' },
-    offer_received: { subject: 'Offer Received', body: 'An offer of ${{amount}} has been received for {{address}}.' },
-    offer_countered: { subject: 'Counter-Offer', body: 'A counter-offer of ${{amount}} has been made for {{address}}.' },
-    offer_accepted: { subject: 'Offer Accepted', body: 'The offer for {{address}} has been accepted. Congratulations!' },
-    transaction_update: { subject: 'Transaction Update', body: 'Transaction update for {{address}}: {{status}}.' },
-    document_ready: { subject: 'Document Ready', body: 'A document is ready for your review: {{documentName}}.' },
-    invoice_uploaded: { subject: 'Invoice Uploaded', body: 'Your commission invoice has been uploaded for {{address}}.' },
-    agreement_sent: { subject: 'Agreement Sent', body: 'The estate agency agreement for {{address}} has been sent to you.' },
-    financial_report_ready: { subject: 'Report Ready', body: 'Your financial report for {{address}} is ready. {{message}}' },
+    viewing_booked: {
+      subject: 'Viewing Booked',
+      body: 'A viewing has been booked for {{address}} on {{date}}.',
+    },
+    viewing_booked_seller: {
+      subject: 'New Viewing Booked',
+      body: 'New viewing booked for {{address}} on {{date}} at {{time}}. Viewer: {{viewerName}} ({{viewerType}}).{{noShowWarning}}',
+    },
+    viewing_cancelled: {
+      subject: 'Viewing Cancelled',
+      body: 'The viewing for {{address}} on {{date}} has been cancelled.',
+    },
+    viewing_reminder: {
+      subject: 'Reminder',
+      body: 'Reminder: Viewing for {{address}} is scheduled for {{date}}.',
+    },
+    viewing_reminder_viewer: {
+      subject: 'Reminder',
+      body: 'Reminder: Your viewing at {{address}} is at {{time}} today.',
+    },
+    viewing_feedback_prompt: {
+      subject: 'Feedback',
+      body: 'How did the viewing go for {{address}} on {{date}}?',
+    },
+    offer_received: {
+      subject: 'Offer Received',
+      body: 'An offer of ${{amount}} has been received for {{address}}.',
+    },
+    offer_countered: {
+      subject: 'Counter-Offer',
+      body: 'A counter-offer of ${{amount}} has been made for {{address}}.',
+    },
+    offer_accepted: {
+      subject: 'Offer Accepted',
+      body: 'The offer for {{address}} has been accepted. Congratulations!',
+    },
+    transaction_update: {
+      subject: 'Transaction Update',
+      body: 'Transaction update for {{address}}: {{status}}.',
+    },
+    document_ready: {
+      subject: 'Document Ready',
+      body: 'A document is ready for your review: {{documentName}}.',
+    },
+    invoice_uploaded: {
+      subject: 'Invoice Uploaded',
+      body: 'Your commission invoice has been uploaded for {{address}}.',
+    },
+    agreement_sent: {
+      subject: 'Agreement Sent',
+      body: 'The estate agency agreement for {{address}} has been sent to you.',
+    },
+    financial_report_ready: {
+      subject: 'Report Ready',
+      body: 'Your financial report for {{address}} is ready. {{message}}',
+    },
     generic: { subject: 'Notification from SellMyHomeNow', body: '{{message}}' },
   },
   WHATSAPP_TEMPLATE_STATUS: {
@@ -434,7 +476,9 @@ describe('NotificationService', () => {
     };
 
     it('falls back to email when DNC check blocks WhatsApp', async () => {
-      jest.spyOn(service, 'checkDnc').mockResolvedValue({ blocked: true, reason: 'On DNC registry' });
+      jest
+        .spyOn(service, 'checkDnc')
+        .mockResolvedValue({ blocked: true, reason: 'On DNC registry' });
       EmailProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: '<email>' });
       WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.1' });
 

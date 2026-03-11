@@ -31,13 +31,9 @@ export const forgotPasswordRules = [
 ];
 
 export const resetPasswordRules = [
-  body('password')
-    .isLength({ min: 8 })
-    .withMessage('Password must be at least 8 characters'),
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
   body('password')
     .matches(/[a-zA-Z]/)
     .withMessage('Password must contain at least one letter'),
-  body('password')
-    .matches(/[0-9]/)
-    .withMessage('Password must contain at least one number'),
+  body('password').matches(/[0-9]/).withMessage('Password must contain at least one number'),
 ];

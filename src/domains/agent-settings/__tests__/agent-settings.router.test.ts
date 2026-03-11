@@ -82,29 +82,25 @@ describe('AgentSettingsRouter', () => {
 
     describe('POST /agent/settings/whatsapp', () => {
       it('returns 401 without authentication', async () => {
-        const res = await request(app)
-          .post('/agent/settings/whatsapp')
-          .send({
-            whatsapp_phone_number_id: '123',
-            whatsapp_api_token: 'tok',
-            whatsapp_business_account_id: 'biz',
-          });
+        const res = await request(app).post('/agent/settings/whatsapp').send({
+          whatsapp_phone_number_id: '123',
+          whatsapp_api_token: 'tok',
+          whatsapp_business_account_id: 'biz',
+        });
         expect(res.status).toBe(401);
       });
     });
 
     describe('POST /agent/settings/email', () => {
       it('returns 401 without authentication', async () => {
-        const res = await request(app)
-          .post('/agent/settings/email')
-          .send({
-            smtp_host: 'smtp.test.local',
-            smtp_port: '587',
-            smtp_user: 'user@test.local',
-            smtp_pass: 'password',
-            smtp_from_email: 'from@test.local',
-            smtp_from_name: 'Test Agent',
-          });
+        const res = await request(app).post('/agent/settings/email').send({
+          smtp_host: 'smtp.test.local',
+          smtp_port: '587',
+          smtp_user: 'user@test.local',
+          smtp_pass: 'password',
+          smtp_from_email: 'from@test.local',
+          smtp_from_name: 'Test Agent',
+        });
         expect(res.status).toBe(401);
       });
     });
@@ -138,13 +134,11 @@ describe('AgentSettingsRouter', () => {
     });
 
     it('POST /agent/settings/whatsapp returns 403 for seller role', async () => {
-      const res = await request(app)
-        .post('/agent/settings/whatsapp')
-        .send({
-          whatsapp_phone_number_id: '123',
-          whatsapp_api_token: 'tok',
-          whatsapp_business_account_id: 'biz',
-        });
+      const res = await request(app).post('/agent/settings/whatsapp').send({
+        whatsapp_phone_number_id: '123',
+        whatsapp_api_token: 'tok',
+        whatsapp_business_account_id: 'biz',
+      });
       expect(res.status).toBe(403);
     });
   });

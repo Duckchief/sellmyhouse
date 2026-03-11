@@ -95,7 +95,9 @@ notificationRouter.get(
       res.render('pages/unsubscribe-confirmed');
     } catch (err) {
       if (err instanceof jwt.JsonWebTokenError || err instanceof jwt.TokenExpiredError) {
-        return res.status(400).render('pages/error', { message: 'Invalid or expired unsubscribe link' });
+        return res
+          .status(400)
+          .render('pages/error', { message: 'Invalid or expired unsubscribe link' });
       }
       next(err);
     }

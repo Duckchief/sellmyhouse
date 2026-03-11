@@ -61,10 +61,7 @@ export async function getSellerList(
   return agentRepo.getSellerList(effectiveFilter);
 }
 
-export async function getSellerDetail(
-  sellerId: string,
-  agentId?: string,
-): Promise<SellerDetail> {
+export async function getSellerDetail(sellerId: string, agentId?: string): Promise<SellerDetail> {
   const seller = await agentRepo.getSellerDetail(sellerId, agentId);
   if (!seller) {
     throw new NotFoundError('Seller', sellerId);

@@ -182,9 +182,7 @@ export async function getSellerList(filter: SellerListFilter) {
             id: s.properties[0].id,
             town: s.properties[0].town,
             flatType: s.properties[0].flatType,
-            askingPrice: s.properties[0].askingPrice
-              ? Number(s.properties[0].askingPrice)
-              : null,
+            askingPrice: s.properties[0].askingPrice ? Number(s.properties[0].askingPrice) : null,
             status: s.properties[0].status,
           }
         : null,

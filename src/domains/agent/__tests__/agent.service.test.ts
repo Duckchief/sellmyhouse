@@ -52,9 +52,7 @@ describe('agent.service', () => {
           status: 'lead',
         } as any,
       ]);
-      mockRepo.getWelcomeNotificationStatus.mockResolvedValue(
-        new Map([['seller-1', true]]),
-      );
+      mockRepo.getWelcomeNotificationStatus.mockResolvedValue(new Map([['seller-1', true]]));
 
       const result = await agentService.getLeadQueue('agent-1');
 
@@ -117,9 +115,9 @@ describe('agent.service', () => {
     it('throws NotFoundError when seller not found', async () => {
       mockRepo.getSellerDetail.mockResolvedValue(null);
 
-      await expect(
-        agentService.getSellerDetail('nonexistent', 'agent-1'),
-      ).rejects.toThrow(NotFoundError);
+      await expect(agentService.getSellerDetail('nonexistent', 'agent-1')).rejects.toThrow(
+        NotFoundError,
+      );
     });
   });
 

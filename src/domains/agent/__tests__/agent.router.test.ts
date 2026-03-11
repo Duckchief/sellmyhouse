@@ -2,6 +2,7 @@ import request from 'supertest';
 import express from 'express';
 import { agentRouter } from '../agent.router';
 import * as agentService from '../agent.service';
+import { NotFoundError } from '@/domains/shared/errors';
 
 jest.mock('../agent.service');
 
@@ -119,7 +120,7 @@ describe('agent.router', () => {
   });
 
   describe('GET /agent/sellers/:id', () => {
-    it('returns seller detail for agent\'s own seller', async () => {
+    it("returns seller detail for agent's own seller", async () => {
       const app = createTestApp({ id: 'agent-1', role: 'agent' });
       mockService.getSellerDetail.mockResolvedValue({
         id: 'seller-1',
@@ -134,10 +135,7 @@ describe('agent.router', () => {
 
     it('returns 404 when seller not found', async () => {
       const app = createTestApp({ id: 'agent-1', role: 'agent' });
-      const { NotFoundError } = require('@/domains/shared/errors');
-      mockService.getSellerDetail.mockRejectedValue(
-        new NotFoundError('Seller', 'nonexistent'),
-      );
+      mockService.getSellerDetail.mockRejectedValue(new NotFoundError('Seller', 'nonexistent'));
 
       const res = await request(app).get('/agent/sellers/nonexistent');
       expect(res.status).toBe(404);

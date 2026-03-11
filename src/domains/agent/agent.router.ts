@@ -122,10 +122,7 @@ agentRouter.get(
         req.params['id'] as string,
         getAgentFilter(user),
       );
-      const milestones = agentService.getTimeline(
-        seller.property?.status ?? null,
-        null,
-      );
+      const milestones = agentService.getTimeline(seller.property?.status ?? null, null);
 
       res.render('partials/agent/seller-timeline', { milestones });
     } catch (err) {

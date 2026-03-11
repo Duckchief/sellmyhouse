@@ -1,0 +1,23 @@
+{% extends "layouts/admin.njk" %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">{{ "System Settings" | t }}</h1>
+{% for group in groups %}
+<div class="mb-8">
+  <h2 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ group.label | t }}</h2>
+  {% for setting in group.settings %}
+  <div class="flex items-start gap-4 mb-4 py-3 border-b last:border-0">
+    <div class="flex-1">
+      <div class="text-sm font-medium text-gray-800">{{ setting.key }}</div>
+      <div class="text-xs text-gray-500">{{ setting.description }}</div>
+    </div>
+    <form class="flex items-center gap-2" hx-post="/admin/settings/{{ setting.key }}" hx-target="#result-{{ setting.key }}">
+      <input type="text" name="value" value="{{ setting.value }}" class="border rounded px-2 py-1 text-sm w-48" />
+      <button type="submit" class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700">{{ "Save" | t }}</button>
+    </form>
+    <div id="result-{{ setting.key }}" class="w-32 text-sm"></div>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+{% endblock %}

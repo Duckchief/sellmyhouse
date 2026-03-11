@@ -50,7 +50,7 @@ describe('agent.service', () => {
           leadSource: 'website',
           createdAt: fiveHoursAgo,
           status: 'lead',
-        } as any,
+        } as unknown as Awaited<ReturnType<typeof agentRepo.getLeadQueue>>[0],
       ]);
       mockRepo.getWelcomeNotificationStatus.mockResolvedValue(new Map([['seller-1', true]]));
 
@@ -73,7 +73,7 @@ describe('agent.service', () => {
         totalPages: 0,
       });
 
-      await agentService.getSellerList({ status: 'active' as any }, 'agent-1');
+      await agentService.getSellerList({ status: 'active' }, 'agent-1');
 
       expect(mockRepo.getSellerList).toHaveBeenCalledWith(
         expect.objectContaining({ agentId: 'agent-1' }),
@@ -89,7 +89,7 @@ describe('agent.service', () => {
         totalPages: 0,
       });
 
-      await agentService.getSellerList({ status: 'active' as any }, undefined);
+      await agentService.getSellerList({ status: 'active' }, undefined);
 
       expect(mockRepo.getSellerList).toHaveBeenCalledWith(
         expect.not.objectContaining({ agentId: expect.anything() }),
@@ -104,7 +104,7 @@ describe('agent.service', () => {
         name: 'John Tan',
         status: 'active',
         properties: [],
-      } as any);
+      } as unknown as Awaited<ReturnType<typeof agentRepo.getSellerDetail>>);
 
       const result = await agentService.getSellerDetail('seller-1', 'agent-1');
 

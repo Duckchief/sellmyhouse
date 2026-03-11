@@ -27,6 +27,10 @@ export const SETTING_KEYS = {
   WHATSAPP_ENABLED: 'whatsapp_enabled',
   EMAIL_ENABLED: 'email_enabled',
   MAINTENANCE_MODE: 'maintenance_mode',
+  DISPLAY_PRICE: 'display_price',
+  POST_COMPLETION_THANKYOU_DELAY_DAYS: 'post_completion_thankyou_delay_days',
+  POST_COMPLETION_TESTIMONIAL_DELAY_DAYS: 'post_completion_testimonial_delay_days',
+  POST_COMPLETION_BUYER_FOLLOWUP_DELAY_DAYS: 'post_completion_buyer_followup_delay_days',
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

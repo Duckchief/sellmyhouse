@@ -1,0 +1,42 @@
+{% if result and result.sellers.length > 0 %}
+<div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+      <tr>
+        <th class="px-4 py-3 text-left">{{ "Seller" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Agent" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Status" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Actions" | t }}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y">
+      {% for seller in result.sellers %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">
+          <div class="font-medium">{{ seller.name }}</div>
+          <div class="text-xs text-gray-500">{{ seller.email }}</div>
+        </td>
+        <td class="px-4 py-3 text-gray-600">
+          {% if seller.agent %}{{ seller.agent.name }}{% else %}<span class="text-amber-600">{{ "Unassigned" | t }}</span>{% endif %}
+        </td>
+        <td class="px-4 py-3">
+          <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">{{ seller.status }}</span>
+        </td>
+        <td class="px-4 py-3">
+          <button
+            class="text-xs text-indigo-600 hover:underline"
+            hx-get="/admin/sellers/{{ seller.id }}/assign-modal"
+            hx-target="#modal-container"
+          >{% if seller.agent %}{{ "Reassign" | t }}{% else %}{{ "Assign" | t }}{% endif %}</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="mt-3 text-xs text-gray-500 px-4">
+    {{ "Showing" | t }} {{ result.sellers.length }} {{ "of" | t }} {{ result.total }}
+  </div>
+</div>
+{% else %}
+<p class="text-gray-400 text-sm">{{ "No sellers found." | t }}</p>
+{% endif %}

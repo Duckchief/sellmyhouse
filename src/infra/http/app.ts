@@ -23,6 +23,7 @@ import { agentRouter } from '../../domains/agent/agent.router';
 import { reviewRouter } from '../../domains/review/review.router';
 import { adminRouter } from '../../domains/admin/admin.router';
 import { portalRouter } from '../../domains/property/portal.router';
+import { transactionRouter } from '../../domains/transaction/transaction.router';
 
 function validateEnv() {
   const required = ['SESSION_SECRET', 'DATABASE_URL', 'ENCRYPTION_KEY'];
@@ -125,6 +126,7 @@ export function createApp() {
   app.use(reviewRouter);
   app.use(adminRouter);
   app.use(portalRouter);
+  app.use(transactionRouter);
 
   // Error handling (must be last)
   app.use(errorHandler);

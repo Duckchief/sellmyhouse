@@ -1,0 +1,6 @@
+{# partials/agent/offer-chain.njk #}
+<div class="offer-chain" data-property-id="{{ propertyId }}">
+  {% for offer in offers %}
+    {% include "partials/agent/offer-row.njk" %}
+  {% endfor %}
+</div>

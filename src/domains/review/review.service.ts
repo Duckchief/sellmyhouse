@@ -1,5 +1,6 @@
 import * as reviewRepo from './review.repository';
 import * as auditService from '@/domains/shared/audit.service';
+import * as portalService from '@/domains/property/portal.service';
 import { ValidationError, ComplianceError, NotFoundError } from '@/domains/shared/errors';
 import { REVIEW_TRANSITIONS } from './review.types';
 import type { EntityType, ComplianceGate } from './review.types';
@@ -96,12 +97,24 @@ export async function approveItem(input: {
     case 'financial_report':
       await reviewRepo.approveFinancialReport(entityId, agentId);
       break;
-    case 'listing_description':
+    case 'listing_description': {
       await reviewRepo.approveListingDescription(entityId, agentId);
+      const isFullyApprovedDesc = await reviewRepo.checkListingFullyApproved(entityId);
+      if (isFullyApprovedDesc) {
+        await reviewRepo.setListingStatus(entityId, 'approved');
+        await portalService.generatePortalListings(entityId);
+      }
       break;
-    case 'listing_photos':
+    }
+    case 'listing_photos': {
       await reviewRepo.approveListingPhotos(entityId, agentId);
+      const isFullyApprovedPhotos = await reviewRepo.checkListingFullyApproved(entityId);
+      if (isFullyApprovedPhotos) {
+        await reviewRepo.setListingStatus(entityId, 'approved');
+        await portalService.generatePortalListings(entityId);
+      }
       break;
+    }
     case 'weekly_update':
       await reviewRepo.approveWeeklyUpdate(entityId, agentId);
       break;

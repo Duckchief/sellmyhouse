@@ -1,0 +1,1 @@
+DELETE FROM system_settings WHERE key = 'commission_gst_rate';

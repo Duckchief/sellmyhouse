@@ -101,3 +101,23 @@ export class HdbRepository {
     return prisma.hdbDataSync.create({ data });
   }
 }
+
+/**
+ * Standalone export for use by other domains (not part of HdbRepository class).
+ * Returns HDB transactions from the last 12 months for market comparison.
+ */
+export async function findRecentByTownAndFlatType(town: string, flatType: string) {
+  const twelveMonthsAgo = new Date();
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+  const cutoffMonth = twelveMonthsAgo.toISOString().slice(0, 7); // 'YYYY-MM'
+
+  return prisma.hdbTransaction.findMany({
+    where: {
+      town: town.toUpperCase(),
+      flatType: flatType.toUpperCase(),
+      month: { gte: cutoffMonth },
+    },
+    orderBy: { month: 'desc' },
+    take: 50,
+  });
+}

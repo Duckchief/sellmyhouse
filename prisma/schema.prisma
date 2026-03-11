@@ -448,6 +448,7 @@ model PortalListing {
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
 
+  @@unique([listingId, portalName])
   @@map("portal_listings")
 }
 
@@ -531,6 +532,10 @@ model Offer {
   parentOffer      Offer?      @relation("OfferChain", fields: [parentOfferId], references: [id])
   counterOffers    Offer[]     @relation("OfferChain")
   counterAmount    Decimal?    @map("counter_amount") @db.Decimal(12, 2)
+  aiAnalysis       String?     @map("ai_analysis")
+  aiAnalysisProvider String?   @map("ai_analysis_provider")
+  aiAnalysisModel  String?     @map("ai_analysis_model")
+  aiAnalysisStatus String?     @map("ai_analysis_status")
   createdAt        DateTime    @default(now()) @map("created_at")
   updatedAt        DateTime    @updatedAt @map("updated_at")
 
@@ -572,7 +577,8 @@ model Otp {
   transaction           Transaction @relation(fields: [transactionId], references: [id])
   hdbSerialNumber       String    @map("hdb_serial_number")
   status                OtpStatus @default(prepared)
-  scannedCopyPath       String?   @map("scanned_copy_path")
+  scannedCopyPathSeller   String?   @map("scanned_copy_path_seller")
+  scannedCopyPathReturned String?   @map("scanned_copy_path_returned")
   scannedCopyDeletedAt  DateTime? @map("scanned_copy_deleted_at")
   agentReviewedAt       DateTime? @map("agent_reviewed_at")
   agentReviewNotes      String?   @map("agent_review_notes")

@@ -362,6 +362,22 @@ export async function rejectDocumentChecklist(
   });
 }
 
+export async function checkListingFullyApproved(listingId: string): Promise<boolean> {
+  const listing = await prisma.listing.findUnique({
+    where: { id: listingId },
+    select: { descriptionApprovedAt: true, photosApprovedAt: true },
+  });
+  if (!listing) return false;
+  return !!(listing.descriptionApprovedAt && listing.photosApprovedAt);
+}
+
+export async function setListingStatus(listingId: string, status: string) {
+  return prisma.listing.update({
+    where: { id: listingId },
+    data: { status: status as never },
+  });
+}
+
 // Compliance gate queries
 
 export async function findVerifiedSellerCdd(sellerId: string) {

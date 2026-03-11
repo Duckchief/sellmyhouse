@@ -27,7 +27,7 @@ export function findByKey(agentId: string, key: string) {
 }
 
 export function deleteByKey(agentId: string, key: string) {
-  return prisma.agentSetting.deleteMany({
-    where: { agentId, key },
+  return prisma.agentSetting.delete({
+    where: { agentId_key: { agentId, key } },
   });
 }

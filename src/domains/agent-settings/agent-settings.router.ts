@@ -1,10 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
 import * as service from './agent-settings.service';
 import { requireAuth } from '../../infra/http/middleware/require-auth';
 import { requireRole, requireTwoFactor } from '../../infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import type { AgentSettingKey } from './agent-settings.types';
 import { WHATSAPP_KEYS, SMTP_KEYS } from './agent-settings.types';
+import { whatsappSettingsRules, smtpSettingsRules } from './agent-settings.validator';
 
 export const agentSettingsRouter = Router();
 
@@ -19,7 +21,7 @@ agentSettingsRouter.get(
       const settings = await service.getSettingsView(user.id);
 
       if (req.headers['hx-request']) {
-        return res.render('pages/agent/settings', { settings });
+        return res.render('partials/agent/settings', { settings });
       }
       res.render('pages/agent/settings', { settings });
     } catch (err) {
@@ -31,8 +33,20 @@ agentSettingsRouter.get(
 agentSettingsRouter.post(
   '/agent/settings/whatsapp',
   ...agentAuth,
+  ...whatsappSettingsRules,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        if (req.headers['hx-request']) {
+          return res.status(422).render('partials/agent/settings-result', {
+            success: false,
+            message: errors.array()[0].msg,
+          });
+        }
+        return res.status(422).json({ errors: errors.array() });
+      }
+
       const user = req.user as AuthenticatedUser;
 
       for (const key of WHATSAPP_KEYS) {
@@ -58,8 +72,20 @@ agentSettingsRouter.post(
 agentSettingsRouter.post(
   '/agent/settings/email',
   ...agentAuth,
+  ...smtpSettingsRules,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        if (req.headers['hx-request']) {
+          return res.status(422).render('partials/agent/settings-result', {
+            success: false,
+            message: errors.array()[0].msg,
+          });
+        }
+        return res.status(422).json({ errors: errors.array() });
+      }
+
       const user = req.user as AuthenticatedUser;
 
       for (const key of SMTP_KEYS) {

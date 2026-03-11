@@ -3,6 +3,7 @@ import * as auditService from '../shared/audit.service';
 import { encrypt, decrypt } from '../shared/encryption';
 import type { AgentSettingKey, AgentSettingsView } from './agent-settings.types';
 import { WHATSAPP_KEYS, SMTP_KEYS } from './agent-settings.types';
+import { logger } from '../../infra/logger';
 import nodemailer from 'nodemailer';
 import axios from 'axios';
 
@@ -40,7 +41,13 @@ export async function getSettingsView(agentId: string): Promise<AgentSettingsVie
       return { key, maskedValue: null, updatedAt: null };
     }
 
-    const decrypted = decrypt(record.encryptedValue);
+    let decrypted: string | null = null;
+    try {
+      decrypted = decrypt(record.encryptedValue);
+    } catch (err) {
+      logger.warn({ key: record.key, agentId, err }, 'Failed to decrypt agent setting');
+      return { key: record.key as AgentSettingKey, maskedValue: null, updatedAt: record.updatedAt };
+    }
     const masked = maskValue(key, decrypted);
     return { key, maskedValue: masked, updatedAt: record.updatedAt };
   });
@@ -64,6 +71,12 @@ export async function testWhatsAppConnection(
     return { success: true, message: 'WhatsApp connection successful' };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Connection failed';
+    await auditService.log({
+      action: 'agent_settings.test_failed',
+      entityType: 'agent_setting',
+      entityId: agentId,
+      details: { channel: 'whatsapp', error: message },
+    });
     return { success: false, message };
   }
 }
@@ -92,6 +105,12 @@ export async function testSmtpConnection(
     return { success: true, message: 'SMTP connection successful' };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Connection failed';
+    await auditService.log({
+      action: 'agent_settings.test_failed',
+      entityType: 'agent_setting',
+      entityId: agentId,
+      details: { channel: 'smtp', error: message },
+    });
     return { success: false, message };
   }
 }

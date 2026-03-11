@@ -2,8 +2,16 @@
 import { registerJob } from '@/infra/jobs/runner';
 import * as txRepo from './transaction.repository';
 import * as notificationService from '@/domains/notification/notification.service';
+import type { NotificationTemplateName } from '@/domains/notification/notification.types';
 
 const OTP_REMINDER_DAYS = [14, 7, 3, 1];
+
+const OTP_REMINDER_TEMPLATE: Record<number, NotificationTemplateName> = {
+  14: 'otp_exercise_reminder_14d',
+  7: 'otp_exercise_reminder_7d',
+  3: 'otp_exercise_reminder_3d',
+  1: 'otp_exercise_reminder_1d',
+};
 
 /**
  * Checks all OTPs issued to buyer and sends exercise deadline reminders.
@@ -32,7 +40,8 @@ export async function sendOtpExerciseReminders(): Promise<void> {
     if (!OTP_REMINDER_DAYS.includes(daysUntil)) continue;
 
     // Deduplication: check if we already sent this reminder
-    const templateName = `otp_exercise_reminder_${daysUntil}d`;
+    const templateName = OTP_REMINDER_TEMPLATE[daysUntil];
+    if (!templateName) continue; // skip if no template defined for this day count
     const existing = await txRepo.findExistingNotification(templateName, tx.sellerId);
     if (existing) continue;
 
@@ -40,7 +49,7 @@ export async function sendOtpExerciseReminders(): Promise<void> {
       {
         recipientType: 'seller',
         recipientId: tx.sellerId,
-        templateName: templateName as never,
+        templateName: templateName,
         templateData: {
           address: tx.id,
           status: `OTP exercise deadline is in ${daysUntil} day(s). Please contact your buyer.`,

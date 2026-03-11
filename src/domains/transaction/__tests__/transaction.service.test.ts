@@ -189,6 +189,15 @@ describe('transaction.service', () => {
 
       expect(mockPortalService.expirePortalListings).toHaveBeenCalledWith('property-1');
     });
+
+    it('throws ValidationError when trying to regress transaction status', async () => {
+      const tx = makeTransaction({ status: 'completed' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+
+      await expect(
+        txService.advanceTransactionStatus({ transactionId: 'tx-1', status: 'completing', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
+    });
   });
 
   describe('uploadInvoice', () => {

@@ -7,7 +7,7 @@ import * as auditService from '@/domains/shared/audit.service';
 import * as portalService from '@/domains/property/portal.service';
 import { localStorage } from '@/infra/storage/local-storage';
 import { NotFoundError, ValidationError, ConflictError } from '@/domains/shared/errors';
-import { OTP_TRANSITIONS } from './transaction.types';
+import { OTP_TRANSITIONS, TRANSACTION_STATUS_ORDER } from './transaction.types';
 import type {
   CreateTransactionInput,
   CreateOtpInput,
@@ -53,6 +53,20 @@ export async function advanceTransactionStatus(input: {
 }) {
   const tx = await txRepo.findById(input.transactionId);
   if (!tx) throw new NotFoundError('Transaction', input.transactionId);
+
+  // Guard: terminal states cannot be transitioned
+  if (tx.status === 'completed' || tx.status === 'fallen_through') {
+    throw new ValidationError(`Transaction status '${tx.status}' is terminal — cannot advance further`);
+  }
+
+  // Guard: forward-only transitions (fallen_through is always allowed)
+  if (input.status !== 'fallen_through') {
+    const currentIdx = TRANSACTION_STATUS_ORDER.indexOf(tx.status as (typeof TRANSACTION_STATUS_ORDER)[number]);
+    const requestedIdx = TRANSACTION_STATUS_ORDER.indexOf(input.status as (typeof TRANSACTION_STATUS_ORDER)[number]);
+    if (currentIdx >= 0 && requestedIdx >= 0 && requestedIdx <= currentIdx) {
+      throw new ValidationError(`Cannot transition from '${tx.status}' to '${input.status}' — must advance forward`);
+    }
+  }
 
   const completionDate = input.status === 'completed' ? new Date() : null;
 

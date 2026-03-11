@@ -1,0 +1,13 @@
+{# pages/agent/portals.njk #}
+{% extends "layouts/agent.njk" %}
+{% block content %}
+<div class="portals-page">
+  <h1>{{ "Portal Listings" | t }}</h1>
+  <p class="text-sm text-gray-500">
+    {{ "Copy content for each portal below. Post manually, then paste the live URL back." | t }}
+  </p>
+  {% for portalListing in portalListings %}
+    {% include "partials/agent/portal-panel.njk" %}
+  {% endfor %}
+</div>
+{% endblock %}

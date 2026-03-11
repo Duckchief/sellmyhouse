@@ -48,6 +48,10 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationTemplateName, Notificati
     subject: 'Offer Accepted — {{address}}',
     body: 'The offer for {{address}} has been accepted. Congratulations!',
   },
+  offer_analysis_shared: {
+    subject: 'Market Analysis for Your Offer — {{address}}',
+    body: 'Your agent has shared a market analysis for the offer on {{address}}:\n\n{{analysis}}\n\nThis is indicative only based on public HDB data. It does not constitute financial or legal advice.',
+  },
   transaction_update: {
     subject: 'Transaction Update — {{address}}',
     body: 'Transaction update for {{address}}: {{status}}.',
@@ -86,6 +90,7 @@ export const WHATSAPP_TEMPLATE_STATUS: Record<NotificationTemplateName, WhatsApp
   offer_received: 'pending',
   offer_countered: 'pending',
   offer_accepted: 'pending',
+  offer_analysis_shared: 'pending',
   transaction_update: 'pending',
   document_ready: 'pending',
   invoice_uploaded: 'pending',

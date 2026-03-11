@@ -19,6 +19,7 @@ export type NotificationTemplateName =
   | 'invoice_uploaded'
   | 'agreement_sent'
   | 'financial_report_ready'
+  | 'offer_analysis_shared'
   | 'generic';
 
 export interface EmailAttachment {

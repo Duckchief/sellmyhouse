@@ -231,6 +231,24 @@ export const factory = {
     });
   },
 
+  async portalListing(overrides: {
+    listingId: string;
+    portalName?: 'propertyguru' | 'ninety_nine_co' | 'srx' | 'other';
+    status?: 'ready' | 'posted' | 'expired';
+    portalListingUrl?: string;
+  }) {
+    return testPrisma.portalListing.create({
+      data: {
+        id: createId(),
+        listingId: overrides.listingId,
+        portalName: overrides.portalName ?? 'propertyguru',
+        portalReadyContent: {},
+        status: overrides.status ?? 'ready',
+        portalListingUrl: overrides.portalListingUrl ?? null,
+      },
+    });
+  },
+
   async offer(overrides: {
     propertyId: string;
     buyerName?: string;

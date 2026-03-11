@@ -435,14 +435,14 @@ describe('AuthService', () => {
   });
 
   describe('verifyBackupCode', () => {
-    it('returns true and removes used code', async () => {
+    it('returns true and removes used code atomically', async () => {
       authRepo.findSellerById = jest.fn().mockResolvedValue({
         id: 's1',
         twoFactorBackupCodes: ['hash1', 'hash2', 'hash3'],
       });
       // Match second code
       bcrypt.compare = jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
-      authRepo.updateSellerBackupCodes = jest.fn().mockResolvedValue({});
+      authRepo.removeBackupCodeAtomically = jest.fn().mockResolvedValue(['hash1', 'hash3']);
 
       const result = await authService.verifyBackupCode({
         userId: 's1',
@@ -451,9 +451,11 @@ describe('AuthService', () => {
       });
 
       expect(result).toBe(true);
-      expect(authRepo.updateSellerBackupCodes).toHaveBeenCalledWith(
+      expect(authRepo.removeBackupCodeAtomically).toHaveBeenCalledWith(
         's1',
-        ['hash1', 'hash3'], // hash2 removed
+        'seller',
+        1, // index of matched code (hash2)
+        ['hash1', 'hash2', 'hash3'],
       );
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({

@@ -226,13 +226,13 @@ export async function verifyBackupCode(input: BackupCodeVerifyInput): Promise<bo
   for (let i = 0; i < storedCodes.length; i++) {
     const matches = await bcrypt.compare(input.code, storedCodes[i]);
     if (matches) {
-      // Remove used code
-      const remaining = [...storedCodes.slice(0, i), ...storedCodes.slice(i + 1)];
-      const updateFn =
-        input.role === 'seller'
-          ? authRepo.updateSellerBackupCodes
-          : authRepo.updateAgentBackupCodes;
-      await updateFn(input.userId, remaining);
+      // Remove used code atomically (prevents race condition)
+      const remaining = await authRepo.removeBackupCodeAtomically(
+        input.userId,
+        input.role,
+        i,
+        storedCodes,
+      );
 
       await auditService.log({
         action: '2fa.backup_code_used',

@@ -185,6 +185,29 @@ export function updateAgentBackupCodes(id: string, codes: Prisma.InputJsonValue)
   });
 }
 
+export async function removeBackupCodeAtomically(
+  userId: string,
+  role: 'seller' | 'agent' | 'admin',
+  codeIndex: number,
+  currentCodes: string[],
+) {
+  const remaining = [...currentCodes.slice(0, codeIndex), ...currentCodes.slice(codeIndex + 1)];
+  return prisma.$transaction(async (tx) => {
+    if (role === 'seller') {
+      await tx.seller.update({
+        where: { id: userId },
+        data: { twoFactorBackupCodes: remaining },
+      });
+    } else {
+      await tx.agent.update({
+        where: { id: userId },
+        data: { twoFactorBackupCodes: remaining },
+      });
+    }
+    return remaining;
+  });
+}
+
 export function incrementAgentFailedLoginAttempts(id: string) {
   return prisma.agent.update({
     where: { id },

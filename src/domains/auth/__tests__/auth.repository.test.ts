@@ -3,6 +3,7 @@ import * as authRepo from '../auth.repository';
 // Mock prisma
 jest.mock('../../../infra/database/prisma', () => ({
   prisma: {
+    $transaction: jest.fn(),
     seller: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
@@ -219,6 +220,37 @@ describe('AuthRepository', () => {
         where: { id: 'a1' },
         data: { passwordResetToken: null, passwordResetExpiry: null },
       });
+    });
+  });
+
+  describe('removeBackupCodeAtomically', () => {
+    it('removes code at index using transaction', async () => {
+      prisma.$transaction = jest.fn().mockImplementation(async (fn: Function) => fn(prisma));
+      prisma.seller.update = jest.fn().mockResolvedValue({});
+
+      const codes = ['hash0', 'hash1', 'hash2'];
+      const remaining = await authRepo.removeBackupCodeAtomically('s1', 'seller', 1, codes);
+
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(prisma.seller.update).toHaveBeenCalledWith({
+        where: { id: 's1' },
+        data: { twoFactorBackupCodes: ['hash0', 'hash2'] },
+      });
+      expect(remaining).toEqual(['hash0', 'hash2']);
+    });
+
+    it('works for agent role', async () => {
+      prisma.$transaction = jest.fn().mockImplementation(async (fn: Function) => fn(prisma));
+      prisma.agent.update = jest.fn().mockResolvedValue({});
+
+      const codes = ['hash0', 'hash1'];
+      const remaining = await authRepo.removeBackupCodeAtomically('a1', 'agent', 0, codes);
+
+      expect(prisma.agent.update).toHaveBeenCalledWith({
+        where: { id: 'a1' },
+        data: { twoFactorBackupCodes: ['hash1'] },
+      });
+      expect(remaining).toEqual(['hash1']);
     });
   });
 

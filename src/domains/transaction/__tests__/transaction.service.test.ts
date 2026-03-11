@@ -106,7 +106,11 @@ describe('transaction.service', () => {
       mockTxRepo.findOtpByTransactionId.mockResolvedValue(existingOtp as never);
 
       await expect(
-        txService.createOtp({ transactionId: 'tx-1', hdbSerialNumber: 'SN-001', agentId: 'agent-1' }),
+        txService.createOtp({
+          transactionId: 'tx-1',
+          hdbSerialNumber: 'SN-001',
+          agentId: 'agent-1',
+        }),
       ).rejects.toThrow(ConflictError);
     });
   });
@@ -121,7 +125,11 @@ describe('transaction.service', () => {
 
       await txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' });
 
-      expect(mockTxRepo.updateOtpStatus).toHaveBeenCalledWith('otp-1', 'sent_to_seller', expect.any(Object));
+      expect(mockTxRepo.updateOtpStatus).toHaveBeenCalledWith(
+        'otp-1',
+        'sent_to_seller',
+        expect.any(Object),
+      );
     });
 
     it('throws ValidationError when trying to advance from terminal state', async () => {
@@ -154,7 +162,11 @@ describe('transaction.service', () => {
       });
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
-      mockTxRepo.updateOtpStatus.mockResolvedValue({ ...otp, status: 'issued_to_buyer', issuedAt: new Date() } as never);
+      mockTxRepo.updateOtpStatus.mockResolvedValue({
+        ...otp,
+        status: 'issued_to_buyer',
+        issuedAt: new Date(),
+      } as never);
       mockTxRepo.updateExerciseDeadline.mockResolvedValue(tx as never);
       mockSettings.getNumber.mockResolvedValue(21);
 
@@ -168,9 +180,17 @@ describe('transaction.service', () => {
     it('sets completionDate automatically on transition to completed', async () => {
       const tx = makeTransaction({ status: 'completing' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({ ...tx, status: 'completed', completionDate: new Date() } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'completed',
+        completionDate: new Date(),
+      } as never);
 
-      await txService.advanceTransactionStatus({ transactionId: 'tx-1', status: 'completed', agentId: 'agent-1' });
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'completed',
+        agentId: 'agent-1',
+      });
 
       expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
         'tx-1',
@@ -182,10 +202,17 @@ describe('transaction.service', () => {
     it('triggers fallen-through cascade when status is fallen_through', async () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({ ...tx, status: 'fallen_through' } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'fallen_through',
+      } as never);
       mockPortalService.expirePortalListings.mockResolvedValue({ count: 3 } as never);
 
-      await txService.advanceTransactionStatus({ transactionId: 'tx-1', status: 'fallen_through', agentId: 'agent-1' });
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'fallen_through',
+        agentId: 'agent-1',
+      });
 
       expect(mockPortalService.expirePortalListings).toHaveBeenCalledWith('property-1');
     });
@@ -195,7 +222,11 @@ describe('transaction.service', () => {
       mockTxRepo.findById.mockResolvedValue(tx as never);
 
       await expect(
-        txService.advanceTransactionStatus({ transactionId: 'tx-1', status: 'completing', agentId: 'agent-1' }),
+        txService.advanceTransactionStatus({
+          transactionId: 'tx-1',
+          status: 'completing',
+          agentId: 'agent-1',
+        }),
       ).rejects.toThrow(ValidationError);
     });
   });

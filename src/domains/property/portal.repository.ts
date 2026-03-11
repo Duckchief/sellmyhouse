@@ -25,7 +25,10 @@ export async function upsertPortalListing(data: {
 }) {
   return prisma.portalListing.upsert({
     where: {
-      listingId_portalName: { listingId: data.listingId, portalName: data.portalName as PortalName },
+      listingId_portalName: {
+        listingId: data.listingId,
+        portalName: data.portalName as PortalName,
+      },
     },
     create: {
       id: createId(),

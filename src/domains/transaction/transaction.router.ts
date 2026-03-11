@@ -81,7 +81,11 @@ transactionRouter.patch(
       const user = req.user as AuthenticatedUser;
       const tx = await txService.advanceTransactionStatus({
         transactionId: req.params['id'] as string,
-        status: req.body.status as 'option_exercised' | 'completing' | 'completed' | 'fallen_through',
+        status: req.body.status as
+          | 'option_exercised'
+          | 'completing'
+          | 'completed'
+          | 'fallen_through',
         agentId: user.id,
       });
 
@@ -319,7 +323,8 @@ transactionRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const invoice = await txService.getTransaction(req.params['id'] as string);
-      const invoicePath = (invoice as { commissionInvoice?: { invoiceFilePath?: string | null } }).commissionInvoice?.invoiceFilePath;
+      const invoicePath = (invoice as { commissionInvoice?: { invoiceFilePath?: string | null } })
+        .commissionInvoice?.invoiceFilePath;
       if (!invoicePath) return res.status(404).json({ error: 'No invoice file found' });
 
       // Files are served through this authenticated route — never directly via nginx

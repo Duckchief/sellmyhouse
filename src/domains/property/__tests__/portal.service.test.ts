@@ -88,7 +88,10 @@ describe('portal.service', () => {
         portalListingUrl: 'https://www.propertyguru.com.sg/listing/123',
       } as never);
 
-      const result = await portalService.markAsPosted('pl-1', 'https://www.propertyguru.com.sg/listing/123');
+      const result = await portalService.markAsPosted(
+        'pl-1',
+        'https://www.propertyguru.com.sg/listing/123',
+      );
       expect(result.status).toBe('posted');
     });
   });

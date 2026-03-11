@@ -9,18 +9,12 @@ export const validateCreateOffer = [
   body('buyerName').notEmpty().trim().withMessage('buyerName is required'),
   body('buyerPhone').notEmpty().trim().withMessage('buyerPhone is required'),
   body('isCoBroke').isBoolean().withMessage('isCoBroke must be a boolean'),
-  body('offerAmount')
-    .notEmpty()
-    .isNumeric()
-    .withMessage('offerAmount must be a number'),
+  body('offerAmount').notEmpty().isNumeric().withMessage('offerAmount must be a number'),
 ];
 
 export const validateCounterOffer = [
   param('id').notEmpty().withMessage('offerId is required'),
-  body('counterAmount')
-    .notEmpty()
-    .isNumeric()
-    .withMessage('counterAmount must be a number'),
+  body('counterAmount').notEmpty().isNumeric().withMessage('counterAmount must be a number'),
 ];
 
 export const validateShareAnalysis = [

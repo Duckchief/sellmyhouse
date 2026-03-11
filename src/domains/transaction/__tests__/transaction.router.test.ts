@@ -5,7 +5,10 @@ import { transactionRouter } from '../transaction.router';
 import * as txService from '../transaction.service';
 
 jest.mock('../transaction.service');
-jest.mock('express-rate-limit', () => () => (_req: unknown, _res: unknown, next: () => void) => next());
+jest.mock(
+  'express-rate-limit',
+  () => () => (_req: unknown, _res: unknown, next: () => void) => next(),
+);
 jest.mock('multer', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fn = (): any => ({
@@ -25,7 +28,9 @@ jest.mock('multer', () => {
       incomingReq.on?.('end', () => {
         const raw = Buffer.concat(chunks).toString('utf8');
         // Parse Content-Disposition fields from multipart
-        const fieldMatches = raw.matchAll(/Content-Disposition: form-data; name="([^"]+)"\r\n\r\n([^\r\n-]+)/g);
+        const fieldMatches = raw.matchAll(
+          /Content-Disposition: form-data; name="([^"]+)"\r\n\r\n([^\r\n-]+)/g,
+        );
         for (const match of fieldMatches) {
           incomingReq.body[match[1]] = match[2];
         }
@@ -106,9 +111,7 @@ describe('transaction.router', () => {
     });
 
     it('returns 400 for missing required fields', async () => {
-      const res = await request(app)
-        .post('/agent/transactions')
-        .send({ propertyId: 'property-1' });
+      const res = await request(app).post('/agent/transactions').send({ propertyId: 'property-1' });
 
       expect(res.status).toBe(400);
     });
@@ -126,7 +129,9 @@ describe('transaction.router', () => {
 
   describe('PATCH /agent/transactions/:id/status', () => {
     it('advances transaction status', async () => {
-      mockTxService.advanceTransactionStatus.mockResolvedValue(makeTx({ status: 'option_exercised' }) as never);
+      mockTxService.advanceTransactionStatus.mockResolvedValue(
+        makeTx({ status: 'option_exercised' }) as never,
+      );
 
       const res = await request(app)
         .patch('/agent/transactions/tx-1/status')
@@ -152,9 +157,7 @@ describe('transaction.router', () => {
     it('advances OTP', async () => {
       mockTxService.advanceOtp.mockResolvedValue({} as never);
 
-      const res = await request(app)
-        .post('/agent/transactions/tx-1/otp/advance')
-        .send({});
+      const res = await request(app).post('/agent/transactions/tx-1/otp/advance').send({});
 
       expect(res.status).toBe(200);
     });

@@ -25,9 +25,7 @@ export const validateUploadInvoice = [
   body('invoiceNumber').notEmpty().withMessage('invoiceNumber is required'),
 ];
 
-export const validateUpdateHdb = [
-  param('id').notEmpty().withMessage('transactionId is required'),
-];
+export const validateUpdateHdb = [param('id').notEmpty().withMessage('transactionId is required')];
 
 export const validateSendInvoice = [
   param('id').notEmpty().withMessage('transactionId is required'),

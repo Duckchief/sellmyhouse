@@ -413,7 +413,14 @@ export const factory = {
   async otp(overrides: {
     transactionId: string;
     hdbSerialNumber?: string;
-    status?: 'prepared' | 'sent_to_seller' | 'signed_by_seller' | 'returned' | 'issued_to_buyer' | 'exercised' | 'expired';
+    status?:
+      | 'prepared'
+      | 'sent_to_seller'
+      | 'signed_by_seller'
+      | 'returned'
+      | 'issued_to_buyer'
+      | 'exercised'
+      | 'expired';
     issuedAt?: Date;
     agentReviewedAt?: Date | null;
     scannedCopyPathSeller?: string;

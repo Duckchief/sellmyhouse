@@ -5,7 +5,10 @@ import { offerRouter } from '../offer.router';
 import * as offerService from '../offer.service';
 
 jest.mock('../offer.service');
-jest.mock('express-rate-limit', () => () => (_req: unknown, _res: unknown, next: () => void) => next());
+jest.mock(
+  'express-rate-limit',
+  () => () => (_req: unknown, _res: unknown, next: () => void) => next(),
+);
 
 const mockOfferService = jest.mocked(offerService);
 
@@ -80,26 +83,22 @@ describe('offer.router', () => {
     it('creates an offer and returns 201', async () => {
       mockOfferService.createOffer.mockResolvedValue(makeOffer() as never);
 
-      const res = await request(app)
-        .post('/agent/offers')
-        .send({
-          propertyId: 'property-1',
-          sellerId: 'seller-1',
-          town: 'TAMPINES',
-          flatType: '4 ROOM',
-          buyerName: 'John Doe',
-          buyerPhone: '91234567',
-          isCoBroke: false,
-          offerAmount: '600000',
-        });
+      const res = await request(app).post('/agent/offers').send({
+        propertyId: 'property-1',
+        sellerId: 'seller-1',
+        town: 'TAMPINES',
+        flatType: '4 ROOM',
+        buyerName: 'John Doe',
+        buyerPhone: '91234567',
+        isCoBroke: false,
+        offerAmount: '600000',
+      });
 
       expect(res.status).toBe(201);
     });
 
     it('returns 400 for missing required fields', async () => {
-      const res = await request(app)
-        .post('/agent/offers')
-        .send({ propertyId: 'property-1' }); // missing buyerName, buyerPhone, etc.
+      const res = await request(app).post('/agent/offers').send({ propertyId: 'property-1' }); // missing buyerName, buyerPhone, etc.
 
       expect(res.status).toBe(400);
     });

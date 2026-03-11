@@ -89,9 +89,9 @@ describe('transaction integration', () => {
     const tx = await factory.transaction({ propertyId, sellerId });
     await factory.otp({ transactionId: tx.id, status: 'returned', agentReviewedAt: null });
 
-    await expect(
-      txService.advanceOtp({ transactionId: tx.id, agentId }),
-    ).rejects.toThrow('must review OTP');
+    await expect(txService.advanceOtp({ transactionId: tx.id, agentId })).rejects.toThrow(
+      'must review OTP',
+    );
   });
 
   it('OTP: sets exerciseDeadline when advancing to issued_to_buyer', async () => {

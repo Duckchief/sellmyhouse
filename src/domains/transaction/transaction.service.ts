@@ -56,15 +56,23 @@ export async function advanceTransactionStatus(input: {
 
   // Guard: terminal states cannot be transitioned
   if (tx.status === 'completed' || tx.status === 'fallen_through') {
-    throw new ValidationError(`Transaction status '${tx.status}' is terminal — cannot advance further`);
+    throw new ValidationError(
+      `Transaction status '${tx.status}' is terminal — cannot advance further`,
+    );
   }
 
   // Guard: forward-only transitions (fallen_through is always allowed)
   if (input.status !== 'fallen_through') {
-    const currentIdx = TRANSACTION_STATUS_ORDER.indexOf(tx.status as (typeof TRANSACTION_STATUS_ORDER)[number]);
-    const requestedIdx = TRANSACTION_STATUS_ORDER.indexOf(input.status as (typeof TRANSACTION_STATUS_ORDER)[number]);
+    const currentIdx = TRANSACTION_STATUS_ORDER.indexOf(
+      tx.status as (typeof TRANSACTION_STATUS_ORDER)[number],
+    );
+    const requestedIdx = TRANSACTION_STATUS_ORDER.indexOf(
+      input.status as (typeof TRANSACTION_STATUS_ORDER)[number],
+    );
     if (currentIdx >= 0 && requestedIdx >= 0 && requestedIdx <= currentIdx) {
-      throw new ValidationError(`Cannot transition from '${tx.status}' to '${input.status}' — must advance forward`);
+      throw new ValidationError(
+        `Cannot transition from '${tx.status}' to '${input.status}' — must advance forward`,
+      );
     }
   }
 
@@ -207,7 +215,11 @@ export async function advanceOtp(input: AdvanceOtpInput) {
   return updated;
 }
 
-export async function markOtpReviewed(input: { transactionId: string; notes?: string; agentId: string }) {
+export async function markOtpReviewed(input: {
+  transactionId: string;
+  notes?: string;
+  agentId: string;
+}) {
   const otp = await txRepo.findOtpByTransactionId(input.transactionId);
   if (!otp) throw new NotFoundError('OTP', input.transactionId);
 
@@ -269,7 +281,8 @@ export async function uploadInvoice(input: UploadInvoiceInput) {
   // Validate: only pdf, max 10MB
   const ext = path.extname(input.originalFilename).toLowerCase();
   if (ext !== '.pdf') throw new ValidationError('Invoice must be a PDF file');
-  if (input.fileBuffer.length > 10 * 1024 * 1024) throw new ValidationError('File must be 10MB or smaller');
+  if (input.fileBuffer.length > 10 * 1024 * 1024)
+    throw new ValidationError('File must be 10MB or smaller');
 
   const storedFilename = `invoice-${createId()}.pdf`;
   const storedPath = await localStorage.save(
@@ -303,7 +316,11 @@ export async function uploadInvoice(input: UploadInvoiceInput) {
   return invoice;
 }
 
-export async function sendInvoice(input: { transactionId: string; sellerId: string; agentId: string }) {
+export async function sendInvoice(input: {
+  transactionId: string;
+  sellerId: string;
+  agentId: string;
+}) {
   const invoice = await txRepo.findInvoiceByTransactionId(input.transactionId);
   if (!invoice) throw new NotFoundError('CommissionInvoice', input.transactionId);
 

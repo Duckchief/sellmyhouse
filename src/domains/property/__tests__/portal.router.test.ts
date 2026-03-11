@@ -5,7 +5,10 @@ import { portalRouter } from '../portal.router';
 import * as portalService from '../portal.service';
 
 jest.mock('../portal.service');
-jest.mock('express-rate-limit', () => () => (_req: unknown, _res: unknown, next: () => void) => next());
+jest.mock(
+  'express-rate-limit',
+  () => () => (_req: unknown, _res: unknown, next: () => void) => next(),
+);
 
 const mockPortalService = jest.mocked(portalService);
 
@@ -83,9 +86,7 @@ describe('portal.router', () => {
     });
 
     it('returns 400 when url is missing', async () => {
-      const res = await request(app)
-        .post('/agent/portal-listings/pl-1/mark-posted')
-        .send({});
+      const res = await request(app).post('/agent/portal-listings/pl-1/mark-posted').send({});
 
       expect(res.status).toBe(400);
     });

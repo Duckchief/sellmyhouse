@@ -121,11 +121,7 @@ export async function updateOtpReview(id: string, reviewedAt: Date, notes?: stri
   });
 }
 
-export async function updateOtpScanPath(
-  id: string,
-  scanType: 'seller' | 'returned',
-  path: string,
-) {
+export async function updateOtpScanPath(id: string, scanType: 'seller' | 'returned', path: string) {
   const field = scanType === 'seller' ? 'scannedCopyPathSeller' : 'scannedCopyPathReturned';
   return prisma.otp.update({ where: { id }, data: { [field]: path } });
 }

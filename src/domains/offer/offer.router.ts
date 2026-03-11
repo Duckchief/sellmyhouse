@@ -2,7 +2,11 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import * as offerService from './offer.service';
-import { validateCreateOffer, validateCounterOffer, validateShareAnalysis } from './offer.validator';
+import {
+  validateCreateOffer,
+  validateCounterOffer,
+  validateShareAnalysis,
+} from './offer.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 

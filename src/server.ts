@@ -6,6 +6,7 @@ import { logger } from './infra/logger';
 import { registerJob, startJobs } from './infra/jobs/runner';
 import { HdbSyncService } from './domains/hdb/sync.service';
 import { registerViewingJobs } from './domains/viewing/viewing.jobs';
+import { registerTransactionJobs } from './domains/transaction/transaction.jobs';
 
 const app = createApp();
 const port = parseInt(process.env.PORT || '3000', 10);
@@ -22,6 +23,7 @@ registerJob(
 );
 
 registerViewingJobs();
+registerTransactionJobs();
 
 // Start cron jobs and server
 startJobs();

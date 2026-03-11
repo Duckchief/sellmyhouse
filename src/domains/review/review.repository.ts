@@ -209,10 +209,9 @@ export async function getDetailForReview(
         where: { id: entityId },
         include: { seller: true, property: true },
       });
-    default: {
-      const _exhaustive: never = entityType;
+    default:
+      entityType satisfies never;
       return undefined;
-    }
   }
 }
 

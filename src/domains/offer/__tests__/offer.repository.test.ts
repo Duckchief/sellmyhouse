@@ -1,3 +1,4 @@
+// src/domains/offer/__tests__/offer.repository.test.ts
 import { factory } from '../../../tests/fixtures/factory';
 import { testPrisma } from '../../../tests/helpers/prisma';
 import * as offerRepo from '../offer.repository';

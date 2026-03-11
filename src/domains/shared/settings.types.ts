@@ -34,6 +34,9 @@ export const SETTING_KEYS = {
   AGENCY_NAME: 'agency_name',
   AGENCY_LICENCE: 'agency_licence',
   OFFER_AI_ANALYSIS_ENABLED: 'offer_ai_analysis_enabled',
+  PLATFORM_NAME: 'platform_name',
+  SUPPORT_EMAIL: 'support_email',
+  SUPPORT_PHONE: 'support_phone',
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

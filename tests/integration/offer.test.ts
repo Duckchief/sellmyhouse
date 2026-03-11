@@ -21,6 +21,7 @@ describe('offer integration', () => {
     await testPrisma.offer.deleteMany();
     await testPrisma.portalListing.deleteMany();
     await testPrisma.listing.deleteMany();
+    await testPrisma.financialReport.deleteMany();
     await testPrisma.property.deleteMany();
     await testPrisma.seller.deleteMany();
     await testPrisma.agent.deleteMany();

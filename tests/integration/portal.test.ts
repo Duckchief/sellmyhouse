@@ -10,6 +10,9 @@ describe('portal integration', () => {
   let listingId: string;
 
   beforeEach(async () => {
+    await testPrisma.commissionInvoice.deleteMany();
+    await testPrisma.otp.deleteMany();
+    await testPrisma.transaction.deleteMany();
     await testPrisma.offer.deleteMany();
     await testPrisma.portalListing.deleteMany();
     await testPrisma.listing.deleteMany();

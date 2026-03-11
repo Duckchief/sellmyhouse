@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import * as service from '../notification.service';
 
 // Mock templates module — all statuses approved by default so WhatsApp tests work
@@ -466,6 +467,39 @@ describe('NotificationService', () => {
       );
       expect(notificationRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ recipientType: 'agent' }),
+      );
+    });
+  });
+
+  describe('generateUnsubscribeToken', () => {
+    it('generates a valid JWT with sellerId and purpose', () => {
+      process.env.SESSION_SECRET = 'test-secret';
+      const token = service.generateUnsubscribeToken('seller-1');
+      const decoded = jwt.verify(token, 'test-secret') as { sellerId: string; purpose: string };
+      expect(decoded.sellerId).toBe('seller-1');
+      expect(decoded.purpose).toBe('marketing_consent_withdrawal');
+    });
+  });
+
+  describe('handleUnsubscribe', () => {
+    it('withdraws marketing consent and creates consent record', async () => {
+      const mockPrisma = jest.requireMock('../../../infra/database/prisma');
+      mockPrisma.prisma.seller = {
+        ...mockPrisma.prisma.seller,
+        update: jest.fn().mockResolvedValue({}),
+      };
+      mockPrisma.prisma.consentRecord = { create: jest.fn().mockResolvedValue({}) };
+      mockPrisma.prisma.$transaction = jest
+        .fn()
+        .mockImplementation(async (fn: (tx: typeof mockPrisma.prisma) => Promise<void>) =>
+          fn(mockPrisma.prisma),
+        );
+
+      await service.handleUnsubscribe('seller-1');
+
+      expect(mockPrisma.prisma.$transaction).toHaveBeenCalled();
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'consent.marketing_withdrawn' }),
       );
     });
   });

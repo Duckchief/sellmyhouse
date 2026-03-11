@@ -1,11 +1,12 @@
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import * as notificationRepo from './notification.repository';
 import { EmailProvider } from './providers/email.provider';
 import { WhatsAppProvider } from './providers/whatsapp.provider';
 import { logger } from '../../infra/logger';
 import type { SendNotificationInput, NotificationChannel, DncCheckResult } from './notification.types';
 import { NOTIFICATION_TEMPLATES, WHATSAPP_TEMPLATE_STATUS } from './notification.templates';
-import { prisma } from '../../infra/database/prisma';
+import { prisma, createId } from '../../infra/database/prisma';
 import * as auditService from '../shared/audit.service';
 
 async function resolveChannel(
@@ -297,4 +298,42 @@ function renderTemplate(templateName: string, data: Record<string, string>): str
     NOTIFICATION_TEMPLATES[templateName as keyof typeof NOTIFICATION_TEMPLATES] ??
     NOTIFICATION_TEMPLATES.generic;
   return template.body.replace(/\{\{(\w+)\}\}/g, (_, key) => data[key] || '');
+}
+
+export function generateUnsubscribeToken(sellerId: string): string {
+  return jwt.sign(
+    { sellerId, purpose: 'marketing_consent_withdrawal' },
+    process.env.SESSION_SECRET!,
+    { expiresIn: '30d' },
+  );
+}
+
+export async function handleUnsubscribe(sellerId: string): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    await tx.seller.update({
+      where: { id: sellerId },
+      data: { consentMarketing: false, consentWithdrawnAt: new Date() },
+    });
+
+    await tx.consentRecord.create({
+      data: {
+        id: createId(),
+        subjectType: 'seller',
+        subjectId: sellerId,
+        purposeService: true,
+        purposeMarketing: false,
+        consentGivenAt: new Date(),
+        consentWithdrawnAt: new Date(),
+        ipAddress: 'unsubscribe-link',
+        userAgent: 'email-unsubscribe',
+      },
+    });
+  });
+
+  await auditService.log({
+    action: 'consent.marketing_withdrawn',
+    entityType: 'seller',
+    entityId: sellerId,
+    details: { channel: 'email_unsubscribe' },
+  });
 }

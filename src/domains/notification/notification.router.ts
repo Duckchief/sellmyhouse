@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
+import jwt from 'jsonwebtoken';
 import * as notificationService from './notification.service';
 import { requireAuth } from '../../infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from '../auth/auth.types';
@@ -68,6 +69,34 @@ notificationRouter.post(
       await notificationService.handleWhatsAppWebhook(req.body);
       res.sendStatus(200);
     } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// Unsubscribe from marketing emails via link in email
+notificationRouter.get(
+  '/api/notifications/unsubscribe',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) return res.status(400).render('pages/error', { message: 'Missing token' });
+
+      const payload = jwt.verify(token, process.env.SESSION_SECRET!) as {
+        sellerId: string;
+        purpose: string;
+      };
+
+      if (payload.purpose !== 'marketing_consent_withdrawal') {
+        return res.status(400).render('pages/error', { message: 'Invalid token' });
+      }
+
+      await notificationService.handleUnsubscribe(payload.sellerId);
+      res.render('pages/unsubscribe-confirmed');
+    } catch (err) {
+      if (err instanceof jwt.JsonWebTokenError || err instanceof jwt.TokenExpiredError) {
+        return res.status(400).render('pages/error', { message: 'Invalid or expired unsubscribe link' });
+      }
       next(err);
     }
   },

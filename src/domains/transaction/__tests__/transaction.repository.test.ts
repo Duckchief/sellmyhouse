@@ -15,6 +15,8 @@ describe('transaction.repository', () => {
     await testPrisma.commissionInvoice.deleteMany();
     await testPrisma.transaction.deleteMany();
     await testPrisma.offer.deleteMany();
+    await testPrisma.portalListing.deleteMany();
+    await testPrisma.listing.deleteMany();
     await testPrisma.property.deleteMany();
     await testPrisma.seller.deleteMany();
     await testPrisma.agent.deleteMany();

@@ -172,7 +172,7 @@ describe('Agent Dashboard Integration', () => {
       expect(res.text).toContain(seller.name);
     });
 
-    it('agent cannot view another agent\'s seller (404)', async () => {
+    it("agent cannot view another agent's seller (404)", async () => {
       const { agent } = await loginAsAgent();
 
       const otherAgent = await factory.agent({
@@ -205,9 +205,7 @@ describe('Agent Dashboard Integration', () => {
         status: 'active',
       });
 
-      const res = await agent
-        .get(`/agent/sellers/${seller.id}/timeline`)
-        .set('HX-Request', 'true');
+      const res = await agent.get(`/agent/sellers/${seller.id}/timeline`).set('HX-Request', 'true');
       expect(res.status).toBe(200);
       expect(res.text).toBeTruthy();
     });

@@ -5,7 +5,7 @@ import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as auditService from '@/domains/shared/audit.service';
 import * as portalService from '@/domains/property/portal.service';
-import { ValidationError, NotFoundError, ConflictError } from '@/domains/shared/errors';
+import { ValidationError, ConflictError } from '@/domains/shared/errors';
 
 jest.mock('../transaction.repository');
 jest.mock('@/domains/shared/settings.service');

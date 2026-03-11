@@ -2,13 +2,11 @@
 import { factory } from '../fixtures/factory';
 import { testPrisma } from '../helpers/prisma';
 import * as offerService from '../../src/domains/offer/offer.service';
-import * as aiFacade from '../../src/domains/shared/ai/ai.facade';
 import * as notificationService from '../../src/domains/notification/notification.service';
 
 jest.mock('../../src/domains/shared/ai/ai.facade');
 jest.mock('../../src/domains/notification/notification.service');
 
-const mockAiFacade = jest.mocked(aiFacade);
 const mockNotification = jest.mocked(notificationService);
 
 describe('offer integration', () => {

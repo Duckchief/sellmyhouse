@@ -65,6 +65,6 @@ export interface ChannelProvider {
     recipientId: string,
     content: string,
     agentId: string,
-    options?: { subject?: string; attachments?: EmailAttachment[] },
+    options?: { subject?: string; attachments?: EmailAttachment[]; unsubscribeUrl?: string },
   ): Promise<{ messageId?: string }>;
 }

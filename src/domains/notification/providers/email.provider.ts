@@ -1,16 +1,22 @@
 import nodemailer from 'nodemailer';
+import nunjucks from 'nunjucks';
+import path from 'path';
 import type { ChannelProvider, EmailAttachment } from '../notification.types';
 import * as agentSettingsService from '../../agent-settings/agent-settings.service';
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 
+const viewsPath = path.join(__dirname, '..', '..', '..', 'views');
+const njkEnv = nunjucks.configure(viewsPath, { autoescape: true });
+njkEnv.addFilter('t', (str: string) => str);
+
 export class EmailProvider implements ChannelProvider {
   async send(
     recipientEmail: string,
     content: string,
     agentId: string,
-    options?: { subject?: string; attachments?: EmailAttachment[] },
+    options?: { subject?: string; attachments?: EmailAttachment[]; unsubscribeUrl?: string },
   ): Promise<{ messageId?: string }> {
     const host = await agentSettingsService.getSetting(agentId, 'smtp_host');
     const port = await agentSettingsService.getSetting(agentId, 'smtp_port');
@@ -30,6 +36,11 @@ export class EmailProvider implements ChannelProvider {
       auth: { user, pass },
     });
 
+    const renderedHtml = njkEnv.render('emails/notification.njk', {
+      content,
+      unsubscribeUrl: options?.unsubscribeUrl,
+    });
+
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -38,7 +49,7 @@ export class EmailProvider implements ChannelProvider {
           from: fromName ? `"${fromName}" <${fromEmail || user}>` : fromEmail || user,
           to: recipientEmail,
           subject: options?.subject || 'SellMyHomeNow Notification',
-          html: content,
+          html: renderedHtml,
           ...(options?.attachments && {
             attachments: options.attachments.map((a) => ({
               filename: a.filename,

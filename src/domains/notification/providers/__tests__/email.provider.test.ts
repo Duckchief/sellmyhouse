@@ -2,9 +2,20 @@ import { EmailProvider } from '../email.provider';
 
 jest.mock('../../../agent-settings/agent-settings.service');
 jest.mock('nodemailer');
+jest.mock('nunjucks', () => {
+  const mockEnv = {
+    addFilter: jest.fn(),
+    render: jest.fn((template: string, ctx: Record<string, unknown>) => `<rendered>${ctx.content}</rendered>`),
+  };
+  return {
+    configure: jest.fn().mockReturnValue(mockEnv),
+    __mockEnv: mockEnv,
+  };
+});
 
 const agentSettingsService = jest.requireMock('../../../agent-settings/agent-settings.service');
 const nodemailer = jest.requireMock('nodemailer');
+const nunjucksMock = jest.requireMock('nunjucks');
 
 // Helper to set up valid SMTP mock settings
 function mockSmtpSettings(sendMail: jest.Mock) {
@@ -62,9 +73,13 @@ describe('EmailProvider', () => {
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'recipient@test.com',
-        html: '<p>Hi</p>',
+        html: '<rendered><p>Hi</p></rendered>',
       }),
     );
+    expect(nunjucksMock.__mockEnv.render).toHaveBeenCalledWith('emails/notification.njk', {
+      content: '<p>Hi</p>',
+      unsubscribeUrl: undefined,
+    });
     expect(result.messageId).toBe('<msg123>');
   });
 
@@ -131,5 +146,21 @@ describe('EmailProvider', () => {
     await resultPromise;
 
     expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({ subject: 'Custom Subject' }));
+  });
+
+  it('passes unsubscribeUrl to Nunjucks template', async () => {
+    const sendMail = jest.fn().mockResolvedValue({ messageId: '<msg-unsub>' });
+    mockSmtpSettings(sendMail);
+
+    const resultPromise = provider.send('test@test.com', '<p>Hi</p>', 'agent1', {
+      unsubscribeUrl: 'https://example.com/unsubscribe',
+    });
+    await jest.runAllTimersAsync();
+    await resultPromise;
+
+    expect(nunjucksMock.__mockEnv.render).toHaveBeenCalledWith('emails/notification.njk', {
+      content: '<p>Hi</p>',
+      unsubscribeUrl: 'https://example.com/unsubscribe',
+    });
   });
 });

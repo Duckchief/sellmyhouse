@@ -3,7 +3,7 @@ import * as notificationRepo from './notification.repository';
 import { EmailProvider } from './providers/email.provider';
 import { WhatsAppProvider } from './providers/whatsapp.provider';
 import { logger } from '../../infra/logger';
-import type { SendNotificationInput, NotificationChannel } from './notification.types';
+import type { SendNotificationInput, NotificationChannel, DncCheckResult } from './notification.types';
 import { NOTIFICATION_TEMPLATES, WHATSAPP_TEMPLATE_STATUS } from './notification.templates';
 import { prisma } from '../../infra/database/prisma';
 import * as auditService from '../shared/audit.service';
@@ -35,6 +35,11 @@ async function checkMarketingConsent(
   });
 
   return seller?.consentMarketing ?? false;
+}
+
+export async function checkDnc(_phone: string): Promise<DncCheckResult> {
+  // TODO: Integrate with Singapore DNC registry API
+  return { blocked: false };
 }
 
 export async function send(input: SendNotificationInput, agentId: string): Promise<void> {
@@ -98,6 +103,35 @@ async function sendExternal(
     }
   }
 
+  // Task 19: DNC registry check — before sending via WhatsApp
+  // Call via `exports` so jest.spyOn works in tests (CJS module interop)
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const selfModule = require('./notification.service') as typeof import('./notification.service');
+  if (resolvedChannel === 'whatsapp' && input.recipientPhone) {
+    const dncResult = await selfModule.checkDnc(input.recipientPhone);
+    if (dncResult.blocked) {
+      // Create a temporary record to log against before we have a real one
+      const dncRecord = await notificationRepo.create({
+        recipientType: input.recipientType,
+        recipientId: input.recipientId,
+        channel: resolvedChannel,
+        templateName: input.templateName,
+        content,
+      });
+      await auditService.log({
+        action: 'notification.dnc_blocked',
+        entityType: 'notification',
+        entityId: dncRecord.id,
+        details: {
+          phone: input.recipientPhone.slice(-4),
+          templateName: input.templateName,
+          reason: dncResult.reason,
+        },
+      });
+      resolvedChannel = 'email';
+    }
+  }
+
   const record = await notificationRepo.create({
     recipientType: input.recipientType,
     recipientId: input.recipientId,
@@ -115,10 +149,35 @@ async function sendExternal(
       sentAt: new Date(),
       whatsappMessageId: result.messageId ?? undefined,
     });
+
+    // Task 17: Audit log on successful send
+    await auditService.log({
+      action: 'notification.sent',
+      entityType: 'notification',
+      entityId: record.id,
+      details: {
+        channel: resolvedChannel,
+        templateName: input.templateName,
+        recipientType: input.recipientType,
+        recipientId: input.recipientId,
+      },
+    });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     logger.warn({ err, channel: resolvedChannel }, 'Primary notification channel failed');
     await notificationRepo.updateStatus(record.id, 'failed', { error: errorMessage });
+
+    // Task 17: Audit log on primary channel failure
+    await auditService.log({
+      action: 'notification.failed',
+      entityType: 'notification',
+      entityId: record.id,
+      details: {
+        channel: resolvedChannel,
+        templateName: input.templateName,
+        error: errorMessage,
+      },
+    });
 
     // Fallback: WhatsApp → email
     if (resolvedChannel === 'whatsapp') {
@@ -137,8 +196,39 @@ async function sendExternal(
           sentAt: new Date(),
           whatsappMessageId: result.messageId ?? undefined,
         });
+
+        // Task 17: Audit log on successful fallback
+        await auditService.log({
+          action: 'notification.fallback',
+          entityType: 'notification',
+          entityId: fallbackRecord.id,
+          details: {
+            primaryChannel: resolvedChannel,
+            fallbackChannel: 'email',
+            templateName: input.templateName,
+            recipientType: input.recipientType,
+            recipientId: input.recipientId,
+          },
+        });
       } catch (fallbackErr) {
         logger.error({ err: fallbackErr }, 'Email fallback also failed');
+
+        // Task 20: Both channels failed — audit and alert agent
+        await auditService.log({
+          action: 'notification.all_channels_failed',
+          entityType: 'notification',
+          entityId: record.id,
+          details: { recipientId: input.recipientId, templateName: input.templateName },
+        });
+
+        // Create in-app notification for agent
+        await notificationRepo.create({
+          recipientType: 'agent',
+          recipientId: agentId,
+          channel: 'in_app',
+          templateName: 'generic',
+          content: `Communication failure: unable to reach recipient via WhatsApp or email for ${input.templateName}. Please follow up manually.`,
+        });
       }
     }
   }

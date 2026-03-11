@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import * as service from '../notification.service';
 
 // Mock templates module — all statuses approved by default so WhatsApp tests work
@@ -358,6 +359,114 @@ describe('NotificationService', () => {
       delete process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
       const result = service.verifyWebhookSignature(Buffer.from('test'), 'sha256=abc');
       expect(result).toBe(false);
+    });
+
+    it('returns true for valid signature', () => {
+      process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN = 'test-secret';
+      const body = Buffer.from('{"test": "data"}');
+      const expected = crypto.createHmac('sha256', 'test-secret').update(body).digest('hex');
+      const result = service.verifyWebhookSignature(body, `sha256=${expected}`);
+      expect(result).toBe(true);
+    });
+
+    it('returns false for invalid signature', () => {
+      process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN = 'test-secret';
+      const body = Buffer.from('{"test": "data"}');
+      const result = service.verifyWebhookSignature(body, 'sha256=invalid');
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('audit logging', () => {
+    const input = {
+      recipientType: 'seller' as const,
+      recipientId: 'seller-1',
+      templateName: 'welcome_seller' as const,
+      templateData: { name: 'David' },
+    };
+
+    it('logs notification.sent on successful send', async () => {
+      WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.1' });
+
+      await service.send(input, 'agent-1');
+
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'notification.sent' }),
+      );
+    });
+
+    it('logs notification.failed on send failure', async () => {
+      prisma.seller.findUnique = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        notificationPreference: 'email_only',
+        consentService: true,
+        consentMarketing: false,
+      });
+      EmailProvider.prototype.send = jest.fn().mockRejectedValue(new Error('Email send failed'));
+
+      await service.send(input, 'agent-1');
+
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'notification.failed' }),
+      );
+    });
+
+    it('logs notification.fallback when WhatsApp fails and email succeeds', async () => {
+      WhatsAppProvider.prototype.send = jest.fn().mockRejectedValue(new Error('WA failed'));
+      EmailProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: '<fallback>' });
+
+      await service.send(input, 'agent-1');
+
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'notification.fallback' }),
+      );
+    });
+  });
+
+  describe('DNC registry check', () => {
+    const input = {
+      recipientType: 'seller' as const,
+      recipientId: 'seller-1',
+      templateName: 'welcome_seller' as const,
+      templateData: { name: 'David' },
+      recipientPhone: '+6591234567',
+    };
+
+    it('falls back to email when DNC check blocks WhatsApp', async () => {
+      jest.spyOn(service, 'checkDnc').mockResolvedValue({ blocked: true, reason: 'On DNC registry' });
+      EmailProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: '<email>' });
+      WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.1' });
+
+      await service.send(input, 'agent-1');
+
+      expect(WhatsAppProvider.prototype.send).not.toHaveBeenCalled();
+      expect(EmailProvider.prototype.send).toHaveBeenCalled();
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'notification.dnc_blocked' }),
+      );
+    });
+  });
+
+  describe('total channel failure', () => {
+    const input = {
+      recipientType: 'seller' as const,
+      recipientId: 'seller-1',
+      templateName: 'welcome_seller' as const,
+      templateData: { name: 'David' },
+    };
+
+    it('alerts agent when both WhatsApp and email fail', async () => {
+      WhatsAppProvider.prototype.send = jest.fn().mockRejectedValue(new Error('WA failed'));
+      EmailProvider.prototype.send = jest.fn().mockRejectedValue(new Error('Email also failed'));
+
+      await service.send(input, 'agent-1');
+
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'notification.all_channels_failed' }),
+      );
+      expect(notificationRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ recipientType: 'agent' }),
+      );
     });
   });
 });

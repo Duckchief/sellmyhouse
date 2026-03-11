@@ -1,5 +1,5 @@
 import request from 'supertest';
-import express from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import { agentRouter } from '../agent.router';
 import * as agentService from '../agent.service';
 import { NotFoundError } from '@/domains/shared/errors';
@@ -49,9 +49,11 @@ function createTestApp(user?: { id: string; role: string }) {
   app.use(agentRouter);
 
   // Error handler
-  app.use((err: any, _req: any, res: any, _next: any) => {
-    res.status(err.statusCode || 500).json({ error: err.message });
-  });
+  app.use(
+    (err: Error & { statusCode?: number }, _req: Request, res: Response, _next: NextFunction) => {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    },
+  );
 
   return app;
 }
@@ -126,7 +128,7 @@ describe('agent.router', () => {
         id: 'seller-1',
         name: 'John',
         status: 'active',
-      } as any);
+      } as unknown);
 
       const res = await request(app).get('/agent/sellers/seller-1');
       expect(res.status).toBe(200);

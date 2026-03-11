@@ -249,6 +249,23 @@ export function clearAgentPasswordResetToken(id: string) {
   });
 }
 
+// ─── Session Invalidation ───────────────────────────────────
+
+export async function invalidateUserSessions(userId: string, exceptSessionId?: string) {
+  if (exceptSessionId) {
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "session" WHERE sess::text LIKE $1 AND sid != $2`,
+      `%"id":"${userId}"%`,
+      exceptSessionId,
+    );
+  } else {
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "session" WHERE sess::text LIKE $1`,
+      `%"id":"${userId}"%`,
+    );
+  }
+}
+
 // ─── ConsentRecord ─────────────────────────────────────────
 
 export function createConsentRecord(data: {

@@ -4,6 +4,7 @@ import * as authRepo from '../auth.repository';
 jest.mock('../../../infra/database/prisma', () => ({
   prisma: {
     $transaction: jest.fn(),
+    $executeRawUnsafe: jest.fn(),
     seller: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
@@ -225,7 +226,9 @@ describe('AuthRepository', () => {
 
   describe('removeBackupCodeAtomically', () => {
     it('removes code at index using transaction', async () => {
-      prisma.$transaction = jest.fn().mockImplementation(async (fn: Function) => fn(prisma));
+      prisma.$transaction = jest
+        .fn()
+        .mockImplementation(async (fn: (tx: typeof prisma) => unknown) => fn(prisma));
       prisma.seller.update = jest.fn().mockResolvedValue({});
 
       const codes = ['hash0', 'hash1', 'hash2'];
@@ -240,7 +243,9 @@ describe('AuthRepository', () => {
     });
 
     it('works for agent role', async () => {
-      prisma.$transaction = jest.fn().mockImplementation(async (fn: Function) => fn(prisma));
+      prisma.$transaction = jest
+        .fn()
+        .mockImplementation(async (fn: (tx: typeof prisma) => unknown) => fn(prisma));
       prisma.agent.update = jest.fn().mockResolvedValue({});
 
       const codes = ['hash0', 'hash1'];
@@ -251,6 +256,27 @@ describe('AuthRepository', () => {
         data: { twoFactorBackupCodes: ['hash1'] },
       });
       expect(remaining).toEqual(['hash1']);
+    });
+  });
+
+  describe('invalidateUserSessions', () => {
+    it('deletes all sessions for user', async () => {
+      prisma.$executeRawUnsafe = jest.fn().mockResolvedValue(0);
+      await authRepo.invalidateUserSessions('user-1');
+      expect(prisma.$executeRawUnsafe).toHaveBeenCalledWith(
+        expect.stringContaining('DELETE FROM "session"'),
+        expect.stringContaining('user-1'),
+      );
+    });
+
+    it('preserves current session when exceptSessionId provided', async () => {
+      prisma.$executeRawUnsafe = jest.fn().mockResolvedValue(0);
+      await authRepo.invalidateUserSessions('user-1', 'current-sid');
+      expect(prisma.$executeRawUnsafe).toHaveBeenCalledWith(
+        expect.stringContaining('AND sid != $2'),
+        expect.stringContaining('user-1'),
+        'current-sid',
+      );
     });
   });
 

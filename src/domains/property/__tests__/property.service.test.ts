@@ -2,7 +2,12 @@ import * as propertyService from '../property.service';
 import * as propertyRepo from '../property.repository';
 import * as auditService from '../../shared/audit.service';
 import * as reviewService from '../../review/review.service';
-import { NotFoundError, ForbiddenError, ValidationError, ComplianceError } from '../../shared/errors';
+import {
+  NotFoundError,
+  ForbiddenError,
+  ValidationError,
+  ComplianceError,
+} from '../../shared/errors';
 import type { Property, Listing } from '@prisma/client';
 import type { PropertyWithListing } from '../property.types';
 
@@ -371,14 +376,19 @@ describe('property.service', () => {
       const updatedListing = { ...fakeListing, status: 'live' };
 
       mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as unknown as Listing);
-      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as unknown as PropertyWithListing);
+      mockedRepo.findByIdWithListings.mockResolvedValue(
+        fakeProperty as unknown as PropertyWithListing,
+      );
       mockedRepo.updateListingStatus.mockResolvedValue(updatedListing as unknown as Listing);
       mockedReviewService.checkComplianceGate.mockResolvedValue(undefined);
       mockedAudit.log.mockResolvedValue(undefined);
 
       const result = await propertyService.updateListingStatus('prop-1', 'live');
 
-      expect(mockedReviewService.checkComplianceGate).toHaveBeenCalledWith('eaa_signed', 'seller-1');
+      expect(mockedReviewService.checkComplianceGate).toHaveBeenCalledWith(
+        'eaa_signed',
+        'seller-1',
+      );
       expect(mockedRepo.updateListingStatus).toHaveBeenCalledWith('listing-1', 'live');
       expect(result).toEqual(updatedListing);
     });
@@ -389,7 +399,9 @@ describe('property.service', () => {
       const complianceError = new ComplianceError('EAA must be signed before listing can go live');
 
       mockedRepo.findActiveListingForProperty.mockResolvedValue(fakeListing as unknown as Listing);
-      mockedRepo.findByIdWithListings.mockResolvedValue(fakeProperty as unknown as PropertyWithListing);
+      mockedRepo.findByIdWithListings.mockResolvedValue(
+        fakeProperty as unknown as PropertyWithListing,
+      );
       mockedReviewService.checkComplianceGate.mockRejectedValue(complianceError);
 
       await expect(propertyService.updateListingStatus('prop-1', 'live')).rejects.toThrow(

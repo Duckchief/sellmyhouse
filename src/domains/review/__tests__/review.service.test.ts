@@ -11,11 +11,15 @@ describe('validateTransition', () => {
   });
 
   it('allows pending_review → approved', () => {
-    expect(() => validateTransition('pending_review', 'approved', 'financial_report')).not.toThrow();
+    expect(() =>
+      validateTransition('pending_review', 'approved', 'financial_report'),
+    ).not.toThrow();
   });
 
   it('allows pending_review → rejected', () => {
-    expect(() => validateTransition('pending_review', 'rejected', 'financial_report')).not.toThrow();
+    expect(() =>
+      validateTransition('pending_review', 'rejected', 'financial_report'),
+    ).not.toThrow();
   });
 
   it('allows approved → sent for financial_report', () => {
@@ -23,12 +27,18 @@ describe('validateTransition', () => {
   });
 
   it('blocks approved → sent for document_checklist', () => {
-    expect(() => validateTransition('approved', 'sent', 'document_checklist')).toThrow(ValidationError);
+    expect(() => validateTransition('approved', 'sent', 'document_checklist')).toThrow(
+      ValidationError,
+    );
   });
 
   it('blocks sent → anything (terminal state)', () => {
-    expect(() => validateTransition('sent', 'approved', 'financial_report')).toThrow(ValidationError);
-    expect(() => validateTransition('sent', 'pending_review', 'financial_report')).toThrow(ValidationError);
+    expect(() => validateTransition('sent', 'approved', 'financial_report')).toThrow(
+      ValidationError,
+    );
+    expect(() => validateTransition('sent', 'pending_review', 'financial_report')).toThrow(
+      ValidationError,
+    );
   });
 
   it('blocks invalid transition draft → sent', () => {
@@ -36,7 +46,9 @@ describe('validateTransition', () => {
   });
 
   it('blocks invalid transition ai_generated → approved', () => {
-    expect(() => validateTransition('ai_generated', 'approved', 'financial_report')).toThrow(ValidationError);
+    expect(() => validateTransition('ai_generated', 'approved', 'financial_report')).toThrow(
+      ValidationError,
+    );
   });
 
   it('allows rejected → ai_generated (regenerate)', () => {
@@ -44,7 +56,9 @@ describe('validateTransition', () => {
   });
 
   it('allows rejected → pending_review (re-review)', () => {
-    expect(() => validateTransition('rejected', 'pending_review', 'financial_report')).not.toThrow();
+    expect(() =>
+      validateTransition('rejected', 'pending_review', 'financial_report'),
+    ).not.toThrow();
   });
 });
 

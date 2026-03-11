@@ -87,9 +87,7 @@ describe('Review Queue Integration', () => {
         status: 'pending_review',
       });
 
-      const res = await agent.post(
-        `/agent/reviews/financial_report/${report.id}/approve`,
-      );
+      const res = await agent.post(`/agent/reviews/financial_report/${report.id}/approve`);
       expect(res.status).toBe(200);
 
       // Verify status updated in DB
@@ -174,9 +172,7 @@ describe('Review Queue Integration', () => {
       await factory.listing({ propertyId: property.id, status: 'approved' });
 
       // No EAA created — compliance gate should fire
-      await expect(
-        propertyService.updateListingStatus(property.id, 'live'),
-      ).rejects.toMatchObject({
+      await expect(propertyService.updateListingStatus(property.id, 'live')).rejects.toMatchObject({
         name: 'ComplianceError',
         statusCode: 403,
       });
@@ -198,9 +194,9 @@ describe('Review Queue Integration', () => {
       });
 
       // Should not throw
-      await expect(
-        propertyService.updateListingStatus(property.id, 'live'),
-      ).resolves.toMatchObject({ status: 'live' });
+      await expect(propertyService.updateListingStatus(property.id, 'live')).resolves.toMatchObject(
+        { status: 'live' },
+      );
     });
   });
 
@@ -220,9 +216,7 @@ describe('Review Queue Integration', () => {
         status: 'pending_review',
       });
 
-      const res = await agent.post(
-        `/agent/reviews/document_checklist/${checklist.id}/approve`,
-      );
+      const res = await agent.post(`/agent/reviews/document_checklist/${checklist.id}/approve`);
       expect(res.status).toBe(200);
 
       const fromDb = await testPrisma.documentChecklist.findUnique({

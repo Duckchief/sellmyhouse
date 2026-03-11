@@ -38,4 +38,8 @@ export const REVIEW_TRANSITIONS: Record<FinancialReportStatus, FinancialReportSt
   sent: [],
 };
 
-export type ComplianceGate = 'cdd_complete' | 'eaa_signed' | 'counterparty_cdd' | 'agent_otp_review';
+export type ComplianceGate =
+  | 'cdd_complete'
+  | 'eaa_signed'
+  | 'counterparty_cdd'
+  | 'agent_otp_review';

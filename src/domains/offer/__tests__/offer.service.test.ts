@@ -114,7 +114,9 @@ describe('offer.service', () => {
         provider: 'anthropic',
         model: 'claude-sonnet-4-20250514',
       });
-      mockOfferRepo.updateAiAnalysis.mockResolvedValue(makeOffer({ aiAnalysisStatus: 'generated' }) as never);
+      mockOfferRepo.updateAiAnalysis.mockResolvedValue(
+        makeOffer({ aiAnalysisStatus: 'generated' }) as never,
+      );
 
       await offerService.createOffer({
         propertyId: 'property-1',
@@ -161,7 +163,11 @@ describe('offer.service', () => {
       mockOfferRepo.findById.mockResolvedValue(accepted as never);
 
       await expect(
-        offerService.counterOffer({ parentOfferId: 'offer-1', counterAmount: 650000, agentId: 'agent-1' }),
+        offerService.counterOffer({
+          parentOfferId: 'offer-1',
+          counterAmount: 650000,
+          agentId: 'agent-1',
+        }),
       ).rejects.toThrow(ValidationError);
     });
 
@@ -169,7 +175,11 @@ describe('offer.service', () => {
       mockOfferRepo.findById.mockResolvedValue(null);
 
       await expect(
-        offerService.counterOffer({ parentOfferId: 'bad-id', counterAmount: 650000, agentId: 'agent-1' }),
+        offerService.counterOffer({
+          parentOfferId: 'bad-id',
+          counterAmount: 650000,
+          agentId: 'agent-1',
+        }),
       ).rejects.toThrow(NotFoundError);
     });
   });
@@ -184,16 +194,19 @@ describe('offer.service', () => {
       await offerService.acceptOffer({ offerId: 'offer-1', agentId: 'agent-1' });
 
       expect(mockOfferRepo.updateStatus).toHaveBeenCalledWith('offer-1', 'accepted');
-      expect(mockOfferRepo.expirePendingAndCounteredSiblings).toHaveBeenCalledWith('property-1', 'offer-1');
+      expect(mockOfferRepo.expirePendingAndCounteredSiblings).toHaveBeenCalledWith(
+        'property-1',
+        'offer-1',
+      );
     });
 
     it('throws ValidationError when trying to accept a non-pending offer', async () => {
       const rejected = makeOffer({ status: 'rejected' });
       mockOfferRepo.findById.mockResolvedValue(rejected as never);
 
-      await expect(offerService.acceptOffer({ offerId: 'offer-1', agentId: 'agent-1' })).rejects.toThrow(
-        ValidationError,
-      );
+      await expect(
+        offerService.acceptOffer({ offerId: 'offer-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
     });
   });
 
@@ -213,7 +226,10 @@ describe('offer.service', () => {
     it('sets aiAnalysisStatus to reviewed', async () => {
       const offer = makeOffer({ aiAnalysis: 'some analysis', aiAnalysisStatus: 'generated' });
       mockOfferRepo.findById.mockResolvedValue(offer as never);
-      mockOfferRepo.updateAiAnalysisStatus.mockResolvedValue({ ...offer, aiAnalysisStatus: 'reviewed' } as never);
+      mockOfferRepo.updateAiAnalysisStatus.mockResolvedValue({
+        ...offer,
+        aiAnalysisStatus: 'reviewed',
+      } as never);
 
       await offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1' });
 
@@ -224,9 +240,9 @@ describe('offer.service', () => {
       const offer = makeOffer({ aiAnalysis: null, aiAnalysisStatus: null });
       mockOfferRepo.findById.mockResolvedValue(offer as never);
 
-      await expect(offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1' })).rejects.toThrow(
-        ValidationError,
-      );
+      await expect(
+        offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('throws ValidationError if analysis is already reviewed or shared', async () => {
@@ -243,12 +259,22 @@ describe('offer.service', () => {
     it('shares analysis after it has been reviewed', async () => {
       const offer = makeOffer({ aiAnalysis: 'some analysis', aiAnalysisStatus: 'reviewed' });
       mockOfferRepo.findById.mockResolvedValue(offer as never);
-      mockOfferRepo.updateAiAnalysisStatus.mockResolvedValue({ ...offer, aiAnalysisStatus: 'shared' } as never);
+      mockOfferRepo.updateAiAnalysisStatus.mockResolvedValue({
+        ...offer,
+        aiAnalysisStatus: 'shared',
+      } as never);
 
-      await offerService.shareAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1', sellerId: 'seller-1' });
+      await offerService.shareAiAnalysis({
+        offerId: 'offer-1',
+        agentId: 'agent-1',
+        sellerId: 'seller-1',
+      });
 
       expect(mockOfferRepo.updateAiAnalysisStatus).toHaveBeenCalledWith('offer-1', 'shared');
-      expect(mockNotification.send).toHaveBeenCalledTimes(1);
+      expect(mockNotification.send).toHaveBeenCalledWith(
+        expect.objectContaining({ templateName: 'offer_analysis_shared' }),
+        'agent-1',
+      );
     });
 
     it('throws ValidationError if analysis is not yet reviewed', async () => {
@@ -256,7 +282,11 @@ describe('offer.service', () => {
       mockOfferRepo.findById.mockResolvedValue(offer as never);
 
       await expect(
-        offerService.shareAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1', sellerId: 'seller-1' }),
+        offerService.shareAiAnalysis({
+          offerId: 'offer-1',
+          agentId: 'agent-1',
+          sellerId: 'seller-1',
+        }),
       ).rejects.toThrow(ValidationError);
     });
 
@@ -265,7 +295,11 @@ describe('offer.service', () => {
       mockOfferRepo.findById.mockResolvedValue(offer as never);
 
       await expect(
-        offerService.shareAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1', sellerId: 'seller-1' }),
+        offerService.shareAiAnalysis({
+          offerId: 'offer-1',
+          agentId: 'agent-1',
+          sellerId: 'seller-1',
+        }),
       ).rejects.toThrow(ValidationError);
     });
   });

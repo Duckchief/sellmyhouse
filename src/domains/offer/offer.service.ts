@@ -86,7 +86,10 @@ export async function createOffer(input: CreateOfferServiceInput) {
   const aiEnabled = await settingsService.getBoolean('offer_ai_analysis_enabled', false);
   if (aiEnabled) {
     try {
-      const recentTransactions = await hdbRepo.findRecentByTownAndFlatType(input.town, input.flatType);
+      const recentTransactions = await hdbRepo.findRecentByTownAndFlatType(
+        input.town,
+        input.flatType,
+      );
       const recentPrices = recentTransactions.map((t) => Number(t.resalePrice));
       const prompt = buildOfferAnalysisPrompt({
         offerAmount: input.offerAmount,
@@ -212,7 +215,10 @@ export async function reviewAiAnalysis(input: { offerId: string; agentId: string
     );
   }
 
-  const updated = await offerRepo.updateAiAnalysisStatus(input.offerId, AI_ANALYSIS_STATUS.REVIEWED);
+  const updated = await offerRepo.updateAiAnalysisStatus(
+    input.offerId,
+    AI_ANALYSIS_STATUS.REVIEWED,
+  );
 
   await auditService.log({
     agentId: input.agentId,
@@ -246,8 +252,11 @@ export async function shareAiAnalysis(input: {
     {
       recipientType: 'seller',
       recipientId: input.sellerId,
-      templateName: 'generic',
-      templateData: { message: `Market analysis available: ${offer.aiAnalysis}` },
+      templateName: 'offer_analysis_shared',
+      templateData: {
+        address: 'Property address',
+        analysis: offer.aiAnalysis ?? '',
+      },
     },
     input.agentId,
   );

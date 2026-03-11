@@ -122,5 +122,9 @@ describe('offer integration', () => {
     const updated = await testPrisma.offer.findUnique({ where: { id: offer.id } });
     expect(updated?.aiAnalysisStatus).toBe('shared');
     expect(mockNotification.send).toHaveBeenCalled();
+    expect(mockNotification.send).toHaveBeenCalledWith(
+      expect.objectContaining({ templateName: 'offer_analysis_shared' }),
+      agentId,
+    );
   });
 });

@@ -231,6 +231,37 @@ export const factory = {
     });
   },
 
+  async offer(overrides: {
+    propertyId: string;
+    buyerName?: string;
+    buyerPhone?: string;
+    buyerAgentName?: string;
+    buyerAgentCeaReg?: string;
+    isCoBroke?: boolean;
+    offerAmount?: number;
+    status?: 'pending' | 'countered' | 'accepted' | 'rejected' | 'expired';
+    notes?: string;
+    parentOfferId?: string;
+    counterAmount?: number;
+  }) {
+    return testPrisma.offer.create({
+      data: {
+        id: createId(),
+        propertyId: overrides.propertyId,
+        buyerName: overrides.buyerName ?? 'Test Buyer',
+        buyerPhone: overrides.buyerPhone ?? '91234567',
+        buyerAgentName: overrides.buyerAgentName ?? null,
+        buyerAgentCeaReg: overrides.buyerAgentCeaReg ?? null,
+        isCoBroke: overrides.isCoBroke ?? false,
+        offerAmount: overrides.offerAmount ?? 600000,
+        status: overrides.status ?? 'pending',
+        notes: overrides.notes ?? null,
+        parentOfferId: overrides.parentOfferId ?? null,
+        counterAmount: overrides.counterAmount ?? null,
+      },
+    });
+  },
+
   async videoTutorial(overrides?: {
     title?: string;
     slug?: string;

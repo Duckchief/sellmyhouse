@@ -197,8 +197,8 @@ export async function getSellerList(filter: SellerListFilter) {
 }
 
 export async function getSellerDetail(sellerId: string, agentId?: string) {
-  const where: Record<string, unknown> = { id: sellerId };
-  if (agentId) where['agentId'] = agentId;
+  const where: Prisma.SellerWhereInput = { id: sellerId };
+  if (agentId) where.agentId = agentId;
 
   return prisma.seller.findFirst({
     where,
@@ -215,8 +215,8 @@ export async function getSellerDetail(sellerId: string, agentId?: string) {
 
 export async function getComplianceStatus(sellerId: string, agentId?: string) {
   // RBAC: verify seller belongs to agent before returning compliance data
-  const sellerWhere: Record<string, unknown> = { id: sellerId };
-  if (agentId) sellerWhere['agentId'] = agentId;
+  const sellerWhere: Prisma.SellerWhereInput = { id: sellerId };
+  if (agentId) sellerWhere.agentId = agentId;
 
   const [cddRecords, eaaRecords, seller, caseFlags] = await Promise.all([
     prisma.cddRecord.findMany({

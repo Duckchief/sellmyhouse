@@ -3,7 +3,7 @@ import { createId } from '@paralleldrive/cuid2';
 
 const SETTINGS = [
   { key: 'commission_amount', value: '1499', description: 'Fixed commission amount in SGD' },
-  { key: 'commission_gst_rate', value: '0.09', description: 'GST rate applied to commission' },
+  { key: 'gst_rate', value: '0.09', description: 'GST rate applied to commission' },
   { key: 'ai_provider', value: 'anthropic', description: 'Active AI provider (anthropic, openai, google)' },
   { key: 'ai_model', value: 'claude-sonnet-4-20250514', description: 'Active AI model identifier' },
   { key: 'platform_name', value: 'SellMyHomeNow.sg', description: 'Platform display name' },
@@ -11,6 +11,8 @@ const SETTINGS = [
   { key: 'agency_licence', value: 'L3008899K', description: 'CEA agency licence number' },
   { key: 'support_email', value: 'support@sellmyhomenow.sg', description: 'Platform support email' },
   { key: 'support_phone', value: '+6591234567', description: 'Platform support phone (placeholder)' },
+  { key: 'offer_ai_analysis_enabled', value: 'true', description: 'Enable AI narrative generation on offer creation' },
+  { key: 'otp_exercise_days', value: '21', description: 'Calendar days from OTP issuance to exercise deadline' },
 ];
 
 export async function seedSystemSettings(prisma: PrismaClient): Promise<void> {

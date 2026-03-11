@@ -31,6 +31,9 @@ export const SETTING_KEYS = {
   POST_COMPLETION_THANKYOU_DELAY_DAYS: 'post_completion_thankyou_delay_days',
   POST_COMPLETION_TESTIMONIAL_DELAY_DAYS: 'post_completion_testimonial_delay_days',
   POST_COMPLETION_BUYER_FOLLOWUP_DELAY_DAYS: 'post_completion_buyer_followup_delay_days',
+  AGENCY_NAME: 'agency_name',
+  AGENCY_LICENCE: 'agency_licence',
+  OFFER_AI_ANALYSIS_ENABLED: 'offer_ai_analysis_enabled',
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

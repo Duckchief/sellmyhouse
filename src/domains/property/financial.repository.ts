@@ -47,6 +47,7 @@ export async function updateNarrative(
       aiNarrative: data.aiNarrative,
       aiProvider: data.aiProvider,
       aiModel: data.aiModel,
+      status: 'pending_review',
     },
   });
 }
@@ -60,6 +61,7 @@ export async function approve(id: string, agentId: string, reviewNotes?: string)
       reviewedAt: now,
       reviewNotes: reviewNotes ?? null,
       approvedAt: now,
+      status: 'approved',
     },
   });
 }
@@ -70,6 +72,7 @@ export async function markSent(id: string, channel: string) {
     data: {
       sentToSellerAt: new Date(),
       sentVia: channel,
+      status: 'sent',
     },
   });
 }

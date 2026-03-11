@@ -106,6 +106,7 @@ describe('financial.repository', () => {
           aiNarrative: 'Your estimated net proceeds...',
           aiProvider: 'anthropic',
           aiModel: 'claude-sonnet-4-20250514',
+          status: 'pending_review',
         },
       });
     });

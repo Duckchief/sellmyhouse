@@ -56,14 +56,12 @@ notificationRouter.post(
       }
 
       const signature = req.headers['x-hub-signature-256'] as string | undefined;
+      const rawBody = req.rawBody;
 
       // Verify signature if webhook token is configured
       if (process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
-        // We need raw body for signature verification.
-        // For now, verify if we have the raw body from express.json's verify callback.
-        // If raw body not available, check signature header exists at minimum.
-        if (!signature) {
-          return res.status(403).json({ error: 'Missing signature' });
+        if (!rawBody || !notificationService.verifyWebhookSignature(rawBody, signature)) {
+          return res.status(401).json({ error: 'Invalid signature' });
         }
       }
 

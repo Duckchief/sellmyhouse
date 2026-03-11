@@ -77,6 +77,15 @@ export function createApp() {
   );
 
   // Body parsing
+  // Raw body capture for WhatsApp webhook signature verification
+  app.use(
+    '/api/webhook/whatsapp',
+    express.json({
+      verify: (req: express.Request, _res, buf) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 

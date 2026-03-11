@@ -13,7 +13,14 @@ export interface ReviewQueueResult {
 /** Map MarketContentStatus 'published' → 'sent'; all others pass through */
 export function mapMcsToFrs(status: string): FinancialReportStatus {
   if (status === 'published') return 'sent';
-  const valid: readonly string[] = ['draft', 'ai_generated', 'pending_review', 'approved', 'rejected', 'sent'];
+  const valid: readonly string[] = [
+    'draft',
+    'ai_generated',
+    'pending_review',
+    'approved',
+    'rejected',
+    'sent',
+  ];
   if (!valid.includes(status)) {
     throw new Error(`Unexpected MarketContentStatus value: ${status}`);
   }
@@ -34,59 +41,54 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
         where: { status: 'pending_review' },
       });
 
-  const [
-    financialReports,
-    listingDescs,
-    listingPhotos,
-    weeklyUpdates,
-    docChecklists,
-  ] = await Promise.all([
-    prisma.financialReport.findMany({
-      where: { status: 'pending_review', seller: sellerWhere },
-      include: {
-        seller: { select: { id: true, name: true } },
-        property: { select: { town: true, street: true, block: true } },
-      },
-    }),
-    prisma.listing.findMany({
-      where: {
-        description: { not: null },
-        descriptionApprovedAt: null,
-        property: { seller: sellerWhere },
-      },
-      include: {
-        property: {
-          include: { seller: { select: { id: true, name: true } } },
+  const [financialReports, listingDescs, listingPhotos, weeklyUpdates, docChecklists] =
+    await Promise.all([
+      prisma.financialReport.findMany({
+        where: { status: 'pending_review', seller: sellerWhere },
+        include: {
+          seller: { select: { id: true, name: true } },
+          property: { select: { town: true, street: true, block: true } },
         },
-      },
-    }),
-    prisma.listing.findMany({
-      where: {
-        photos: { not: Prisma.JsonNull },
-        photosApprovedAt: null,
-        property: { seller: sellerWhere },
-      },
-      include: {
-        property: {
-          include: { seller: { select: { id: true, name: true } } },
+      }),
+      prisma.listing.findMany({
+        where: {
+          description: { not: null },
+          descriptionApprovedAt: null,
+          property: { seller: sellerWhere },
         },
-      },
-    }),
-    prisma.weeklyUpdate.findMany({
-      where: { status: 'pending_review', seller: sellerWhere },
-      include: {
-        seller: { select: { id: true, name: true } },
-        property: { select: { town: true, street: true, block: true } },
-      },
-    }),
-    prisma.documentChecklist.findMany({
-      where: { status: 'pending_review', seller: sellerWhere },
-      include: {
-        seller: { select: { id: true, name: true } },
-        property: { select: { town: true, street: true, block: true } },
-      },
-    }),
-  ]);
+        include: {
+          property: {
+            include: { seller: { select: { id: true, name: true } } },
+          },
+        },
+      }),
+      prisma.listing.findMany({
+        where: {
+          photos: { not: Prisma.JsonNull },
+          photosApprovedAt: null,
+          property: { seller: sellerWhere },
+        },
+        include: {
+          property: {
+            include: { seller: { select: { id: true, name: true } } },
+          },
+        },
+      }),
+      prisma.weeklyUpdate.findMany({
+        where: { status: 'pending_review', seller: sellerWhere },
+        include: {
+          seller: { select: { id: true, name: true } },
+          property: { select: { town: true, street: true, block: true } },
+        },
+      }),
+      prisma.documentChecklist.findMany({
+        where: { status: 'pending_review', seller: sellerWhere },
+        include: {
+          seller: { select: { id: true, name: true } },
+          property: { select: { town: true, street: true, block: true } },
+        },
+      }),
+    ]);
 
   const now = Date.now();
 

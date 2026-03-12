@@ -1,0 +1,11 @@
+{# src/views/partials/compliance/correction-row.njk #}
+{% if successMessage %}
+<li class="py-3 flex items-center justify-between bg-blue-50 px-2 rounded animate-pulse-once">
+  <div>
+    <p class="text-sm text-gray-900"><span class="font-medium">{{ request.fieldName }}</span>
+      → <span class="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">{{ request.requestedValue }}</span></p>
+    <p class="text-xs text-blue-600 mt-0.5">{{ successMessage }}</p>
+  </div>
+  <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700">{{ "pending" | t }}</span>
+</li>
+{% endif %}

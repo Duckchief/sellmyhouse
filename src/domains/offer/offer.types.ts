@@ -28,7 +28,6 @@ export interface CreateOfferInput {
   buyerPhone: string;
   buyerAgentName?: string;
   buyerAgentCeaReg?: string;
-  isCoBroke: boolean;
   offerAmount: number;
   notes?: string;
   agentId: string;

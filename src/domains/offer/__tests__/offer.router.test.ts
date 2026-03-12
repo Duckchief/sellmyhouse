@@ -90,7 +90,6 @@ describe('offer.router', () => {
         flatType: '4 ROOM',
         buyerName: 'John Doe',
         buyerPhone: '91234567',
-        isCoBroke: false,
         offerAmount: '600000',
       });
 

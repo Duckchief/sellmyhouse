@@ -207,63 +207,6 @@ describe('transaction.service', () => {
       );
     });
 
-    it('triggers fallen-through cascade when status is fallen_through', async () => {
-      const tx = makeTransaction({ status: 'option_issued' });
-      mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'fallen_through',
-      } as never);
-      mockPortalService.expirePortalListings.mockResolvedValue({ count: 3 } as never);
-
-      await txService.advanceTransactionStatus({
-        transactionId: 'tx-1',
-        status: 'fallen_through',
-        agentId: 'agent-1',
-      });
-
-      expect(mockPortalService.expirePortalListings).toHaveBeenCalledWith('property-1');
-    });
-
-    it('cancels viewing slots for the property when fallen_through', async () => {
-      const tx = makeTransaction({ status: 'option_issued' });
-      mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'fallen_through',
-      } as never);
-      mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
-
-      await txService.advanceTransactionStatus({
-        transactionId: 'tx-1',
-        status: 'fallen_through',
-        agentId: 'agent-1',
-      });
-
-      expect(mockViewingService.cancelSlotsForPropertyCascade).toHaveBeenCalledWith(
-        'property-1',
-        'agent-1',
-      );
-    });
-
-    it('reverts property and listing to draft when fallen_through', async () => {
-      const tx = makeTransaction({ status: 'option_issued' });
-      mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'fallen_through',
-      } as never);
-      mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
-
-      await txService.advanceTransactionStatus({
-        transactionId: 'tx-1',
-        status: 'fallen_through',
-        agentId: 'agent-1',
-      });
-
-      expect(mockPropertyService.revertPropertyToDraft).toHaveBeenCalledWith('property-1');
-    });
-
     it('throws ValidationError when trying to regress transaction status', async () => {
       const tx = makeTransaction({ status: 'completed' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
@@ -275,6 +218,80 @@ describe('transaction.service', () => {
           agentId: 'agent-1',
         }),
       ).rejects.toThrow(ValidationError);
+    });
+  });
+
+  describe('markFallenThrough', () => {
+    it('triggers fallen-through cascade and notifies seller', async () => {
+      const tx = makeTransaction({ status: 'option_issued' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.updateFallenThrough.mockResolvedValue({
+        ...tx,
+        status: 'fallen_through',
+        fallenThroughReason: 'Buyer financing fell through.',
+      } as never);
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
+      mockPortalService.expirePortalListings.mockResolvedValue({ count: 3 } as never);
+
+      await txService.markFallenThrough({
+        transactionId: 'tx-1',
+        sellerId: 'seller-1',
+        reason: 'Buyer financing fell through.',
+        agentId: 'agent-1',
+      });
+
+      expect(mockTxRepo.updateFallenThrough).toHaveBeenCalledWith(
+        'tx-1',
+        'Buyer financing fell through.',
+      );
+      expect(mockPortalService.expirePortalListings).toHaveBeenCalledWith('property-1');
+      expect(mockNotification.send).toHaveBeenCalledWith(
+        expect.objectContaining({ recipientType: 'seller', recipientId: 'seller-1' }),
+        'agent-1',
+      );
+    });
+
+    it('cancels viewing slots for the property', async () => {
+      const tx = makeTransaction({ status: 'option_issued' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.updateFallenThrough.mockResolvedValue({
+        ...tx,
+        status: 'fallen_through',
+      } as never);
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
+      mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
+
+      await txService.markFallenThrough({
+        transactionId: 'tx-1',
+        sellerId: 'seller-1',
+        reason: 'Buyer financing fell through.',
+        agentId: 'agent-1',
+      });
+
+      expect(mockViewingService.cancelSlotsForPropertyCascade).toHaveBeenCalledWith(
+        'property-1',
+        'agent-1',
+      );
+    });
+
+    it('reverts property to draft', async () => {
+      const tx = makeTransaction({ status: 'option_issued' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.updateFallenThrough.mockResolvedValue({
+        ...tx,
+        status: 'fallen_through',
+      } as never);
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
+      mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
+
+      await txService.markFallenThrough({
+        transactionId: 'tx-1',
+        sellerId: 'seller-1',
+        reason: 'Buyer financing fell through.',
+        agentId: 'agent-1',
+      });
+
+      expect(mockPropertyService.revertPropertyToDraft).toHaveBeenCalledWith('property-1');
     });
   });
 

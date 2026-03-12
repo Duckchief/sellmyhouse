@@ -54,7 +54,10 @@ export async function createOffer(input: CreateOfferServiceInput) {
     buyerPhone: input.buyerPhone,
     buyerAgentName: input.buyerAgentName ?? null,
     buyerAgentCeaReg: input.buyerAgentCeaReg ?? null,
-    isCoBroke: input.isCoBroke,
+    isCoBroke:
+      input.buyerAgentName !== null &&
+      input.buyerAgentName !== undefined &&
+      input.buyerAgentName.trim().length > 0,
     offerAmount: input.offerAmount,
     notes: input.notes ?? null,
   });

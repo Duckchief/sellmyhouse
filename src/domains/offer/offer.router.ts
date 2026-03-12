@@ -53,7 +53,6 @@ offerRouter.post(
         buyerPhone: req.body.buyerPhone as string,
         buyerAgentName: req.body.buyerAgentName as string | undefined,
         buyerAgentCeaReg: req.body.buyerAgentCeaReg as string | undefined,
-        isCoBroke: req.body.isCoBroke === true || req.body.isCoBroke === 'true',
         offerAmount: parseFloat(req.body.offerAmount as string),
         notes: req.body.notes as string | undefined,
         agentId: user.id,

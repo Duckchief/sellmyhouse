@@ -47,7 +47,6 @@ describe('offer integration', () => {
       flatType: '4 ROOM',
       buyerName: 'John Buyer',
       buyerPhone: '91234567',
-      isCoBroke: false,
       offerAmount: 600000,
       agentId,
     });

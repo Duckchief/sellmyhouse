@@ -11,8 +11,16 @@ export const validateAdvanceStatus = [
   param('id').notEmpty().withMessage('transactionId is required'),
   body('status')
     .notEmpty()
-    .isIn(['option_exercised', 'completing', 'completed', 'fallen_through'])
+    .isIn(['option_exercised', 'completing', 'completed'])
     .withMessage('status must be a valid transaction status'),
+];
+
+export const validateMarkFallenThrough = [
+  param('transactionId').notEmpty().isUUID().withMessage('transactionId must be a valid UUID'),
+  body('sellerId').notEmpty().withMessage('sellerId is required'),
+  body('reason')
+    .isLength({ min: 10 })
+    .withMessage('reason must be at least 10 characters'),
 ];
 
 export const validateCreateOtp = [

@@ -127,7 +127,70 @@ export async function findHdbTransactionsForMonths(fromMonth: string) {
 }
 
 // ─── Testimonials ─────────────────────────────────────────────────────────────
-// Implemented in Section 4
+
+export async function findTestimonialByToken(token: string) {
+  return prisma.testimonial.findUnique({ where: { submissionToken: token } });
+}
+
+export async function findTestimonialBySeller(sellerId: string) {
+  return prisma.testimonial.findFirst({ where: { sellerId } });
+}
+
+export async function findAllTestimonials() {
+  return prisma.testimonial.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function findFeaturedTestimonials() {
+  return prisma.testimonial.findMany({
+    where: { status: 'approved', displayOnWebsite: true },
+    orderBy: { approvedAt: 'desc' },
+    take: 6,
+  });
+}
+
+export async function createTestimonial(input: {
+  id: string;
+  sellerId: string;
+  transactionId: string;
+  sellerName: string;
+  sellerTown: string;
+  submissionToken: string;
+  tokenExpiresAt: Date;
+}) {
+  return prisma.testimonial.create({ data: input });
+}
+
+export async function updateTestimonialSubmission(
+  id: string,
+  data: { content: string; rating: number; sellerName: string; sellerTown: string; status: 'pending_review' },
+) {
+  return prisma.testimonial.update({ where: { id }, data });
+}
+
+export async function updateTestimonialStatus(
+  id: string,
+  status: 'approved' | 'rejected',
+  agentId?: string,
+) {
+  return prisma.testimonial.update({
+    where: { id },
+    data: {
+      status,
+      approvedByAgentId: status === 'approved' ? agentId : undefined,
+      approvedAt: status === 'approved' ? new Date() : undefined,
+    },
+  });
+}
+
+export async function setTestimonialDisplay(id: string, displayOnWebsite: boolean) {
+  return prisma.testimonial.update({ where: { id }, data: { displayOnWebsite } });
+}
+
+export async function hardDeleteTestimonial(id: string): Promise<void> {
+  await prisma.testimonial.delete({ where: { id } });
+}
 
 // ─── Referrals ────────────────────────────────────────────────────────────────
 // Implemented in Section 5

@@ -1,0 +1,17 @@
+{% extends "layouts/base.njk" %}
+
+{% block title %}{{ "Link Expired" | t }} — SellMyHomeNow.sg{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+  <div class="max-w-md text-center">
+    {% if notFound %}
+    <h1 class="text-2xl font-bold mb-3">{{ "Link Not Found" | t }}</h1>
+    <p class="text-gray-500">{{ "This submission link is invalid. Please contact your agent." | t }}</p>
+    {% else %}
+    <h1 class="text-2xl font-bold mb-3">{{ "Link Expired" | t }}</h1>
+    <p class="text-gray-500">{{ "This submission link has expired. Please contact your agent if you still wish to submit a testimonial." | t }}</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -658,3 +658,63 @@ adminRouter.get(
     }
   },
 );
+
+// ─── Testimonial Management ───────────────────────────────────────────────────
+
+adminRouter.get(
+  '/admin/content/testimonials',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const records = await contentService.listTestimonials();
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/testimonial-list', { records });
+      }
+      return res.render('pages/admin/testimonials', { records });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/content/testimonials/:id/approve',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      await contentService.approveTestimonial(req.params['id'] as string, user.id);
+      return res.redirect('/admin/content/testimonials');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/content/testimonials/:id/reject',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await contentService.rejectTestimonial(req.params['id'] as string);
+      return res.redirect('/admin/content/testimonials');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/content/testimonials/:id/feature',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const display = req.body.displayOnWebsite === 'true';
+      await contentService.featureTestimonial(req.params['id'] as string, display);
+      return res.redirect('/admin/content/testimonials');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+

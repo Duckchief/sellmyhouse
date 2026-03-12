@@ -103,6 +103,10 @@
   </div>
 </section>
 
+{% if testimonials and testimonials | length > 0 %}
+{% include "partials/public/testimonials-section.njk" %}
+{% endif %}
+
 {% include "partials/public/footer.njk" %}
 
 {% endblock %}

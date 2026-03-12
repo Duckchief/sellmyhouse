@@ -7,6 +7,7 @@ import { requireAuth, requireRole } from '@/infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import * as propertyService from '../property/property.service';
 import { HDB_TOWNS, HDB_FLAT_TYPES } from '../property/property.types';
+import * as contentService from '../content/content.service';
 
 export const sellerRouter = Router();
 
@@ -218,6 +219,17 @@ sellerRouter.get(
     }
   },
 );
+
+// Testimonial removal (PDPA request)
+sellerRouter.post('/seller/testimonial/remove', ...sellerAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user as AuthenticatedUser;
+    await contentService.removeTestimonial(user.id);
+    return res.redirect('/seller/my-data');
+  } catch (err) {
+    next(err);
+  }
+});
 
 // My Data (PDPA)
 sellerRouter.get('/seller/my-data', async (req: Request, res: Response, next: NextFunction) => {

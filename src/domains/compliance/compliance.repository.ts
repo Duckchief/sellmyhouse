@@ -351,7 +351,22 @@ export async function findStaleCorrectionRequests(
 // ─── Hard Delete ─────────────────────────────────────────────────────────────
 
 export async function hardDeleteSeller(sellerId: string): Promise<void> {
-  // Cascades to related personal data entities via Prisma cascades defined in schema
+  // Delete in FK dependency order — none of these have schema-level cascade to seller
+  // 1. Testimonial references both seller and transaction
+  await prisma.testimonial.deleteMany({ where: { sellerId } });
+  // 2. Otp and CommissionInvoice reference transaction (which references seller)
+  const txIds = await prisma.transaction.findMany({
+    where: { sellerId },
+    select: { id: true },
+  });
+  if (txIds.length > 0) {
+    const ids = txIds.map((t) => t.id);
+    await prisma.otp.deleteMany({ where: { transactionId: { in: ids } } });
+    await prisma.commissionInvoice.deleteMany({ where: { transactionId: { in: ids } } });
+    await prisma.transaction.deleteMany({ where: { sellerId } });
+  }
+  await prisma.estateAgencyAgreement.deleteMany({ where: { sellerId } });
+  await prisma.property.deleteMany({ where: { sellerId } });
   await prisma.seller.delete({ where: { id: sellerId } });
 }
 

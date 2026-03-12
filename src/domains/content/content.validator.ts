@@ -1,6 +1,13 @@
 // src/domains/content/content.validator.ts
 import { body } from 'express-validator';
 
+export const validateTestimonialSubmit = [
+  body('content').trim().notEmpty().withMessage('Please share your experience'),
+  body('rating').isInt({ min: 1, max: 5 }).toInt().withMessage('Rating must be between 1 and 5'),
+  body('sellerName').trim().notEmpty().withMessage('Name is required'),
+  body('sellerTown').trim().notEmpty().withMessage('Town is required'),
+];
+
 const VIDEO_CATEGORIES = ['photography', 'forms', 'process', 'financial'];
 
 export const validateTutorialCreate = [

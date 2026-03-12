@@ -1,10 +1,11 @@
 // src/domains/content/content.service.ts
 import { createId } from '@/infra/database/prisma';
-import { NotFoundError, ConflictError } from '@/domains/shared/errors';
+import { NotFoundError, ConflictError, ValidationError } from '@/domains/shared/errors';
 import { logger } from '@/infra/logger';
 import * as contentRepo from './content.repository';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
-import type { TutorialCreateInput, TutorialUpdateInput, ReorderItem, HdbTransactionPartial, MarketInsights } from './content.types';
+import * as auditService from '@/domains/shared/audit.service';
+import type { TutorialCreateInput, TutorialUpdateInput, ReorderItem, HdbTransactionPartial, MarketInsights, TestimonialSubmitInput } from './content.types';
 import type { VideoTutorial } from '@prisma/client';
 
 // ─── Video Tutorials ─────────────────────────────────────────────────────────
@@ -227,7 +228,77 @@ export async function rejectMarketContent(id: string) {
 }
 
 // ─── Testimonials ─────────────────────────────────────────────────────────────
-// Implemented in Section 4
+
+/** Returns "First L." format, e.g. "John Thomas" → "John T.", "Mary Jane Watson" → "Mary W." */
+export function formatDisplayName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length < 2) return fullName;
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+}
+
+/** Issues a submission token for a completed transaction. */
+export async function issueTestimonialToken(sellerId: string, transactionId: string, sellerName: string, sellerTown: string) {
+  const token = createId();
+  const tokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  return contentRepo.createTestimonial({
+    id: createId(),
+    sellerId,
+    transactionId,
+    sellerName: formatDisplayName(sellerName),
+    sellerTown,
+    submissionToken: token,
+    tokenExpiresAt,
+  });
+}
+
+/** Submits a testimonial via the public token link. */
+export async function submitTestimonial(token: string, input: TestimonialSubmitInput) {
+  const testimonial = await contentRepo.findTestimonialByToken(token);
+  if (!testimonial) throw new NotFoundError('Testimonial', token);
+  if (!testimonial.tokenExpiresAt || testimonial.tokenExpiresAt < new Date()) throw new ValidationError('This submission link has expired');
+  if (testimonial.status !== 'pending_submission') throw new ValidationError('This testimonial has already been submitted');
+
+  return contentRepo.updateTestimonialSubmission(testimonial.id, {
+    content: input.content,
+    rating: input.rating,
+    sellerName: input.sellerName,
+    sellerTown: input.sellerTown,
+    status: 'pending_review' as const,
+  });
+}
+
+/** Hard-deletes a seller's testimonial (PDPA removal request). No-op if none exists. */
+export async function removeTestimonial(sellerId: string): Promise<void> {
+  const testimonial = await contentRepo.findTestimonialBySeller(sellerId);
+  if (!testimonial) return;
+  await contentRepo.hardDeleteTestimonial(testimonial.id);
+  void auditService.log({
+    action: 'testimonial_removed',
+    entityType: 'testimonial',
+    entityId: testimonial.id,
+    details: { sellerId, reason: 'seller_requested' },
+  });
+}
+
+export async function listTestimonials() {
+  return contentRepo.findAllTestimonials();
+}
+
+export async function getFeaturedTestimonials() {
+  return contentRepo.findFeaturedTestimonials();
+}
+
+export async function approveTestimonial(id: string, agentId: string) {
+  return contentRepo.updateTestimonialStatus(id, 'approved', agentId);
+}
+
+export async function rejectTestimonial(id: string) {
+  return contentRepo.updateTestimonialStatus(id, 'rejected');
+}
+
+export async function featureTestimonial(id: string, displayOnWebsite: boolean) {
+  return contentRepo.setTestimonialDisplay(id, displayOnWebsite);
+}
 
 // ─── Referrals ────────────────────────────────────────────────────────────────
 // Implemented in Section 5

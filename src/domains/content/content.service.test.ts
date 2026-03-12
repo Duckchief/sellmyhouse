@@ -2,15 +2,18 @@
 import * as contentService from './content.service';
 import * as contentRepo from './content.repository';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
-import { NotFoundError, ConflictError } from '@/domains/shared/errors';
-import type { VideoTutorial, MarketContent } from '@prisma/client';
-import type { HdbTransactionPartial } from './content.types';
+import * as auditService from '@/domains/shared/audit.service';
+import { NotFoundError, ConflictError, ValidationError } from '@/domains/shared/errors';
+import type { VideoTutorial, MarketContent, Testimonial } from '@prisma/client';
+import type { HdbTransactionPartial, TestimonialSubmitInput } from './content.types';
 
 jest.mock('./content.repository');
 jest.mock('@/domains/shared/ai/ai.facade');
+jest.mock('@/domains/shared/audit.service');
 
 const mockedRepo = jest.mocked(contentRepo);
 const mockedAi = jest.mocked(aiFacade);
+const mockedAudit = jest.mocked(auditService);
 
 beforeEach(() => jest.clearAllMocks());
 
@@ -324,5 +327,103 @@ describe('rejectMarketContent', () => {
     await contentService.rejectMarketContent('mc-1');
 
     expect(mockedRepo.updateMarketContentStatus).toHaveBeenCalledWith('mc-1', 'rejected', undefined);
+  });
+});
+
+// ─── Testimonials ─────────────────────────────────────────────────────────────
+
+describe('formatDisplayName', () => {
+  it('abbreviates the last name for a two-word name', () => {
+    expect(contentService.formatDisplayName('John Thomas')).toBe('John T.');
+  });
+
+  it('abbreviates the last name for a multi-word name', () => {
+    expect(contentService.formatDisplayName('Mary Jane Watson')).toBe('Mary W.');
+  });
+
+  it('returns single-word name unchanged', () => {
+    expect(contentService.formatDisplayName('Priya')).toBe('Priya');
+  });
+});
+
+describe('submitTestimonial', () => {
+  const validInput: TestimonialSubmitInput = {
+    content: 'Great service!',
+    rating: 5,
+    sellerName: 'John Thomas',
+    sellerTown: 'Tampines',
+  };
+
+  it('throws NotFoundError when token does not exist', async () => {
+    mockedRepo.findTestimonialByToken.mockResolvedValue(null);
+
+    await expect(contentService.submitTestimonial('bad-token', validInput)).rejects.toThrow(NotFoundError);
+  });
+
+  it('throws ValidationError when token is expired', async () => {
+    mockedRepo.findTestimonialByToken.mockResolvedValue({
+      id: 't-1',
+      status: 'pending_submission',
+      tokenExpiresAt: new Date(Date.now() - 1000),
+    } as Testimonial);
+
+    await expect(contentService.submitTestimonial('expired-token', validInput)).rejects.toThrow(ValidationError);
+  });
+
+  it('throws ValidationError when testimonial already submitted', async () => {
+    mockedRepo.findTestimonialByToken.mockResolvedValue({
+      id: 't-1',
+      status: 'pending_review',
+      tokenExpiresAt: new Date(Date.now() + 86_400_000),
+    } as Testimonial);
+
+    await expect(contentService.submitTestimonial('used-token', validInput)).rejects.toThrow(ValidationError);
+  });
+
+  it('updates testimonial and returns pending_review record on success', async () => {
+    mockedRepo.findTestimonialByToken.mockResolvedValue({
+      id: 't-1',
+      status: 'pending_submission',
+      tokenExpiresAt: new Date(Date.now() + 86_400_000),
+    } as Testimonial);
+    mockedRepo.updateTestimonialSubmission.mockResolvedValue({ id: 't-1', status: 'pending_review' } as Testimonial);
+
+    const result = await contentService.submitTestimonial('valid-token', validInput);
+
+    expect(mockedRepo.updateTestimonialSubmission).toHaveBeenCalledWith('t-1', expect.objectContaining({
+      content: 'Great service!',
+      rating: 5,
+      status: 'pending_review',
+    }));
+    expect(result).toMatchObject({ id: 't-1', status: 'pending_review' });
+  });
+});
+
+describe('removeTestimonial', () => {
+  it('hard-deletes testimonial and writes audit log with sellerId and reason', async () => {
+    mockedRepo.findTestimonialBySeller.mockResolvedValue({ id: 't-1', sellerId: 'seller-1' } as Testimonial);
+    mockedRepo.hardDeleteTestimonial.mockResolvedValue();
+    mockedAudit.log.mockResolvedValue();
+
+    await contentService.removeTestimonial('seller-1');
+
+    expect(mockedRepo.hardDeleteTestimonial).toHaveBeenCalledWith('t-1');
+    expect(mockedAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'testimonial_removed',
+        entityType: 'testimonial',
+        entityId: 't-1',
+        details: { sellerId: 'seller-1', reason: 'seller_requested' },
+      }),
+    );
+  });
+
+  it('is a no-op when no testimonial exists for the seller', async () => {
+    mockedRepo.findTestimonialBySeller.mockResolvedValue(null);
+
+    await contentService.removeTestimonial('seller-no-testimonial');
+
+    expect(mockedRepo.hardDeleteTestimonial).not.toHaveBeenCalled();
+    expect(mockedAudit.log).not.toHaveBeenCalled();
   });
 });

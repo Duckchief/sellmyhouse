@@ -313,6 +313,243 @@ describe('POST /admin/content/market/run — manual trigger', () => {
   });
 });
 
+// ─── Section 4: Testimonial Management ───────────────────────────────────────
+
+async function loginAsSeller() {
+  const agentRecord = await factory.agent();
+  const password = 'SellerPass1!';
+  const sellerRecord = await factory.seller({
+    agentId: agentRecord.id,
+    passwordHash: await bcrypt.hash(password, 12),
+  });
+  const sellerAgent = request.agent(app);
+  await sellerAgent.post('/auth/login/seller').type('form').send({ email: sellerRecord.email, password });
+  return { sellerRecord, agentRecord, sellerAgent };
+}
+
+describe('GET /testimonial/:token — public submission form', () => {
+  it('returns 200 with form for a valid unexpired token', async () => {
+    const agentRecord = await factory.agent();
+    const sellerRecord = await factory.seller({ agentId: agentRecord.id });
+    const property = await factory.property({ sellerId: sellerRecord.id });
+    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const testimonial = await factory.testimonial({
+      sellerId: sellerRecord.id,
+      transactionId: transaction.id,
+      submissionToken: 'valid-token-abc',
+      tokenExpiresAt: new Date(Date.now() + 86_400_000),
+    });
+
+    const res = await request(app).get(`/testimonial/${testimonial.submissionToken}`);
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 404 for unknown token', async () => {
+    const res = await request(app).get('/testimonial/totally-unknown-token');
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 410 for expired token', async () => {
+    const agentRecord = await factory.agent();
+    const sellerRecord = await factory.seller({ agentId: agentRecord.id });
+    const property = await factory.property({ sellerId: sellerRecord.id });
+    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const testimonial = await factory.testimonial({
+      sellerId: sellerRecord.id,
+      transactionId: transaction.id,
+      submissionToken: 'expired-token-xyz',
+      tokenExpiresAt: new Date(Date.now() - 1000),
+    });
+
+    const res = await request(app).get(`/testimonial/${testimonial.submissionToken}`);
+    expect(res.status).toBe(410);
+  });
+});
+
+describe('POST /testimonial/:token — submit', () => {
+  it('returns 302 redirect on successful submission', async () => {
+    const agentRecord = await factory.agent();
+    const sellerRecord = await factory.seller({ agentId: agentRecord.id });
+    const property = await factory.property({ sellerId: sellerRecord.id });
+    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const testimonial = await factory.testimonial({
+      sellerId: sellerRecord.id,
+      transactionId: transaction.id,
+      submissionToken: 'submit-token-123',
+      tokenExpiresAt: new Date(Date.now() + 86_400_000),
+    });
+
+    const res = await request(app)
+      .post(`/testimonial/${testimonial.submissionToken}`)
+      .type('form')
+      .send({ content: 'Excellent service!', rating: '5', sellerName: 'John T.', sellerTown: 'Tampines' });
+
+    expect(res.status).toBe(302);
+
+    const updated = await testPrisma.testimonial.findUnique({ where: { id: testimonial.id } });
+    expect(updated!.status).toBe('pending_review');
+    expect(updated!.content).toBe('Excellent service!');
+  });
+
+  it('returns 422 when required fields are missing', async () => {
+    const agentRecord = await factory.agent();
+    const sellerRecord = await factory.seller({ agentId: agentRecord.id });
+    const property = await factory.property({ sellerId: sellerRecord.id });
+    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const testimonial = await factory.testimonial({
+      sellerId: sellerRecord.id,
+      transactionId: transaction.id,
+      submissionToken: 'validation-token-456',
+      tokenExpiresAt: new Date(Date.now() + 86_400_000),
+    });
+
+    const res = await request(app)
+      .post(`/testimonial/${testimonial.submissionToken}`)
+      .type('form')
+      .send({ content: '' });
+
+    expect(res.status).toBe(422);
+  });
+});
+
+describe('GET /admin/content/testimonials — admin list', () => {
+  it('returns 200 for admin', async () => {
+    const { agent } = await loginAsAdmin();
+    const res = await agent.get('/admin/content/testimonials');
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 401 for unauthenticated request', async () => {
+    const res = await request(app).get('/admin/content/testimonials');
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('POST /admin/content/testimonials/:id/approve — approve', () => {
+  it('sets status to approved and redirects', async () => {
+    const { agent, adminRecord } = await loginAsAdmin();
+    const agentRecord = await factory.agent();
+    const sellerRecord = await factory.seller({ agentId: agentRecord.id });
+    const property = await factory.property({ sellerId: sellerRecord.id });
+    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const testimonial = await factory.testimonial({
+      sellerId: sellerRecord.id,
+      transactionId: transaction.id,
+      status: 'pending_review',
+    });
+
+    const res = await agent.post(`/admin/content/testimonials/${testimonial.id}/approve`);
+    expect(res.status).toBe(302);
+
+    const updated = await testPrisma.testimonial.findUnique({ where: { id: testimonial.id } });
+    expect(updated!.status).toBe('approved');
+    expect(updated!.approvedByAgentId).toBe(adminRecord.id);
+  });
+});
+
+describe('POST /admin/content/testimonials/:id/reject — reject', () => {
+  it('sets status to rejected and redirects', async () => {
+    const { agent } = await loginAsAdmin();
+    const agentRecord = await factory.agent();
+    const sellerRecord = await factory.seller({ agentId: agentRecord.id });
+    const property = await factory.property({ sellerId: sellerRecord.id });
+    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const testimonial = await factory.testimonial({
+      sellerId: sellerRecord.id,
+      transactionId: transaction.id,
+      status: 'pending_review',
+    });
+
+    const res = await agent.post(`/admin/content/testimonials/${testimonial.id}/reject`);
+    expect(res.status).toBe(302);
+
+    const updated = await testPrisma.testimonial.findUnique({ where: { id: testimonial.id } });
+    expect(updated!.status).toBe('rejected');
+  });
+});
+
+describe('POST /admin/content/testimonials/:id/feature — feature toggle', () => {
+  it('toggles displayOnWebsite and redirects', async () => {
+    const { agent } = await loginAsAdmin();
+    const agentRecord = await factory.agent();
+    const sellerRecord = await factory.seller({ agentId: agentRecord.id });
+    const property = await factory.property({ sellerId: sellerRecord.id });
+    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const testimonial = await factory.testimonial({
+      sellerId: sellerRecord.id,
+      transactionId: transaction.id,
+      status: 'approved',
+      displayOnWebsite: false,
+    });
+
+    const res = await agent
+      .post(`/admin/content/testimonials/${testimonial.id}/feature`)
+      .type('form')
+      .send({ displayOnWebsite: 'true' });
+    expect(res.status).toBe(302);
+
+    const updated = await testPrisma.testimonial.findUnique({ where: { id: testimonial.id } });
+    expect(updated!.displayOnWebsite).toBe(true);
+  });
+});
+
+describe('POST /seller/testimonial/remove — PDPA testimonial removal', () => {
+  it('hard-deletes the testimonial and redirects', async () => {
+    const { sellerRecord, agentRecord, sellerAgent } = await loginAsSeller();
+    const property = await factory.property({ sellerId: sellerRecord.id });
+    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    await factory.testimonial({ sellerId: sellerRecord.id, transactionId: transaction.id });
+
+    const res = await sellerAgent.post('/seller/testimonial/remove');
+    expect(res.status).toBe(302);
+
+    const testimonial = await testPrisma.testimonial.findFirst({ where: { sellerId: sellerRecord.id } });
+    expect(testimonial).toBeNull();
+    void agentRecord; // used above
+  });
+});
+
+describe('PDPA cascade — hardDeleteSeller removes testimonial without FK error', () => {
+  it('deletes seller with an associated testimonial without foreign key constraint error', async () => {
+    const { hardDeleteSeller } = await import('../../src/domains/compliance/compliance.repository');
+
+    const agentRecord = await factory.agent();
+    const sellerRecord = await factory.seller({ agentId: agentRecord.id });
+    const property = await factory.property({ sellerId: sellerRecord.id });
+    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    await factory.testimonial({ sellerId: sellerRecord.id, transactionId: transaction.id });
+
+    // hardDeleteSeller now handles the full FK chain: testimonial → otp/invoice → transaction → property → seller
+    await expect(hardDeleteSeller(sellerRecord.id)).resolves.not.toThrow();
+
+    const deletedSeller = await testPrisma.seller.findUnique({ where: { id: sellerRecord.id } });
+    expect(deletedSeller).toBeNull();
+    const deletedTestimonial = await testPrisma.testimonial.findFirst({ where: { sellerId: sellerRecord.id } });
+    expect(deletedTestimonial).toBeNull();
+  });
+});
+
+describe('GET / — homepage with featured testimonials', () => {
+  it('returns 200 and renders testimonials section', async () => {
+    const agentRecord = await factory.agent();
+    const sellerRecord = await factory.seller({ agentId: agentRecord.id });
+    const property = await factory.property({ sellerId: sellerRecord.id });
+    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    await factory.testimonial({
+      sellerId: sellerRecord.id,
+      transactionId: transaction.id,
+      status: 'approved',
+      displayOnWebsite: true,
+      content: 'Amazing experience selling my flat!',
+      rating: 5,
+    });
+
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Amazing experience selling my flat!');
+  });
+});
+
 describe('GET /seller/tutorials — seller view still works after refactor', () => {
   it('returns 200 with grouped tutorials for authenticated seller', async () => {
     const agentRecord = await factory.agent();

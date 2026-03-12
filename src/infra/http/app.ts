@@ -22,6 +22,7 @@ import { agentRouter } from '../../domains/agent/agent.router';
 import { reviewRouter } from '../../domains/review/review.router';
 import { adminRouter } from '../../domains/admin/admin.router';
 import { complianceRouter } from '../../domains/compliance/compliance.router';
+import { testimonialRouter } from '../../domains/content/testimonial.router';
 
 function validateEnv() {
   const required = ['SESSION_SECRET', 'DATABASE_URL', 'ENCRYPTION_KEY'];
@@ -110,6 +111,7 @@ export function createApp() {
   // Routes
   app.use(healthRouter);
   app.use(publicRouter);
+  app.use(testimonialRouter);
   app.use(leadRouter);
   app.use(authRouter);
   app.use(agentSettingsRouter);

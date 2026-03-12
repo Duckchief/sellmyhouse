@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import * as sellerService from './seller.service';
+import * as caseFlagService from './case-flag.service';
 import { validateOnboardingStep } from './seller.validator';
 import { TOTAL_ONBOARDING_STEPS } from './seller.types';
 import { requireAuth, requireRole } from '@/infra/http/middleware/require-auth';
@@ -274,6 +275,25 @@ sellerRouter.get('/seller/tutorials', async (req: Request, res: Response, next: 
       return res.render('partials/seller/tutorials-content', { grouped });
     }
     res.render('pages/seller/tutorials', { grouped });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Case flags — view special circumstances and guidance
+sellerRouter.get('/seller/case-flags', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user as AuthenticatedUser;
+    const flags = await caseFlagService.getCaseFlagsForSeller(user.id);
+    const flagsWithChecklist = flags.map((flag) => ({
+      ...flag,
+      checklist: caseFlagService.getChecklistForType(flag.flagType),
+    }));
+
+    if (req.headers['hx-request']) {
+      return res.render('partials/seller/case-flags-content', { flags: flagsWithChecklist });
+    }
+    res.render('pages/seller/case-flags', { flags: flagsWithChecklist });
   } catch (err) {
     next(err);
   }

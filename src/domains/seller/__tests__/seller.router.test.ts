@@ -9,6 +9,10 @@ jest.mock('../../notification/notification.repository', () => ({
   countUnreadForRecipient: jest.fn().mockResolvedValue(0),
   findUnreadForRecipient: jest.fn().mockResolvedValue([]),
 }));
+jest.mock('../case-flag.service', () => ({
+  getCaseFlagsForSeller: jest.fn().mockResolvedValue([]),
+  getChecklistForType: jest.fn().mockReturnValue([]),
+}));
 
 const mockedService = jest.mocked(sellerService);
 const mockedPropertyService = jest.mocked(propertyService);
@@ -228,6 +232,20 @@ describe('seller.router', () => {
 
       const res = await request(app).get('/seller/tutorials');
 
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe('GET /seller/case-flags', () => {
+    it('renders case flags page for authenticated seller', async () => {
+      const res = await request(app).get('/seller/case-flags');
+      expect(res.status).toBe(200);
+    });
+
+    it('returns HTMX partial when HX-Request header is set', async () => {
+      const res = await request(app)
+        .get('/seller/case-flags')
+        .set('HX-Request', 'true');
       expect(res.status).toBe(200);
     });
   });

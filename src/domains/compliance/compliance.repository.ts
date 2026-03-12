@@ -92,7 +92,7 @@ export async function updateDeletionRequest(
 
 export async function findPendingDeletionRequests(): Promise<DataDeletionRequest[]> {
   return prisma.dataDeletionRequest.findMany({
-    where: { status: { in: ['flagged', 'pending_review'] as never[] } },
+    where: { status: { in: ['flagged', 'blocked', 'pending_review'] as never[] } },
     orderBy: { flaggedAt: 'asc' },
   }) as Promise<DataDeletionRequest[]>;
 }
@@ -243,4 +243,141 @@ export async function getSellerPersonalData(sellerId: string) {
   });
 
   return { ...seller, cddRecords };
+}
+
+// ─── Retention Scanning ───────────────────────────────────────────────────────
+
+export async function findLeadsForRetention(cutoffDate: Date) {
+  // Leads (no transaction) with no activity since cutoffDate
+  return prisma.seller.findMany({
+    where: {
+      status: { in: ['lead', 'engaged'] },
+      transactions: { none: {} },
+      updatedAt: { lt: cutoffDate },
+    },
+    select: { id: true, name: true, updatedAt: true },
+  });
+}
+
+export async function findServiceWithdrawnForDeletion(cutoffDate: Date) {
+  // Sellers with service consent withdrawn > 30 days ago and no transactions
+  return prisma.seller.findMany({
+    where: {
+      consentService: false,
+      transactions: { none: {} },
+      updatedAt: { lt: cutoffDate },
+    },
+    select: { id: true, name: true, updatedAt: true },
+  });
+}
+
+export async function findTransactionsForRetention(cutoffDate: Date) {
+  // Completed transactions with completion date > 5 years ago
+  return prisma.transaction.findMany({
+    where: {
+      status: 'completed',
+      completionDate: { lt: cutoffDate },
+    },
+    select: { id: true, sellerId: true, completionDate: true },
+  });
+}
+
+export async function findCddRecordsForRetention(cutoffDate: Date) {
+  // CDD records with verifiedAt > 5 years ago and documents still on disk
+  return prisma.cddRecord.findMany({
+    where: {
+      verifiedAt: { lt: cutoffDate },
+      documents: { not: '[]' },
+    },
+    select: { id: true, subjectId: true, documents: true, verifiedAt: true },
+  });
+}
+
+export async function findConsentRecordsForDeletion(cutoffDate: Date) {
+  // Withdrawn consent records older than 1 year post-withdrawal
+  return prisma.consentRecord.findMany({
+    where: {
+      consentWithdrawnAt: { lt: cutoffDate, not: null },
+    },
+    select: { id: true, subjectId: true, consentWithdrawnAt: true },
+  });
+}
+
+export async function findExistingDeletionRequest(
+  targetType: string,
+  targetId: string,
+): Promise<{ id: string; status: string } | null> {
+  return prisma.dataDeletionRequest.findFirst({
+    where: { targetType: targetType as never, targetId },
+    select: { id: true, status: true },
+  });
+}
+
+export async function findStaleCorrectionRequests(cutoffDate: Date) {
+  return prisma.dataCorrectionRequest.findMany({
+    where: {
+      status: { in: ['pending', 'in_progress'] },
+      createdAt: { lt: cutoffDate },
+    },
+    select: {
+      id: true,
+      sellerId: true,
+      fieldName: true,
+      createdAt: true,
+      seller: { select: { agentId: true } },
+    },
+  });
+}
+
+// ─── Hard Delete ─────────────────────────────────────────────────────────────
+
+export async function hardDeleteSeller(sellerId: string): Promise<void> {
+  // Cascades to related personal data entities via Prisma cascades defined in schema
+  await prisma.seller.delete({ where: { id: sellerId } });
+}
+
+export async function hardDeleteCddDocuments(
+  cddRecordId: string,
+  documentPaths: string[],
+): Promise<void> {
+  // Removes document file paths from the JSON array — marks them as deleted
+  const deletedAt = new Date().toISOString();
+  const updatedDocs = documentPaths.map((path) => ({
+    deletedFromServer: true,
+    deletedAt,
+    originalPath: path,
+  }));
+  await prisma.cddRecord.update({
+    where: { id: cddRecordId },
+    data: { documents: updatedDocs },
+  });
+}
+
+export async function hardDeleteConsentRecord(consentRecordId: string): Promise<void> {
+  await prisma.consentRecord.delete({ where: { id: consentRecordId } });
+}
+
+export async function hardDeleteTransaction(transactionId: string): Promise<void> {
+  // Cascades to OTP, CommissionInvoice, EstateAgencyAgreement via Prisma schema cascades
+  await prisma.transaction.delete({ where: { id: transactionId } });
+}
+
+// ─── Agent Anonymisation ──────────────────────────────────────────────────────
+
+export async function anonymiseAgentRecord(agentId: string): Promise<void> {
+  await prisma.agent.update({
+    where: { id: agentId },
+    data: {
+      name: `Former Agent ${agentId}`,
+      email: `anonymised-${agentId}@deleted.local`,
+      phone: `anonymised-${agentId}`,
+    },
+  });
+}
+
+export async function findAgentById(agentId: string) {
+  return prisma.agent.findUnique({
+    where: { id: agentId },
+    select: { id: true, name: true, email: true, phone: true, isActive: true },
+  });
 }

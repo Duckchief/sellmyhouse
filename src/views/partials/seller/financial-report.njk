@@ -1,0 +1,214 @@
+{#
+  Variables: report (FinancialReport)
+    report.reportData: { inputs, outputs, metadata }
+    report.aiNarrative: string | null
+    report.status: 'generated' | 'pending_review' | 'approved' | 'sent'
+    report.version: number
+    report.approvedAt: Date | null
+    report.sentToSellerAt: Date | null
+
+  Two states:
+    - aiNarrative is null: show breakdown with "narrative generating…" placeholder
+    - aiNarrative present: show narrative above breakdown
+#}
+{% set data = report.reportData %}
+{% set out = data.outputs %}
+{% set inp = data.inputs %}
+
+<div class="bg-white rounded-lg shadow p-6 space-y-6">
+
+  {# ── Header row ────────────────────────────────── #}
+  <div class="flex items-start justify-between gap-4 flex-wrap">
+    <div>
+      <h2 class="font-semibold text-gray-900">
+        {{ data.metadata.flatType }}{% if data.metadata.town %} · {{ data.metadata.town }}{% endif %}
+      </h2>
+      <p class="text-xs text-gray-400 mt-0.5">
+        {{ "Calculated:" | t }} {{ data.metadata.calculatedAt | date }} · {{ "v" }}{{ report.version }}
+      </p>
+    </div>
+    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+      {% if report.status == 'sent' %}bg-green-100 text-green-700
+      {% elif report.status == 'approved' %}bg-blue-100 text-blue-700
+      {% elif report.status == 'pending_review' %}bg-yellow-100 text-yellow-700
+      {% else %}bg-gray-100 text-gray-600{% endif %}">
+      {{ report.status | t }}
+    </span>
+  </div>
+
+  {# ── Warnings ─────────────────────────────────── #}
+  {% if out.warnings and out.warnings.length > 0 %}
+  <div class="space-y-2">
+    {% for warning in out.warnings %}
+    <div class="flex items-start gap-2 rounded-md bg-yellow-50 border border-yellow-200 p-3">
+      <svg class="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+      <p class="text-xs text-yellow-800">{{ warning }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ── AI Narrative ─────────────────────────────── #}
+  {% if report.aiNarrative %}
+  <div class="rounded-md bg-blue-50 border border-blue-100 p-4">
+    <p class="text-xs font-semibold text-blue-700 mb-1">{{ "Agent Commentary" | t }}</p>
+    <p class="text-sm text-gray-800">{{ report.aiNarrative }}</p>
+    <p class="mt-2 text-xs text-gray-400">
+      {{ "AI-generated summary. For indicative purposes only." | t }}
+    </p>
+  </div>
+  {% else %}
+  <div class="rounded-md bg-gray-50 border border-gray-200 p-4 flex items-center gap-3">
+    <svg class="h-4 w-4 text-gray-400 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+    </svg>
+    <p class="text-sm text-gray-500">{{ "Agent commentary is being generated. Refresh this report in a moment." | t }}</p>
+  </div>
+  {% endif %}
+
+  {# ── Net proceeds — prominent summary ────────── #}
+  <div class="rounded-lg bg-green-50 border border-green-200 p-5 text-center">
+    <p class="text-xs font-medium text-green-700 uppercase tracking-wide mb-1">
+      {{ "Estimated Net Cash Proceeds" | t }}
+    </p>
+    <p class="text-3xl font-bold
+      {% if out.netCashProceeds < 0 %}text-red-600{% else %}text-green-800{% endif %}">
+      ${{ out.netCashProceeds }}
+    </p>
+    <p class="text-xs text-gray-500 mt-1">
+      {{ "Sale price minus all deductions below." | t }}
+    </p>
+  </div>
+
+  {# ── Deductions breakdown ─────────────────────── #}
+  <div>
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">{{ "Deductions Breakdown" | t }}</h3>
+    <div class="space-y-1">
+
+      {# Sale price (reference row) #}
+      <div class="flex justify-between text-sm py-1 border-b border-gray-100">
+        <span class="text-gray-600">{{ "Sale Price" | t }}</span>
+        <span class="font-medium text-gray-900">${{ out.salePrice }}</span>
+      </div>
+
+      {# Outstanding loan #}
+      <div class="flex justify-between text-sm py-1">
+        <span class="text-gray-600">{{ "Outstanding Loan" | t }}</span>
+        <span class="text-red-600">−${{ out.outstandingLoan }}</span>
+      </div>
+
+      {# CPF Owner 1 #}
+      <div class="py-1">
+        <div class="flex justify-between text-sm">
+          <span class="text-gray-600">
+            {{ "CPF Refund — Owner 1" | t }}
+            {% if out.owner1Cpf.isEstimated %}
+            <span class="ml-1 text-xs text-yellow-600">({{ "estimated" | t }})</span>
+            {% endif %}
+          </span>
+          <span class="text-red-600">−${{ out.owner1Cpf.totalRefund }}</span>
+        </div>
+        <div class="ml-4 mt-0.5 space-y-0.5">
+          <p class="text-xs text-gray-400">{{ "OA used:" | t }} ${{ out.owner1Cpf.oaUsed }}</p>
+          <p class="text-xs text-gray-400">{{ "Accrued interest:" | t }} ${{ out.owner1Cpf.accruedInterest }}</p>
+        </div>
+      </div>
+
+      {# CPF Owner 2 (joint, conditional) #}
+      {% if out.owner2Cpf %}
+      <div class="py-1">
+        <div class="flex justify-between text-sm">
+          <span class="text-gray-600">
+            {{ "CPF Refund — Owner 2" | t }}
+            {% if out.owner2Cpf.isEstimated %}
+            <span class="ml-1 text-xs text-yellow-600">({{ "estimated" | t }})</span>
+            {% endif %}
+          </span>
+          <span class="text-red-600">−${{ out.owner2Cpf.totalRefund }}</span>
+        </div>
+        <div class="ml-4 mt-0.5 space-y-0.5">
+          <p class="text-xs text-gray-400">{{ "OA used:" | t }} ${{ out.owner2Cpf.oaUsed }}</p>
+          <p class="text-xs text-gray-400">{{ "Accrued interest:" | t }} ${{ out.owner2Cpf.accruedInterest }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Resale levy #}
+      <div class="flex justify-between text-sm py-1">
+        <span class="text-gray-600">{{ "Resale Levy" | t }}</span>
+        <span class="{% if out.resaleLevy > 0 %}text-red-600{% else %}text-gray-500{% endif %}">
+          {% if out.resaleLevy > 0 %}−${{ out.resaleLevy }}{% else %}{{ "None" | t }}{% endif %}
+        </span>
+      </div>
+
+      {# Commission #}
+      <div class="flex justify-between text-sm py-1">
+        <span class="text-gray-600">{{ "Commission (incl. GST)" | t }}</span>
+        <span class="text-red-600">−${{ out.commission }}</span>
+      </div>
+
+      {# Legal fees #}
+      <div class="flex justify-between text-sm py-1">
+        <span class="text-gray-600">{{ "Legal Fees (estimate)" | t }}</span>
+        <span class="text-red-600">−${{ out.legalFees }}</span>
+      </div>
+
+      {# Total deductions #}
+      <div class="flex justify-between text-sm py-2 border-t border-gray-200 mt-1">
+        <span class="font-semibold text-gray-700">{{ "Total Deductions" | t }}</span>
+        <span class="font-semibold text-red-700">−${{ out.totalDeductions }}</span>
+      </div>
+
+      {# Net proceeds (repeat — in table context) #}
+      <div class="flex justify-between text-sm py-1 bg-gray-50 rounded px-2">
+        <span class="font-bold text-gray-900">{{ "Net Cash Proceeds" | t }}</span>
+        <span class="font-bold {% if out.netCashProceeds < 0 %}text-red-700{% else %}text-green-700{% endif %}">
+          ${{ out.netCashProceeds }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  {# ── Sale inputs reference ────────────────────── #}
+  <details class="text-sm">
+    <summary class="cursor-pointer text-gray-500 hover:text-gray-700 font-medium select-none">
+      {{ "Input Parameters" | t }}
+    </summary>
+    <div class="mt-3 space-y-1 text-xs text-gray-600">
+      <div class="flex justify-between py-0.5">
+        <span>{{ "Flat Type" | t }}</span><span class="font-medium">{{ inp.flatType }}</span>
+      </div>
+      <div class="flex justify-between py-0.5">
+        <span>{{ "Subsidy Type" | t }}</span><span class="font-medium">{{ inp.subsidyType }}</span>
+      </div>
+      <div class="flex justify-between py-0.5">
+        <span>{{ "First Timer" | t }}</span>
+        <span class="font-medium">{% if inp.isFirstTimer %}{{ "Yes" | t }}{% else %}{{ "No" | t }}{% endif %}</span>
+      </div>
+      {% if data.metadata.leaseCommenceDate %}
+      <div class="flex justify-between py-0.5">
+        <span>{{ "Lease Commenced" | t }}</span><span class="font-medium">{{ data.metadata.leaseCommenceDate }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </details>
+
+  {# ── Recalculate link ─────────────────────────── #}
+  <div class="border-t border-gray-100 pt-4">
+    <button
+      type="button"
+      hx-get="/seller/financial/form"
+      hx-target="#financial-content"
+      hx-swap="innerHTML"
+      class="text-sm text-blue-600 hover:text-blue-800 font-medium"
+    >
+      ← {{ "Run a new calculation" | t }}
+    </button>
+  </div>
+
+</div>

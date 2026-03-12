@@ -199,6 +199,7 @@ viewingRouter.post(
           return res.render('partials/public/otp-form', {
             bookingId: result.viewingId,
             phone: input.phone,
+            verifyUrl: `/view/${req.params.propertySlug}/verify-otp`,
           });
         }
         return res.json({ success: true, requiresOtp: true, bookingId: result.viewingId });

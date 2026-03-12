@@ -1,0 +1,42 @@
+{% extends "layouts/seller.njk" %}
+
+{% block title %}{{ "Financial Report" | t }} — SellMyHomeNow.sg{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">{{ "Net Proceeds Calculator" | t }}</h1>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  {# ── Main area: calculator form or loaded report ─── #}
+  <div class="lg:col-span-2">
+    <div
+      id="financial-content"
+      hx-get="/seller/financial/form"
+      hx-trigger="load"
+      hx-swap="innerHTML"
+    >
+      <p class="text-xs text-gray-400 text-center py-2">{{ "Loading…" | t }}</p>
+    </div>
+  </div>
+
+  {# ── Report history sidebar ─────────────────────── #}
+  <div>
+    <div class="bg-white rounded-lg shadow p-4">
+      <h2 class="text-sm font-semibold text-gray-900 mb-3">{{ "Report History" | t }}</h2>
+      <div
+        id="financial-history"
+        hx-get="/seller/financial"
+        hx-trigger="load"
+        hx-target="#financial-history"
+        hx-swap="innerHTML"
+      >
+        <p class="text-xs text-gray-400 text-center py-2">{{ "Loading…" | t }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="mt-6 text-xs text-gray-400">
+  {{ "This report is an indicative estimate only based on figures you provide. CPF accrued interest rates, resale levy, and legal fees may vary. It does not constitute financial, legal, or tax advice. Please verify all figures with HDB and CPF Board directly." | t }}
+</p>
+{% endblock %}

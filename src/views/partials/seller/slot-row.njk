@@ -1,0 +1,123 @@
+{#
+  Variables: slot (ViewingSlot with slot.viewings[].verifiedViewer)
+  Used both as a direct render target (POST /seller/viewings/slots → single slot created)
+  and included inside viewings-dashboard.njk for each slot in the list.
+#}
+<div class="border border-gray-200 rounded-md p-4" data-slot-id="{{ slot.id }}">
+  <div class="flex items-start justify-between gap-4">
+    {# Slot time and type #}
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="font-medium text-sm text-gray-900">
+          {{ slot.date | date }} · {{ slot.startTime }}–{{ slot.endTime }}
+        </span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+          {% if slot.status == 'available' %}bg-green-100 text-green-800
+          {% elif slot.status == 'booked' %}bg-blue-100 text-blue-800
+          {% elif slot.status == 'full' %}bg-orange-100 text-orange-800
+          {% elif slot.status == 'cancelled' %}bg-gray-100 text-gray-500
+          {% else %}bg-gray-100 text-gray-600{% endif %}">
+          {{ slot.status | t }}
+        </span>
+        {% if slot.slotType == 'group' %}
+        <span class="text-xs text-gray-500">
+          {{ slot.currentBookings }}/{{ slot.maxViewers }} {{ "booked" | t }}
+        </span>
+        {% endif %}
+      </div>
+
+      {# Booked viewers list #}
+      {% if slot.viewings and slot.viewings.length > 0 %}
+      <ul class="mt-2 space-y-1">
+        {% for viewing in slot.viewings %}
+        {% if viewing.status != 'cancelled' %}
+        <li class="flex items-center gap-3">
+          <span class="text-sm text-gray-700">{{ viewing.verifiedViewer.name }}</span>
+          <span class="text-xs text-gray-500">({{ viewing.verifiedViewer.viewerType | t }})</span>
+
+          {# Per-viewing status badge + actions #}
+          <span id="viewing-{{ viewing.id }}-status">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+              {% if viewing.status == 'scheduled' %}bg-blue-100 text-blue-700
+              {% elif viewing.status == 'completed' %}bg-green-100 text-green-700
+              {% elif viewing.status == 'no_show' %}bg-red-100 text-red-700
+              {% elif viewing.status == 'pending_otp' %}bg-yellow-100 text-yellow-700
+              {% else %}bg-gray-100 text-gray-500{% endif %}">
+              {{ viewing.status | t }}
+            </span>
+          </span>
+
+          {# Actions — only for scheduled viewings #}
+          {% if viewing.status == 'scheduled' or viewing.status == 'pending_otp' %}
+          <div id="viewing-{{ viewing.id }}-actions" class="flex items-center gap-2">
+            <button
+              hx-post="/seller/viewings/{{ viewing.id }}/complete"
+              hx-target="#viewing-{{ viewing.id }}-status"
+              hx-swap="outerHTML"
+              hx-confirm="{{ 'Mark this viewing as completed?' | t }}"
+              class="text-xs text-green-700 hover:text-green-900 font-medium">
+              {{ "Complete" | t }}
+            </button>
+            <button
+              hx-post="/seller/viewings/{{ viewing.id }}/no-show"
+              hx-target="#viewing-{{ viewing.id }}-status"
+              hx-swap="outerHTML"
+              hx-confirm="{{ 'Mark this viewer as a no-show?' | t }}"
+              class="text-xs text-red-600 hover:text-red-800 font-medium">
+              {{ "No-show" | t }}
+            </button>
+          </div>
+          {% endif %}
+
+          {# Feedback form — only for completed viewings without feedback #}
+          {% if viewing.status == 'completed' and not viewing.feedback %}
+          <div id="viewing-{{ viewing.id }}-feedback" class="mt-2 w-full">
+            <form
+              hx-post="/seller/viewings/{{ viewing.id }}/feedback"
+              hx-target="#viewing-{{ viewing.id }}-feedback"
+              hx-swap="outerHTML"
+              class="flex flex-col gap-2"
+            >
+              <textarea name="feedback" rows="2" maxlength="1000" required
+                placeholder="{{ 'Notes on this viewing…' | t }}"
+                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+              <div class="flex items-center gap-3">
+                <select name="interestRating" required
+                  class="px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
+                  <option value="">{{ "Interest (1–5)" | t }}</option>
+                  <option value="5">5 – {{ "Very interested" | t }}</option>
+                  <option value="4">4</option>
+                  <option value="3">3</option>
+                  <option value="2">2</option>
+                  <option value="1">1 – {{ "Not interested" | t }}</option>
+                </select>
+                <button type="submit"
+                  class="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition">
+                  {{ "Save Feedback" | t }}
+                </button>
+              </div>
+            </form>
+          </div>
+          {% endif %}
+        </li>
+        {% endif %}
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-xs text-gray-400 mt-1">{{ "No bookings yet" | t }}</p>
+      {% endif %}
+    </div>
+
+    {# Cancel slot button #}
+    {% if slot.status != 'cancelled' %}
+    <button
+      hx-delete="/seller/viewings/slots/{{ slot.id }}"
+      hx-target="[data-slot-id='{{ slot.id }}']"
+      hx-swap="outerHTML"
+      hx-confirm="{{ 'Cancel this slot and notify any booked viewers?' | t }}"
+      class="flex-shrink-0 text-xs text-red-600 hover:text-red-800 font-medium">
+      {{ "Cancel" | t }}
+    </button>
+    {% endif %}
+  </div>
+</div>

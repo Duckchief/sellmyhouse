@@ -56,10 +56,18 @@ financialRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/seller/financial-list', { reports });
       }
-      return res.json({ success: true, reports });
+      return res.render('pages/seller/financial');
     } catch (err) {
       next(err);
     }
+  },
+);
+
+financialRouter.get(
+  '/seller/financial/form',
+  requireAuth(),
+  (_req: Request, res: Response) => {
+    res.render('partials/seller/financial-form');
   },
 );
 

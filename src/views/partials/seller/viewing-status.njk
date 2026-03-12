@@ -1,0 +1,12 @@
+{#
+  Variables: viewingId (string), status ('no_show' | 'completed')
+  Micro-partial — replaces #viewing-{{ viewingId }}-status via outerHTML swap.
+#}
+<span id="viewing-{{ viewingId }}-status">
+  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+    {% if status == 'completed' %}bg-green-100 text-green-700
+    {% elif status == 'no_show' %}bg-red-100 text-red-700
+    {% else %}bg-gray-100 text-gray-600{% endif %}">
+    {{ status | t }}
+  </span>
+</span>

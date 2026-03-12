@@ -1,0 +1,11 @@
+<tr id="deletion-row-{{ requestId }}"
+    class="{% if executed %}bg-green-50{% else %}bg-red-50{% endif %}">
+  <td colspan="5" class="px-6 py-4 text-sm text-center
+    {% if executed %}text-green-700{% else %}text-red-700{% endif %}">
+  {% if executed %}
+    {{ "Deletion executed. Data has been permanently removed." | t }}
+  {% else %}
+    {{ "Failed to execute deletion." | t }}
+  {% endif %}
+  </td>
+</tr>

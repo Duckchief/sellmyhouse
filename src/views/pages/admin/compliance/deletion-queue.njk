@@ -1,0 +1,69 @@
+{% extends "layouts/admin.njk" %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">{{ "Data Deletion Queue" | t }}</h1>
+    <span class="px-3 py-1 bg-amber-100 text-amber-800 text-sm font-medium rounded-full">
+      {{ requests | length }} {{ "pending" | t }}
+    </span>
+  </div>
+
+  <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+    <p class="text-sm text-amber-800">
+      <strong>{{ "Review required." | t }}</strong>
+      {{ "These records have been flagged by the automated retention scanner. Verify there is no legal exception before approving deletion. Blocked records cannot be deleted until the retention period ends." | t }}
+    </p>
+  </div>
+
+  {% if requests | length == 0 %}
+    <div class="text-center py-12 text-gray-500">
+      <p>{{ "No records pending review." | t }}</p>
+    </div>
+  {% else %}
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Type" | t }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Retention Rule" | t }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Flagged" | t }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Status" | t }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Action" | t }}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200" id="deletion-queue-rows">
+          {% for req in requests %}
+          <tr id="deletion-row-{{ req.id }}">
+            <td class="px-6 py-4 text-sm font-mono text-gray-700">{{ req.targetType }}</td>
+            <td class="px-6 py-4 text-sm text-gray-700">{{ req.retentionRule }}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">{{ req.flaggedAt | date("DD MMM YYYY") }}</td>
+            <td class="px-6 py-4">
+              <span class="px-2 py-1 text-xs rounded-full
+                {% if req.status == 'blocked' %}bg-red-100 text-red-700
+                {% else %}bg-amber-100 text-amber-700{% endif %}">
+                {{ req.status }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              {% if req.status == 'blocked' %}
+                <span class="text-xs text-gray-400">{{ "Retention active" | t }}</span>
+              {% else %}
+                <button
+                  hx-post="/admin/compliance/deletion-queue/{{ req.id }}/approve"
+                  hx-confirm="{{ 'This will permanently delete personal data. This cannot be undone. Confirm?' | t }}"
+                  hx-target="#deletion-row-{{ req.id }}"
+                  hx-swap="outerHTML"
+                  class="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700">
+                  {{ "Approve Deletion" | t }}
+                </button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

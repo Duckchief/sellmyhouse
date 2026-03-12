@@ -482,6 +482,12 @@ export async function executeHardDelete(input: {
   });
 }
 
+// ─── Deletion Queue (called by admin service) ─────────────────────────────────
+
+export async function getDeletionQueue() {
+  return complianceRepo.findPendingDeletionRequests();
+}
+
 // ─── SP3: Agent Anonymisation ─────────────────────────────────────────────────
 
 export async function anonymiseAgent(input: {

@@ -375,3 +375,75 @@ adminRouter.post(
     }
   },
 );
+
+// ─── Compliance ───────────────────────────────────────────────
+
+// GET /admin/compliance/deletion-queue
+adminRouter.get(
+  '/admin/compliance/deletion-queue',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const requests = await adminService.getDeletionQueue();
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/compliance/deletion-queue-list', { requests });
+      }
+
+      return res.render('pages/admin/compliance/deletion-queue', {
+        requests,
+        title: 'Data Deletion Queue',
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /admin/compliance/deletion-queue/:requestId/approve
+adminRouter.post(
+  '/admin/compliance/deletion-queue/:requestId/approve',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const { requestId } = req.params;
+      const { reviewNotes } = req.body as { reviewNotes?: string };
+
+      await adminService.approveDeletion(requestId as string, user.id, reviewNotes);
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/compliance/deletion-row', {
+          executed: true,
+          requestId,
+        });
+      }
+
+      return res.redirect('/admin/compliance/deletion-queue');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /admin/agents/:agentId/anonymise
+adminRouter.post(
+  '/admin/agents/:agentId/anonymise',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const { agentId } = req.params;
+
+      await adminService.anonymiseAgentOnDeparture(agentId as string, user.id);
+
+      if (req.headers['hx-request']) {
+        return res.json({ success: true });
+      }
+
+      return res.redirect('/admin/team');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);

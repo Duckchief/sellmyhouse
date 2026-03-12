@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
 import * as adminRepo from './admin.repository';
+import * as complianceService from '../compliance/compliance.service';
 import * as auditService from '@/domains/shared/audit.service';
 import * as settingsRepo from '@/domains/shared/settings.repository';
 import * as notificationRepo from '@/domains/notification/notification.repository';
@@ -325,4 +326,23 @@ export async function triggerHdbSync(adminId: string): Promise<void> {
   syncService.sync().catch(() => {
     // HdbSyncService logs its own errors — nothing to do here
   });
+}
+
+export async function getDeletionQueue() {
+  return complianceService.getDeletionQueue();
+}
+
+export async function approveDeletion(
+  requestId: string,
+  adminId: string,
+  reviewNotes?: string,
+): Promise<void> {
+  await complianceService.executeHardDelete({ requestId, agentId: adminId, reviewNotes });
+}
+
+export async function anonymiseAgentOnDeparture(
+  agentId: string,
+  adminId: string,
+): Promise<void> {
+  await complianceService.anonymiseAgent({ agentId, requestedByAgentId: adminId });
 }

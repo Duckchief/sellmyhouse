@@ -1,3 +1,4 @@
+import { createId } from '@paralleldrive/cuid2';
 import * as propertyRepo from './property.repository';
 import * as auditService from '../shared/audit.service';
 import { NotFoundError, ForbiddenError, ValidationError } from '../shared/errors';
@@ -5,8 +6,25 @@ import { canTransitionListing } from './property.types';
 import type { CreatePropertyInput, UpdatePropertyInput } from './property.types';
 import { checkComplianceGate } from '@/domains/review/review.service';
 
+export function generatePropertySlug(block: string, street: string, town: string): string {
+  return `${block}-${street}-${town}`
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+async function buildUniqueSlug(baseSlug: string): Promise<string> {
+  const existing = await propertyRepo.findBySlug(baseSlug);
+  if (!existing) return baseSlug;
+  return `${baseSlug}-${createId().slice(0, 6)}`;
+}
+
 export async function createProperty(input: CreatePropertyInput) {
-  const property = await propertyRepo.create(input);
+  const baseSlug = generatePropertySlug(input.block, input.street, input.town);
+  const slug = await buildUniqueSlug(baseSlug);
+
+  const property = await propertyRepo.create({ ...input, slug });
   await propertyRepo.createListing(property.id);
 
   auditService.log({
@@ -84,6 +102,34 @@ export async function updateAskingPrice(propertyId: string, sellerId: string, ne
   });
 
   return updated;
+}
+
+export async function revertPropertyToDraft(propertyId: string): Promise<void> {
+  await propertyRepo.updatePropertyStatus(propertyId, 'draft');
+
+  const listing = await propertyRepo.findActiveListingForProperty(propertyId);
+  if (listing) {
+    await propertyRepo.updateListingStatus(listing.id, 'draft');
+  }
+
+  auditService.log({
+    action: 'property.reverted_to_draft',
+    entityType: 'property',
+    entityId: propertyId,
+    details: { reason: 'fallen_through' },
+  });
+}
+
+export async function backfillPropertySlugs(): Promise<number> {
+  const properties = await propertyRepo.findWithNullSlug();
+  let count = 0;
+  for (const p of properties) {
+    const baseSlug = generatePropertySlug(p.block, p.street, p.town);
+    const slug = await buildUniqueSlug(baseSlug);
+    await propertyRepo.updateSlug(p.id, slug);
+    count++;
+  }
+  return count;
 }
 
 export async function updateListingStatus(propertyId: string, newStatus: string) {

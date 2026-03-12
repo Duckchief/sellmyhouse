@@ -1,5 +1,6 @@
 import { prisma } from '@/infra/database/prisma';
 import type { SlotType, SlotStatus, ViewingStatus } from '@prisma/client';
+import { NotFoundError, ConflictError } from '@/domains/shared/errors';
 
 // ─── Slots ───────────────────────────────────────────────
 
@@ -60,6 +61,22 @@ export async function updateSlotStatus(
   return prisma.viewingSlot.update({ where: { id }, data });
 }
 
+export async function findActiveSlotsByPropertyId(propertyId: string) {
+  return prisma.viewingSlot.findMany({
+    where: {
+      propertyId,
+      status: { in: ['available', 'booked', 'full'] as SlotStatus[] },
+    },
+    include: {
+      viewings: {
+        where: { status: { in: ['scheduled', 'pending_otp'] as ViewingStatus[] } },
+        include: { verifiedViewer: true },
+      },
+      property: { select: { block: true, street: true, town: true } },
+    },
+  });
+}
+
 export async function cancelSlotAndViewings(slotId: string) {
   return prisma.$transaction(async (tx) => {
     // Cancel all viewings for this slot
@@ -101,11 +118,13 @@ export async function createViewingWithLock(data: {
       }[]
     >`SELECT id, current_bookings, max_viewers, slot_type, status FROM viewing_slots WHERE id = ${data.viewingSlotId} FOR UPDATE`;
 
-    if (!slot) throw new Error('Slot not found');
-    if (slot.status === 'cancelled') throw new Error('Slot is cancelled');
-    if (slot.status === 'full') throw new Error('Slot is full');
-    if (slot.slot_type === 'single' && slot.current_bookings >= 1) throw new Error('Slot is full');
-    if (slot.current_bookings >= slot.max_viewers) throw new Error('Slot is full');
+    if (!slot) throw new NotFoundError('ViewingSlot', data.viewingSlotId);
+    if (slot.status === 'cancelled') throw new ConflictError('Viewing slot has been cancelled');
+    if (slot.status === 'full') throw new ConflictError('Viewing slot is full');
+    if (slot.slot_type === 'single' && slot.current_bookings >= 1)
+      throw new ConflictError('Viewing slot is full');
+    if (slot.current_bookings >= slot.max_viewers)
+      throw new ConflictError('Viewing slot is full');
 
     // Create the viewing
     const viewing = await tx.viewing.create({ data });

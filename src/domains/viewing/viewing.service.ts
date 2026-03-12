@@ -158,6 +158,45 @@ export async function cancelSlot(slotId: string, sellerId: string) {
   });
 }
 
+export async function cancelSlotsForPropertyCascade(
+  propertyId: string,
+  agentId: string,
+): Promise<void> {
+  const slots = await viewingRepo.findActiveSlotsByPropertyId(propertyId);
+
+  for (const slot of slots) {
+    const property = (slot as { property: { block: string; street: string; town: string } })
+      .property;
+    const address = `${property.block} ${property.street}, ${property.town}`;
+    const date = `${slot.date.toISOString().split('T')[0]} ${slot.startTime}`;
+
+    // Notify each viewer with a booked/pending viewing before cancelling
+    for (const viewing of slot.viewings) {
+      const viewer = (viewing as { verifiedViewer: { id: string } }).verifiedViewer;
+      await notificationService.send(
+        {
+          recipientType: 'viewer',
+          recipientId: viewer.id,
+          templateName: 'viewing_cancelled',
+          templateData: { address, date },
+        },
+        agentId,
+      );
+    }
+
+    await viewingRepo.cancelSlotAndViewings(slot.id);
+  }
+
+  if (slots.length > 0) {
+    await auditService.log({
+      action: 'viewing.cascade_cancelled',
+      entityType: 'property',
+      entityId: propertyId,
+      details: { slotsCount: slots.length, reason: 'fallen_through', agentId },
+    });
+  }
+}
+
 // ─── Booking Flow ────────────────────────────────────────
 
 export async function initiateBooking(

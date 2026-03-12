@@ -8,6 +8,7 @@ import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import * as propertyService from '../property/property.service';
 import { HDB_TOWNS, HDB_FLAT_TYPES } from '../property/property.types';
 import * as contentService from '../content/content.service';
+import * as notificationService from '../notification/notification.service';
 
 export const sellerRouter = Router();
 
@@ -21,8 +22,7 @@ sellerRouter.use(
     try {
       res.locals.currentPath = req.path === '/' ? '/seller/dashboard' : `/seller${req.path}`;
       const user = req.user as AuthenticatedUser;
-      const notificationRepo = await import('../notification/notification.repository');
-      res.locals.unreadCount = await notificationRepo.countUnreadForRecipient('seller', user.id);
+      res.locals.unreadCount = await notificationService.countUnreadNotifications('seller', user.id);
       next();
     } catch (err) {
       next(err);
@@ -207,8 +207,7 @@ sellerRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const notificationRepo = await import('../notification/notification.repository');
-      const notifications = await notificationRepo.findUnreadForRecipient('seller', user.id);
+      const notifications = await notificationService.getUnreadNotifications('seller', user.id);
 
       if (req.headers['hx-request']) {
         return res.render('partials/seller/notification-list', { notifications });

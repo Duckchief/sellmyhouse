@@ -136,6 +136,101 @@ describe('viewing.service', () => {
     });
   });
 
+  // ─── cancelSlotsForPropertyCascade ─────────────────────
+
+  describe('cancelSlotsForPropertyCascade', () => {
+    it('cancels all active slots for the property', async () => {
+      mockedRepo.findActiveSlotsByPropertyId.mockResolvedValue([
+        {
+          id: 'slot-1',
+          propertyId: 'prop-1',
+          date: new Date('2026-04-15'),
+          startTime: '10:00',
+          property: { block: '123', street: 'Ang Mo Kio Ave 3', town: 'ANG MO KIO' },
+          viewings: [],
+        },
+        {
+          id: 'slot-2',
+          propertyId: 'prop-1',
+          date: new Date('2026-04-16'),
+          startTime: '11:00',
+          property: { block: '123', street: 'Ang Mo Kio Ave 3', town: 'ANG MO KIO' },
+          viewings: [],
+        },
+      ] as never);
+      mockedRepo.cancelSlotAndViewings.mockResolvedValue({ id: 'slot-1' } as never);
+
+      await viewingService.cancelSlotsForPropertyCascade('prop-1', 'agent-1');
+
+      expect(mockedRepo.cancelSlotAndViewings).toHaveBeenCalledTimes(2);
+      expect(mockedRepo.cancelSlotAndViewings).toHaveBeenCalledWith('slot-1');
+      expect(mockedRepo.cancelSlotAndViewings).toHaveBeenCalledWith('slot-2');
+    });
+
+    it('notifies each booked viewer before cancelling', async () => {
+      mockedRepo.findActiveSlotsByPropertyId.mockResolvedValue([
+        {
+          id: 'slot-1',
+          propertyId: 'prop-1',
+          date: new Date('2026-04-15'),
+          startTime: '10:00',
+          property: { block: '123', street: 'Ang Mo Kio Ave 3', town: 'ANG MO KIO' },
+          viewings: [
+            { verifiedViewer: { id: 'viewer-1' } },
+            { verifiedViewer: { id: 'viewer-2' } },
+          ],
+        },
+      ] as never);
+      mockedRepo.cancelSlotAndViewings.mockResolvedValue({ id: 'slot-1' } as never);
+
+      await viewingService.cancelSlotsForPropertyCascade('prop-1', 'agent-1');
+
+      expect(mockedNotification.send).toHaveBeenCalledTimes(2);
+      expect(mockedNotification.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipientType: 'viewer',
+          recipientId: 'viewer-1',
+          templateName: 'viewing_cancelled',
+        }),
+        'agent-1',
+      );
+    });
+
+    it('does nothing when there are no active slots', async () => {
+      mockedRepo.findActiveSlotsByPropertyId.mockResolvedValue([] as never);
+
+      await viewingService.cancelSlotsForPropertyCascade('prop-1', 'agent-1');
+
+      expect(mockedRepo.cancelSlotAndViewings).not.toHaveBeenCalled();
+      expect(mockedNotification.send).not.toHaveBeenCalled();
+      expect(mockedAudit.log).not.toHaveBeenCalled();
+    });
+
+    it('writes an audit log entry when slots are cancelled', async () => {
+      mockedRepo.findActiveSlotsByPropertyId.mockResolvedValue([
+        {
+          id: 'slot-1',
+          propertyId: 'prop-1',
+          date: new Date('2026-04-15'),
+          startTime: '10:00',
+          property: { block: '123', street: 'Ang Mo Kio Ave 3', town: 'ANG MO KIO' },
+          viewings: [],
+        },
+      ] as never);
+      mockedRepo.cancelSlotAndViewings.mockResolvedValue({ id: 'slot-1' } as never);
+
+      await viewingService.cancelSlotsForPropertyCascade('prop-1', 'agent-1');
+
+      expect(mockedAudit.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'viewing.cascade_cancelled',
+          entityType: 'property',
+          entityId: 'prop-1',
+        }),
+      );
+    });
+  });
+
   // ─── Booking Flow ──────────────────────────────────────
 
   describe('initiateBooking', () => {

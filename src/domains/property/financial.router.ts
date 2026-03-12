@@ -7,6 +7,8 @@ import {
 } from './financial.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
+import { logger } from '@/infra/logger';
+import * as auditService from '@/domains/shared/audit.service';
 
 export const financialRouter = Router();
 
@@ -31,8 +33,17 @@ financialRouter.post(
       });
 
       // Auto-generate narrative (fire-and-forget — doesn't block response)
-      financialService.generateNarrative(report.id).catch(() => {
-        // Narrative generation failure is non-critical
+      financialService.generateNarrative(report.id).catch((err: unknown) => {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        logger.error({ err, reportId: report.id }, 'Narrative generation failed');
+        auditService
+          .log({
+            action: 'financial.narrative_generation_failed',
+            entityType: 'financial_report',
+            entityId: report.id,
+            details: { error: errorMessage },
+          })
+          .catch(() => {}); // audit log failure must not propagate
       });
 
       if (req.headers['hx-request']) {
@@ -72,7 +83,8 @@ financialRouter.get(
   requireAuth(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const report = await financialService.getReport(req.params.id as string);
+      const user = req.user as AuthenticatedUser;
+      const report = await financialService.getReportForSeller(req.params.id as string, user.id);
 
       if (req.headers['hx-request']) {
         return res.render('partials/seller/financial-report', { report });

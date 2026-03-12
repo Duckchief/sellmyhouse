@@ -108,6 +108,25 @@ export const propertyRepository = {
       data: { photos: JSON.stringify(photos) },
     });
   },
+
+  async findBySlug(slug: string) {
+    return prisma.property.findUnique({ where: { slug } });
+  },
+
+  async updateSlug(id: string, slug: string) {
+    return prisma.property.update({ where: { id }, data: { slug } });
+  },
+
+  async findWithNullSlug() {
+    return prisma.property.findMany({ where: { slug: null } });
+  },
+
+  async updatePropertyStatus(id: string, status: string) {
+    return prisma.property.update({
+      where: { id },
+      data: { status: status as import('@prisma/client').$Enums.PropertyStatus },
+    });
+  },
 };
 
 // Named exports to match the function-based calling pattern in tests
@@ -122,3 +141,7 @@ export const findActiveListingForProperty =
   propertyRepository.findActiveListingForProperty.bind(propertyRepository);
 export const updateListingStatus = propertyRepository.updateListingStatus.bind(propertyRepository);
 export const updateListingPhotos = propertyRepository.updateListingPhotos.bind(propertyRepository);
+export const findBySlug = propertyRepository.findBySlug.bind(propertyRepository);
+export const updateSlug = propertyRepository.updateSlug.bind(propertyRepository);
+export const findWithNullSlug = propertyRepository.findWithNullSlug.bind(propertyRepository);
+export const updatePropertyStatus = propertyRepository.updatePropertyStatus.bind(propertyRepository);

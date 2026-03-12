@@ -5,6 +5,8 @@ import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as auditService from '@/domains/shared/audit.service';
 import * as portalService from '@/domains/property/portal.service';
+import * as propertyService from '@/domains/property/property.service';
+import * as viewingService from '@/domains/viewing/viewing.service';
 import { ValidationError, ConflictError } from '@/domains/shared/errors';
 
 jest.mock('../transaction.repository');
@@ -12,6 +14,8 @@ jest.mock('@/domains/shared/settings.service');
 jest.mock('@/domains/notification/notification.service');
 jest.mock('@/domains/shared/audit.service');
 jest.mock('@/domains/property/portal.service');
+jest.mock('@/domains/property/property.service');
+jest.mock('@/domains/viewing/viewing.service');
 jest.mock('@/infra/storage/local-storage', () => ({
   localStorage: {
     save: jest.fn().mockResolvedValue('invoices/tx-1/invoice-abc.pdf'),
@@ -26,6 +30,8 @@ const mockSettings = jest.mocked(settingsService);
 const mockNotification = jest.mocked(notificationService);
 const mockAudit = jest.mocked(auditService);
 const mockPortalService = jest.mocked(portalService);
+const mockPropertyService = jest.mocked(propertyService);
+const mockViewingService = jest.mocked(viewingService);
 
 function makeTransaction(overrides: Record<string, unknown> = {}) {
   return {
@@ -63,6 +69,8 @@ describe('transaction.service', () => {
     mockNotification.send.mockResolvedValue(undefined as never);
     mockSettings.getNumber.mockResolvedValue(21); // otp_exercise_days default
     mockSettings.get.mockResolvedValue('anthropic');
+    mockPropertyService.revertPropertyToDraft.mockResolvedValue(undefined as never);
+    mockViewingService.cancelSlotsForPropertyCascade.mockResolvedValue(undefined as never);
   });
 
   describe('createTransaction', () => {
@@ -215,6 +223,45 @@ describe('transaction.service', () => {
       });
 
       expect(mockPortalService.expirePortalListings).toHaveBeenCalledWith('property-1');
+    });
+
+    it('cancels viewing slots for the property when fallen_through', async () => {
+      const tx = makeTransaction({ status: 'option_issued' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'fallen_through',
+      } as never);
+      mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'fallen_through',
+        agentId: 'agent-1',
+      });
+
+      expect(mockViewingService.cancelSlotsForPropertyCascade).toHaveBeenCalledWith(
+        'property-1',
+        'agent-1',
+      );
+    });
+
+    it('reverts property and listing to draft when fallen_through', async () => {
+      const tx = makeTransaction({ status: 'option_issued' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'fallen_through',
+      } as never);
+      mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'fallen_through',
+        agentId: 'agent-1',
+      });
+
+      expect(mockPropertyService.revertPropertyToDraft).toHaveBeenCalledWith('property-1');
     });
 
     it('throws ValidationError when trying to regress transaction status', async () => {

@@ -1,4 +1,4 @@
-import { mapMcsToFrs, buildAddress } from '../review.repository';
+import { mapMcsToFrs, buildAddress, buildMarketContentLabel } from '../review.repository';
 
 describe('mapMcsToFrs', () => {
   it('maps published to sent', () => {
@@ -29,5 +29,15 @@ describe('buildAddress', () => {
 
   it('trims extra whitespace', () => {
     expect(buildAddress('Tampines', 'Tampines Ave 4', '456')).toBe('456 Tampines Ave 4, Tampines');
+  });
+});
+
+describe('buildMarketContentLabel', () => {
+  it('returns "Weekly Market Summary (period)" when town is ALL', () => {
+    expect(buildMarketContentLabel('ALL', 'ALL', '2026-W11')).toBe('Weekly Market Summary (2026-W11)');
+  });
+
+  it('returns town — flatType (period) for non-ALL records', () => {
+    expect(buildMarketContentLabel('TAMPINES', '4 ROOM', '2026-W11')).toBe('TAMPINES — 4 ROOM (2026-W11)');
   });
 });

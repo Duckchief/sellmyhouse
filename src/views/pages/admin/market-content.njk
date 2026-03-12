@@ -1,0 +1,25 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}{{ "Market Content" | t }} — Admin{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold">{{ "Market Content" | t }}</h1>
+  <form method="POST" action="/admin/content/market/run">
+    <button type="submit"
+      class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700">
+      {{ "Run Now" | t }}
+    </button>
+  </form>
+</div>
+
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded p-3 mb-4">
+  <p class="text-red-700 text-sm">{{ error }}</p>
+</div>
+{% endif %}
+
+<div id="market-content-list">
+  {% include "partials/admin/market-content-list.njk" %}
+</div>
+{% endblock %}

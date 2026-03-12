@@ -1,0 +1,81 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}{{ "Market Content" | t }} {{ record.period }} — Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/admin/content/market" class="text-indigo-600 hover:underline text-sm">← {{ "Market Content" | t }}</a>
+    <h1 class="text-2xl font-bold">{{ record.period }}</h1>
+    <span class="px-2 py-0.5 rounded text-xs font-medium
+      {% if record.status == 'approved' %}bg-green-100 text-green-800
+      {% elif record.status == 'pending_review' %}bg-yellow-100 text-yellow-800
+      {% elif record.status == 'rejected' %}bg-red-100 text-red-700
+      {% else %}bg-gray-100 text-gray-700{% endif %}">
+      {{ record.status | replace('_', ' ') }}
+    </span>
+  </div>
+
+  {% if record.aiNarrative %}
+  <div class="mb-6">
+    <h2 class="text-base font-semibold mb-2">{{ "Narrative" | t }}</h2>
+    <p class="text-sm text-gray-700 bg-gray-50 rounded p-4">{{ record.aiNarrative }}</p>
+  </div>
+  {% endif %}
+
+  {% if record.tiktokFormat %}
+  <div class="mb-4">
+    <h2 class="text-base font-semibold mb-2">{{ "TikTok" | t }}
+      <span class="text-xs font-normal text-gray-400 ml-1">≤ 150 chars</span>
+    </h2>
+    <p class="text-sm text-gray-700 bg-gray-50 rounded p-4 font-mono whitespace-pre-wrap">{{ record.tiktokFormat }}</p>
+  </div>
+  {% endif %}
+
+  {% if record.instagramFormat %}
+  <div class="mb-4">
+    <h2 class="text-base font-semibold mb-2">{{ "Instagram" | t }}
+      <span class="text-xs font-normal text-gray-400 ml-1">≤ 300 chars</span>
+    </h2>
+    <p class="text-sm text-gray-700 bg-gray-50 rounded p-4 font-mono whitespace-pre-wrap">{{ record.instagramFormat }}</p>
+  </div>
+  {% endif %}
+
+  {% if record.linkedinFormat %}
+  <div class="mb-4">
+    <h2 class="text-base font-semibold mb-2">{{ "LinkedIn" | t }}
+      <span class="text-xs font-normal text-gray-400 ml-1">≤ 700 chars</span>
+    </h2>
+    <p class="text-sm text-gray-700 bg-gray-50 rounded p-4 font-mono whitespace-pre-wrap">{{ record.linkedinFormat }}</p>
+  </div>
+  {% endif %}
+
+  <div class="mb-6">
+    <h2 class="text-base font-semibold mb-2">{{ "Raw Aggregation Data" | t }}</h2>
+    <pre class="text-xs bg-gray-50 rounded p-4 overflow-auto">{{ record.rawData | dump(2) }}</pre>
+  </div>
+
+  {% if record.status == 'pending_review' %}
+  <div class="flex gap-3 mt-6">
+    <form method="POST" action="/admin/content/market/{{ record.id }}/approve">
+      <button type="submit"
+        class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">
+        {{ "Approve" | t }}
+      </button>
+    </form>
+    <form method="POST" action="/admin/content/market/{{ record.id }}/reject">
+      <button type="submit"
+        class="bg-red-600 text-white px-4 py-2 rounded text-sm hover:bg-red-700">
+        {{ "Reject" | t }}
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if record.approvedAt %}
+  <p class="text-xs text-gray-400 mt-4">
+    {{ "Approved" | t }} {{ record.approvedAt | date("D MMM YYYY HH:mm") }}
+  </p>
+  {% endif %}
+</div>
+{% endblock %}

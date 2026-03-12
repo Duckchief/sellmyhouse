@@ -6,6 +6,7 @@ import { logger } from './infra/logger';
 import { registerJob, startJobs } from './infra/jobs/runner';
 import { HdbSyncService } from './domains/hdb/sync.service';
 import { registerViewingJobs } from './domains/viewing/viewing.jobs';
+import { registerContentJobs } from './domains/content/content.jobs';
 import { runRetentionScan } from './infra/jobs/retention.job';
 
 const app = createApp();
@@ -23,6 +24,7 @@ registerJob(
 );
 
 registerViewingJobs();
+registerContentJobs();
 
 // Register retention job (Saturday midnight SGT, configurable via SystemSetting 'retention_schedule')
 registerJob(

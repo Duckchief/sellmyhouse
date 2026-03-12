@@ -12,7 +12,8 @@ import {
   type TimelineMilestone,
   type DocumentChecklistItem,
 } from './seller.types';
-import type { Property, VideoTutorial } from '@prisma/client';
+import * as contentService from '@/domains/content/content.service';
+import type { Property } from '@prisma/client';
 
 export async function getOnboardingStatus(sellerId: string): Promise<OnboardingStatus> {
   const seller = await sellerRepo.findById(sellerId);
@@ -114,14 +115,8 @@ export async function getMyData(sellerId: string): Promise<SellerMyData> {
   };
 }
 
-export async function getTutorialsGrouped(): Promise<Record<string, VideoTutorial[]>> {
-  const tutorials = await sellerRepo.findTutorialsGroupedByCategory();
-
-  return tutorials.reduce((acc: Record<string, VideoTutorial[]>, t) => {
-    if (!acc[t.category]) acc[t.category] = [];
-    acc[t.category].push(t);
-    return acc;
-  }, {});
+export async function getTutorialsGrouped() {
+  return contentService.getTutorialsGrouped();
 }
 
 export function getTimelineMilestones(

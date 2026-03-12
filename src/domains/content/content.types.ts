@@ -6,7 +6,7 @@ export type VideoCategory = 'photography' | 'forms' | 'process' | 'financial';
 
 export interface TutorialCreateInput {
   title: string;
-  slug: string;
+  slug?: string;
   description?: string;
   youtubeUrl: string;
   category: VideoCategory;
@@ -28,6 +28,14 @@ export interface ReorderItem {
 }
 
 // ─── Market Content ───────────────────────────────────────────────────────────
+
+/** Minimal HDB transaction shape used by aggregation (compatible with Prisma.Decimal) */
+export interface HdbTransactionPartial {
+  month: string;
+  town: string;
+  flatType: string;
+  resalePrice: { toNumber(): number };
+}
 
 export type MarketContentStatus = 'ai_generated' | 'pending_review' | 'approved' | 'rejected' | 'published';
 

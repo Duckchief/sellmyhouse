@@ -36,8 +36,3 @@ export async function getConsentHistory(sellerId: string) {
   });
 }
 
-export async function findTutorialsGroupedByCategory() {
-  return prisma.videoTutorial.findMany({
-    orderBy: [{ category: 'asc' }, { orderIndex: 'asc' }],
-  });
-}

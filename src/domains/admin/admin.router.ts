@@ -3,8 +3,11 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import * as adminService from './admin.service';
 import { validateAgentCreate, validateSettingUpdate, validateAssign } from './admin.validator';
+import { validateTutorialCreate, validateTutorialUpdate } from '@/domains/content/content.validator';
+import * as contentService from '@/domains/content/content.service';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
-import { NotFoundError } from '@/domains/shared/errors';
+import { NotFoundError, ConflictError } from '@/domains/shared/errors';
+import { logger } from '@/infra/logger';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 
 export const adminRouter = Router();
@@ -442,6 +445,214 @@ adminRouter.post(
       }
 
       return res.redirect('/admin/team');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// ─── Video Tutorial Management ───────────────────────────────────────────────
+
+// IMPORTANT: /reorder must be registered before /:id routes to avoid
+// "reorder" being matched as an id parameter.
+
+adminRouter.post(
+  '/admin/tutorials/reorder',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const raw = req.body.items as Array<{ id: string; orderIndex: string }> | undefined;
+      const items = (raw ?? []).map((item) => ({
+        id: item.id,
+        orderIndex: parseInt(item.orderIndex, 10),
+      }));
+      await contentService.reorderTutorials(items);
+      if (req.headers['hx-request']) {
+        return res.status(200).send('');
+      }
+      return res.redirect('/admin/tutorials');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+adminRouter.get(
+  '/admin/tutorials',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const tutorials = await contentService.getTutorialsGrouped();
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/tutorial-list', { tutorials });
+      }
+      return res.render('pages/admin/tutorials', { tutorials });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+adminRouter.get(
+  '/admin/tutorials/new',
+  ...adminAuth,
+  async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      return res.render('pages/admin/tutorial-form', { tutorial: null, errors: [] });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/tutorials',
+  ...adminAuth,
+  ...validateTutorialCreate,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).render('pages/admin/tutorial-form', {
+          tutorial: null,
+          errors: errors.array(),
+          values: req.body,
+        });
+      }
+      await contentService.createTutorial({
+        title: req.body.title as string,
+        slug: req.body.slug as string | undefined,
+        description: req.body.description as string | undefined,
+        youtubeUrl: req.body.youtubeUrl as string,
+        category: req.body.category as 'photography' | 'forms' | 'process' | 'financial',
+        orderIndex: req.body.orderIndex !== undefined ? Number(req.body.orderIndex) : 0,
+      });
+      return res.redirect('/admin/tutorials');
+    } catch (err) {
+      if (err instanceof ConflictError) {
+        return res.status(409).render('pages/admin/tutorial-form', {
+          tutorial: null,
+          errors: [{ msg: err.message }],
+          values: req.body,
+        });
+      }
+      return next(err);
+    }
+  },
+);
+
+adminRouter.get(
+  '/admin/tutorials/:id/edit',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const tutorial = await contentService.getTutorialById(req.params['id'] as string);
+      return res.render('pages/admin/tutorial-form', { tutorial, errors: [] });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/tutorials/:id',
+  ...adminAuth,
+  ...validateTutorialUpdate,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const tutorial = await contentService.getTutorialById(req.params['id'] as string);
+        return res.status(400).render('pages/admin/tutorial-form', {
+          tutorial,
+          errors: errors.array(),
+          values: req.body,
+        });
+      }
+      await contentService.updateTutorial(req.params['id'] as string, {
+        title: req.body.title as string,
+        slug: req.body.slug as string | undefined,
+        description: req.body.description as string | undefined,
+        youtubeUrl: req.body.youtubeUrl as string,
+        category: req.body.category as 'photography' | 'forms' | 'process' | 'financial',
+        orderIndex: req.body.orderIndex !== undefined ? Number(req.body.orderIndex) : undefined,
+      });
+      return res.redirect('/admin/tutorials');
+    } catch (err) {
+      if (err instanceof ConflictError) {
+        return res.status(409).render('pages/admin/tutorial-form', {
+          tutorial: { id: req.params['id'] as string },
+          errors: [{ msg: err.message }],
+          values: req.body,
+        });
+      }
+      return next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/tutorials/:id/delete',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await contentService.deleteTutorial(req.params['id'] as string);
+      return res.redirect('/admin/tutorials');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// ─── Market Content ───────────────────────────────────────────────────────────
+
+// POST /run MUST be before /:id to avoid "run" being treated as an id param
+adminRouter.post(
+  '/admin/content/market/run',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const period = contentService.getIsoWeekPeriod();
+      const result = await contentService.generateMarketContent(period);
+      if (!result) {
+        return res.redirect('/admin/content/market?notice=no_data');
+      }
+      return res.redirect('/admin/content/market');
+    } catch (err) {
+      if (err instanceof ConflictError) {
+        logger.warn({ err }, 'Market content run blocked: duplicate period');
+        const records = await contentService.listMarketContent();
+        return res.status(409).render('pages/admin/market-content', { records, error: err.message });
+      }
+      return next(err);
+    }
+  },
+);
+
+adminRouter.get(
+  '/admin/content/market',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const records = await contentService.listMarketContent();
+      const notice = req.query['notice'] === 'no_data' ? 'Insufficient HDB data for the current period.' : null;
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/market-content-list', { records });
+      }
+      return res.render('pages/admin/market-content', { records, error: notice });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+adminRouter.get(
+  '/admin/content/market/:id',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const record = await contentService.getMarketContentById(req.params['id'] as string);
+      return res.render('pages/admin/market-content-detail', { record });
     } catch (err) {
       return next(err);
     }

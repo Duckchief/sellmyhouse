@@ -2,7 +2,9 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import * as agentService from './agent.service';
 import * as agentRepo from './agent.repository';
+import * as caseFlagService from '@/domains/seller/case-flag.service';
 import { validateSellerListQuery } from './agent.validator';
+import { validateCreateCaseFlag, validateUpdateCaseFlag } from '@/domains/seller/case-flag.validator';
 import { processCorrectionValidator } from '../compliance/compliance.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import { ValidationError } from '@/domains/shared/errors';
@@ -226,6 +228,56 @@ agentRouter.post(
       return res.redirect('/agent/corrections');
     } catch (err) {
       return next(err);
+    }
+  },
+);
+
+// POST /agent/sellers/:id/case-flags — agent creates case flag
+agentRouter.post(
+  '/agent/sellers/:id/case-flags',
+  ...agentAuth,
+  ...validateCreateCaseFlag,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+      const user = req.user as AuthenticatedUser;
+      const flag = await caseFlagService.createCaseFlag({
+        sellerId: req.params['id'] as string,
+        flagType: req.body.flagType,
+        description: req.body.description as string,
+        agentId: user.id,
+      });
+
+      res.status(201).json({ flag });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// PUT /agent/sellers/:id/case-flags/:flagId — agent updates case flag
+agentRouter.put(
+  '/agent/sellers/:id/case-flags/:flagId',
+  ...agentAuth,
+  ...validateUpdateCaseFlag,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+      const user = req.user as AuthenticatedUser;
+      const flag = await caseFlagService.updateCaseFlag({
+        flagId: req.params['flagId'] as string,
+        status: req.body.status,
+        guidanceProvided: req.body.guidanceProvided as string | undefined,
+        agentId: user.id,
+      });
+
+      res.status(200).json({ flag });
+    } catch (err) {
+      next(err);
     }
   },
 );

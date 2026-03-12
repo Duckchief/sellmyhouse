@@ -265,18 +265,18 @@ describe('viewing.service', () => {
     it('rejects duplicate booking', async () => {
       mockedRepo.findDuplicateBooking.mockResolvedValue({ id: 'existing' } as never);
 
-      await expect(viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' })).rejects.toThrow(
-        ConflictError,
-      );
+      await expect(
+        viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' }),
+      ).rejects.toThrow(ConflictError);
     });
 
     it('rejects when daily booking limit exceeded', async () => {
       mockedRepo.findDuplicateBooking.mockResolvedValue(null);
       mockedRepo.countBookingsToday.mockResolvedValue(BOOKINGS_PER_PHONE_PER_DAY);
 
-      await expect(viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' })).rejects.toThrow(
-        ValidationError,
-      );
+      await expect(
+        viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('creates booking with OTP for new viewer', async () => {

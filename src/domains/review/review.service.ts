@@ -9,7 +9,11 @@ import {
 } from './review.types';
 import type { EntityType, ComplianceGate, ReviewStatus } from './review.types';
 
-export function validateTransition(from: ReviewStatus, to: ReviewStatus, entityType: EntityType): void {
+export function validateTransition(
+  from: ReviewStatus,
+  to: ReviewStatus,
+  entityType: EntityType,
+): void {
   let allowed: ReviewStatus[];
   if (entityType === 'weekly_update') {
     allowed = (WEEKLY_UPDATE_TRANSITIONS as Record<string, ReviewStatus[]>)[from] ?? [];

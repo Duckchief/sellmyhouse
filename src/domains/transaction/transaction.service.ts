@@ -341,7 +341,11 @@ export async function uploadInvoice(input: UploadInvoiceInput) {
 
   // Always read amounts from SystemSetting — never rely on schema defaults.
   // Throws AppError('Setting not found: ...') if keys are missing.
-  const { amount: commissionAmount, gstAmount, total: totalAmount } = await settingsService.getCommission();
+  const {
+    amount: commissionAmount,
+    gstAmount,
+    total: totalAmount,
+  } = await settingsService.getCommission();
 
   const invoice = await txRepo.createCommissionInvoice({
     transactionId: input.transactionId,

@@ -243,6 +243,7 @@ enum DeletionTargetType {
 }
 
 enum DeletionRequestStatus {
+  blocked
   flagged
   pending_review
   approved

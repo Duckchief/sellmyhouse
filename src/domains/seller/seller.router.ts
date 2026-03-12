@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
+import { body, validationResult } from 'express-validator';
 import * as sellerService from './seller.service';
 import * as caseFlagService from './case-flag.service';
 import { validateOnboardingStep } from './seller.validator';
@@ -279,6 +279,56 @@ sellerRouter.get('/seller/tutorials', async (req: Request, res: Response, next: 
     next(err);
   }
 });
+
+// GET /seller/settings — settings page
+sellerRouter.get('/seller/settings', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user as AuthenticatedUser;
+    const settings = await sellerService.getSellerSettings(user.id);
+
+    if (req.headers['hx-request']) {
+      return res.render('partials/seller/settings-notifications', { settings });
+    }
+    res.render('pages/seller/settings', { settings });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /seller/settings/notifications — update notification preference
+const validateNotificationPreference = [
+  body('preference')
+    .isIn(['whatsapp_and_email', 'email_only'])
+    .withMessage('preference must be whatsapp_and_email or email_only'),
+];
+
+sellerRouter.put(
+  '/seller/settings/notifications',
+  ...validateNotificationPreference,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+      const user = req.user as AuthenticatedUser;
+      const updated = await sellerService.updateNotificationPreference({
+        sellerId: user.id,
+        preference: req.body.preference as 'whatsapp_and_email' | 'email_only',
+        agentId: user.id,
+      });
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/seller/settings-notifications', {
+          settings: updated,
+          successMessage: true,
+        });
+      }
+      res.redirect('/seller/settings');
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // Case flags — view special circumstances and guidance
 sellerRouter.get('/seller/case-flags', async (req: Request, res: Response, next: NextFunction) => {

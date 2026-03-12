@@ -247,7 +247,9 @@ export async function getSellerPersonalData(sellerId: string) {
 
 // ─── Retention Scanning ───────────────────────────────────────────────────────
 
-export async function findLeadsForRetention(cutoffDate: Date) {
+export async function findLeadsForRetention(
+  cutoffDate: Date,
+): Promise<{ id: string; name: string; updatedAt: Date }[]> {
   // Leads (no transaction) with no activity since cutoffDate
   return prisma.seller.findMany({
     where: {
@@ -259,19 +261,22 @@ export async function findLeadsForRetention(cutoffDate: Date) {
   });
 }
 
-export async function findServiceWithdrawnForDeletion(cutoffDate: Date) {
-  // Sellers with service consent withdrawn > 30 days ago and no transactions
+export async function findServiceWithdrawnForDeletion(
+  cutoffDate: Date,
+): Promise<{ id: string; name: string; consentWithdrawnAt: Date | null }[]> {
   return prisma.seller.findMany({
     where: {
       consentService: false,
+      consentWithdrawnAt: { lt: cutoffDate, not: null },
       transactions: { none: {} },
-      updatedAt: { lt: cutoffDate },
     },
-    select: { id: true, name: true, updatedAt: true },
+    select: { id: true, name: true, consentWithdrawnAt: true },
   });
 }
 
-export async function findTransactionsForRetention(cutoffDate: Date) {
+export async function findTransactionsForRetention(
+  cutoffDate: Date,
+): Promise<{ id: string; sellerId: string; completionDate: Date | null }[]> {
   // Completed transactions with completion date > 5 years ago
   return prisma.transaction.findMany({
     where: {
@@ -282,7 +287,9 @@ export async function findTransactionsForRetention(cutoffDate: Date) {
   });
 }
 
-export async function findCddRecordsForRetention(cutoffDate: Date) {
+export async function findCddRecordsForRetention(
+  cutoffDate: Date,
+): Promise<{ id: string; subjectId: string; documents: unknown; verifiedAt: Date | null }[]> {
   // CDD records with verifiedAt > 5 years ago and documents still on disk
   return prisma.cddRecord.findMany({
     where: {
@@ -293,7 +300,9 @@ export async function findCddRecordsForRetention(cutoffDate: Date) {
   });
 }
 
-export async function findConsentRecordsForDeletion(cutoffDate: Date) {
+export async function findConsentRecordsForDeletion(
+  cutoffDate: Date,
+): Promise<{ id: string; subjectId: string; consentWithdrawnAt: Date | null }[]> {
   // Withdrawn consent records older than 1 year post-withdrawal
   return prisma.consentRecord.findMany({
     where: {
@@ -313,7 +322,17 @@ export async function findExistingDeletionRequest(
   });
 }
 
-export async function findStaleCorrectionRequests(cutoffDate: Date) {
+export async function findStaleCorrectionRequests(
+  cutoffDate: Date,
+): Promise<
+  {
+    id: string;
+    sellerId: string;
+    fieldName: string;
+    createdAt: Date;
+    seller: { agentId: string | null } | null;
+  }[]
+> {
   return prisma.dataCorrectionRequest.findMany({
     where: {
       status: { in: ['pending', 'in_progress'] },
@@ -336,20 +355,12 @@ export async function hardDeleteSeller(sellerId: string): Promise<void> {
   await prisma.seller.delete({ where: { id: sellerId } });
 }
 
-export async function hardDeleteCddDocuments(
-  cddRecordId: string,
-  documentPaths: string[],
-): Promise<void> {
-  // Removes document file paths from the JSON array — marks them as deleted
-  const deletedAt = new Date().toISOString();
-  const updatedDocs = documentPaths.map((path) => ({
-    deletedFromServer: true,
-    deletedAt,
-    originalPath: path,
-  }));
+export async function hardDeleteCddDocuments(cddRecordId: string): Promise<void> {
+  // Physical files already deleted by service via fs.unlink() before this is called
+  // Clear the documents JSON to empty array — no PII retained
   await prisma.cddRecord.update({
     where: { id: cddRecordId },
-    data: { documents: updatedDocs },
+    data: { documents: [] },
   });
 }
 
@@ -375,7 +386,9 @@ export async function anonymiseAgentRecord(agentId: string): Promise<void> {
   });
 }
 
-export async function findAgentById(agentId: string) {
+export async function findAgentById(
+  agentId: string,
+): Promise<{ id: string; name: string; email: string; phone: string; isActive: boolean } | null> {
   return prisma.agent.findUnique({
     where: { id: agentId },
     select: { id: true, name: true, email: true, phone: true, isActive: true },

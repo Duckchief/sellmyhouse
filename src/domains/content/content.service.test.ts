@@ -308,6 +308,82 @@ describe('generateMarketContent', () => {
       expect.objectContaining({ period: '2026-W11', town: 'ALL', flatType: 'ALL' }),
     );
   });
+
+  it('calls the AI facade with the period and aggregated HDB insights serialized in the prompt', async () => {
+    mockedRepo.findMarketContentByPeriod.mockResolvedValue(null);
+    // 10 transactions split across two months so the trend computation has both older/recent buckets.
+    // 2025-09: 5 × TAMPINES 4-ROOM @500k  →  2026-01: 5 × BISHAN 4-ROOM @700k
+    const txns = [
+      ...Array.from({ length: 5 }, () => makeTxn({ month: '2025-09', town: 'TAMPINES', flatType: '4 ROOM', resalePrice: 500_000 })),
+      ...Array.from({ length: 5 }, () => makeTxn({ month: '2026-01', town: 'BISHAN',   flatType: '4 ROOM', resalePrice: 700_000 })),
+    ];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockedRepo.findHdbTransactionsForMonths.mockResolvedValue(txns as any);
+    mockedAi.generateText.mockResolvedValue({ text: '{"narrative":"","tiktok":"","instagram":"","linkedin":""}', provider: 'stub', model: 'stub' });
+    mockedRepo.createMarketContent.mockResolvedValue({ id: 'mc-1', status: 'pending_review' } as MarketContent);
+
+    await contentService.generateMarketContent('2026-W11');
+
+    expect(mockedAi.generateText).toHaveBeenCalledTimes(1);
+    const prompt = mockedAi.generateText.mock.calls[0][0] as string;
+
+    // Prompt must embed the period
+    expect(prompt).toContain('2026-W11');
+    // Prompt must contain both top towns (BISHAN has higher median → listed first)
+    expect(prompt).toContain('"BISHAN"');
+    expect(prompt).toContain('"TAMPINES"');
+    // Prompt must reflect the rising 4-ROOM trend (40 % change: 500k → 700k)
+    expect(prompt).toContain('"rising"');
+    expect(prompt).toContain('40');
+    // Prompt must note zero million-dollar transactions
+    expect(prompt).toContain('"count": 0');
+  });
+
+  it('stores all AI response fields — narrative, social formats trimmed to char limits, provider, model and raw insights', async () => {
+    mockedRepo.findMarketContentByPeriod.mockResolvedValue(null);
+    const txns = [
+      ...Array.from({ length: 5 }, () => makeTxn({ month: '2025-09', town: 'TAMPINES', flatType: '4 ROOM', resalePrice: 500_000 })),
+      ...Array.from({ length: 5 }, () => makeTxn({ month: '2026-01', town: 'BISHAN',   flatType: '4 ROOM', resalePrice: 700_000 })),
+    ];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockedRepo.findHdbTransactionsForMonths.mockResolvedValue(txns as any);
+
+    const overlong = 'X'.repeat(800); // exceeds tiktok(150), instagram(300) and linkedin(700) limits
+    mockedAi.generateText.mockResolvedValue({
+      text: JSON.stringify({
+        narrative: 'BISHAN leads with $700k median. 4-room flats rose 40%.',
+        tiktok: overlong,     // trimmed to 150
+        instagram: overlong,  // trimmed to 300
+        linkedin: overlong,   // trimmed to 700
+      }),
+      provider: 'anthropic',
+      model: 'claude-3-5-sonnet',
+    });
+    mockedRepo.createMarketContent.mockResolvedValue({ id: 'mc-1', status: 'pending_review' } as MarketContent);
+
+    await contentService.generateMarketContent('2026-W11');
+
+    expect(mockedRepo.createMarketContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // AI text fields
+        aiNarrative:     'BISHAN leads with $700k median. 4-room flats rose 40%.',
+        tiktokFormat:    'X'.repeat(150),
+        instagramFormat: 'X'.repeat(300),
+        linkedinFormat:  'X'.repeat(700),
+        aiProvider:      'anthropic',
+        aiModel:         'claude-3-5-sonnet',
+        // rawData must be the computed insights object, not raw transaction rows
+        rawData: {
+          topTowns: [
+            { town: 'BISHAN',    medianPrice: 700_000, transactionCount: 5 },
+            { town: 'TAMPINES',  medianPrice: 500_000, transactionCount: 5 },
+          ],
+          millionDollar: { count: 0, examples: [] },
+          trends: [{ flatType: '4 ROOM', direction: 'rising', changePercent: 40 }],
+        },
+      }),
+    );
+  });
 });
 
 describe('approveMarketContent', () => {

@@ -33,8 +33,9 @@ export async function checkDncAllowed(
     return { allowed: false, reason: 'Seller has not given marketing consent' };
   }
 
-  // TODO: Integrate real Singapore DNC registry API check
-  // For now, consent flags serve as the gate.
+  // TODO: Integrate Singapore DNC Registry API before enabling
+  // outbound marketing at scale. Currently always returns
+  // { blocked: false }. Tracked in [your issue tracker].
   return { allowed: true };
 }
 

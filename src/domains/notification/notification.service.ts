@@ -32,7 +32,9 @@ async function checkMarketingConsent(recipientId: string, recipientType: string)
 }
 
 export async function checkDnc(_phone: string): Promise<DncCheckResult> {
-  // TODO: Integrate with Singapore DNC registry API
+  // TODO: Integrate Singapore DNC Registry API before enabling
+  // outbound marketing at scale. Currently always returns
+  // { blocked: false }. Tracked in [your issue tracker].
   return { blocked: false };
 }
 

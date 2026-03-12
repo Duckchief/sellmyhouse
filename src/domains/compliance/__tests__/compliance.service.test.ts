@@ -137,3 +137,125 @@ describe('withdrawConsent', () => {
     );
   });
 });
+
+describe('createCorrectionRequest', () => {
+  it('creates a correction request with status pending', async () => {
+    mockRepo.createCorrectionRequest.mockResolvedValue({ id: 'corr1', status: 'pending' } as never);
+    mockAudit.log.mockResolvedValue(undefined);
+
+    const result = await complianceService.createCorrectionRequest({
+      sellerId: 'seller1',
+      fieldName: 'name',
+      currentValue: 'Old Name',
+      requestedValue: 'New Name',
+      reason: 'Legal name change',
+    });
+
+    expect(mockRepo.createCorrectionRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sellerId: 'seller1',
+        fieldName: 'name',
+        requestedValue: 'New Name',
+      }),
+    );
+    expect(result.id).toBe('corr1');
+  });
+
+  it('logs data_correction.requested audit event', async () => {
+    mockRepo.createCorrectionRequest.mockResolvedValue({ id: 'corr1' } as never);
+    mockAudit.log.mockResolvedValue(undefined);
+
+    await complianceService.createCorrectionRequest({
+      sellerId: 'seller1',
+      fieldName: 'email',
+      requestedValue: 'new@email.com',
+    });
+
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'data_correction.requested' }),
+    );
+  });
+});
+
+describe('processCorrectionRequest — approve', () => {
+  it('auto-applies the change for eligible fields (name, email, phone)', async () => {
+    mockRepo.findCorrectionRequest.mockResolvedValue({
+      id: 'corr1',
+      sellerId: 'seller1',
+      fieldName: 'name',
+      requestedValue: 'New Name',
+      status: 'pending',
+    } as never);
+    mockRepo.updateCorrectionRequest.mockResolvedValue({ id: 'corr1', status: 'completed' } as never);
+    mockRepo.updateSellerField.mockResolvedValue(undefined);
+    mockAudit.log.mockResolvedValue(undefined);
+
+    await complianceService.processCorrectionRequest({
+      requestId: 'corr1',
+      agentId: 'agent1',
+      decision: 'approve',
+    });
+
+    expect(mockRepo.updateCorrectionRequest).toHaveBeenCalledWith(
+      'corr1',
+      expect.objectContaining({ status: 'completed' }),
+    );
+    expect(mockRepo.updateSellerField).toHaveBeenCalledWith('seller1', 'name', 'New Name');
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'data_correction.processed' }),
+    );
+  });
+
+  it('marks as completed without auto-apply for manual fields (nricLast4)', async () => {
+    mockRepo.findCorrectionRequest.mockResolvedValue({
+      id: 'corr1',
+      sellerId: 'seller1',
+      fieldName: 'nricLast4',
+      requestedValue: '123A',
+      status: 'pending',
+    } as never);
+    mockRepo.updateCorrectionRequest.mockResolvedValue({ id: 'corr1', status: 'completed' } as never);
+    mockAudit.log.mockResolvedValue(undefined);
+
+    await complianceService.processCorrectionRequest({
+      requestId: 'corr1',
+      agentId: 'agent1',
+      decision: 'approve',
+      processNotes: 'Re-verified identity via video call',
+    });
+
+    expect(mockRepo.updateCorrectionRequest).toHaveBeenCalled();
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'data_correction.processed' }),
+    );
+  });
+});
+
+describe('processCorrectionRequest — reject', () => {
+  it('updates status to rejected with process notes', async () => {
+    mockRepo.findCorrectionRequest.mockResolvedValue({
+      id: 'corr1',
+      sellerId: 'seller1',
+      fieldName: 'name',
+      requestedValue: 'New Name',
+      status: 'pending',
+    } as never);
+    mockRepo.updateCorrectionRequest.mockResolvedValue({ id: 'corr1', status: 'rejected' } as never);
+    mockAudit.log.mockResolvedValue(undefined);
+
+    await complianceService.processCorrectionRequest({
+      requestId: 'corr1',
+      agentId: 'agent1',
+      decision: 'reject',
+      processNotes: 'Cannot verify identity claim',
+    });
+
+    expect(mockRepo.updateCorrectionRequest).toHaveBeenCalledWith(
+      'corr1',
+      expect.objectContaining({ status: 'rejected' }),
+    );
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'data_correction.rejected' }),
+    );
+  });
+});

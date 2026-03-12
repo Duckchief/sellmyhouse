@@ -1,8 +1,4 @@
-import {
-  CASE_FLAG_CHECKLISTS,
-  type CreateCaseFlagInput,
-  type UpdateCaseFlagInput,
-} from '../case-flag.types';
+import { CASE_FLAG_CHECKLISTS } from '../case-flag.types';
 
 describe('CASE_FLAG_CHECKLISTS', () => {
   it('has an entry for every CaseFlagType', () => {

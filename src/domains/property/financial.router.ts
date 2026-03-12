@@ -63,13 +63,9 @@ financialRouter.get(
   },
 );
 
-financialRouter.get(
-  '/seller/financial/form',
-  requireAuth(),
-  (_req: Request, res: Response) => {
-    res.render('partials/seller/financial-form');
-  },
-);
+financialRouter.get('/seller/financial/form', requireAuth(), (_req: Request, res: Response) => {
+  res.render('partials/seller/financial-form');
+});
 
 financialRouter.get(
   '/seller/financial/report/:id',

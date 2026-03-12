@@ -659,6 +659,33 @@ adminRouter.get(
   },
 );
 
+adminRouter.post(
+  '/admin/content/market/:id/approve',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      await contentService.approveMarketContent(req.params['id'] as string, user.id);
+      return res.redirect('/admin/content/market');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/content/market/:id/reject',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await contentService.rejectMarketContent(req.params['id'] as string);
+      return res.redirect('/admin/content/market');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 // ─── Testimonial Management ───────────────────────────────────────────────────
 
 adminRouter.get(

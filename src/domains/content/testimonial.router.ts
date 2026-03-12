@@ -14,7 +14,7 @@ testimonialRouter.get('/testimonial/thankyou', (_req: Request, res: Response) =>
 
 testimonialRouter.get('/testimonial/:token', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const testimonial = await contentRepo.findTestimonialByToken(req.params.token);
+    const testimonial = await contentRepo.findTestimonialByToken(req.params['token'] as string);
     if (!testimonial) return res.status(404).render('pages/public/testimonial-expired', { notFound: true });
     if (!testimonial.tokenExpiresAt || testimonial.tokenExpiresAt < new Date()) {
       return res.status(410).render('pages/public/testimonial-expired', { expired: true });
@@ -35,16 +35,16 @@ testimonialRouter.post(
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        const testimonial = await contentRepo.findTestimonialByToken(req.params.token);
+        const testimonial = await contentRepo.findTestimonialByToken(req.params['token'] as string);
         return res.status(422).render('pages/public/testimonial-form', {
-          token: req.params.token,
+          token: req.params['token'] as string,
           testimonial,
           errors: errors.array(),
           values: req.body,
         });
       }
 
-      await contentService.submitTestimonial(req.params.token, {
+      await contentService.submitTestimonial(req.params['token'] as string, {
         content: req.body.content as string,
         rating: Number(req.body.rating),
         sellerName: req.body.sellerName as string,

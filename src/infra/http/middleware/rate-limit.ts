@@ -9,6 +9,7 @@ export const authRateLimiter = rateLimit({
     error: { code: 'RATE_LIMITED', message: 'Too many attempts. Please try again later.' },
   },
   skipSuccessfulRequests: true,
+  skip: () => process.env.NODE_ENV === 'test',
 });
 
 export const apiRateLimiter = rateLimit({

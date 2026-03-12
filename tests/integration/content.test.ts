@@ -704,6 +704,64 @@ describe('PDPA cascade — hardDeleteSeller handles referrals', () => {
   });
 });
 
+// ─── Section 6: Coverage Gaps ────────────────────────────────────────────────
+
+describe('POST /admin/content/market/:id/approve — approve market content', () => {
+  it('sets status to approved and redirects to list', async () => {
+    const { agent, adminRecord } = await loginAsAdmin();
+    const mc = await factory.marketContent({ status: 'pending_review' });
+
+    const res = await agent.post(`/admin/content/market/${mc.id}/approve`);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('/admin/content/market');
+
+    const updated = await testPrisma.marketContent.findUnique({ where: { id: mc.id } });
+    expect(updated!.status).toBe('approved');
+    expect(updated!.approvedByAgentId).toBe(adminRecord.id);
+  });
+});
+
+describe('POST /admin/content/market/:id/reject — reject market content', () => {
+  it('sets status to rejected and redirects to list', async () => {
+    const { agent } = await loginAsAdmin();
+    const mc = await factory.marketContent({ status: 'pending_review' });
+
+    const res = await agent.post(`/admin/content/market/${mc.id}/reject`);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('/admin/content/market');
+
+    const updated = await testPrisma.marketContent.findUnique({ where: { id: mc.id } });
+    expect(updated!.status).toBe('rejected');
+  });
+});
+
+describe('Testimonial removed → disappears from homepage', () => {
+  it('homepage no longer renders the testimonial content after seller removes it', async () => {
+    const { sellerRecord, sellerAgent } = await loginAsSeller();
+    const property = await factory.property({ sellerId: sellerRecord.id });
+    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    await factory.testimonial({
+      sellerId: sellerRecord.id,
+      transactionId: transaction.id,
+      status: 'approved',
+      displayOnWebsite: true,
+      content: 'Unique removal test content xyz987',
+      rating: 5,
+    });
+
+    // Homepage shows the testimonial before removal
+    const before = await request(app).get('/');
+    expect(before.text).toContain('Unique removal test content xyz987');
+
+    // Seller removes testimonial (PDPA)
+    await sellerAgent.post('/seller/testimonial/remove');
+
+    // Homepage no longer shows it
+    const after = await request(app).get('/');
+    expect(after.text).not.toContain('Unique removal test content xyz987');
+  });
+});
+
 describe('GET /seller/tutorials — seller view still works after refactor', () => {
   it('returns 200 with grouped tutorials for authenticated seller', async () => {
     const agentRecord = await factory.agent();

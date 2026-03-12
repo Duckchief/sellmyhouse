@@ -50,6 +50,7 @@ describe('lead.service', () => {
       loginLockedUntil: null,
       passwordResetToken: null,
       passwordResetExpiry: null,
+      consultationCompletedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -143,6 +144,7 @@ describe('lead.service', () => {
       loginLockedUntil: null,
       passwordResetToken: null,
       passwordResetExpiry: null,
+      consultationCompletedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

@@ -245,6 +245,10 @@ export async function updateNotificationPreference(
   return { notificationPreference: updated.notificationPreference };
 }
 
+// TODO: Implement updateSellerStatus(sellerId, status, agentId) service method.
+// When status transitions to 'engaged', also set consultationCompletedAt = new Date().
+// Required for consultation tracking. Follow-up task: add PATCH /agent/sellers/:id/status route.
+
 // --- Private helpers ---
 
 function buildOnboardingStatus(step: number): OnboardingStatus {

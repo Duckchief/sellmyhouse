@@ -69,6 +69,12 @@ describe('transaction.service', () => {
     mockNotification.send.mockResolvedValue(undefined as never);
     mockSettings.getNumber.mockResolvedValue(21); // otp_exercise_days default
     mockSettings.get.mockResolvedValue('anthropic');
+    mockSettings.getCommission.mockResolvedValue({
+      amount: 1499,
+      gstRate: 0.09,
+      gstAmount: 134.91,
+      total: 1633.91,
+    } as never);
     mockPropertyService.revertPropertyToDraft.mockResolvedValue(undefined as never);
     mockViewingService.cancelSlotsForPropertyCascade.mockResolvedValue(undefined as never);
   });
@@ -296,15 +302,16 @@ describe('transaction.service', () => {
   });
 
   describe('uploadInvoice', () => {
-    it('reads commission amounts from SystemSetting, not schema defaults', async () => {
+    it('reads commission amounts from SystemSetting via getCommission(), not schema defaults', async () => {
       const tx = makeTransaction();
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockTxRepo.findInvoiceByTransactionId.mockResolvedValue(null);
-      mockSettings.getNumber.mockImplementation(async (key: string) => {
-        if (key === 'commission_amount') return 1499;
-        if (key === 'gst_rate') return 0.09;
-        return 0;
-      });
+      mockSettings.getCommission.mockResolvedValue({
+        amount: 1499,
+        gstRate: 0.09,
+        gstAmount: 134.91,
+        total: 1633.91,
+      } as never);
       mockTxRepo.createCommissionInvoice.mockResolvedValue({
         id: 'inv-1',
         amount: '1499',
@@ -321,16 +328,36 @@ describe('transaction.service', () => {
         agentId: 'agent-1',
       });
 
-      // Verify amounts come from SystemSetting
-      expect(mockSettings.getNumber).toHaveBeenCalledWith('commission_amount', expect.any(Number));
-      expect(mockSettings.getNumber).toHaveBeenCalledWith('gst_rate', expect.any(Number));
+      // Verify amounts are sourced from getCommission(), not hardcoded
+      expect(mockSettings.getCommission).toHaveBeenCalledTimes(1);
       expect(mockTxRepo.createCommissionInvoice).toHaveBeenCalledWith(
         expect.objectContaining({
           amount: 1499,
-          gstAmount: expect.any(Number),
-          totalAmount: expect.any(Number),
+          gstAmount: 134.91,
+          totalAmount: 1633.91,
         }),
       );
+    });
+
+    it('throws if commission SystemSettings are missing (no silent fallback)', async () => {
+      const tx = makeTransaction();
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue(null);
+      mockSettings.getCommission.mockRejectedValue(
+        new Error('Setting not found: commission_amount'),
+      );
+
+      await expect(
+        txService.uploadInvoice({
+          transactionId: 'tx-1',
+          fileBuffer: Buffer.from('fake-pdf'),
+          originalFilename: 'invoice.pdf',
+          invoiceNumber: 'INV-001',
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow('Setting not found: commission_amount');
+
+      expect(mockTxRepo.createCommissionInvoice).not.toHaveBeenCalled();
     });
   });
 });

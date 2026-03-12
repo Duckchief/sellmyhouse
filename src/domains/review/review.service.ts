@@ -2,22 +2,24 @@ import * as reviewRepo from './review.repository';
 import * as auditService from '@/domains/shared/audit.service';
 import * as portalService from '@/domains/property/portal.service';
 import { ValidationError, ComplianceError, NotFoundError } from '@/domains/shared/errors';
-import { REVIEW_TRANSITIONS } from './review.types';
-import type { EntityType, ComplianceGate } from './review.types';
-import type { FinancialReportStatus } from '@prisma/client';
+import {
+  REVIEW_TRANSITIONS,
+  WEEKLY_UPDATE_TRANSITIONS,
+  DOCUMENT_CHECKLIST_TRANSITIONS,
+} from './review.types';
+import type { EntityType, ComplianceGate, ReviewStatus } from './review.types';
 
-export function validateTransition(
-  from: FinancialReportStatus,
-  to: FinancialReportStatus,
-  entityType: EntityType,
-): void {
-  const allowed = REVIEW_TRANSITIONS[from];
+export function validateTransition(from: ReviewStatus, to: ReviewStatus, entityType: EntityType): void {
+  let allowed: ReviewStatus[];
+  if (entityType === 'weekly_update') {
+    allowed = (WEEKLY_UPDATE_TRANSITIONS as Record<string, ReviewStatus[]>)[from] ?? [];
+  } else if (entityType === 'document_checklist') {
+    allowed = (DOCUMENT_CHECKLIST_TRANSITIONS as Record<string, ReviewStatus[]>)[from] ?? [];
+  } else {
+    allowed = (REVIEW_TRANSITIONS as Record<string, ReviewStatus[]>)[from] ?? [];
+  }
   if (!allowed.includes(to)) {
     throw new ValidationError(`Cannot transition from '${from}' to '${to}'`);
-  }
-  // document_checklist cannot reach 'sent'
-  if (entityType === 'document_checklist' && to === 'sent') {
-    throw new ValidationError(`Document checklists do not have a 'sent' step`);
   }
 }
 
@@ -61,17 +63,14 @@ export async function getDetailForReview(entityType: EntityType, entityId: strin
 }
 
 /** Fetch current status for entity types that have an explicit status field */
-async function getCurrentStatus(
-  entityType: EntityType,
-  entityId: string,
-): Promise<FinancialReportStatus> {
+async function getCurrentStatus(entityType: EntityType, entityId: string): Promise<ReviewStatus> {
   // Listing types use timestamp-based state — assume pending_review when they appear in queue
   if (entityType === 'listing_description' || entityType === 'listing_photos') {
     return 'pending_review';
   }
   const detail = await reviewRepo.getDetailForReview(entityType, entityId);
   if (!detail) throw new NotFoundError(entityType, entityId);
-  return (detail as { status: FinancialReportStatus }).status;
+  return (detail as { status: ReviewStatus }).status;
 }
 
 const AUDIT_ACTION: Record<EntityType, string> = {

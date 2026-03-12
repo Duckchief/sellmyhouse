@@ -2,7 +2,7 @@ import { prisma } from '@/infra/database/prisma';
 import { Prisma } from '@prisma/client';
 import type { FinancialReportStatus } from '@prisma/client';
 
-import type { ReviewItem, EntityType } from './review.types';
+import type { ReviewItem, EntityType, ReviewStatus } from './review.types';
 
 export interface ReviewQueueResult {
   items: ReviewItem[];
@@ -116,7 +116,7 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
       sellerId: l.property.seller.id,
       sellerName: l.property.seller.name,
       propertyAddress: buildAddress(l.property.town, l.property.street, l.property.block),
-      currentStatus: 'pending_review' as FinancialReportStatus,
+      currentStatus: 'pending_review' as ReviewStatus,
       submittedAt: l.createdAt,
       priority: now - l.createdAt.getTime(),
     })),
@@ -127,7 +127,7 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
       sellerId: l.property.seller.id,
       sellerName: l.property.seller.name,
       propertyAddress: buildAddress(l.property.town, l.property.street, l.property.block),
-      currentStatus: 'pending_review' as FinancialReportStatus,
+      currentStatus: 'pending_review' as ReviewStatus,
       submittedAt: l.createdAt,
       priority: now - l.createdAt.getTime(),
     })),
@@ -251,6 +251,9 @@ export async function rejectFinancialReport(
 }
 
 export async function approveListingDescription(entityId: string, agentId: string) {
+  // TODO: When AI description generation service is implemented, copy aiDescription →
+  // description and set aiDescriptionStatus: 'approved' here. Follow-up task: wire
+  // ai.facade.ts → property service → listing description workflow.
   return prisma.listing.update({
     where: { id: entityId },
     data: {

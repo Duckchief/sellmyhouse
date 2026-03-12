@@ -275,3 +275,17 @@ sellerRouter.get('/seller/tutorials', async (req: Request, res: Response, next: 
     next(err);
   }
 });
+
+// Referral programme
+sellerRouter.get('/seller/referral', ...sellerAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user as AuthenticatedUser;
+    const referral = await contentService.sendReferralLinks(user.id);
+    if (req.headers['hx-request']) {
+      return res.render('partials/seller/referral-content', { referral });
+    }
+    return res.render('pages/seller/referral', { referral });
+  } catch (err) {
+    next(err);
+  }
+});

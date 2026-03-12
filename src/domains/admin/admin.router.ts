@@ -704,6 +704,28 @@ adminRouter.post(
   },
 );
 
+// ─── Referral Management ─────────────────────────────────────────────────────
+
+adminRouter.get(
+  '/admin/content/referrals',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const [records, funnel, topReferrers] = await Promise.all([
+        contentService.listReferrals(),
+        contentService.getReferralFunnel(),
+        contentService.getTopReferrers(),
+      ]);
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/referral-funnel', { funnel, topReferrers });
+      }
+      return res.render('pages/admin/referrals', { records, funnel, topReferrers });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 adminRouter.post(
   '/admin/content/testimonials/:id/feature',
   ...adminAuth,

@@ -1,0 +1,21 @@
+<h2 class="text-base font-semibold mb-3">{{ "Top Referrers" | t }}</h2>
+<table class="w-full text-sm">
+  <thead>
+    <tr class="text-left text-gray-500 border-b">
+      <th class="pb-2 pr-4">{{ "Seller" | t }}</th>
+      <th class="pb-2 pr-4">{{ "Code" | t }}</th>
+      <th class="pb-2 pr-4">{{ "Clicks" | t }}</th>
+      <th class="pb-2 pr-4">{{ "Status" | t }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in topReferrers %}
+    <tr class="border-b last:border-0 hover:bg-gray-50">
+      <td class="py-2 pr-4">{{ r.referrer.name }}</td>
+      <td class="py-2 pr-4 font-mono text-xs">{{ r.referralCode }}</td>
+      <td class="py-2 pr-4">{{ r.clickCount }}</td>
+      <td class="py-2 pr-4 text-xs text-gray-500">{{ r.status | replace('_', ' ') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

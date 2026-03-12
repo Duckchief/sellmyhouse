@@ -23,6 +23,7 @@ import { reviewRouter } from '../../domains/review/review.router';
 import { adminRouter } from '../../domains/admin/admin.router';
 import { complianceRouter } from '../../domains/compliance/compliance.router';
 import { testimonialRouter } from '../../domains/content/testimonial.router';
+import { referralTrackingMiddleware } from './middleware/referral-tracking';
 
 function validateEnv() {
   const required = ['SESSION_SECRET', 'DATABASE_URL', 'ENCRYPTION_KEY'];
@@ -107,6 +108,10 @@ export function createApp() {
   if (process.env.NODE_ENV !== 'test') {
     app.use(requestLogger);
   }
+
+  // Referral tracking — global middleware, captures ?ref= on any page visit
+  // Must be before publicRouter (homepage) and leadRouter (lead submission)
+  app.use(referralTrackingMiddleware);
 
   // Routes
   app.use(healthRouter);

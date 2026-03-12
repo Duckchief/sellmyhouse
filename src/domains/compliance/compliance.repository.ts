@@ -367,6 +367,12 @@ export async function hardDeleteSeller(sellerId: string): Promise<void> {
   }
   await prisma.estateAgencyAgreement.deleteMany({ where: { sellerId } });
   await prisma.property.deleteMany({ where: { sellerId } });
+  // 3. Referrals: delete referrals given by this seller; nullify referredSellerId on referrals received
+  await prisma.referral.deleteMany({ where: { referrerSellerId: sellerId } });
+  await prisma.referral.updateMany({
+    where: { referredSellerId: sellerId },
+    data: { referredSellerId: null },
+  });
   await prisma.seller.delete({ where: { id: sellerId } });
 }
 

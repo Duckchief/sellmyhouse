@@ -10,3 +10,9 @@ declare global {
     }
   }
 }
+
+declare module 'express-session' {
+  interface SessionData {
+    referralCode?: string;
+  }
+}

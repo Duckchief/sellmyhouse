@@ -301,4 +301,62 @@ export async function featureTestimonial(id: string, displayOnWebsite: boolean) 
 }
 
 // ─── Referrals ────────────────────────────────────────────────────────────────
-// Implemented in Section 5
+
+const REFERRAL_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+
+/** Generates a unique 8-character URL-safe referral code. */
+export function generateReferralCode(): string {
+  return Array.from({ length: 8 }, () =>
+    REFERRAL_CHARSET[Math.floor(Math.random() * REFERRAL_CHARSET.length)],
+  ).join('');
+}
+
+/** Returns the seller's referral record, creating one if it doesn't exist. */
+export async function sendReferralLinks(referrerSellerId: string) {
+  const existing = await contentRepo.findReferralBySellerId(referrerSellerId);
+  if (existing) return existing;
+
+  return contentRepo.createReferral({
+    id: createId(),
+    referrerSellerId,
+    referralCode: generateReferralCode(),
+  });
+}
+
+/**
+ * Atomically increments click count for the referral code.
+ * Transitions status from link_generated → clicked on the very first click.
+ */
+export async function trackReferralClick(referralCode: string): Promise<void> {
+  const updated = await contentRepo.incrementClickCount(referralCode);
+  if (!updated) return;
+  if (updated.clickCount === 1 && updated.status === 'link_generated') {
+    await contentRepo.updateReferralStatus(updated.id, 'clicked');
+  }
+}
+
+/** Links the newly created seller to a referral, transitioning it to lead_created. */
+export async function linkReferralToLead(referralCode: string, newSellerId: string): Promise<void> {
+  const referral = await contentRepo.findReferralByCode(referralCode);
+  if (!referral) return;
+  await contentRepo.linkReferredSeller(referral.id, newSellerId);
+}
+
+/** Marks a referral transaction_completed when the referred seller completes a transaction. */
+export async function markReferralTransactionComplete(referredSellerId: string): Promise<void> {
+  const referral = await contentRepo.findReferralByReferredSeller(referredSellerId);
+  if (!referral) return;
+  await contentRepo.updateReferralStatus(referral.id, 'transaction_completed');
+}
+
+export async function getReferralFunnel() {
+  return contentRepo.getReferralFunnel();
+}
+
+export async function getTopReferrers() {
+  return contentRepo.getTopReferrers();
+}
+
+export async function listReferrals() {
+  return contentRepo.findAllReferrals();
+}

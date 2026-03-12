@@ -4,6 +4,7 @@ import { submitLead } from './lead.service';
 import { leadRateLimiter } from '../../infra/http/middleware/rate-limit';
 import { ValidationError } from '../shared/errors';
 import type { LeadSource } from './lead.types';
+import { linkReferralToLead } from '../content/content.service';
 
 export const leadRouter = Router();
 
@@ -37,11 +38,21 @@ leadRouter.post('/api/leads', leadRateLimiter, async (req, res, next) => {
       throw new ValidationError('Invalid input', errors);
     }
 
-    await submitLead({
+    const { sellerId } = await submitLead({
       ...input,
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
     });
+
+    // Link referral if the visitor came via a referral link
+    if (req.session.referralCode) {
+      try {
+        await linkReferralToLead(req.session.referralCode, sellerId);
+      } catch {
+        // ignore — don't fail the lead submission
+      }
+      delete req.session.referralCode;
+    }
 
     if (req.headers['hx-request']) {
       return res.render('partials/public/lead-success');

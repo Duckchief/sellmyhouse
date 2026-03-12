@@ -4,7 +4,7 @@ import * as contentRepo from './content.repository';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as auditService from '@/domains/shared/audit.service';
 import { NotFoundError, ConflictError, ValidationError } from '@/domains/shared/errors';
-import type { VideoTutorial, MarketContent, Testimonial } from '@prisma/client';
+import type { VideoTutorial, MarketContent, Testimonial, Referral } from '@prisma/client';
 import type { HdbTransactionPartial, TestimonialSubmitInput } from './content.types';
 
 jest.mock('./content.repository');
@@ -425,5 +425,123 @@ describe('removeTestimonial', () => {
 
     expect(mockedRepo.hardDeleteTestimonial).not.toHaveBeenCalled();
     expect(mockedAudit.log).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Referrals ────────────────────────────────────────────────────────────────
+
+describe('generateReferralCode', () => {
+  it('returns an 8-character URL-safe string', () => {
+    const code = contentService.generateReferralCode();
+    expect(code).toHaveLength(8);
+    expect(code).toMatch(/^[A-Za-z0-9]+$/);
+  });
+
+  it('generates unique codes on repeated calls', () => {
+    const codes = new Set(Array.from({ length: 100 }, () => contentService.generateReferralCode()));
+    expect(codes.size).toBeGreaterThan(95);
+  });
+});
+
+describe('sendReferralLinks', () => {
+  it('creates a new referral when none exists for the seller', async () => {
+    mockedRepo.findReferralBySellerId.mockResolvedValue(null);
+    mockedRepo.createReferral.mockResolvedValue({ id: 'ref-1', referralCode: 'ABC12345' } as Referral);
+
+    const result = await contentService.sendReferralLinks('seller-1');
+
+    expect(mockedRepo.createReferral).toHaveBeenCalledWith(
+      expect.objectContaining({ referrerSellerId: 'seller-1' }),
+    );
+    expect(result).toMatchObject({ referralCode: 'ABC12345' });
+  });
+
+  it('returns existing referral without creating a new one', async () => {
+    mockedRepo.findReferralBySellerId.mockResolvedValue({ id: 'ref-1', referralCode: 'EXISTING' } as Referral);
+
+    const result = await contentService.sendReferralLinks('seller-1');
+
+    expect(mockedRepo.createReferral).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ referralCode: 'EXISTING' });
+  });
+});
+
+describe('trackReferralClick', () => {
+  it('atomically increments click count', async () => {
+    mockedRepo.incrementClickCount.mockResolvedValue({
+      id: 'ref-1', clickCount: 1, status: 'link_generated',
+    } as Referral);
+    mockedRepo.updateReferralStatus.mockResolvedValue({ id: 'ref-1', status: 'clicked' } as Referral);
+
+    await contentService.trackReferralClick('CODE1234');
+
+    expect(mockedRepo.incrementClickCount).toHaveBeenCalledWith('CODE1234');
+  });
+
+  it('transitions status link_generated → clicked on first click', async () => {
+    mockedRepo.incrementClickCount.mockResolvedValue({
+      id: 'ref-1', clickCount: 1, status: 'link_generated',
+    } as Referral);
+    mockedRepo.updateReferralStatus.mockResolvedValue({ id: 'ref-1', status: 'clicked' } as Referral);
+
+    await contentService.trackReferralClick('CODE1234');
+
+    expect(mockedRepo.updateReferralStatus).toHaveBeenCalledWith('ref-1', 'clicked');
+  });
+
+  it('does not re-transition status on subsequent clicks', async () => {
+    mockedRepo.incrementClickCount.mockResolvedValue({
+      id: 'ref-1', clickCount: 5, status: 'clicked',
+    } as Referral);
+
+    await contentService.trackReferralClick('CODE1234');
+
+    expect(mockedRepo.updateReferralStatus).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op for unknown referral code', async () => {
+    mockedRepo.incrementClickCount.mockResolvedValue(null);
+
+    await contentService.trackReferralClick('UNKNOWN1');
+
+    expect(mockedRepo.updateReferralStatus).not.toHaveBeenCalled();
+  });
+});
+
+describe('linkReferralToLead', () => {
+  it('links the referred seller when referral code matches', async () => {
+    mockedRepo.findReferralByCode.mockResolvedValue({ id: 'ref-1', status: 'clicked' } as Referral);
+    mockedRepo.linkReferredSeller.mockResolvedValue({ id: 'ref-1', status: 'lead_created' } as Referral);
+
+    await contentService.linkReferralToLead('CODE1234', 'new-seller-id');
+
+    expect(mockedRepo.linkReferredSeller).toHaveBeenCalledWith('ref-1', 'new-seller-id');
+  });
+
+  it('is a no-op when referral code not found', async () => {
+    mockedRepo.findReferralByCode.mockResolvedValue(null);
+
+    await contentService.linkReferralToLead('UNKNOWN1', 'new-seller-id');
+
+    expect(mockedRepo.linkReferredSeller).not.toHaveBeenCalled();
+  });
+});
+
+describe('markReferralTransactionComplete', () => {
+  it('updates referral status to transaction_completed for the referred seller', async () => {
+    mockedRepo.findReferralByReferredSeller.mockResolvedValue({ id: 'ref-1', status: 'lead_created' } as Referral);
+    mockedRepo.updateReferralStatus.mockResolvedValue({ id: 'ref-1', status: 'transaction_completed' } as Referral);
+
+    await contentService.markReferralTransactionComplete('referred-seller-id');
+
+    expect(mockedRepo.updateReferralStatus).toHaveBeenCalledWith('ref-1', 'transaction_completed');
+  });
+
+  it('is a no-op when no referral found for the referred seller', async () => {
+    mockedRepo.findReferralByReferredSeller.mockResolvedValue(null);
+
+    await contentService.markReferralTransactionComplete('seller-no-referral');
+
+    expect(mockedRepo.updateReferralStatus).not.toHaveBeenCalled();
   });
 });

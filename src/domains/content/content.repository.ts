@@ -193,4 +193,82 @@ export async function hardDeleteTestimonial(id: string): Promise<void> {
 }
 
 // ─── Referrals ────────────────────────────────────────────────────────────────
-// Implemented in Section 5
+
+export async function createReferral(input: {
+  id: string;
+  referrerSellerId: string;
+  referralCode: string;
+}) {
+  return prisma.referral.create({ data: input });
+}
+
+export async function findReferralByCode(referralCode: string) {
+  return prisma.referral.findUnique({ where: { referralCode } });
+}
+
+export async function findReferralBySellerId(referrerSellerId: string) {
+  return prisma.referral.findFirst({ where: { referrerSellerId } });
+}
+
+export async function findReferralByReferredSeller(referredSellerId: string) {
+  return prisma.referral.findFirst({ where: { referredSellerId } });
+}
+
+export async function findAllReferrals() {
+  return prisma.referral.findMany({ orderBy: { createdAt: 'desc' } });
+}
+
+/** Atomically increments click count. Returns null if code not found. */
+export async function incrementClickCount(referralCode: string) {
+  try {
+    return await prisma.referral.update({
+      where: { referralCode },
+      data: { clickCount: { increment: 1 } },
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function linkReferredSeller(id: string, referredSellerId: string) {
+  return prisma.referral.update({
+    where: { id },
+    data: { referredSellerId, status: 'lead_created', convertedAt: new Date() },
+  });
+}
+
+export async function updateReferralStatus(id: string, status: 'clicked' | 'lead_created' | 'transaction_completed') {
+  return prisma.referral.update({ where: { id }, data: { status } });
+}
+
+export async function getReferralFunnel() {
+  const [linksGenerated, clicked, leadsCreated, transactionsCompleted] = await Promise.all([
+    prisma.referral.count(),
+    prisma.referral.count({ where: { status: { in: ['clicked', 'lead_created', 'transaction_completed'] } } }),
+    prisma.referral.count({ where: { status: { in: ['lead_created', 'transaction_completed'] } } }),
+    prisma.referral.count({ where: { status: 'transaction_completed' } }),
+  ]);
+  return { linksGenerated, clicked, leadsCreated, transactionsCompleted };
+}
+
+export async function getTopReferrers(limit = 10) {
+  return prisma.referral.findMany({
+    where: { clickCount: { gt: 0 } },
+    orderBy: { clickCount: 'desc' },
+    take: limit,
+    include: {
+      referrer: { select: { id: true, name: true } },
+    },
+  });
+}
+
+export async function deleteReferralsByReferrer(referrerSellerId: string): Promise<void> {
+  await prisma.referral.deleteMany({ where: { referrerSellerId } });
+}
+
+export async function nullifyReferredSeller(referredSellerId: string): Promise<void> {
+  await prisma.referral.updateMany({
+    where: { referredSellerId },
+    data: { referredSellerId: null },
+  });
+}

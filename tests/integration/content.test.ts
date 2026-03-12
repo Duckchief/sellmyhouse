@@ -550,6 +550,160 @@ describe('GET / — homepage with featured testimonials', () => {
   });
 });
 
+// ─── Section 5: Referral Program ─────────────────────────────────────────────
+
+describe('Referral tracking middleware — GET /?ref=CODE', () => {
+  it('stores referral code in session and increments click count', async () => {
+    const agentRecord = await factory.agent();
+    const sellerRecord = await factory.seller({ agentId: agentRecord.id });
+    const referral = await factory.referral({
+      referrerSellerId: sellerRecord.id,
+      referralCode: 'TESTCODE',
+      status: 'link_generated',
+      clickCount: 0,
+    });
+
+    // Visit homepage with ref param
+    const sessionAgent = request.agent(app);
+    const res = await sessionAgent.get(`/?ref=${referral.referralCode}`);
+    expect(res.status).toBe(200);
+
+    // Click count should be incremented
+    const updated = await testPrisma.referral.findUnique({ where: { id: referral.id } });
+    expect(updated!.clickCount).toBe(1);
+    expect(updated!.status).toBe('clicked');
+  });
+
+  it('only transitions link_generated → clicked once, not on repeat clicks', async () => {
+    const agentRecord = await factory.agent();
+    const sellerRecord = await factory.seller({ agentId: agentRecord.id });
+    const referral = await factory.referral({
+      referrerSellerId: sellerRecord.id,
+      referralCode: 'REPEAT01',
+      status: 'clicked',
+      clickCount: 3,
+    });
+
+    const sessionAgent = request.agent(app);
+    await sessionAgent.get(`/?ref=${referral.referralCode}`);
+
+    const updated = await testPrisma.referral.findUnique({ where: { id: referral.id } });
+    expect(updated!.clickCount).toBe(4);
+    expect(updated!.status).toBe('clicked'); // unchanged
+  });
+});
+
+describe('POST /api/leads — lead form with referral session', () => {
+  it('links referral to newly created seller when session has referral code', async () => {
+    const agentRecord = await factory.agent();
+    const sellerRecord = await factory.seller({ agentId: agentRecord.id });
+    const referral = await factory.referral({
+      referrerSellerId: sellerRecord.id,
+      referralCode: 'LEADREF1',
+      status: 'clicked',
+    });
+
+    const sessionAgent = request.agent(app);
+    // Visit with ?ref= to store referral code in session
+    await sessionAgent.get(`/?ref=${referral.referralCode}`);
+
+    // Submit lead form
+    const res = await sessionAgent
+      .post('/api/leads')
+      .set('HX-Request', 'true')
+      .send({
+        name: 'Jane Doe',
+        phone: '98765432',
+        consentService: 'true',
+        consentMarketing: 'false',
+        leadSource: 'referral',
+        formLoadedAt: (Date.now() - 5000).toString(),
+      });
+
+    expect(res.status).toBe(200);
+
+    // Referral should now be linked to the new seller
+    const updatedReferral = await testPrisma.referral.findUnique({ where: { id: referral.id } });
+    expect(updatedReferral!.status).toBe('lead_created');
+    expect(updatedReferral!.referredSellerId).not.toBeNull();
+  });
+});
+
+describe('GET /seller/referral — seller referral page', () => {
+  it('returns 200 for authenticated seller', async () => {
+    const { sellerAgent } = await loginAsSeller();
+    const res = await sellerAgent.get('/seller/referral');
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 401 for unauthenticated request', async () => {
+    const res = await request(app).get('/seller/referral');
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('GET /admin/content/referrals — admin referrals page', () => {
+  it('returns 200 for admin', async () => {
+    const { agent } = await loginAsAdmin();
+    const res = await agent.get('/admin/content/referrals');
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 401 for unauthenticated request', async () => {
+    const res = await request(app).get('/admin/content/referrals');
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('PDPA cascade — hardDeleteSeller handles referrals', () => {
+  it('deletes referralsGiven and nullifies referredSellerId on referralsReceived', async () => {
+    const { hardDeleteSeller } = await import('../../src/domains/compliance/compliance.repository');
+
+    const agentRecord = await factory.agent();
+    // referrerSeller: the one to be deleted (has given a referral)
+    const referrerSeller = await factory.seller({ agentId: agentRecord.id });
+    const referral = await factory.referral({
+      referrerSellerId: referrerSeller.id,
+      referralCode: 'PDPATEST',
+    });
+
+    // referredSeller: also has this referral pointing to it
+    const referredSeller = await factory.seller({ agentId: agentRecord.id });
+    await testPrisma.referral.update({
+      where: { id: referral.id },
+      data: { referredSellerId: referredSeller.id },
+    });
+
+    await expect(hardDeleteSeller(referrerSeller.id)).resolves.not.toThrow();
+
+    const deletedSeller = await testPrisma.seller.findUnique({ where: { id: referrerSeller.id } });
+    expect(deletedSeller).toBeNull();
+
+    // The referral itself should be deleted (referrer is gone)
+    const deletedReferral = await testPrisma.referral.findUnique({ where: { id: referral.id } });
+    expect(deletedReferral).toBeNull();
+  });
+
+  it('nullifies referredSellerId when the referred seller is deleted', async () => {
+    const { hardDeleteSeller } = await import('../../src/domains/compliance/compliance.repository');
+
+    const agentRecord = await factory.agent();
+    const referrerSeller = await factory.seller({ agentId: agentRecord.id });
+    const referredSeller = await factory.seller({ agentId: agentRecord.id });
+    const referral = await factory.referral({
+      referrerSellerId: referrerSeller.id,
+      referralCode: 'NULLIFY1',
+      referredSellerId: referredSeller.id,
+    });
+
+    await expect(hardDeleteSeller(referredSeller.id)).resolves.not.toThrow();
+
+    const updatedReferral = await testPrisma.referral.findUnique({ where: { id: referral.id } });
+    expect(updatedReferral).not.toBeNull();
+    expect(updatedReferral!.referredSellerId).toBeNull();
+  });
+});
+
 describe('GET /seller/tutorials — seller view still works after refactor', () => {
   it('returns 200 with grouped tutorials for authenticated seller', async () => {
     const agentRecord = await factory.agent();

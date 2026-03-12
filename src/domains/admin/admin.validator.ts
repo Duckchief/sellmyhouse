@@ -34,6 +34,12 @@ export const SETTING_VALIDATORS: Record<SettingKey, (v: string) => boolean> = {
   viewing_slot_duration: (v) => Number.isInteger(Number(v)) && Number(v) > 0,
   viewing_max_group_size: (v) => Number.isInteger(Number(v)) && Number(v) > 0,
   market_content_schedule: (v) => /^[\d*,\-/\s]+$/.test(v),
+  agency_name: (v) => v.length > 0,
+  agency_licence: (v) => v.length > 0,
+  offer_ai_analysis_enabled: (v) => v === 'true' || v === 'false',
+  platform_name: (v) => v.length > 0,
+  support_email: (v) => v.length > 0,
+  support_phone: (v) => v.length > 0,
 };
 
 export const validateAgentCreate = [

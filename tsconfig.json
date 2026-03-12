@@ -4,7 +4,7 @@
     "module": "commonjs",
     "lib": ["ES2022"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -16,10 +16,11 @@
     "baseUrl": ".",
     "paths": {
       "@/domains/*": ["src/domains/*"],
-      "@/infra/*": ["src/infra/*"]
+      "@/infra/*": ["src/infra/*"],
+      "@/tests/*": ["tests/*"]
     },
     "typeRoots": ["node_modules/@types"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests"]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

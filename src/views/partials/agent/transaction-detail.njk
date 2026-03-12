@@ -1,0 +1,6 @@
+{# partials/agent/transaction-detail.njk #}
+<div class="transaction-detail" data-tx-id="{{ tx.id }}">
+  <p>{{ "Status:" | t }} {{ tx.status }}</p>
+  {% if tx.otp %}{% include "partials/agent/otp-panel.njk" %}{% endif %}
+  {% if tx.commissionInvoice %}{% include "partials/agent/invoice-panel.njk" %}{% endif %}
+</div>

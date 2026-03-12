@@ -123,8 +123,7 @@ export async function createViewingWithLock(data: {
     if (slot.status === 'full') throw new ConflictError('Viewing slot is full');
     if (slot.slot_type === 'single' && slot.current_bookings >= 1)
       throw new ConflictError('Viewing slot is full');
-    if (slot.current_bookings >= slot.max_viewers)
-      throw new ConflictError('Viewing slot is full');
+    if (slot.current_bookings >= slot.max_viewers) throw new ConflictError('Viewing slot is full');
 
     // Create the viewing
     const viewing = await tx.viewing.create({ data });

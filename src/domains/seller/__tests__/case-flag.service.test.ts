@@ -59,7 +59,10 @@ describe('case-flag.service', () => {
   describe('updateCaseFlag', () => {
     it('updates status and writes audit log', async () => {
       mockedCaseFlagRepo.findById.mockResolvedValue({ id: 'flag-1' } as never);
-      mockedCaseFlagRepo.updateStatus.mockResolvedValue({ id: 'flag-1', status: 'resolved' } as never);
+      mockedCaseFlagRepo.updateStatus.mockResolvedValue({
+        id: 'flag-1',
+        status: 'resolved',
+      } as never);
 
       await caseFlagService.updateCaseFlag({
         flagId: 'flag-1',
@@ -123,8 +126,14 @@ describe('case-flag.service', () => {
 
     it('returns checklist items for every flag type', () => {
       const types = [
-        'deceased_estate', 'divorce', 'mop_not_met', 'eip_restriction',
-        'pr_quota', 'bank_loan', 'court_order', 'other',
+        'deceased_estate',
+        'divorce',
+        'mop_not_met',
+        'eip_restriction',
+        'pr_quota',
+        'bank_loan',
+        'court_order',
+        'other',
       ] as const;
       for (const type of types) {
         expect(caseFlagService.getChecklistForType(type).length).toBeGreaterThan(0);

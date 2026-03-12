@@ -144,4 +144,5 @@ export const updateListingPhotos = propertyRepository.updateListingPhotos.bind(p
 export const findBySlug = propertyRepository.findBySlug.bind(propertyRepository);
 export const updateSlug = propertyRepository.updateSlug.bind(propertyRepository);
 export const findWithNullSlug = propertyRepository.findWithNullSlug.bind(propertyRepository);
-export const updatePropertyStatus = propertyRepository.updatePropertyStatus.bind(propertyRepository);
+export const updatePropertyStatus =
+  propertyRepository.updatePropertyStatus.bind(propertyRepository);

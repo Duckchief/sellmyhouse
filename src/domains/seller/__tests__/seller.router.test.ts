@@ -243,9 +243,7 @@ describe('seller.router', () => {
     });
 
     it('returns HTMX partial when HX-Request header is set', async () => {
-      const res = await request(app)
-        .get('/seller/case-flags')
-        .set('HX-Request', 'true');
+      const res = await request(app).get('/seller/case-flags').set('HX-Request', 'true');
       expect(res.status).toBe(200);
     });
   });

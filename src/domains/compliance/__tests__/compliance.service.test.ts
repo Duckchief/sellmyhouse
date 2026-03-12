@@ -26,7 +26,10 @@ describe('checkDncAllowed', () => {
   });
 
   it('blocks all messages when consentService is false', async () => {
-    mockRepo.findSellerConsent.mockResolvedValue({ consentService: false, consentMarketing: false });
+    mockRepo.findSellerConsent.mockResolvedValue({
+      consentService: false,
+      consentMarketing: false,
+    });
     const result = await complianceService.checkDncAllowed('seller1', 'whatsapp', 'service');
     expect(result.allowed).toBe(false);
     expect(result.reason).toContain('service consent');
@@ -71,7 +74,9 @@ describe('withdrawConsent', () => {
       channel: 'web',
     });
 
-    expect(mockRepo.updateSellerConsent).toHaveBeenCalledWith('seller1', { consentMarketing: false });
+    expect(mockRepo.updateSellerConsent).toHaveBeenCalledWith('seller1', {
+      consentMarketing: false,
+    });
   });
 
   it('creates a flagged deletion request when service consent withdrawn with no transactions', async () => {

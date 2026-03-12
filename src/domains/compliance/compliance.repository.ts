@@ -64,7 +64,9 @@ export async function createDeletionRequest(data: {
 }
 
 export async function findDeletionRequest(id: string): Promise<DataDeletionRequest | null> {
-  return prisma.dataDeletionRequest.findUnique({ where: { id } }) as Promise<DataDeletionRequest | null>;
+  return prisma.dataDeletionRequest.findUnique({
+    where: { id },
+  }) as Promise<DataDeletionRequest | null>;
 }
 
 export async function updateDeletionRequest(
@@ -90,9 +92,10 @@ export async function findPendingDeletionRequests(): Promise<DataDeletionRequest
   }) as Promise<DataDeletionRequest[]>;
 }
 
-export async function findSellerWithTransactions(
-  sellerId: string,
-): Promise<{ status: string; transactions: { completionDate: Date | null; status: string }[] } | null> {
+export async function findSellerWithTransactions(sellerId: string): Promise<{
+  status: string;
+  transactions: { completionDate: Date | null; status: string }[];
+} | null> {
   return prisma.seller.findUnique({
     where: { id: sellerId },
     select: {

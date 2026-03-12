@@ -21,7 +21,7 @@ export interface WithdrawConsentInput {
 export interface ConsentWithdrawalResult {
   consentRecordId: string;
   deletionRequestId?: string; // set if service consent withdrawn
-  deletionBlocked: boolean;   // true if AML/CFT prevents deletion
+  deletionBlocked: boolean; // true if AML/CFT prevents deletion
   retentionRule?: string;
 }
 

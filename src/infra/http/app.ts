@@ -21,6 +21,7 @@ import { viewingRouter } from '../../domains/viewing/viewing.router';
 import { agentRouter } from '../../domains/agent/agent.router';
 import { reviewRouter } from '../../domains/review/review.router';
 import { adminRouter } from '../../domains/admin/admin.router';
+import { complianceRouter } from '../../domains/compliance/compliance.router';
 
 function validateEnv() {
   const required = ['SESSION_SECRET', 'DATABASE_URL', 'ENCRYPTION_KEY'];
@@ -121,6 +122,7 @@ export function createApp() {
   app.use(agentRouter);
   app.use(reviewRouter);
   app.use(adminRouter);
+  app.use('/', complianceRouter);
 
   // Error handling (must be last)
   app.use(errorHandler);

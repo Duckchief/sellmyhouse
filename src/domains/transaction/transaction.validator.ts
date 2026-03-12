@@ -18,9 +18,7 @@ export const validateAdvanceStatus = [
 export const validateMarkFallenThrough = [
   param('transactionId').notEmpty().isUUID().withMessage('transactionId must be a valid UUID'),
   body('sellerId').notEmpty().withMessage('sellerId is required'),
-  body('reason')
-    .isLength({ min: 10 })
-    .withMessage('reason must be at least 10 characters'),
+  body('reason').isLength({ min: 10 }).withMessage('reason must be at least 10 characters'),
 ];
 
 export const validateCreateOtp = [

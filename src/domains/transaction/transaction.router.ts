@@ -77,12 +77,10 @@ transactionRouter.patch(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (req.body.status === 'fallen_through') {
-        return res
-          .status(400)
-          .json({
-            error:
-              'Use POST /agent/transactions/:id/fallen-through to mark a transaction as fallen through',
-          });
+        return res.status(400).json({
+          error:
+            'Use POST /agent/transactions/:id/fallen-through to mark a transaction as fallen through',
+        });
       }
 
       const errors = validationResult(req);

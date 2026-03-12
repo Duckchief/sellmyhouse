@@ -1,0 +1,60 @@
+{# src/views/partials/compliance/download-confirm-modal.njk #}
+<div id="download-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+    <div class="flex items-center gap-3 mb-4">
+      <h3 class="text-lg font-semibold text-gray-900">{{ "Download & Permanently Delete" | t }}</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-4">
+      {{ "You are about to download and permanently delete these documents from the server. This action cannot be undone." | t }}
+    </p>
+
+    <p class="text-sm text-gray-600 mb-4">
+      {{ "These documents are required to be retained for 5 years under AML/CFT regulations. By proceeding, you confirm that:" | t }}
+    </p>
+
+    <form id="download-confirm-form"
+          method="POST"
+          action="/agent/transactions/{{ transactionId }}/documents/download-all-and-delete">
+
+      <div class="space-y-3 mb-6">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="offlineRetentionConfirmed" value="true" required
+                 id="confirm-offline"
+                 class="mt-0.5 rounded border-gray-300 text-blue-600"
+                 onchange="checkBothBoxes()">
+          <span class="text-sm text-gray-700">{{ "I have stored these documents securely offline" | t }}</span>
+        </label>
+
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="canProduceConfirmed" value="true" required
+                 id="confirm-produce"
+                 class="mt-0.5 rounded border-gray-300 text-blue-600"
+                 onchange="checkBothBoxes()">
+          <span class="text-sm text-gray-700">{{ "I can produce these documents if requested by authorities" | t }}</span>
+        </label>
+      </div>
+
+      <div class="flex gap-3 justify-end">
+        <button type="button"
+                onclick="document.getElementById('download-modal').remove()"
+                class="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+          {{ "Cancel" | t }}
+        </button>
+        <button type="submit"
+                id="download-submit-btn"
+                disabled
+                class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          {{ "Download & Delete" | t }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+function checkBothBoxes() {
+  const both = document.getElementById('confirm-offline').checked
+             && document.getElementById('confirm-produce').checked;
+  document.getElementById('download-submit-btn').disabled = !both;
+}
+</script>

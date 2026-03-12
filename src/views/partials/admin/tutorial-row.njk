@@ -1,0 +1,24 @@
+<tr class="border-b last:border-0 hover:bg-gray-50" id="tutorial-row-{{ tutorial.id }}">
+  <td class="py-2 pr-4 text-gray-500">{{ tutorial.orderIndex }}</td>
+  <td class="py-2 pr-4 font-medium">{{ tutorial.title }}</td>
+  <td class="py-2 pr-4 text-gray-500 font-mono text-xs">{{ tutorial.slug }}</td>
+  <td class="py-2 text-right space-x-2">
+    <form method="POST" action="/admin/tutorials/reorder" class="inline"
+          hx-post="/admin/tutorials/reorder" hx-target="#tutorial-list" hx-swap="innerHTML">
+      <input type="hidden" name="items[0][id]" value="{{ tutorial.id }}">
+      <input type="hidden" name="items[0][orderIndex]" value="{{ tutorial.orderIndex - 1 }}">
+      <button type="submit" class="text-gray-400 hover:text-gray-600 px-1" aria-label="{{ 'Move up' | t }}">↑</button>
+    </form>
+    <form method="POST" action="/admin/tutorials/reorder" class="inline"
+          hx-post="/admin/tutorials/reorder" hx-target="#tutorial-list" hx-swap="innerHTML">
+      <input type="hidden" name="items[0][id]" value="{{ tutorial.id }}">
+      <input type="hidden" name="items[0][orderIndex]" value="{{ tutorial.orderIndex + 1 }}">
+      <button type="submit" class="text-gray-400 hover:text-gray-600 px-1" aria-label="{{ 'Move down' | t }}">↓</button>
+    </form>
+    <a href="/admin/tutorials/{{ tutorial.id }}/edit" class="text-indigo-600 hover:underline text-xs">{{ "Edit" | t }}</a>
+    <form method="POST" action="/admin/tutorials/{{ tutorial.id }}/delete" class="inline"
+          onsubmit="return confirm('{{ 'Delete this tutorial?' | t }}')">
+      <button type="submit" class="text-red-500 hover:underline text-xs">{{ "Delete" | t }}</button>
+    </form>
+  </td>
+</tr>

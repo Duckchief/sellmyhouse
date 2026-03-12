@@ -1,0 +1,28 @@
+{% set categoryLabels = { photography: "Photography", forms: "Forms", process: "Process", financial: "Financial" } %}
+
+{% if tutorials | length == 0 %}
+<p class="text-gray-500 text-sm">{{ "No tutorials yet. Add one to get started." | t }}</p>
+{% else %}
+  {% for category, items in tutorials %}
+  <div class="mb-8">
+    <h2 class="text-base font-semibold text-gray-700 mb-3 border-b pb-2">
+      {{ categoryLabels[category] | t }}
+    </h2>
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-gray-500 border-b">
+          <th class="pb-2 pr-4">{{ "Order" | t }}</th>
+          <th class="pb-2 pr-4">{{ "Title" | t }}</th>
+          <th class="pb-2 pr-4">{{ "Slug" | t }}</th>
+          <th class="pb-2"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tutorial in items %}
+        {% include "partials/admin/tutorial-row.njk" %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+{% endif %}

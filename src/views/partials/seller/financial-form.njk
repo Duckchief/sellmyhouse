@@ -1,0 +1,173 @@
+{#
+  Variables: (none)
+  HTMX partial — renders into #financial-content.
+  Served by GET /seller/financial/form.
+#}
+<div class="bg-white rounded-lg shadow p-6">
+  <h2 class="font-semibold text-gray-900 mb-1">{{ "Estimate Your Net Cash Proceeds" | t }}</h2>
+  <p class="text-xs text-gray-500 mb-6">
+    {{ "Figures are indicative only. Always verify CPF and HDB amounts directly." | t }}
+  </p>
+
+  <form
+    hx-post="/seller/financial/calculate"
+    hx-target="#financial-content"
+    hx-swap="innerHTML"
+    hx-indicator="#calc-spinner"
+    class="space-y-5"
+  >
+    {# Property reference — required by the calculate route #}
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1" for="propertyId">
+        {{ "Property ID" | t }} <span class="text-red-500">*</span>
+      </label>
+      <input type="text" id="propertyId" name="propertyId" required
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             placeholder="{{ 'e.g. clx...' | t }}">
+      <p class="mt-1 text-xs text-gray-400">{{ "Find your Property ID on your seller dashboard." | t }}</p>
+    </div>
+
+    {# Sale price #}
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1" for="salePrice">
+        {{ "Expected Sale Price (SGD)" | t }} <span class="text-red-500">*</span>
+      </label>
+      <input type="number" id="salePrice" name="salePrice" required min="0" step="1000"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    {# Outstanding loan #}
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1" for="outstandingLoan">
+        {{ "Outstanding HDB / Bank Loan (SGD)" | t }}
+      </label>
+      <input type="number" id="outstandingLoan" name="outstandingLoan" min="0" step="1000" value="0"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    {# Flat type + town (2-col) #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="flatType">
+          {{ "Flat Type" | t }} <span class="text-red-500">*</span>
+        </label>
+        <select id="flatType" name="flatType" required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">{{ "Select…" | t }}</option>
+          <option value="2 ROOM">2 Room</option>
+          <option value="3 ROOM">3 Room</option>
+          <option value="4 ROOM">4 Room</option>
+          <option value="5 ROOM">5 Room</option>
+          <option value="EXECUTIVE">Executive</option>
+          <option value="MULTI-GENERATION">Multi-Generation</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="town">
+          {{ "Town / Estate" | t }}
+        </label>
+        <input type="text" id="town" name="town"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+    </div>
+
+    {# Lease commence + subsidy (2-col) #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="leaseCommenceDate">
+          {{ "Lease Commence Year" | t }}
+        </label>
+        <input type="number" id="leaseCommenceDate" name="leaseCommenceDate"
+               min="1960" max="2030" placeholder="e.g. 1995"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="subsidyType">
+          {{ "HDB Subsidy Status" | t }}
+        </label>
+        <select id="subsidyType" name="subsidyType"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="subsidised">{{ "Subsidised (received HDB grant)" | t }}</option>
+          <option value="non_subsidised">{{ "Non-subsidised (no HDB grant)" | t }}</option>
+        </select>
+      </div>
+    </div>
+
+    {# First timer #}
+    <div>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" name="isFirstTimer" value="true"
+               class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+        <span class="text-sm text-gray-700">
+          {{ "First-timer application (affects resale levy)" | t }}
+        </span>
+      </label>
+    </div>
+
+    {# CPF Owner 1 #}
+    <div class="border-t border-gray-100 pt-4">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">{{ "CPF Details — Owner 1" | t }}</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">
+            {{ "CPF OA Used (SGD)" | t }}
+          </label>
+          <input type="text" name="cpfOaUsed" placeholder="{{ 'Leave blank if unknown' | t }}"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <p class="mt-0.5 text-xs text-gray-400">{{ "Leave blank to estimate from flat type." | t }}</p>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">
+            {{ "Year of Purchase" | t }}
+          </label>
+          <input type="number" name="purchaseYear" min="1960" max="2025"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+    </div>
+
+    {# CPF Owner 2 (joint, optional) #}
+    <div>
+      <button type="button"
+              onclick="document.getElementById('joint-owner-fields').classList.remove('hidden'); this.classList.add('hidden')"
+              class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+        + {{ "Add joint owner CPF" | t }}
+      </button>
+      <div id="joint-owner-fields" class="hidden border-t border-gray-100 pt-4 mt-2">
+        <h3 class="text-sm font-semibold text-gray-700 mb-3">{{ "CPF Details — Owner 2 (Joint)" | t }}</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">{{ "CPF OA Used (SGD)" | t }}</label>
+            <input type="text" name="jointOwnerCpfOaUsed" placeholder="{{ 'Leave blank if unknown' | t }}"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">{{ "Year of Purchase" | t }}</label>
+            <input type="number" name="jointOwnerPurchaseYear" min="1960" max="2025"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Legal fees #}
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1" for="legalFeesEstimate">
+        {{ "Legal Fees Estimate (SGD)" | t }}
+      </label>
+      <input type="number" id="legalFeesEstimate" name="legalFeesEstimate" min="0" placeholder="2500"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <p class="mt-1 text-xs text-gray-400">{{ "Defaults to $2,500 if left blank." | t }}</p>
+    </div>
+
+    <div class="pt-2 flex items-center gap-3">
+      <button type="submit"
+              class="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+        {{ "Calculate" | t }}
+      </button>
+      <span id="calc-spinner" class="htmx-indicator text-sm text-gray-500">
+        {{ "Calculating…" | t }}
+      </span>
+    </div>
+  </form>
+</div>

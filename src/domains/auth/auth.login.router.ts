@@ -4,6 +4,7 @@ import { validationResult } from 'express-validator';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import * as authService from './auth.service';
 import * as auditService from '../shared/audit.service';
+import * as notificationService from '@/domains/notification/notification.service';
 import { loginValidation, forgotPasswordRules, resetPasswordRules } from './auth.validator';
 import { authRateLimiter } from '../../infra/http/middleware/rate-limit';
 import { ValidationError } from '../shared/errors';
@@ -180,13 +181,27 @@ loginRouter.post(
           .render('pages/auth/forgot-password', { error: 'Please enter a valid email' });
       }
 
-      // Try both seller and agent
-      const result =
-        (await authService.requestPasswordReset(req.body.email, 'seller')) ||
-        (await authService.requestPasswordReset(req.body.email, 'agent'));
+      // Try seller first, then agent — track which role matched for recipientType
+      let recipientType: 'seller' | 'agent' = 'seller';
+      let result = await authService.requestPasswordReset(req.body.email, 'seller');
+      if (!result) {
+        result = await authService.requestPasswordReset(req.body.email, 'agent');
+        recipientType = 'agent';
+      }
 
       if (result) {
-        // TODO: Send email via notification service (will be wired in integration)
+        await notificationService.send(
+          {
+            recipientType,
+            recipientId: result.userId,
+            templateName: 'password_reset',
+            templateData: {
+              resetUrl: `https://sellmyhomenow.sg/auth/reset-password/${result.token}`,
+            },
+            preferredChannel: 'email',
+          },
+          'system',
+        );
       }
 
       // Always show success message (prevent email enumeration)

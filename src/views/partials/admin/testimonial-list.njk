@@ -1,0 +1,61 @@
+{% set statusColors = {
+  pending_submission: "bg-gray-100 text-gray-700",
+  pending_review: "bg-yellow-100 text-yellow-800",
+  approved: "bg-green-100 text-green-800",
+  rejected: "bg-red-100 text-red-700"
+} %}
+
+{% if records | length == 0 %}
+<p class="text-gray-500 text-sm">{{ "No testimonials yet." | t }}</p>
+{% else %}
+<table class="w-full text-sm">
+  <thead>
+    <tr class="text-left text-gray-500 border-b">
+      <th class="pb-2 pr-4">{{ "Seller" | t }}</th>
+      <th class="pb-2 pr-4">{{ "Town" | t }}</th>
+      <th class="pb-2 pr-4">{{ "Rating" | t }}</th>
+      <th class="pb-2 pr-4">{{ "Status" | t }}</th>
+      <th class="pb-2 pr-4">{{ "Featured" | t }}</th>
+      <th class="pb-2"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for record in records %}
+    <tr class="border-b last:border-0 hover:bg-gray-50">
+      <td class="py-2 pr-4">{{ record.sellerName }}</td>
+      <td class="py-2 pr-4 text-gray-500 text-xs">{{ record.sellerTown }}</td>
+      <td class="py-2 pr-4">{{ record.rating }}★</td>
+      <td class="py-2 pr-4">
+        <span class="px-2 py-0.5 rounded text-xs font-medium {{ statusColors[record.status] }}">
+          {{ record.status | replace('_', ' ') }}
+        </span>
+      </td>
+      <td class="py-2 pr-4">
+        {% if record.status == 'approved' %}
+        <form method="POST" action="/admin/content/testimonials/{{ record.id }}/feature" class="inline">
+          <input type="hidden" name="displayOnWebsite" value="{{ 'false' if record.displayOnWebsite else 'true' }}">
+          <button type="submit" class="text-xs text-indigo-600 hover:underline">
+            {{ "Unfeature" | t if record.displayOnWebsite else "Feature" | t }}
+          </button>
+        </form>
+        {% endif %}
+      </td>
+      <td class="py-2 text-right flex gap-2 justify-end">
+        {% if record.status == 'pending_review' %}
+        <form method="POST" action="/admin/content/testimonials/{{ record.id }}/approve" class="inline">
+          <button type="submit" class="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700">
+            {{ "Approve" | t }}
+          </button>
+        </form>
+        <form method="POST" action="/admin/content/testimonials/{{ record.id }}/reject" class="inline">
+          <button type="submit" class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">
+            {{ "Reject" | t }}
+          </button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

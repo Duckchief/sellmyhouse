@@ -1,0 +1,25 @@
+{#
+  Variables (all optional — three call paths):
+    viewingId  — present for returning-viewer path and OTP-verified path
+    bookingId  — present for OTP-verified path (same value, different key)
+    (neither)  — spam/honeypot path — still renders generic success to avoid giving bots feedback
+#}
+<div class="border border-green-200 bg-green-50 rounded-xl p-8 text-center">
+  <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+    </svg>
+  </div>
+  <h3 class="font-bold text-lg text-gray-900 mb-2">{{ "Viewing Booked!" | t }}</h3>
+  <p class="text-sm text-gray-600">
+    {{ "Your viewing has been confirmed. You will receive a WhatsApp confirmation shortly." | t }}
+  </p>
+  {% if viewingId or bookingId %}
+  <p class="text-xs text-gray-400 mt-3">
+    {{ "Booking reference:" | t }} <span class="font-mono">{{ viewingId or bookingId }}</span>
+  </p>
+  {% endif %}
+  <p class="text-xs text-gray-500 mt-4">
+    {{ "Need to cancel? Use the link in your confirmation message." | t }}
+  </p>
+</div>

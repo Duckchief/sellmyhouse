@@ -1,7 +1,8 @@
 // src/domains/compliance/compliance.service.ts
+import fs from 'fs/promises';
 import * as complianceRepo from './compliance.repository';
 import * as auditService from '../shared/audit.service';
-import { NotFoundError } from '../shared/errors';
+import { NotFoundError, ComplianceError } from '../shared/errors';
 import { AUTO_APPLY_FIELDS, type CreateCorrectionRequestInput } from './compliance.types';
 import type {
   DncChannel,
@@ -32,8 +33,9 @@ export async function checkDncAllowed(
     return { allowed: false, reason: 'Seller has not given marketing consent' };
   }
 
-  // TODO: Integrate real Singapore DNC registry API check
-  // For now, consent flags serve as the gate.
+  // TODO: Integrate Singapore DNC Registry API before enabling
+  // outbound marketing at scale. Currently always returns
+  // { blocked: false }. Tracked in [your issue tracker].
   return { allowed: true };
 }
 
@@ -284,4 +286,273 @@ export async function generateDataExport(sellerId: string): Promise<Record<strin
       processedAt: r.processedAt,
     })),
   };
+}
+
+// ─── SP3: Retention Scanning ──────────────────────────────────────────────────
+
+export interface ScanRetentionResult {
+  flaggedCount: number;
+  skippedCount: number;
+}
+
+export async function scanRetention(): Promise<ScanRetentionResult> {
+  const now = new Date();
+  let flaggedCount = 0;
+  let skippedCount = 0;
+
+  async function flagIfNew(
+    targetType: string,
+    targetId: string,
+    reason: string,
+    retentionRule: string,
+    status: 'flagged' | 'blocked',
+    details: Record<string, unknown>,
+  ) {
+    const existing = await complianceRepo.findExistingDeletionRequest(targetType, targetId);
+    if (existing) {
+      skippedCount++;
+      return;
+    }
+    await complianceRepo.createDeletionRequest({
+      targetType,
+      targetId,
+      reason,
+      retentionRule,
+      status,
+      details,
+    });
+    flaggedCount++;
+  }
+
+  // 1. Leads inactive 12+ months
+  const leadCutoff = new Date(now);
+  leadCutoff.setMonth(leadCutoff.getMonth() - 12);
+  const staleLeads = await complianceRepo.findLeadsForRetention(leadCutoff);
+  for (const lead of staleLeads) {
+    await flagIfNew('lead', lead.id, 'Lead inactive for 12+ months', 'lead_12_month', 'flagged', {
+      sellerName: lead.name,
+      lastActivity: lead.updatedAt,
+    });
+  }
+
+  // 2. Service consent withdrawn 30+ days, no transactions
+  const withdrawalCutoff = new Date(now);
+  withdrawalCutoff.setDate(withdrawalCutoff.getDate() - 30);
+  const withdrawnSellers = await complianceRepo.findServiceWithdrawnForDeletion(withdrawalCutoff);
+  for (const seller of withdrawnSellers) {
+    await flagIfNew(
+      'lead',
+      seller.id,
+      'Service consent withdrawn > 30 days ago',
+      '30_day_grace',
+      'flagged',
+      {
+        sellerName: seller.name,
+      },
+    );
+  }
+
+  // 3. Transactions 5+ years post-completion
+  const txCutoff = new Date(now);
+  txCutoff.setFullYear(txCutoff.getFullYear() - 5);
+  const oldTransactions = await complianceRepo.findTransactionsForRetention(txCutoff);
+  for (const tx of oldTransactions) {
+    await flagIfNew(
+      'transaction',
+      tx.id,
+      'Transaction record > 5 years post-completion',
+      'transaction_5_year',
+      'flagged',
+      {
+        sellerId: tx.sellerId,
+        completionDate: tx.completionDate,
+      },
+    );
+  }
+
+  // 4. CDD documents 5+ years since verification
+  const cddCutoff = new Date(now);
+  cddCutoff.setFullYear(cddCutoff.getFullYear() - 5);
+  const oldCddRecords = await complianceRepo.findCddRecordsForRetention(cddCutoff);
+  for (const cdd of oldCddRecords) {
+    await flagIfNew(
+      'cdd_documents',
+      cdd.id,
+      'CDD documents > 5 years old',
+      'cdd_5_year',
+      'flagged',
+      {
+        subjectId: cdd.subjectId,
+        verifiedAt: cdd.verifiedAt,
+      },
+    );
+  }
+
+  // 5. Withdrawn consent records 1+ year post-withdrawal
+  const consentCutoff = new Date(now);
+  consentCutoff.setFullYear(consentCutoff.getFullYear() - 1);
+  const oldConsentRecords = await complianceRepo.findConsentRecordsForDeletion(consentCutoff);
+  for (const record of oldConsentRecords) {
+    await flagIfNew(
+      'consent_record',
+      record.id,
+      'Consent record > 1 year post-withdrawal',
+      'consent_1_year_post_withdrawal',
+      'flagged',
+      {
+        subjectId: record.subjectId,
+        withdrawnAt: record.consentWithdrawnAt,
+      },
+    );
+  }
+
+  // 6. Stale data correction requests — alert agent (not deletion)
+  const correctionCutoff = new Date(now);
+  correctionCutoff.setDate(correctionCutoff.getDate() - 30);
+  const staleCorrections = await complianceRepo.findStaleCorrectionRequests(correctionCutoff);
+  for (const req of staleCorrections) {
+    await auditService.log({
+      action: 'compliance.correction_request_overdue',
+      entityType: 'data_correction_request',
+      entityId: req.id,
+      details: {
+        sellerId: req.sellerId,
+        fieldName: req.fieldName,
+        daysOverdue: Math.floor((now.getTime() - req.createdAt.getTime()) / 86400000),
+        assignedAgentId: req.seller?.agentId,
+      },
+    });
+  }
+
+  return { flaggedCount, skippedCount };
+}
+
+// ─── SP3: Hard Delete ─────────────────────────────────────────────────────────
+
+export async function executeHardDelete(input: {
+  requestId: string;
+  agentId: string;
+  reviewNotes?: string;
+}): Promise<void> {
+  const request = await complianceRepo.findDeletionRequest(input.requestId);
+  if (!request) throw new NotFoundError('DataDeletionRequest', input.requestId);
+
+  if (request.status === 'blocked') {
+    throw new ComplianceError(
+      `Cannot delete: AML/CFT retention requirement applies. Rule: ${request.retentionRule}`,
+    );
+  }
+
+  if (request.status !== 'flagged' && request.status !== 'pending_review') {
+    throw new ComplianceError(`Deletion request is not in a reviewable state: ${request.status}`);
+  }
+
+  const details = request.details as Record<string, unknown> | null;
+  const auditSnapshot = {
+    targetType: request.targetType,
+    targetId: request.targetId,
+    retentionRule: request.retentionRule,
+    approvedByAgentId: input.agentId,
+    details,
+  };
+
+  switch (request.targetType) {
+    case 'lead':
+    case 'seller':
+      await complianceRepo.hardDeleteSeller(request.targetId);
+      break;
+
+    case 'cdd_documents': {
+      // File paths may be stored in details; unlink before clearing DB record
+      const docDetails = details as { filePaths?: string[] } | null;
+      const paths = docDetails?.filePaths ?? [];
+      for (const filePath of paths) {
+        try {
+          await fs.unlink(filePath);
+        } catch (err) {
+          // Log the failure — orphaned files need operator attention
+          await auditService.log({
+            action: 'compliance.file_unlink_failed',
+            entityType: 'cdd_documents',
+            entityId: request.targetId,
+            details: {
+              filePath,
+              error: err instanceof Error ? err.message : String(err),
+              requestId: input.requestId,
+            },
+            agentId: input.agentId,
+          });
+        }
+      }
+      await complianceRepo.hardDeleteCddDocuments(request.targetId);
+      break;
+    }
+
+    case 'consent_record':
+      await complianceRepo.hardDeleteConsentRecord(request.targetId);
+      break;
+
+    case 'transaction':
+      await complianceRepo.hardDeleteTransaction(request.targetId);
+      break;
+
+    default:
+      throw new ComplianceError(`Unknown target type for deletion: ${request.targetType}`);
+  }
+
+  const now = new Date();
+  await complianceRepo.updateDeletionRequest(input.requestId, {
+    status: 'executed',
+    reviewedByAgentId: input.agentId,
+    reviewedAt: now,
+    reviewNotes: input.reviewNotes,
+    executedAt: now,
+  });
+
+  await auditService.log({
+    action: 'data.hard_deleted',
+    entityType: request.targetType,
+    entityId: request.targetId,
+    details: auditSnapshot,
+    agentId: input.agentId,
+  });
+}
+
+// ─── Deletion Queue (called by admin service) ─────────────────────────────────
+
+export async function getDeletionQueue() {
+  return complianceRepo.findPendingDeletionRequests();
+}
+
+// ─── SP3: Agent Anonymisation ─────────────────────────────────────────────────
+
+export async function anonymiseAgent(input: {
+  agentId: string;
+  requestedByAgentId: string;
+}): Promise<void> {
+  const agent = await complianceRepo.findAgentById(input.agentId);
+  if (!agent) throw new NotFoundError('Agent', input.agentId);
+
+  if (agent.isActive) {
+    throw new ComplianceError(
+      'Cannot anonymise an active agent. Deactivate the agent account first.',
+    );
+  }
+
+  const snapshot = {
+    originalName: agent.name,
+    originalEmail: agent.email,
+    originalPhone: agent.phone,
+    anonymisedBy: input.requestedByAgentId,
+  };
+
+  await complianceRepo.anonymiseAgentRecord(input.agentId);
+
+  await auditService.log({
+    action: 'agent.anonymised',
+    entityType: 'agent',
+    entityId: input.agentId,
+    details: snapshot,
+    agentId: input.requestedByAgentId,
+  });
 }

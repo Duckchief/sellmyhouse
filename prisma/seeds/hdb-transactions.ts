@@ -66,7 +66,9 @@ async function processFile(prisma: PrismaClient, filePath: string): Promise<numb
         trim: true,
       }),
     );
-
+    // NOTE: Loads all records into memory before inserting.
+    // Monitor RAM during first production seed (~972K records).
+    // Convert to streaming if memory constrained.
     parser.on('data', (row: CsvRow) => {
       records.push(mapRow(row));
     });

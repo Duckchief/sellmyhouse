@@ -1,0 +1,146 @@
+<h2>Review Queue Layout</h2>
+<p class="subtitle">How should the unified review queue present mixed entity types?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Flat Priority List</h3>
+      <p>All items sorted by age (oldest first). Entity type shown as a badge. One homogeneous list — simpler, but harder to scan by type.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Review Queue (8 pending)</div>
+        <div class="mockup-body" style="padding:0">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:#f3f4f6;text-align:left">
+              <th style="padding:6px 10px">Seller</th>
+              <th style="padding:6px 10px">Type</th>
+              <th style="padding:6px 10px">Property</th>
+              <th style="padding:6px 10px">Age</th>
+              <th style="padding:6px 10px">Actions</th>
+            </tr></thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #e5e7eb">
+                <td style="padding:6px 10px">Tan Wei Ming</td>
+                <td style="padding:6px 10px"><span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-size:11px">Financial Report</span></td>
+                <td style="padding:6px 10px">Bishan Blk 123</td>
+                <td style="padding:6px 10px;color:#dc2626">3d ago</td>
+                <td style="padding:6px 10px"><span style="color:#059669;font-weight:600">Approve</span> · <span style="color:#dc2626">Reject</span></td>
+              </tr>
+              <tr style="border-bottom:1px solid #e5e7eb;background:#fafafa">
+                <td style="padding:6px 10px">Lim Hui Fen</td>
+                <td style="padding:6px 10px"><span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:11px">Listing Desc</span></td>
+                <td style="padding:6px 10px">Tampines Blk 456</td>
+                <td style="padding:6px 10px;color:#dc2626">2d ago</td>
+                <td style="padding:6px 10px"><span style="color:#059669;font-weight:600">Approve</span> · <span style="color:#dc2626">Reject</span></td>
+              </tr>
+              <tr style="border-bottom:1px solid #e5e7eb">
+                <td style="padding:6px 10px">Ahmad Faris</td>
+                <td style="padding:6px 10px"><span style="background:#f3e8ff;color:#6b21a8;padding:2px 6px;border-radius:4px;font-size:11px">Photos</span></td>
+                <td style="padding:6px 10px">Jurong East Blk 78</td>
+                <td style="padding:6px 10px">1d ago</td>
+                <td style="padding:6px 10px"><span style="color:#059669;font-weight:600">Approve</span> · <span style="color:#dc2626">Reject</span></td>
+              </tr>
+              <tr style="border-bottom:1px solid #e5e7eb;background:#fafafa">
+                <td style="padding:6px 10px">Chen Li Na</td>
+                <td style="padding:6px 10px"><span style="background:#dcfce7;color:#15803d;padding:2px 6px;border-radius:4px;font-size:11px">Market Content</span></td>
+                <td style="padding:6px 10px">Ang Mo Kio Blk 301</td>
+                <td style="padding:6px 10px">6h ago</td>
+                <td style="padding:6px 10px"><span style="color:#059669;font-weight:600">Approve</span> · <span style="color:#dc2626">Reject</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Grouped by Entity Type</h3>
+      <p>Collapsible sections per type with count badges. Easy to tackle one category at a time. Header shows total pending.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Review Queue — 8 items pending</div>
+        <div class="mockup-body" style="padding:8px">
+          <div style="border:1px solid #e5e7eb;border-radius:6px;margin-bottom:8px;overflow:hidden">
+            <div style="background:#eff6ff;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600">
+              <span>📊 Financial Reports</span>
+              <span style="background:#dc2626;color:white;padding:2px 8px;border-radius:10px">3</span>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:12px">
+              <tr style="border-bottom:1px solid #e5e7eb">
+                <td style="padding:6px 10px">Tan Wei Ming · Bishan Blk 123</td>
+                <td style="padding:6px 10px;color:#dc2626">3d ago</td>
+                <td style="padding:6px 10px;text-align:right"><span style="color:#059669;font-weight:600">Approve</span> · <span style="color:#dc2626">Reject</span></td>
+              </tr>
+            </table>
+          </div>
+          <div style="border:1px solid #e5e7eb;border-radius:6px;margin-bottom:8px;overflow:hidden">
+            <div style="background:#fefce8;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600">
+              <span>📝 Listing Descriptions</span>
+              <span style="background:#dc2626;color:white;padding:2px 8px;border-radius:10px">2</span>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:12px">
+              <tr>
+                <td style="padding:6px 10px">Lim Hui Fen · Tampines Blk 456</td>
+                <td style="padding:6px 10px;color:#dc2626">2d ago</td>
+                <td style="padding:6px 10px;text-align:right"><span style="color:#059669;font-weight:600">Approve</span> · <span style="color:#dc2626">Reject</span></td>
+              </tr>
+            </table>
+          </div>
+          <div style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden">
+            <div style="background:#f0fdf4;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600">
+              <span>🖼️ Photos · 📢 Market Content · 📋 Weekly Updates · ✅ Doc Checklists</span>
+              <span style="background:#6b7280;color:white;padding:2px 8px;border-radius:10px">3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Tabbed by Entity Type</h3>
+      <p>Tabs at top filter the list. "All" tab shows everything by priority. HTMX-driven tab switching. Cleanest UI, more implementation work.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Review Queue</div>
+        <div class="mockup-body" style="padding:0">
+          <div style="display:flex;border-bottom:2px solid #e5e7eb;background:#f9fafb;font-size:12px">
+            <div style="padding:8px 14px;border-bottom:2px solid #2563eb;margin-bottom:-2px;font-weight:600;color:#2563eb">All <span style="background:#dc2626;color:white;padding:1px 6px;border-radius:8px;font-size:10px">8</span></div>
+            <div style="padding:8px 14px;color:#6b7280">Reports <span style="background:#e5e7eb;padding:1px 5px;border-radius:8px">3</span></div>
+            <div style="padding:8px 14px;color:#6b7280">Listings <span style="background:#e5e7eb;padding:1px 5px;border-radius:8px">2</span></div>
+            <div style="padding:8px 14px;color:#6b7280">Photos <span style="background:#e5e7eb;padding:1px 5px;border-radius:8px">1</span></div>
+            <div style="padding:8px 14px;color:#6b7280">Content <span style="background:#e5e7eb;padding:1px 5px;border-radius:8px">2</span></div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:#f3f4f6;text-align:left">
+              <th style="padding:6px 10px">Seller</th>
+              <th style="padding:6px 10px">Type</th>
+              <th style="padding:6px 10px">Property</th>
+              <th style="padding:6px 10px">Age</th>
+              <th style="padding:6px 10px">Actions</th>
+            </tr></thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #e5e7eb">
+                <td style="padding:6px 10px">Tan Wei Ming</td>
+                <td style="padding:6px 10px"><span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-size:11px">Financial Report</span></td>
+                <td style="padding:6px 10px">Bishan Blk 123</td>
+                <td style="padding:6px 10px;color:#dc2626">3d ago</td>
+                <td style="padding:6px 10px"><span style="color:#059669;font-weight:600">Approve</span> · <span style="color:#dc2626">Reject</span></td>
+              </tr>
+              <tr style="border-bottom:1px solid #e5e7eb;background:#fafafa">
+                <td style="padding:6px 10px">Lim Hui Fen</td>
+                <td style="padding:6px 10px"><span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:11px">Listing Desc</span></td>
+                <td style="padding:6px 10px">Tampines Blk 456</td>
+                <td style="padding:6px 10px;color:#dc2626">2d ago</td>
+                <td style="padding:6px 10px"><span style="color:#059669;font-weight:600">Approve</span> · <span style="color:#dc2626">Reject</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

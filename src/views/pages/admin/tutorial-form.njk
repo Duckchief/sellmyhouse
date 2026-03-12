@@ -1,0 +1,76 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}
+  {% if tutorial %}{{ "Edit Tutorial" | t }}{% else %}{{ "New Tutorial" | t }}{% endif %} — Admin
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/admin/tutorials" class="text-indigo-600 hover:underline text-sm">← {{ "Tutorials" | t }}</a>
+    <h1 class="text-2xl font-bold">
+      {% if tutorial %}{{ "Edit Tutorial" | t }}{% else %}{{ "New Tutorial" | t }}{% endif %}
+    </h1>
+  </div>
+
+  {% if errors | length > 0 %}
+  <div class="bg-red-50 border border-red-200 rounded p-3 mb-4">
+    {% for error in errors %}
+    <p class="text-red-700 text-sm">{{ error.msg }}</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="POST"
+    action="{% if tutorial %}/admin/tutorials/{{ tutorial.id }}{% else %}/admin/tutorials{% endif %}">
+
+    <div class="mb-4">
+      <label class="block text-sm font-medium mb-1">{{ "Title" | t }} *</label>
+      <input type="text" name="title" required
+        value="{{ values.title if values.title else (tutorial.title if tutorial else '') }}"
+        class="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-sm font-medium mb-1">{{ "Slug" | t }}</label>
+      <input type="text" name="slug"
+        value="{{ values.slug if values.slug else (tutorial.slug if tutorial else '') }}"
+        placeholder="{{ 'Auto-generated from title if blank' | t }}"
+        class="w-full border rounded px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none">
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-sm font-medium mb-1">{{ "YouTube URL" | t }} *</label>
+      <input type="url" name="youtubeUrl" required
+        value="{{ values.youtubeUrl if values.youtubeUrl else (tutorial.youtubeUrl if tutorial else '') }}"
+        placeholder="https://www.youtube.com/watch?v=..."
+        class="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-sm font-medium mb-1">{{ "Category" | t }} *</label>
+      <select name="category" required class="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        {% set currentCategory = values.category if values.category else (tutorial.category if tutorial else '') %}
+        <option value="">{{ "Select category..." | t }}</option>
+        <option value="photography" {% if currentCategory == 'photography' %}selected{% endif %}>{{ "Photography" | t }}</option>
+        <option value="forms" {% if currentCategory == 'forms' %}selected{% endif %}>{{ "Forms" | t }}</option>
+        <option value="process" {% if currentCategory == 'process' %}selected{% endif %}>{{ "Process" | t }}</option>
+        <option value="financial" {% if currentCategory == 'financial' %}selected{% endif %}>{{ "Financial" | t }}</option>
+      </select>
+    </div>
+
+    <div class="mb-6">
+      <label class="block text-sm font-medium mb-1">{{ "Description" | t }}</label>
+      <textarea name="description" rows="3"
+        class="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">{{ values.description if values.description else (tutorial.description if tutorial else '') }}</textarea>
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700">
+        {% if tutorial %}{{ "Save Changes" | t }}{% else %}{{ "Create Tutorial" | t }}{% endif %}
+      </button>
+      <a href="/admin/tutorials" class="px-4 py-2 rounded text-sm border hover:bg-gray-50">{{ "Cancel" | t }}</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

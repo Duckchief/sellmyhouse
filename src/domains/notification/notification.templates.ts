@@ -100,6 +100,10 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationTemplateName, Notificati
     subject: 'Thinking of Your Next Property Move?',
     body: 'Thinking of your next property move? We can help with your next purchase.',
   },
+  password_reset: {
+    subject: 'Reset your SellMyHomeNow password',
+    body: 'We received a request to reset the password for your SellMyHomeNow account.\n\nClick the link below to set a new password:\n{{resetUrl}}\n\nThis link expires in 1 hour.\n\nIf you did not request a password reset, please ignore this email — your password will not change.',
+  },
   generic: {
     subject: 'Notification from SellMyHomeNow',
     body: '{{message}}',
@@ -131,5 +135,6 @@ export const WHATSAPP_TEMPLATE_STATUS: Record<NotificationTemplateName, WhatsApp
   invoice_uploaded: 'pending',
   agreement_sent: 'pending',
   financial_report_ready: 'pending',
+  password_reset: 'pending',
   generic: 'pending',
 };

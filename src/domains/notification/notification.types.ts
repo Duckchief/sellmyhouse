@@ -27,6 +27,7 @@ export type NotificationTemplateName =
   | 'post_completion_day1'
   | 'post_completion_day7'
   | 'post_completion_day14'
+  | 'password_reset'
   | 'generic';
 
 export interface EmailAttachment {

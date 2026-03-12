@@ -75,7 +75,7 @@ export async function createOffer(input: CreateOfferServiceInput) {
       recipientId: input.sellerId,
       templateName: 'offer_received',
       templateData: {
-        address: 'Property listing', // TODO: fetch actual address from property
+        address: `${input.flatType} flat in ${input.town}`,
         amount: String(input.offerAmount),
       },
     },

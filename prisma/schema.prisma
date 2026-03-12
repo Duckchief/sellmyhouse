@@ -205,6 +205,7 @@ enum HdbSyncStatus {
 }
 
 enum TestimonialStatus {
+  pending_submission
   pending_review
   approved
   rejected
@@ -774,11 +775,13 @@ model Testimonial {
   seller            Seller            @relation(fields: [sellerId], references: [id])
   transactionId     String            @unique @map("transaction_id")
   transaction       Transaction       @relation(fields: [transactionId], references: [id])
-  content           String
-  rating            Int
+  content           String?
+  rating            Int?
   sellerName        String            @map("seller_name")
   sellerTown        String            @map("seller_town")
-  status            TestimonialStatus @default(pending_review)
+  status            TestimonialStatus @default(pending_submission)
+  submissionToken   String?           @unique @map("submission_token")
+  tokenExpiresAt    DateTime?         @map("token_expires_at")
   approvedByAgentId String?           @map("approved_by_agent_id")
   approvedByAgent   Agent?            @relation(fields: [approvedByAgentId], references: [id])
   approvedAt        DateTime?         @map("approved_at")

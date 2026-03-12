@@ -20,6 +20,7 @@ export const SETTING_VALIDATORS: Record<SettingKey, (v: string) => boolean> = {
   post_completion_thankyou_delay_days: (v) => Number.isInteger(Number(v)) && Number(v) >= 0,
   post_completion_testimonial_delay_days: (v) => Number.isInteger(Number(v)) && Number(v) >= 0,
   post_completion_buyer_followup_delay_days: (v) => Number.isInteger(Number(v)) && Number(v) >= 0,
+  post_completion_referral_delay_days: (v) => Number.isInteger(Number(v)) && Number(v) >= 0,
   whatsapp_enabled: (v) => v === 'true' || v === 'false',
   email_enabled: (v) => v === 'true' || v === 'false',
   maintenance_mode: (v) => v === 'true' || v === 'false',

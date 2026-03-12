@@ -1,0 +1,22 @@
+<div class="grid grid-cols-4 gap-4 mb-8">
+  <div class="bg-white rounded-xl border border-gray-200 p-5 text-center">
+    <p class="text-3xl font-bold">{{ funnel.linksGenerated }}</p>
+    <p class="text-xs text-gray-400 mt-1">{{ "Links Generated" | t }}</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-5 text-center">
+    <p class="text-3xl font-bold">{{ funnel.clicked }}</p>
+    <p class="text-xs text-gray-400 mt-1">{{ "Clicked" | t }}</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-5 text-center">
+    <p class="text-3xl font-bold">{{ funnel.leadsCreated }}</p>
+    <p class="text-xs text-gray-400 mt-1">{{ "Leads Created" | t }}</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-5 text-center">
+    <p class="text-3xl font-bold">{{ funnel.transactionsCompleted }}</p>
+    <p class="text-xs text-gray-400 mt-1">{{ "Completed" | t }}</p>
+  </div>
+</div>
+
+{% if topReferrers and topReferrers | length > 0 %}
+{% include "partials/admin/referral-top-table.njk" %}
+{% endif %}

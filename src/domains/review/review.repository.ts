@@ -31,6 +31,11 @@ export function buildAddress(town: string, street: string, block: string): strin
   return `${block} ${street}, ${town}`.trim();
 }
 
+export function buildMarketContentLabel(town: string, _flatType: string, period: string): string {
+  if (town === 'ALL') return `Weekly Market Summary (${period})`;
+  return `${town} — ${_flatType} (${period})`;
+}
+
 export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResult> {
   const sellerWhere = agentId ? { agentId } : {};
 
@@ -144,7 +149,7 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
       // MarketContent is not seller-specific; use empty strings for seller fields
       sellerId: '',
       sellerName: 'N/A',
-      propertyAddress: `${m.town} — ${m.flatType} (${m.period})`,
+      propertyAddress: buildMarketContentLabel(m.town, m.flatType, m.period),
       currentStatus: mapMcsToFrs(m.status),
       submittedAt: m.createdAt,
       priority: now - m.createdAt.getTime(),

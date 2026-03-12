@@ -8,11 +8,22 @@ jest.mock('../financial.service');
 
 const mockService = financialService as jest.Mocked<typeof financialService>;
 
+// Stub res.render so tests don't need a full Nunjucks setup
+function addRenderStub(app: express.Express) {
+  app.use((_req, res, next) => {
+    res.render = (_view: string, _data?: object) => {
+      res.status(200).send('');
+    };
+    next();
+  });
+}
+
 // Minimal app setup for testing with seller auth
 function createTestApp() {
   const app = express();
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  addRenderStub(app);
 
   // Mock authenticated seller
   app.use((req, _res, next) => {
@@ -39,6 +50,7 @@ function createAgentTestApp() {
   const app = express();
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  addRenderStub(app);
 
   app.use((req, _res, next) => {
     Object.assign(req, {
@@ -106,7 +118,7 @@ describe('financial.router', () => {
   });
 
   describe('GET /seller/financial', () => {
-    it('returns list of reports for seller', async () => {
+    it('renders the financial page for non-HTMX requests', async () => {
       mockService.getReportsForSeller.mockResolvedValue([
         { id: 'r1', version: 2 },
         { id: 'r2', version: 1 },
@@ -116,9 +128,28 @@ describe('financial.router', () => {
       const res = await request(app).get('/seller/financial');
 
       expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.reports).toHaveLength(2);
       expect(mockService.getReportsForSeller).toHaveBeenCalledWith('seller-1');
+    });
+
+    it('renders financial-list partial for HTMX requests', async () => {
+      mockService.getReportsForSeller.mockResolvedValue([
+        { id: 'r1', version: 2 },
+      ] as unknown as FinancialReport[]);
+
+      const app = createTestApp();
+      const res = await request(app).get('/seller/financial').set('HX-Request', 'true');
+
+      expect(res.status).toBe(200);
+      expect(mockService.getReportsForSeller).toHaveBeenCalledWith('seller-1');
+    });
+  });
+
+  describe('GET /seller/financial/form', () => {
+    it('renders the calculator form partial', async () => {
+      const app = createTestApp();
+      const res = await request(app).get('/seller/financial/form');
+
+      expect(res.status).toBe(200);
     });
   });
 

@@ -1,0 +1,41 @@
+{#
+  Variables: bookingId (string), phone (string)
+  Replaces the booking form area when OTP verification is required.
+
+  Variables: bookingId (string), phone (string), verifyUrl (string)
+  verifyUrl is passed by the router as `/view/${propertySlug}/verify-otp`.
+#}
+<div class="bg-white rounded-lg shadow p-6">
+  <h2 class="font-semibold text-gray-900 mb-2">{{ "Verify Your Number" | t }}</h2>
+  <p class="text-sm text-gray-600 mb-6">
+    {{ "A 6-digit code has been sent to" | t }}
+    <span class="font-medium text-gray-900">{{ phone }}</span>.
+    {{ "Enter it below to confirm your booking." | t }}
+  </p>
+
+  <form
+    hx-post="{{ verifyUrl }}"
+    hx-target="#booking-area"
+    hx-swap="innerHTML"
+    class="space-y-4"
+  >
+    <input type="hidden" name="bookingId" value="{{ bookingId }}">
+    <input type="hidden" name="phone" value="{{ phone }}">
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1" for="otp">
+        {{ "Verification Code" | t }} <span class="text-red-500">*</span>
+      </label>
+      <input type="text" id="otp" name="otp" required
+             inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="one-time-code"
+             placeholder="123456"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-mono tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <p class="mt-1 text-xs text-gray-500">{{ "Code expires in 5 minutes." | t }}</p>
+    </div>
+
+    <button type="submit"
+            class="w-full px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+      {{ "Confirm Booking" | t }}
+    </button>
+  </form>
+</div>

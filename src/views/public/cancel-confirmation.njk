@@ -1,0 +1,42 @@
+{% extends "layouts/public.njk" %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <div class="bg-white rounded-lg shadow p-8">
+    <h1 class="text-xl font-bold text-gray-900 mb-2">{{ "Cancel Viewing" | t }}</h1>
+    <p class="text-gray-600 text-sm mb-6">{{ "Please confirm you want to cancel the following viewing appointment." | t }}</p>
+
+    <div class="bg-gray-50 rounded-md p-4 mb-6 space-y-2">
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">{{ "Property" | t }}</span>
+        <span class="font-medium text-gray-900">{{ viewing.property.town }}, {{ viewing.property.street }}</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">{{ "Date" | t }}</span>
+        <span class="font-medium text-gray-900">{{ viewing.viewingSlot.date | date }}</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">{{ "Time" | t }}</span>
+        <span class="font-medium text-gray-900">{{ viewing.viewingSlot.startTime }}</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">{{ "Name" | t }}</span>
+        <span class="font-medium text-gray-900">{{ viewing.verifiedViewer.name }}</span>
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <form action="/view/cancel/{{ viewingId }}/{{ cancelToken }}" method="POST">
+        <button type="submit"
+                class="px-5 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition">
+          {{ "Yes, Cancel My Viewing" | t }}
+        </button>
+      </form>
+      <a href="/"
+         class="px-5 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 transition">
+        {{ "Keep My Booking" | t }}
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

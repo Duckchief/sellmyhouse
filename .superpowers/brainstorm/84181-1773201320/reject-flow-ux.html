@@ -1,0 +1,112 @@
+<h2>Reject Flow UX</h2>
+<p class="subtitle">Agent clicks "Reject" on a review item — how do they enter rejection notes?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Inline Row Expand</h3>
+      <p>Row expands in-place to reveal a textarea and confirm button. No navigation away from the queue. HTMX swap.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Review Queue</div>
+        <div class="mockup-body" style="padding:0">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <tr style="border-bottom:1px solid #e5e7eb;background:#fafafa">
+              <td style="padding:6px 10px">Tan Wei Ming</td>
+              <td style="padding:6px 10px"><span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-size:11px">Financial Report</span></td>
+              <td style="padding:6px 10px">Bishan Blk 123</td>
+              <td style="padding:6px 10px;color:#dc2626">3d ago</td>
+              <td style="padding:6px 10px"><span style="color:#059669;font-weight:600">Approve</span> · <span style="color:#dc2626;font-weight:600">Reject</span></td>
+            </tr>
+            <tr style="background:#fff5f5;border-bottom:2px solid #dc2626">
+              <td colspan="5" style="padding:10px 14px">
+                <div style="font-size:12px;font-weight:600;color:#dc2626;margin-bottom:6px">Rejection reason</div>
+                <div style="background:white;border:1px solid #fca5a5;border-radius:4px;padding:8px;font-size:11px;color:#9ca3af;height:40px">Narrative is missing CPF details for this case type...</div>
+                <div style="margin-top:8px;display:flex;gap:8px">
+                  <span style="background:#dc2626;color:white;padding:4px 12px;border-radius:4px;font-size:11px;font-weight:600">Confirm Rejection</span>
+                  <span style="background:#f3f4f6;color:#6b7280;padding:4px 12px;border-radius:4px;font-size:11px">Cancel</span>
+                </div>
+              </td>
+            </tr>
+            <tr style="border-bottom:1px solid #e5e7eb">
+              <td style="padding:6px 10px">Lim Hui Fen</td>
+              <td style="padding:6px 10px"><span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:11px">Listing Desc</span></td>
+              <td style="padding:6px 10px">Tampines Blk 456</td>
+              <td style="padding:6px 10px">2d ago</td>
+              <td style="padding:6px 10px"><span style="color:#059669;font-weight:600">Approve</span> · <span style="color:#dc2626">Reject</span></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Modal Dialog</h3>
+      <p>HTMX-triggered modal overlays the page. Agent sees the item context + textarea. Submits, modal closes, row updates.</p>
+      <div class="mockup" style="margin-top:12px;position:relative">
+        <div class="mockup-header">Review Queue</div>
+        <div class="mockup-body" style="padding:0;filter:blur(1px);opacity:0.4">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <tr><td style="padding:8px 10px">Tan Wei Ming · Financial Report · 3d ago</td></tr>
+            <tr style="background:#fafafa"><td style="padding:8px 10px">Lim Hui Fen · Listing Desc · 2d ago</td></tr>
+          </table>
+        </div>
+        <div style="position:absolute;top:30px;left:50%;transform:translateX(-50%);background:white;border:1px solid #e5e7eb;border-radius:8px;padding:16px;width:85%;box-shadow:0 8px 24px rgba(0,0,0,0.15);font-size:12px">
+          <div style="font-weight:700;margin-bottom:4px">Reject: Financial Report</div>
+          <div style="color:#6b7280;margin-bottom:10px">Tan Wei Ming · Bishan Blk 123</div>
+          <div style="font-weight:600;margin-bottom:4px">Rejection reason <span style="color:#dc2626">*</span></div>
+          <div style="background:#f9fafb;border:1px solid #d1d5db;border-radius:4px;padding:8px;color:#9ca3af;height:50px;margin-bottom:10px">Narrative is missing CPF details...</div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <span style="background:#f3f4f6;color:#6b7280;padding:5px 12px;border-radius:4px;font-size:11px">Cancel</span>
+            <span style="background:#dc2626;color:white;padding:5px 12px;border-radius:4px;font-size:11px;font-weight:600">Confirm Rejection</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Slide-out Detail Panel</h3>
+      <p>Clicking an item opens a right-side panel showing full content preview + approve/reject controls. Review happens in the panel, not inline.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Review Queue</div>
+        <div class="mockup-body" style="padding:0;display:flex">
+          <div style="flex:1;font-size:12px">
+            <table style="width:100%;border-collapse:collapse">
+              <tr style="background:#eff6ff;border-bottom:1px solid #bfdbfe">
+                <td style="padding:7px 10px;font-weight:600;color:#1d4ed8">→ Tan Wei Ming</td>
+                <td style="padding:7px 10px">Report</td>
+                <td style="padding:7px 10px;color:#dc2626">3d</td>
+              </tr>
+              <tr style="border-bottom:1px solid #e5e7eb;background:#fafafa">
+                <td style="padding:7px 10px">Lim Hui Fen</td>
+                <td style="padding:7px 10px">Desc</td>
+                <td style="padding:7px 10px">2d</td>
+              </tr>
+              <tr style="border-bottom:1px solid #e5e7eb">
+                <td style="padding:7px 10px">Ahmad Faris</td>
+                <td style="padding:7px 10px">Photos</td>
+                <td style="padding:7px 10px">1d</td>
+              </tr>
+            </table>
+          </div>
+          <div style="width:52%;border-left:2px solid #2563eb;background:#f8faff;padding:10px;font-size:11px">
+            <div style="font-weight:700;margin-bottom:2px">Financial Report — Tan Wei Ming</div>
+            <div style="color:#6b7280;margin-bottom:8px">Bishan St 22 Blk 123 · Submitted 3 days ago</div>
+            <div style="background:white;border:1px solid #e5e7eb;border-radius:4px;padding:6px;height:60px;color:#374151;margin-bottom:8px;overflow:hidden">AI narrative preview text here. The estimated net proceeds for this 4-room HDB flat in Bishan...</div>
+            <div style="display:flex;gap:6px">
+              <span style="background:#059669;color:white;padding:4px 10px;border-radius:4px;font-weight:600">Approve</span>
+              <span style="background:#dc2626;color:white;padding:4px 10px;border-radius:4px;font-weight:600">Reject</span>
+            </div>
+            <div style="margin-top:8px;background:white;border:1px solid #fca5a5;border-radius:4px;padding:6px;color:#9ca3af;height:32px">Rejection notes...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

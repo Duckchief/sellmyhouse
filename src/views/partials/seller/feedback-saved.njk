@@ -1,0 +1,7 @@
+{#
+  Variables: viewingId (string)
+  Replaces #viewing-{{ viewingId }}-feedback via outerHTML swap after feedback is saved.
+#}
+<div id="viewing-{{ viewingId }}-feedback" class="mt-2">
+  <p class="text-xs text-green-700 font-medium">{{ "Feedback saved." | t }}</p>
+</div>

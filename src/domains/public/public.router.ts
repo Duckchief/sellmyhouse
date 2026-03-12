@@ -1,12 +1,18 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { HdbService } from '../hdb/service';
+import * as contentService from '../content/content.service';
 
 export const publicRouter = Router();
 
 const hdbService = new HdbService();
 
-publicRouter.get('/', (_req: Request, res: Response) => {
-  res.render('pages/public/home');
+publicRouter.get('/', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const testimonials = await contentService.getFeaturedTestimonials();
+    res.render('pages/public/home', { testimonials });
+  } catch (err) {
+    next(err);
+  }
 });
 
 publicRouter.get('/market-report', async (_req: Request, res: Response, next: NextFunction) => {

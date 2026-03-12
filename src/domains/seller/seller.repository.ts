@@ -35,9 +35,3 @@ export async function getConsentHistory(sellerId: string) {
     orderBy: { consentGivenAt: 'desc' },
   });
 }
-
-export async function findTutorialsGroupedByCategory() {
-  return prisma.videoTutorial.findMany({
-    orderBy: [{ category: 'asc' }, { orderIndex: 'asc' }],
-  });
-}

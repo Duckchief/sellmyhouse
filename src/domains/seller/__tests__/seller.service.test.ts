@@ -241,4 +241,63 @@ describe('seller.service', () => {
       expect(jest.mocked(contentService).getTutorialsGrouped).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('getSellerSettings', () => {
+    it('returns notificationPreference for the seller', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({
+        id: 'seller-1',
+        notificationPreference: 'email_only',
+      } as Seller);
+
+      const result = await sellerService.getSellerSettings('seller-1');
+
+      expect(result).toEqual({ notificationPreference: 'email_only' });
+    });
+
+    it('throws NotFoundError when seller does not exist', async () => {
+      mockedSellerRepo.findById.mockResolvedValue(null);
+      await expect(sellerService.getSellerSettings('bad-id')).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe('updateNotificationPreference', () => {
+    it('updates preference and writes audit log, returns updated seller', async () => {
+      const updatedSeller = { id: 'seller-1', notificationPreference: 'email_only' as const } as Seller;
+      mockedSellerRepo.findById.mockResolvedValue({
+        id: 'seller-1',
+        notificationPreference: 'whatsapp_and_email',
+      } as Seller);
+      mockedSellerRepo.updateNotificationPreference = jest.fn().mockResolvedValue(updatedSeller);
+
+      const result = await sellerService.updateNotificationPreference({
+        sellerId: 'seller-1',
+        preference: 'email_only',
+        agentId: 'seller-1',
+      });
+
+      expect(mockedSellerRepo.updateNotificationPreference).toHaveBeenCalledWith(
+        'seller-1',
+        'email_only',
+      );
+      expect(mockedAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'seller.notification_preference_changed',
+          entityId: 'seller-1',
+          details: { newPreference: 'email_only' },
+        }),
+      );
+      expect(result).toEqual({ notificationPreference: 'email_only' });
+    });
+
+    it('throws NotFoundError when seller does not exist', async () => {
+      mockedSellerRepo.findById.mockResolvedValue(null);
+      await expect(
+        sellerService.updateNotificationPreference({
+          sellerId: 'bad-id',
+          preference: 'email_only',
+          agentId: 'x',
+        }),
+      ).rejects.toThrow(NotFoundError);
+    });
+  });
 });

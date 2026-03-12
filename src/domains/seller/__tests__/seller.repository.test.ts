@@ -92,6 +92,20 @@ describe('seller.repository', () => {
     });
   });
 
+  describe('updateNotificationPreference', () => {
+    it('calls prisma.seller.update with the preference', async () => {
+      const updated = { id: 'seller-1', notificationPreference: 'email_only' };
+      prisma.seller.update.mockResolvedValue(updated);
+
+      await sellerRepo.updateNotificationPreference('seller-1', 'email_only');
+
+      expect(prisma.seller.update).toHaveBeenCalledWith({
+        where: { id: 'seller-1' },
+        data: { notificationPreference: 'email_only' },
+      });
+    });
+  });
+
   describe('getConsentHistory', () => {
     it('returns consent records for seller', async () => {
       const records = [{ id: 'cr-1', purposeService: true }];

@@ -1,18 +1,24 @@
 import { submitLead } from '../lead.service';
 import * as leadRepo from '../lead.repository';
+import * as settingsService from '../../shared/settings.service';
 import * as auditService from '../../shared/audit.service';
 import * as notificationService from '../../notification/notification.service';
 
 jest.mock('../lead.repository');
+jest.mock('../../shared/settings.service');
 jest.mock('../../shared/audit.service');
 jest.mock('../../notification/notification.service');
 
 const mockLeadRepo = leadRepo as jest.Mocked<typeof leadRepo>;
+const mockSettings = settingsService as jest.Mocked<typeof settingsService>;
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 const mockNotification = notificationService as jest.Mocked<typeof notificationService>;
 
 describe('lead.service', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSettings.getNumber.mockResolvedValue(6);
+  });
 
   const validInput = {
     name: 'John Tan',
@@ -51,6 +57,7 @@ describe('lead.service', () => {
       passwordResetToken: null,
       passwordResetExpiry: null,
       consultationCompletedAt: null,
+      retentionExpiresAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -81,6 +88,7 @@ describe('lead.service', () => {
       consentService: true,
       consentMarketing: false,
       leadSource: 'website',
+      retentionExpiresAt: expect.any(Date),
     });
     expect(mockLeadRepo.createConsentRecord).toHaveBeenCalledWith({
       subjectId: 'seller-1',
@@ -145,6 +153,7 @@ describe('lead.service', () => {
       passwordResetToken: null,
       passwordResetExpiry: null,
       consultationCompletedAt: null,
+      retentionExpiresAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

@@ -201,7 +201,7 @@ export async function cancelSlotsForPropertyCascade(
 
 export async function initiateBooking(
   input: BookingFormInput,
-  _ip: string,
+  consentMeta: { ipAddress?: string; userAgent?: string } = {},
 ): Promise<BookingResult | { spam: true }> {
   // Spam check 1: Honeypot
   if (input.website) return { spam: true };
@@ -238,6 +238,9 @@ export async function initiateBooking(
       agentCeaReg: input.agentCeaReg,
       agentAgencyName: input.agentAgencyName,
       consentService: input.consentService,
+      consentTimestamp: new Date(),
+      consentIpAddress: consentMeta.ipAddress,
+      consentUserAgent: consentMeta.userAgent,
     });
   }
 

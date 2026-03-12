@@ -1,4 +1,9 @@
 // src/domains/compliance/compliance.repository.ts
+// TODO: When CddRecord creation is implemented (agent CDD verification workflow),
+// the create method must set retentionExpiresAt using SystemSetting key
+// 'data_retention_years' (default 6). AML/CFT requires 5 years post-completion,
+// so this should be updated to the actual completion date + 5 years when the
+// transaction completes. Follow-up task: implement compliance.service.ts#createCddRecord().
 import { createId } from '@paralleldrive/cuid2';
 import { Prisma, SubjectType } from '@prisma/client';
 import { prisma } from '@/infra/database/prisma';

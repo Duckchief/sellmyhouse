@@ -222,6 +222,9 @@ export async function createVerifiedViewer(data: {
   agentCeaReg?: string;
   agentAgencyName?: string;
   consentService: boolean;
+  consentTimestamp?: Date;
+  consentIpAddress?: string;
+  consentUserAgent?: string;
 }) {
   return prisma.verifiedViewer.create({ data });
 }

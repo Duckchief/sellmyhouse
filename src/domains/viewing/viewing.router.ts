@@ -184,7 +184,10 @@ viewingRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = validateBookingForm(req.body);
-      const result = await viewingService.initiateBooking(input, req.ip || '');
+      const result = await viewingService.initiateBooking(input, {
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] ?? undefined,
+      });
 
       if ('spam' in result) {
         // Return fake success to avoid giving bots feedback

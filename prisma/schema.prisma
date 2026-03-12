@@ -359,6 +359,7 @@ model Seller {
   passwordResetToken      String?                @map("password_reset_token")
   passwordResetExpiry     DateTime?              @map("password_reset_expiry")
   consultationCompletedAt DateTime?              @map("consultation_completed_at")
+  retentionExpiresAt      DateTime?              @map("retention_expires_at")
   createdAt               DateTime               @default(now()) @map("created_at")
   updatedAt               DateTime               @updatedAt @map("updated_at")
 
@@ -487,7 +488,10 @@ model VerifiedViewer {
   agentName       String?    @map("agent_name")
   agentCeaReg     String?    @map("agent_cea_reg")
   agentAgencyName String?    @map("agent_agency_name")
-  consentService  Boolean    @default(false) @map("consent_service")
+  consentService   Boolean   @default(false) @map("consent_service")
+  consentTimestamp DateTime? @map("consent_timestamp")
+  consentIpAddress String?   @map("consent_ip_address")
+  consentUserAgent String?   @map("consent_user_agent")
   totalBookings   Int        @default(0) @map("total_bookings")
   lastBookingAt   DateTime?  @map("last_booking_at")
   noShowCount     Int        @default(0) @map("no_show_count")
@@ -546,6 +550,10 @@ model Offer {
   id               String      @id
   propertyId       String      @map("property_id")
   property         Property    @relation(fields: [propertyId], references: [id])
+  /// PII NOTICE: buyerName and buyerPhone are counterparty personal data.
+  /// retentionExpiresAt must be set by the service layer on offer creation.
+  /// On transaction fallthrough or expiry, the anonymisation job must null
+  /// these fields after retentionExpiresAt. See data retention policy.
   buyerName        String      @map("buyer_name")
   buyerPhone       String      @map("buyer_phone")
   buyerAgentName   String?     @map("buyer_agent_name")
@@ -562,6 +570,7 @@ model Offer {
   aiAnalysisProvider String?   @map("ai_analysis_provider")
   aiAnalysisModel  String?     @map("ai_analysis_model")
   aiAnalysisStatus String?     @map("ai_analysis_status")
+  retentionExpiresAt DateTime? @map("retention_expires_at")
   createdAt        DateTime    @default(now()) @map("created_at")
   updatedAt        DateTime    @updatedAt @map("updated_at")
 
@@ -714,6 +723,7 @@ model CddRecord {
   verifiedAt        DateTime?   @map("verified_at")
   documents         Json?       @default("[]")
   notes             String?
+  retentionExpiresAt DateTime?  @map("retention_expires_at")
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")
 

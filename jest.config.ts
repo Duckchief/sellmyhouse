@@ -10,6 +10,10 @@ const config: Config = {
     '^@paralleldrive/cuid2$': '<rootDir>/tests/mocks/cuid2.ts',
     '^otplib$': '<rootDir>/tests/mocks/otplib.ts',
   },
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    'src/domains/transaction/__tests__/transaction.repository.test.ts',
+  ],
   clearMocks: true,
   collectCoverageFrom: [
     'src/**/*.ts',

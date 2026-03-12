@@ -18,10 +18,13 @@ import { sellerRouter } from '../../domains/seller/seller.router';
 import { propertyRouter } from '../../domains/property/property.router';
 import { financialRouter } from '../../domains/property/financial.router';
 import { viewingRouter } from '../../domains/viewing/viewing.router';
+import { offerRouter } from '../../domains/offer/offer.router';
 import { agentRouter } from '../../domains/agent/agent.router';
 import { reviewRouter } from '../../domains/review/review.router';
 import { adminRouter } from '../../domains/admin/admin.router';
 import { complianceRouter } from '../../domains/compliance/compliance.router';
+import { portalRouter } from '../../domains/property/portal.router';
+import { transactionRouter } from '../../domains/transaction/transaction.router';
 
 function validateEnv() {
   const required = ['SESSION_SECRET', 'DATABASE_URL', 'ENCRYPTION_KEY'];
@@ -119,10 +122,13 @@ export function createApp() {
   app.use(propertyRouter);
   app.use(financialRouter);
   app.use(viewingRouter);
+  app.use(offerRouter);
   app.use(agentRouter);
   app.use(reviewRouter);
   app.use(adminRouter);
   app.use('/', complianceRouter);
+  app.use(portalRouter);
+  app.use(transactionRouter);
 
   // Error handling (must be last)
   app.use(errorHandler);

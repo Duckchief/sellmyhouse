@@ -1,9 +1,15 @@
-import { validateTransition, checkComplianceGate } from '../review.service';
+import { validateTransition, checkComplianceGate, approveItem } from '../review.service';
 import { ValidationError, ComplianceError } from '@/domains/shared/errors';
 import * as reviewRepo from '../review.repository';
+import * as portalService from '@/domains/property/portal.service';
+import * as auditService from '@/domains/shared/audit.service';
 
 jest.mock('../review.repository');
+jest.mock('@/domains/property/portal.service');
+jest.mock('@/domains/shared/audit.service');
 const mockRepo = reviewRepo as jest.Mocked<typeof reviewRepo>;
+const mockPortalService = portalService as jest.Mocked<typeof portalService>;
+const mockAudit = auditService as jest.Mocked<typeof auditService>;
 
 describe('validateTransition', () => {
   it('allows draft → ai_generated', () => {
@@ -112,5 +118,55 @@ describe('checkComplianceGate - cdd_complete', () => {
   it('throws ComplianceError when no verified CDD exists', async () => {
     mockRepo.findVerifiedSellerCdd.mockResolvedValue(null);
     await expect(checkComplianceGate('cdd_complete', 'seller-1')).rejects.toThrow(ComplianceError);
+  });
+});
+
+describe('approveItem — listing portal generation hook', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRepo.approveListingDescription.mockResolvedValue({} as never);
+    mockRepo.approveListingPhotos.mockResolvedValue({} as never);
+    mockRepo.checkListingFullyApproved.mockResolvedValue(false);
+    mockRepo.setListingStatus.mockResolvedValue({} as never);
+    mockPortalService.generatePortalListings.mockResolvedValue(undefined);
+    mockAudit.log.mockResolvedValue(undefined as never);
+  });
+
+  it('generates portal listings when listing_description approval makes listing fully approved', async () => {
+    mockRepo.checkListingFullyApproved.mockResolvedValue(true);
+
+    await approveItem({
+      entityType: 'listing_description',
+      entityId: 'listing-1',
+      agentId: 'agent-1',
+    });
+
+    expect(mockPortalService.generatePortalListings).toHaveBeenCalledWith('listing-1');
+    expect(mockRepo.setListingStatus).toHaveBeenCalledWith('listing-1', 'approved');
+  });
+
+  it('does NOT generate portal listings when only description approved (photos pending)', async () => {
+    mockRepo.checkListingFullyApproved.mockResolvedValue(false);
+
+    await approveItem({
+      entityType: 'listing_description',
+      entityId: 'listing-1',
+      agentId: 'agent-1',
+    });
+
+    expect(mockPortalService.generatePortalListings).not.toHaveBeenCalled();
+  });
+
+  it('generates portal listings when listing_photos approval makes listing fully approved', async () => {
+    mockRepo.checkListingFullyApproved.mockResolvedValue(true);
+
+    await approveItem({
+      entityType: 'listing_photos',
+      entityId: 'listing-1',
+      agentId: 'agent-1',
+    });
+
+    expect(mockPortalService.generatePortalListings).toHaveBeenCalledWith('listing-1');
+    expect(mockRepo.setListingStatus).toHaveBeenCalledWith('listing-1', 'approved');
   });
 });

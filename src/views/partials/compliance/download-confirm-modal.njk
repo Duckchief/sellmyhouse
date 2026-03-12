@@ -14,9 +14,8 @@
     </p>
 
     <form id="download-confirm-form"
-          hx-post="/agent/transactions/{{ transactionId }}/documents/download-all-and-delete"
-          hx-target="#download-modal"
-          hx-swap="outerHTML">
+          method="POST"
+          action="/agent/transactions/{{ transactionId }}/documents/download-all-and-delete">
 
       <div class="space-y-3 mb-6">
         <label class="flex items-start gap-3 cursor-pointer">

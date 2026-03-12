@@ -12,6 +12,14 @@ import { withdrawConsentValidator, createCorrectionValidator } from './complianc
 import { ValidationError, ForbiddenError, NotFoundError } from '../shared/errors';
 import { logger } from '@/infra/logger';
 
+const UPLOADS_ROOT = path.resolve(process.env['UPLOADS_DIR'] ?? 'uploads');
+
+function assertInUploadsRoot(resolvedPath: string): void {
+  if (!resolvedPath.startsWith(UPLOADS_ROOT + path.sep)) {
+    throw new ForbiddenError('File path is outside the allowed uploads directory');
+  }
+}
+
 export const complianceRouter = Router();
 
 // POST /seller/compliance/consent/withdraw
@@ -162,24 +170,23 @@ complianceRouter.get(
   },
 );
 
-// POST /agent/transactions/:transactionId/documents/:docId/download-and-delete
+// POST /agent/transactions/:transactionId/documents/:docType/download-and-delete
 // Agent downloads a single document and permanently deletes it from the server
 complianceRouter.post(
-  '/agent/transactions/:transactionId/documents/:docId/download-and-delete',
+  '/agent/transactions/:transactionId/documents/:docType/download-and-delete',
   requireAuth(),
   requireRole('agent', 'admin'),
   requireTwoFactor(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const transactionId = req.params['transactionId'] as string;
-      const docId = req.params['docId'] as string;
-      const { offlineRetentionConfirmed, canProduceConfirmed, docType } = req.body as {
-        offlineRetentionConfirmed?: boolean;
-        canProduceConfirmed?: boolean;
-        docType: string;
+      const docType = req.params['docType'] as string;
+      const { offlineRetentionConfirmed, canProduceConfirmed } = req.body as {
+        offlineRetentionConfirmed?: string;
+        canProduceConfirmed?: string;
       };
 
-      if (!offlineRetentionConfirmed || !canProduceConfirmed) {
+      if (offlineRetentionConfirmed !== 'true' || canProduceConfirmed !== 'true') {
         return next(new ValidationError('Both confirmation checkboxes must be ticked'));
       }
 
@@ -209,20 +216,25 @@ complianceRouter.post(
         docRecordId = txDocs.commissionInvoice.id;
       }
 
-      if (!filePath) return next(new NotFoundError('Document', docId));
+      if (!filePath) return next(new NotFoundError('Document', docType));
 
       try {
         await fs.access(filePath);
       } catch {
-        return next(new NotFoundError('File on server', docId));
+        return next(new NotFoundError('File on server', docType));
       }
 
       const fileName = path.basename(filePath);
+      const resolvedPath = path.resolve(filePath);
+      assertInUploadsRoot(resolvedPath);
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       res.setHeader('Content-Type', 'application/octet-stream');
 
-      res.sendFile(path.resolve(filePath), async (err) => {
-        if (err) return;
+      res.sendFile(resolvedPath, async (err) => {
+        if (err) {
+          logger.warn({ err, filePath, transactionId }, 'sendFile failed; file not deleted');
+          return;
+        }
 
         try {
           await fs.unlink(filePath as string);
@@ -239,6 +251,7 @@ complianceRouter.post(
             entityId: transactionId,
             details: {
               files: [fileName],
+              transactionId,
               downloadedBy: agentId,
               offlineRetentionConfirmed: true,
               reason: 'server data minimisation',
@@ -267,11 +280,11 @@ complianceRouter.post(
     try {
       const transactionId = req.params['transactionId'] as string;
       const { offlineRetentionConfirmed, canProduceConfirmed } = req.body as {
-        offlineRetentionConfirmed?: boolean;
-        canProduceConfirmed?: boolean;
+        offlineRetentionConfirmed?: string;
+        canProduceConfirmed?: string;
       };
 
-      if (!offlineRetentionConfirmed || !canProduceConfirmed) {
+      if (offlineRetentionConfirmed !== 'true' || canProduceConfirmed !== 'true') {
         return next(new ValidationError('Both confirmation checkboxes must be ticked'));
       }
 
@@ -280,6 +293,12 @@ complianceRouter.post(
 
       if (txDocs.status !== 'completed') {
         return next(new ForbiddenError('Documents can only be downloaded from completed transactions'));
+      }
+
+      const agentId = (req.user as { id: string; role: string }).id;
+      const userRole = (req.user as { id: string; role: string }).role;
+      if (userRole !== 'admin' && txDocs.seller.agentId !== agentId) {
+        return next(new ForbiddenError('You do not own this transaction'));
       }
 
       const filesToProcess: { filePath: string; docType: string; recordId: string }[] = [];
@@ -304,6 +323,7 @@ complianceRouter.post(
       for (const doc of filesToProcess) {
         try {
           await fs.access(doc.filePath);
+          assertInUploadsRoot(path.resolve(doc.filePath));
         } catch {
           missingFiles.push(path.basename(doc.filePath));
         }
@@ -315,8 +335,6 @@ complianceRouter.post(
       if (filesToProcess.length === 0) {
         return next(new ValidationError('No sensitive documents found for this transaction'));
       }
-
-      const agentId = (req.user as { id: string }).id;
 
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader(
@@ -332,40 +350,50 @@ complianceRouter.post(
         archive.file(doc.filePath, { name: path.basename(doc.filePath) });
       }
 
-      await archive.finalize();
-
-      // Delete after stream complete
-      const fileNames: string[] = [];
-      for (const doc of filesToProcess) {
-        fileNames.push(path.basename(doc.filePath));
-        try {
-          await fs.unlink(doc.filePath);
-          if (doc.docType === 'otp') {
-            await complianceRepo.markOtpScannedCopyDeleted(doc.recordId);
-          } else if (doc.docType === 'invoice') {
-            await complianceRepo.markInvoiceDeleted(doc.recordId);
+      res.on('finish', () => {
+        // Delete files after stream fully sent
+        void (async () => {
+          const fileNames: string[] = [];
+          for (const doc of filesToProcess) {
+            fileNames.push(path.basename(doc.filePath));
+            try {
+              await fs.unlink(doc.filePath);
+              if (doc.docType === 'otp') {
+                await complianceRepo.markOtpScannedCopyDeleted(doc.recordId);
+              } else if (doc.docType === 'invoice') {
+                await complianceRepo.markInvoiceDeleted(doc.recordId);
+              }
+            } catch (deleteErr) {
+              logger.error(
+                { deleteErr, filePath: doc.filePath },
+                'Failed to delete file post-bulk-download',
+              );
+            }
           }
-        } catch (deleteErr) {
-          logger.error(
-            { deleteErr, filePath: doc.filePath },
-            'Failed to delete file post-bulk-download',
-          );
-        }
-      }
 
-      await auditService.log({
-        action: 'documents.downloaded_and_deleted',
-        entityType: 'transaction',
-        entityId: transactionId,
-        details: {
-          files: fileNames,
-          downloadedBy: agentId,
-          offlineRetentionConfirmed: true,
-          reason: 'server data minimisation',
-          bulk: true,
-        },
-        agentId,
+          const successFiles = fileNames; // approximate; log even on partial failure
+          try {
+            await auditService.log({
+              action: 'documents.downloaded_and_deleted',
+              entityType: 'transaction',
+              entityId: transactionId,
+              details: {
+                files: successFiles,
+                transactionId,
+                downloadedBy: agentId,
+                offlineRetentionConfirmed: true,
+                reason: 'server data minimisation',
+                bulk: true,
+              },
+              agentId,
+            });
+          } catch (auditErr) {
+            logger.error({ auditErr, transactionId }, 'Failed to write audit log post-bulk-download');
+          }
+        })();
       });
+
+      archive.finalize();
     } catch (err) {
       return next(err);
     }

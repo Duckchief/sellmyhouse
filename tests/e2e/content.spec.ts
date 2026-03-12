@@ -131,7 +131,7 @@ test('admin creates a video tutorial → seller dashboard shows it in correct ca
 
   // ── Seller logs in and sees the tutorial in the photography category ───────
   await page.context().clearCookies();
-  await loginSeller(page, seller.email);
+  await loginSeller(page, seller.email!);
   await page.goto('/seller/tutorials');
 
   await expect(page.locator('text="E2E Photography Tips"')).toBeVisible();
@@ -272,7 +272,7 @@ test('seller receives testimonial link → fills form → agent approves → tes
   await expect(page.locator('text=E2E: Excellent service, sold in 2 weeks!')).toBeVisible();
 
   // ── Step 4: Seller removes testimonial (PDPA) ─────────────────────────────
-  await loginSeller(page, seller.email);
+  await loginSeller(page, seller.email!);
   await page.context().request.post('/seller/testimonial/remove');
 
   // ── Step 5: Homepage no longer shows the testimonial ─────────────────────

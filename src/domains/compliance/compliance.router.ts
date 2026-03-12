@@ -207,9 +207,10 @@ complianceRouter.post(
       let docRecordId: string | null = null;
 
       if (docType === 'otp') {
-        if (txDocs.otp?.scannedCopyPath) {
-          filePath = txDocs.otp.scannedCopyPath;
-          docRecordId = txDocs.otp.id;
+        const otpPath = txDocs.otp?.scannedCopyPathSeller ?? txDocs.otp?.scannedCopyPathReturned ?? null;
+        if (otpPath) {
+          filePath = otpPath;
+          docRecordId = txDocs.otp!.id;
         }
       } else if (docType === 'invoice' && txDocs.commissionInvoice?.invoiceFilePath) {
         filePath = txDocs.commissionInvoice.invoiceFilePath;
@@ -303,11 +304,12 @@ complianceRouter.post(
 
       const filesToProcess: { filePath: string; docType: string; recordId: string }[] = [];
 
-      if (txDocs.otp?.scannedCopyPath) {
+      const otpPath = txDocs.otp?.scannedCopyPathSeller ?? txDocs.otp?.scannedCopyPathReturned ?? null;
+      if (otpPath) {
         filesToProcess.push({
-          filePath: txDocs.otp.scannedCopyPath,
+          filePath: otpPath,
           docType: 'otp',
-          recordId: txDocs.otp.id,
+          recordId: txDocs.otp!.id,
         });
       }
       if (txDocs.commissionInvoice?.invoiceFilePath) {

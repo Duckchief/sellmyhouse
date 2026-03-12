@@ -374,6 +374,7 @@ export const factory = {
     agreedPrice?: number;
     status?: 'option_issued' | 'option_exercised' | 'completing' | 'completed' | 'fallen_through';
     completionDate?: Date;
+    exerciseDeadline?: Date;
   }) {
     return testPrisma.transaction.create({
       data: {
@@ -382,7 +383,8 @@ export const factory = {
         propertyId: overrides.propertyId,
         agreedPrice: overrides.agreedPrice ?? 500000,
         status: overrides.status ?? 'option_issued',
-        completionDate: overrides.completionDate,
+        completionDate: overrides.completionDate ?? null,
+        exerciseDeadline: overrides.exerciseDeadline ?? null,
       },
     });
   },
@@ -482,27 +484,6 @@ export const factory = {
         signedAt: overrides.signedAt,
         signedCopyPath: overrides.signedCopyPath,
         expiryDate: overrides.expiryDate,
-      },
-    });
-  },
-
-  async transaction(overrides: {
-    propertyId: string;
-    sellerId: string;
-    agreedPrice?: number;
-    status?: 'option_issued' | 'option_exercised' | 'completing' | 'completed' | 'fallen_through';
-    completionDate?: Date;
-    exerciseDeadline?: Date;
-  }) {
-    return testPrisma.transaction.create({
-      data: {
-        id: createId(),
-        propertyId: overrides.propertyId,
-        sellerId: overrides.sellerId,
-        agreedPrice: overrides.agreedPrice ?? 600000,
-        status: overrides.status ?? 'option_issued',
-        completionDate: overrides.completionDate ?? null,
-        exerciseDeadline: overrides.exerciseDeadline ?? null,
       },
     });
   },

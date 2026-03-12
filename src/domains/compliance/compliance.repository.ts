@@ -407,7 +407,8 @@ export async function findTransactionDocuments(transactionId: string) {
       otp: {
         select: {
           id: true,
-          scannedCopyPath: true,
+          scannedCopyPathSeller: true,
+          scannedCopyPathReturned: true,
           scannedCopyDeletedAt: true,
         },
       },
@@ -438,7 +439,7 @@ export async function findCddRecordsByTransaction(transactionId: string) {
 export async function markOtpScannedCopyDeleted(otpId: string): Promise<void> {
   await prisma.otp.update({
     where: { id: otpId },
-    data: { scannedCopyPath: null, scannedCopyDeletedAt: new Date() },
+    data: { scannedCopyPathSeller: null, scannedCopyPathReturned: null, scannedCopyDeletedAt: new Date() },
   });
 }
 

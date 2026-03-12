@@ -1,14 +1,16 @@
 import * as sellerService from '../seller.service';
 import * as sellerRepo from '../seller.repository';
+import * as contentService from '../../content/content.service';
 import * as notificationRepo from '../../notification/notification.repository';
 import * as auditService from '../../shared/audit.service';
 import { NotFoundError, ValidationError } from '../../shared/errors';
 import { TOTAL_ONBOARDING_STEPS } from '../seller.types';
-import type { Seller, VideoTutorial } from '@prisma/client';
+import type { Seller } from '@prisma/client';
 
 type SellerWithRelations = Awaited<ReturnType<typeof sellerRepo.getSellerWithRelations>>;
 
 jest.mock('../seller.repository');
+jest.mock('../../content/content.service');
 jest.mock('../../notification/notification.repository');
 jest.mock('../../shared/audit.service');
 
@@ -229,17 +231,14 @@ describe('seller.service', () => {
   });
 
   describe('getTutorialsGrouped', () => {
-    it('groups tutorials by category', async () => {
-      mockedSellerRepo.findTutorialsGroupedByCategory.mockResolvedValue([
-        { id: 't1', category: 'photography', title: 'Photo tips', orderIndex: 1 },
-        { id: 't2', category: 'photography', title: 'Lighting', orderIndex: 2 },
-        { id: 't3', category: 'process', title: 'Timeline', orderIndex: 1 },
-      ] as VideoTutorial[]);
+    it('delegates to contentService', async () => {
+      const grouped = { photography: [], process: [] };
+      jest.mocked(contentService).getTutorialsGrouped.mockResolvedValue(grouped as any);
 
       const result = await sellerService.getTutorialsGrouped();
 
-      expect(result['photography']).toHaveLength(2);
-      expect(result['process']).toHaveLength(1);
+      expect(result).toBe(grouped);
+      expect(jest.mocked(contentService).getTutorialsGrouped).toHaveBeenCalledTimes(1);
     });
   });
 });

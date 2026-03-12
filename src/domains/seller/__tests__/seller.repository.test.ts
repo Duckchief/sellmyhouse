@@ -107,20 +107,4 @@ describe('seller.repository', () => {
     });
   });
 
-  describe('findTutorialsGroupedByCategory', () => {
-    it('returns tutorials ordered by category and index', async () => {
-      const tutorials = [
-        { id: 't1', category: 'photography', orderIndex: 1 },
-        { id: 't2', category: 'process', orderIndex: 1 },
-      ];
-      prisma.videoTutorial.findMany.mockResolvedValue(tutorials);
-
-      const result = await sellerRepo.findTutorialsGroupedByCategory();
-
-      expect(result).toEqual(tutorials);
-      expect(prisma.videoTutorial.findMany).toHaveBeenCalledWith({
-        orderBy: [{ category: 'asc' }, { orderIndex: 'asc' }],
-      });
-    });
-  });
 });

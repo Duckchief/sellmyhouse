@@ -1,8 +1,13 @@
 // src/domains/compliance/compliance.repository.ts
 import { createId } from '@paralleldrive/cuid2';
-import { Prisma } from '@prisma/client';
+import { Prisma, SubjectType } from '@prisma/client';
 import { prisma } from '@/infra/database/prisma';
-import type { ConsentRecord, DataDeletionRequest } from './compliance.types';
+import type {
+  ConsentRecord,
+  DataDeletionRequest,
+  DataCorrectionRequest,
+  CreateCorrectionRequestInput,
+} from './compliance.types';
 
 export async function createConsentRecord(data: {
   subjectId: string;
@@ -122,4 +127,120 @@ export async function findSellerConsent(
     where: { id: sellerId },
     select: { consentService: true, consentMarketing: true },
   });
+}
+
+export async function createCorrectionRequest(
+  data: CreateCorrectionRequestInput,
+): Promise<DataCorrectionRequest> {
+  return prisma.dataCorrectionRequest.create({
+    data: {
+      id: createId(),
+      sellerId: data.sellerId,
+      fieldName: data.fieldName,
+      currentValue: data.currentValue ?? null,
+      requestedValue: data.requestedValue,
+      reason: data.reason ?? null,
+      status: 'pending',
+    },
+  }) as Promise<DataCorrectionRequest>;
+}
+
+export async function findCorrectionRequest(id: string): Promise<DataCorrectionRequest | null> {
+  return prisma.dataCorrectionRequest.findUnique({
+    where: { id },
+  }) as Promise<DataCorrectionRequest | null>;
+}
+
+export async function findCorrectionRequestsBySeller(
+  sellerId: string,
+): Promise<DataCorrectionRequest[]> {
+  return prisma.dataCorrectionRequest.findMany({
+    where: { sellerId },
+    orderBy: { createdAt: 'desc' },
+  }) as Promise<DataCorrectionRequest[]>;
+}
+
+export async function findPendingCorrectionRequests(): Promise<DataCorrectionRequest[]> {
+  return prisma.dataCorrectionRequest.findMany({
+    where: { status: { in: ['pending', 'in_progress'] } },
+    orderBy: { createdAt: 'asc' },
+  }) as Promise<DataCorrectionRequest[]>;
+}
+
+export async function updateCorrectionRequest(
+  id: string,
+  data: {
+    status: string;
+    processedByAgentId?: string;
+    processedAt?: Date;
+    processNotes?: string;
+  },
+): Promise<DataCorrectionRequest> {
+  return prisma.dataCorrectionRequest.update({
+    where: { id },
+    data: data as never,
+  }) as Promise<DataCorrectionRequest>;
+}
+
+// Used by compliance.service to auto-apply approved corrections without service calling Prisma directly
+export async function updateSellerField(
+  sellerId: string,
+  field: string,
+  value: string,
+): Promise<void> {
+  await prisma.seller.update({
+    where: { id: sellerId },
+    data: { [field]: value },
+  });
+}
+
+export async function getSellerPersonalData(sellerId: string) {
+  const seller = await prisma.seller.findUnique({
+    where: { id: sellerId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      status: true,
+      consentService: true,
+      consentMarketing: true,
+      notificationPreference: true,
+      createdAt: true,
+      consentRecords: {
+        orderBy: { consentGivenAt: 'asc' },
+      },
+      properties: {
+        select: {
+          id: true,
+          town: true,
+          street: true,
+          block: true,
+          flatType: true,
+          askingPrice: true,
+          status: true,
+          viewings: {
+            select: {
+              scheduledAt: true,
+              status: true,
+            },
+            orderBy: { scheduledAt: 'desc' },
+            take: 20,
+          },
+        },
+      },
+    },
+  });
+
+  if (!seller) return null;
+
+  // CddRecord uses polymorphic subjectType/subjectId — not a direct Seller relation
+  const cddRecords = await prisma.cddRecord.findMany({
+    where: { subjectType: SubjectType.seller, subjectId: sellerId },
+    select: { nricLast4: true, identityVerified: true, verifiedAt: true },
+    orderBy: { createdAt: 'desc' },
+    take: 1,
+  });
+
+  return { ...seller, cddRecords };
 }

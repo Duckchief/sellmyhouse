@@ -518,6 +518,27 @@ export const factory = {
     });
   },
 
+  async caseFlag(overrides: {
+    sellerId: string;
+    flagType?: import('@prisma/client').CaseFlagType;
+    description?: string;
+    status?: import('@prisma/client').CaseFlagStatus;
+    guidanceProvided?: string | null;
+    resolvedAt?: Date | null;
+  }) {
+    return testPrisma.caseFlag.create({
+      data: {
+        id: createId(),
+        sellerId: overrides.sellerId,
+        flagType: overrides.flagType ?? 'other',
+        description: overrides.description ?? 'Test case flag',
+        status: overrides.status ?? 'identified',
+        guidanceProvided: overrides.guidanceProvided ?? null,
+        resolvedAt: overrides.resolvedAt ?? null,
+      },
+    });
+  },
+
   async commissionInvoice(overrides: {
     transactionId: string;
     status?: 'pending_upload' | 'uploaded' | 'sent_to_client' | 'paid';

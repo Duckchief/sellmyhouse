@@ -1,6 +1,6 @@
 import * as offerService from '../offer.service';
 import * as offerRepo from '../offer.repository';
-import * as hdbRepo from '@/domains/hdb/repository';
+import * as hdbService from '@/domains/hdb/service';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
@@ -9,14 +9,14 @@ import { ValidationError, NotFoundError } from '@/domains/shared/errors';
 
 // Mock all dependencies
 jest.mock('../offer.repository');
-jest.mock('@/domains/hdb/repository');
+jest.mock('@/domains/hdb/service');
 jest.mock('@/domains/shared/ai/ai.facade');
 jest.mock('@/domains/shared/settings.service');
 jest.mock('@/domains/notification/notification.service');
 jest.mock('@/domains/shared/audit.service');
 
 const mockOfferRepo = jest.mocked(offerRepo);
-const mockHdbRepo = jest.mocked(hdbRepo);
+const mockHdbService = jest.mocked(hdbService);
 const mockAiFacade = jest.mocked(aiFacade);
 const mockSettings = jest.mocked(settingsService);
 const mockNotification = jest.mocked(notificationService);
@@ -53,7 +53,7 @@ describe('offer.service', () => {
     mockSettings.get.mockResolvedValue('anthropic');
     mockAudit.log.mockResolvedValue(undefined as never);
     mockNotification.send.mockResolvedValue(undefined as never);
-    mockHdbRepo.findRecentByTownAndFlatType.mockResolvedValue([]);
+    mockHdbService.getRecentByTownAndFlatType.mockResolvedValue([]);
   });
 
   describe('createOffer', () => {
@@ -105,7 +105,7 @@ describe('offer.service', () => {
       const newOffer = makeOffer();
       mockOfferRepo.create.mockResolvedValue(newOffer as never);
       mockOfferRepo.findById.mockResolvedValue(newOffer as never);
-      mockHdbRepo.findRecentByTownAndFlatType.mockResolvedValue([
+      mockHdbService.getRecentByTownAndFlatType.mockResolvedValue([
         { resalePrice: 580000 } as never,
         { resalePrice: 620000 } as never,
       ]);

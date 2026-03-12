@@ -304,6 +304,8 @@ export async function requestPasswordReset(
   const user = await findFn(email);
 
   if (!user) {
+    // Constant-time dummy compare to prevent email enumeration via timing
+    await bcrypt.compare('dummy', DUMMY_HASH);
     return null;
   }
 

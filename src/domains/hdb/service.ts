@@ -22,6 +22,10 @@ export class HdbService {
     return this.repo.getDistinctStoreyRanges();
   }
 
+  async getRecentByTownAndFlatType(town: string, flatType: string, months = 12) {
+    return this.repo.findRecentByTownAndFlatType(town, flatType, months);
+  }
+
   async getMarketReport(params: {
     town: string;
     flatType: string;
@@ -84,4 +88,16 @@ export class HdbService {
       recentTransactions: transactions.slice(-5).reverse(),
     };
   }
+}
+
+// ─── Standalone exports for cross-domain module import pattern ───────────────
+
+const _serviceInstance = new HdbService();
+
+export async function getRecentByTownAndFlatType(
+  town: string,
+  flatType: string,
+  months = 12,
+) {
+  return _serviceInstance.getRecentByTownAndFlatType(town, flatType, months);
 }

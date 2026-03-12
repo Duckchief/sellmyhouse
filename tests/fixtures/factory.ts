@@ -347,7 +347,7 @@ export const factory = {
     sellerId: string;
     propertyId: string;
     items?: Record<string, unknown>[];
-    status?: 'draft' | 'ai_generated' | 'pending_review' | 'approved' | 'rejected' | 'sent';
+    status?: 'draft' | 'pending_review' | 'approved' | 'rejected';
     reviewedByAgentId?: string;
     reviewedAt?: Date;
     reviewNotes?: string;

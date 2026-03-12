@@ -16,6 +16,7 @@ const SETTINGS = [
   { key: 'market_content_schedule', value: '0 8 * * 1', description: 'Cron schedule for weekly market content job (Monday 8am SGT)' },
   { key: 'post_completion_testimonial_delay_days', value: '7', description: 'Days after transaction completion to send testimonial request' },
   { key: 'post_completion_referral_delay_days', value: '14', description: 'Days after transaction completion to send referral link' },
+  { key: 'data_retention_years', value: '6', description: 'Default data retention period in years (PDPA/AML-CFT). Provisional at lead creation; extended to 5 years post transaction completion.' },
 ];
 
 export async function seedSystemSettings(prisma: PrismaClient): Promise<void> {

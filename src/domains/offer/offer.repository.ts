@@ -14,6 +14,7 @@ interface CreateOfferData {
   notes?: string | null;
   parentOfferId?: string | null;
   counterAmount?: number | null;
+  retentionExpiresAt?: Date | null;
 }
 
 interface UpdateAiAnalysisData {
@@ -37,6 +38,7 @@ export async function create(data: CreateOfferData) {
       notes: data.notes ?? null,
       parentOfferId: data.parentOfferId ?? null,
       counterAmount: data.counterAmount ?? null,
+      retentionExpiresAt: data.retentionExpiresAt ?? null,
     },
   });
 }

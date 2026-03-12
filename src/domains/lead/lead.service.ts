@@ -2,6 +2,7 @@
 import { ConflictError } from '../shared/errors';
 import { logger } from '../../infra/logger';
 import * as leadRepo from './lead.repository';
+import * as settingsService from '../shared/settings.service';
 import * as auditService from '../shared/audit.service';
 import * as notificationService from '../notification/notification.service';
 import type { LeadInput, LeadResult } from './lead.types';
@@ -13,6 +14,11 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     throw new ConflictError('A lead with this phone number already exists');
   }
 
+  // Compute provisional retention expiry (adjustable when transaction completes)
+  const retentionYears = await settingsService.getNumber('data_retention_years', 6);
+  const retentionExpiresAt = new Date();
+  retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + retentionYears);
+
   // Create seller
   const seller = await leadRepo.createSellerLead({
     name: input.name.trim(),
@@ -20,6 +26,7 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     consentService: input.consentService,
     consentMarketing: input.consentMarketing,
     leadSource: input.leadSource,
+    retentionExpiresAt,
   });
 
   // Create consent record (append-only)

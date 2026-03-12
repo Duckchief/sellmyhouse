@@ -1,4 +1,4 @@
-import { FinancialReportStatus } from '@prisma/client';
+import { FinancialReportStatus, WeeklyUpdateStatus, DocumentChecklistStatus } from '@prisma/client';
 
 export type EntityType =
   | 'financial_report'
@@ -8,6 +8,8 @@ export type EntityType =
   | 'market_content'
   | 'document_checklist';
 
+export type ReviewStatus = FinancialReportStatus | WeeklyUpdateStatus | DocumentChecklistStatus;
+
 export interface ReviewItem {
   id: string;
   entityType: EntityType;
@@ -15,7 +17,7 @@ export interface ReviewItem {
   sellerId: string;
   sellerName: string;
   propertyAddress: string;
-  currentStatus: FinancialReportStatus;
+  currentStatus: ReviewStatus;
   submittedAt: Date;
   priority: number; // ms since submittedAt — higher = older = more urgent
 }
@@ -36,6 +38,25 @@ export const REVIEW_TRANSITIONS: Record<FinancialReportStatus, FinancialReportSt
   approved: ['sent'],
   rejected: ['ai_generated', 'pending_review'],
   sent: [],
+};
+
+export const WEEKLY_UPDATE_TRANSITIONS: Record<WeeklyUpdateStatus, WeeklyUpdateStatus[]> = {
+  draft: ['ai_generated'],
+  ai_generated: ['pending_review'],
+  pending_review: ['approved', 'rejected'],
+  approved: ['sent'],
+  rejected: ['ai_generated', 'pending_review'],
+  sent: [],
+};
+
+export const DOCUMENT_CHECKLIST_TRANSITIONS: Record<
+  DocumentChecklistStatus,
+  DocumentChecklistStatus[]
+> = {
+  draft: ['pending_review'],
+  pending_review: ['approved', 'rejected'],
+  approved: [],
+  rejected: ['pending_review'],
 };
 
 export type ComplianceGate =

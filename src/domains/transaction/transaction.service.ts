@@ -22,6 +22,9 @@ import path from 'path';
 // ── Transaction ────────────────────────────────────────────────────────────────
 
 export async function createTransaction(input: CreateTransactionInput) {
+  // TODO: Set sellerCddRecordId and counterpartyCddRecordId when CDD gates are
+  // completed. Required for Gate 1 and Gate 3 audit trail enforcement.
+  // Follow-up task: wire CddRecord → Transaction FK in compliance service.
   const tx = await txRepo.createTransaction({
     id: createId(),
     propertyId: input.propertyId,
@@ -336,11 +339,13 @@ export async function uploadInvoice(input: UploadInvoiceInput) {
     input.fileBuffer,
   );
 
-  // Always read amounts from SystemSetting — never rely on schema defaults
-  const commissionAmount = await settingsService.getNumber('commission_amount', 1499);
-  const gstRate = await settingsService.getNumber('gst_rate', 0.09);
-  const gstAmount = Math.round(commissionAmount * gstRate * 100) / 100;
-  const totalAmount = commissionAmount + gstAmount;
+  // Always read amounts from SystemSetting — never rely on schema defaults.
+  // Throws AppError('Setting not found: ...') if keys are missing.
+  const {
+    amount: commissionAmount,
+    gstAmount,
+    total: totalAmount,
+  } = await settingsService.getCommission();
 
   const invoice = await txRepo.createCommissionInvoice({
     transactionId: input.transactionId,

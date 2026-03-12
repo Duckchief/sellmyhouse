@@ -268,6 +268,22 @@ enum FinancialReportStatus {
   sent
 }
 
+enum WeeklyUpdateStatus {
+  draft
+  ai_generated
+  pending_review
+  approved
+  rejected
+  sent
+}
+
+enum DocumentChecklistStatus {
+  draft
+  pending_review
+  approved
+  rejected
+}
+
 enum MarketContentStatus {
   ai_generated
   pending_review
@@ -342,6 +358,8 @@ model Seller {
   loginLockedUntil        DateTime?              @map("login_locked_until")
   passwordResetToken      String?                @map("password_reset_token")
   passwordResetExpiry     DateTime?              @map("password_reset_expiry")
+  consultationCompletedAt DateTime?              @map("consultation_completed_at")
+  retentionExpiresAt      DateTime?              @map("retention_expires_at")
   createdAt               DateTime               @default(now()) @map("created_at")
   updatedAt               DateTime               @updatedAt @map("updated_at")
 
@@ -413,6 +431,7 @@ model Property {
   weeklyUpdates      WeeklyUpdate[]
   documentChecklists DocumentChecklist[]
 
+  @@index([sellerId, status])
   @@map("properties")
 }
 
@@ -425,6 +444,11 @@ model Listing {
   descriptionApprovedByAgentId String?      @map("description_approved_by_agent_id")
   descriptionApprover         Agent?        @relation("DescriptionApprover", fields: [descriptionApprovedByAgentId], references: [id])
   descriptionApprovedAt       DateTime?     @map("description_approved_at")
+  aiDescription               String?       @map("ai_description")
+  aiDescriptionProvider       String?       @map("ai_description_provider")
+  aiDescriptionModel          String?       @map("ai_description_model")
+  aiDescriptionStatus         String?       @map("ai_description_status") // draft | pending_review | approved | rejected
+  aiDescriptionGeneratedAt    DateTime?     @map("ai_description_generated_at")
   photos                      Json?         @default("[]")
   photosApprovedByAgentId     String?       @map("photos_approved_by_agent_id")
   photosApprover              Agent?        @relation("PhotosApprover", fields: [photosApprovedByAgentId], references: [id])
@@ -435,6 +459,7 @@ model Listing {
 
   portalListings PortalListing[]
 
+  @@index([propertyId, status])
   @@map("listings")
 }
 
@@ -463,7 +488,10 @@ model VerifiedViewer {
   agentName       String?    @map("agent_name")
   agentCeaReg     String?    @map("agent_cea_reg")
   agentAgencyName String?    @map("agent_agency_name")
-  consentService  Boolean    @default(false) @map("consent_service")
+  consentService   Boolean   @default(false) @map("consent_service")
+  consentTimestamp DateTime? @map("consent_timestamp")
+  consentIpAddress String?   @map("consent_ip_address")
+  consentUserAgent String?   @map("consent_user_agent")
   totalBookings   Int        @default(0) @map("total_bookings")
   lastBookingAt   DateTime?  @map("last_booking_at")
   noShowCount     Int        @default(0) @map("no_show_count")
@@ -522,6 +550,10 @@ model Offer {
   id               String      @id
   propertyId       String      @map("property_id")
   property         Property    @relation(fields: [propertyId], references: [id])
+  /// PII NOTICE: buyerName and buyerPhone are counterparty personal data.
+  /// retentionExpiresAt must be set by the service layer on offer creation.
+  /// On transaction fallthrough or expiry, the anonymisation job must null
+  /// these fields after retentionExpiresAt. See data retention policy.
   buyerName        String      @map("buyer_name")
   buyerPhone       String      @map("buyer_phone")
   buyerAgentName   String?     @map("buyer_agent_name")
@@ -538,6 +570,7 @@ model Offer {
   aiAnalysisProvider String?   @map("ai_analysis_provider")
   aiAnalysisModel  String?     @map("ai_analysis_model")
   aiAnalysisStatus String?     @map("ai_analysis_status")
+  retentionExpiresAt DateTime? @map("retention_expires_at")
   createdAt        DateTime    @default(now()) @map("created_at")
   updatedAt        DateTime    @updatedAt @map("updated_at")
 
@@ -553,6 +586,8 @@ model Transaction {
   seller               Seller            @relation(fields: [sellerId], references: [id])
   buyerId              String?           @map("buyer_id")
   buyer                Buyer?            @relation(fields: [buyerId], references: [id])
+  estateAgencyAgreementId String?        @map("estate_agency_agreement_id")
+  estateAgencyAgreement   EstateAgencyAgreement? @relation(fields: [estateAgencyAgreementId], references: [id])
   agreedPrice          Decimal           @map("agreed_price") @db.Decimal(12, 2)
   optionFee            Decimal?          @map("option_fee") @db.Decimal(12, 2)
   optionDate           DateTime?         @map("option_date")
@@ -571,6 +606,8 @@ model Transaction {
   testimonial       Testimonial?
 
   @@index([sellerId, status])
+  @@index([propertyId])
+  @@index([status])
   @@map("transactions")
 }
 
@@ -602,9 +639,9 @@ model CommissionInvoice {
   invoiceFilePath   String?       @map("invoice_file_path")
   invoiceDeletedAt  DateTime?     @map("invoice_deleted_at")
   invoiceNumber     String?       @map("invoice_number")
-  amount            Decimal       @default(1499) @db.Decimal(12, 2)
-  gstAmount         Decimal       @default(134.91) @map("gst_amount") @db.Decimal(12, 2)
-  totalAmount       Decimal       @default(1633.91) @map("total_amount") @db.Decimal(12, 2)
+  amount            Decimal       @map("amount") @db.Decimal(12, 2)
+  gstAmount         Decimal       @map("gst_amount") @db.Decimal(12, 2)
+  totalAmount       Decimal       @map("total_amount") @db.Decimal(12, 2)
   status            InvoiceStatus @default(pending_upload)
   uploadedAt        DateTime?     @map("uploaded_at")
   sentAt            DateTime?     @map("sent_at")
@@ -638,6 +675,8 @@ model EstateAgencyAgreement {
   createdAt              DateTime        @default(now()) @map("created_at")
   updatedAt              DateTime        @updatedAt @map("updated_at")
 
+  transactions Transaction[]
+
   @@map("estate_agency_agreements")
 }
 
@@ -657,12 +696,14 @@ model FinancialReport {
   reviewedAt        DateTime? @map("reviewed_at")
   reviewNotes       String?  @map("review_notes")
   approvedAt        DateTime? @map("approved_at")
-  sentToSellerAt    DateTime? @map("sent_to_seller_at")
-  sentVia           String?  @map("sent_via")
+  sentToSellerAt              DateTime? @map("sent_to_seller_at")
+  sentVia                     String?   @map("sent_via")
+  disclaimerAcknowledgedAt    DateTime? @map("disclaimer_acknowledged_at")
   version           Int                   @default(1)
   status            FinancialReportStatus @default(draft) @map("status")
   createdAt         DateTime              @default(now()) @map("created_at")
 
+  @@index([sellerId, status])
   @@map("financial_reports")
 }
 
@@ -682,9 +723,11 @@ model CddRecord {
   verifiedAt        DateTime?   @map("verified_at")
   documents         Json?       @default("[]")
   notes             String?
+  retentionExpiresAt DateTime?  @map("retention_expires_at")
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")
 
+  @@index([subjectType, subjectId])
   @@map("cdd_records")
 }
 
@@ -942,9 +985,9 @@ model WeeklyUpdate {
   aiNarrative       String?               @map("ai_narrative")
   aiProvider        String?               @map("ai_provider")
   aiModel           String?               @map("ai_model")
-  status            FinancialReportStatus @default(draft) @map("status")
-  reviewedByAgentId String?               @map("reviewed_by_agent_id")
-  reviewedByAgent   Agent?                @relation("WeeklyUpdateReviewer", fields: [reviewedByAgentId], references: [id])
+  status            WeeklyUpdateStatus @default(draft) @map("status")
+  reviewedByAgentId String?            @map("reviewed_by_agent_id")
+  reviewedByAgent   Agent?             @relation("WeeklyUpdateReviewer", fields: [reviewedByAgentId], references: [id])
   reviewedAt        DateTime?             @map("reviewed_at")
   reviewNotes       String?               @map("review_notes")
   approvedAt        DateTime?             @map("approved_at")
@@ -963,9 +1006,9 @@ model DocumentChecklist {
   propertyId        String                @map("property_id")
   property          Property              @relation(fields: [propertyId], references: [id])
   items             Json                  @default("[]")
-  status            FinancialReportStatus @default(draft) @map("status")
-  reviewedByAgentId String?               @map("reviewed_by_agent_id")
-  reviewedByAgent   Agent?                @relation("DocumentChecklistReviewer", fields: [reviewedByAgentId], references: [id])
+  status            DocumentChecklistStatus @default(draft) @map("status")
+  reviewedByAgentId String?                 @map("reviewed_by_agent_id")
+  reviewedByAgent   Agent?                  @relation("DocumentChecklistReviewer", fields: [reviewedByAgentId], references: [id])
   reviewedAt        DateTime?             @map("reviewed_at")
   reviewNotes       String?               @map("review_notes")
   approvedAt        DateTime?             @map("approved_at")

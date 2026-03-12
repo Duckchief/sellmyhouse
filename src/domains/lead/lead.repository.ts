@@ -15,6 +15,7 @@ export async function createSellerLead(data: {
   consentService: boolean;
   consentMarketing: boolean;
   leadSource: string;
+  retentionExpiresAt?: Date;
 }) {
   const id = createId();
   return prisma.seller.create({
@@ -33,6 +34,7 @@ export async function createSellerLead(data: {
         | 'walkin'
         | 'other',
       status: 'lead',
+      retentionExpiresAt: data.retentionExpiresAt,
     },
   });
 }

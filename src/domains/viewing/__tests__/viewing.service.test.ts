@@ -246,7 +246,7 @@ describe('viewing.service', () => {
     it('rejects honeypot-filled form silently', async () => {
       const result = await viewingService.initiateBooking(
         { ...validInput, website: 'spam.com' },
-        '127.0.0.1',
+        { ipAddress: '127.0.0.1' },
       );
 
       expect(result).toEqual({ spam: true });
@@ -256,7 +256,7 @@ describe('viewing.service', () => {
     it('rejects too-fast submission silently', async () => {
       const result = await viewingService.initiateBooking(
         { ...validInput, formLoadedAt: Date.now() - 1000 },
-        '127.0.0.1',
+        { ipAddress: '127.0.0.1' },
       );
 
       expect(result).toEqual({ spam: true });
@@ -265,18 +265,18 @@ describe('viewing.service', () => {
     it('rejects duplicate booking', async () => {
       mockedRepo.findDuplicateBooking.mockResolvedValue({ id: 'existing' } as never);
 
-      await expect(viewingService.initiateBooking(validInput, '127.0.0.1')).rejects.toThrow(
-        ConflictError,
-      );
+      await expect(
+        viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' }),
+      ).rejects.toThrow(ConflictError);
     });
 
     it('rejects when daily booking limit exceeded', async () => {
       mockedRepo.findDuplicateBooking.mockResolvedValue(null);
       mockedRepo.countBookingsToday.mockResolvedValue(BOOKINGS_PER_PHONE_PER_DAY);
 
-      await expect(viewingService.initiateBooking(validInput, '127.0.0.1')).rejects.toThrow(
-        ValidationError,
-      );
+      await expect(
+        viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('creates booking with OTP for new viewer', async () => {
@@ -299,7 +299,7 @@ describe('viewing.service', () => {
         status: 'pending_otp',
       } as never);
 
-      const result = await viewingService.initiateBooking(validInput, '127.0.0.1');
+      const result = await viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' });
 
       expect(result).toEqual(
         expect.objectContaining({
@@ -337,7 +337,7 @@ describe('viewing.service', () => {
         verifiedViewer: { name: 'John', viewerType: 'buyer' },
       } as never);
 
-      const result = await viewingService.initiateBooking(validInput, '127.0.0.1');
+      const result = await viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' });
 
       expect(result).toEqual(
         expect.objectContaining({
@@ -374,7 +374,7 @@ describe('viewing.service', () => {
         verifiedViewer: { name: 'John', viewerType: 'buyer', noShowCount: 2 },
       } as never);
 
-      const result = await viewingService.initiateBooking(validInput, '127.0.0.1');
+      const result = await viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' });
 
       expect('noShowWarning' in result && result.noShowWarning).toEqual({ count: 2 });
     });

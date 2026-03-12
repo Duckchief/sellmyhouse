@@ -373,6 +373,61 @@ export async function hardDeleteTransaction(transactionId: string): Promise<void
   await prisma.transaction.delete({ where: { id: transactionId } });
 }
 
+// ─── Secure Document Access ───────────────────────────────────────────────────
+
+export async function findTransactionDocuments(transactionId: string) {
+  const tx = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    select: {
+      id: true,
+      status: true,
+      sellerId: true,
+      seller: { select: { agentId: true } },
+      otp: {
+        select: {
+          id: true,
+          scannedCopyPath: true,
+          scannedCopyDeletedAt: true,
+        },
+      },
+      commissionInvoice: {
+        select: {
+          id: true,
+          invoiceFilePath: true,
+          invoiceDeletedAt: true,
+        },
+      },
+    },
+  });
+  return tx;
+}
+
+export async function findCddRecordsByTransaction(transactionId: string) {
+  const tx = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    select: { sellerId: true },
+  });
+  if (!tx) return [];
+  return prisma.cddRecord.findMany({
+    where: { subjectId: tx.sellerId, subjectType: 'seller' },
+    select: { id: true, documents: true },
+  });
+}
+
+export async function markOtpScannedCopyDeleted(otpId: string): Promise<void> {
+  await prisma.otp.update({
+    where: { id: otpId },
+    data: { scannedCopyPath: null, scannedCopyDeletedAt: new Date() },
+  });
+}
+
+export async function markInvoiceDeleted(invoiceId: string): Promise<void> {
+  await prisma.commissionInvoice.update({
+    where: { id: invoiceId },
+    data: { invoiceFilePath: null, invoiceDeletedAt: new Date() },
+  });
+}
+
 // ─── Agent Anonymisation ──────────────────────────────────────────────────────
 
 export async function anonymiseAgentRecord(agentId: string): Promise<void> {

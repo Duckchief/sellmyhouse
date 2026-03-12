@@ -14,6 +14,7 @@ import type { PropertyWithListing } from '../property.types';
 jest.mock('../property.repository');
 jest.mock('../../shared/audit.service');
 jest.mock('../../review/review.service');
+jest.mock('@paralleldrive/cuid2', () => ({ createId: jest.fn().mockReturnValue('abcdef123456') }));
 
 const mockedRepo = jest.mocked(propertyRepo);
 const mockedAudit = jest.mocked(auditService);
@@ -23,6 +24,7 @@ describe('property.service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedReviewService.checkComplianceGate.mockResolvedValue(undefined);
+    mockedRepo.findBySlug.mockResolvedValue(null); // slug not taken by default
   });
 
   // ─── createProperty ────────────────────────────────────────
@@ -50,7 +52,7 @@ describe('property.service', () => {
 
       const result = await propertyService.createProperty(input);
 
-      expect(mockedRepo.create).toHaveBeenCalledWith(input);
+      expect(mockedRepo.create).toHaveBeenCalledWith(expect.objectContaining(input));
       expect(mockedRepo.createListing).toHaveBeenCalledWith('prop-1');
       expect(mockedAudit.log).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -60,6 +62,69 @@ describe('property.service', () => {
         }),
       );
       expect(result).toEqual(fakeProperty);
+    });
+
+    it('always generates a non-null slug on creation', async () => {
+      const input = {
+        sellerId: 'seller-1',
+        town: 'ANG MO KIO',
+        street: 'Ang Mo Kio Ave 3',
+        block: '123',
+        flatType: '4 ROOM',
+        storeyRange: '04 TO 06',
+        floorAreaSqm: 90,
+        flatModel: 'Model A',
+        leaseCommenceDate: 1990,
+      };
+
+      const expectedSlug = '123-ang-mo-kio-ave-3-ang-mo-kio';
+      const fakeProperty = { id: 'prop-1', ...input, slug: expectedSlug };
+
+      mockedRepo.findBySlug.mockResolvedValue(null); // slug not taken
+      mockedRepo.create.mockResolvedValue(fakeProperty as unknown as Property);
+      mockedRepo.createListing.mockResolvedValue({ id: 'listing-1' } as unknown as Listing);
+      mockedAudit.log.mockResolvedValue(undefined);
+
+      const result = await propertyService.createProperty(input);
+
+      expect(mockedRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ slug: expectedSlug }),
+      );
+      expect(result.slug).toBe(expectedSlug);
+    });
+
+    it('appends a unique suffix when slug already exists', async () => {
+      const input = {
+        sellerId: 'seller-1',
+        town: 'ANG MO KIO',
+        street: 'Ang Mo Kio Ave 3',
+        block: '123',
+        flatType: '4 ROOM',
+        storeyRange: '04 TO 06',
+        floorAreaSqm: 90,
+        flatModel: 'Model A',
+        leaseCommenceDate: 1990,
+      };
+
+      // First call returns existing property (slug taken), second returns null
+      mockedRepo.findBySlug
+        .mockResolvedValueOnce({ id: 'other-prop' } as unknown as Property)
+        .mockResolvedValueOnce(null);
+      mockedRepo.create.mockResolvedValue({
+        id: 'prop-1',
+        ...input,
+        slug: '123-ang-mo-kio-ave-3-ang-mo-kio-abcdef',
+      } as unknown as Property);
+      mockedRepo.createListing.mockResolvedValue({ id: 'listing-1' } as unknown as Listing);
+      mockedAudit.log.mockResolvedValue(undefined);
+
+      await propertyService.createProperty(input);
+
+      expect(mockedRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          slug: expect.stringContaining('123-ang-mo-kio-ave-3-ang-mo-kio-'),
+        }),
+      );
     });
   });
 

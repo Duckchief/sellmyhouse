@@ -30,7 +30,7 @@ export function createSeller(data: {
       consentService: data.consentService,
       consentMarketing: data.consentMarketing,
       consentTimestamp: new Date(),
-      leadSource: 'website',
+      leadSource: (data.leadSource as 'website' | 'tiktok' | 'instagram' | 'referral' | 'walkin' | 'other') ?? 'website',
       status: 'lead',
     },
   });

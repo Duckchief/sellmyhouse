@@ -1,6 +1,6 @@
 import { createId } from '@paralleldrive/cuid2';
 import * as offerRepo from './offer.repository';
-import * as hdbRepo from '@/domains/hdb/repository';
+import * as hdbService from '@/domains/hdb/service';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
@@ -86,7 +86,7 @@ export async function createOffer(input: CreateOfferServiceInput) {
   const aiEnabled = await settingsService.getBoolean('offer_ai_analysis_enabled', false);
   if (aiEnabled) {
     try {
-      const recentTransactions = await hdbRepo.findRecentByTownAndFlatType(
+      const recentTransactions = await hdbService.getRecentByTownAndFlatType(
         input.town,
         input.flatType,
       );

@@ -279,6 +279,13 @@ export async function getUnreadNotifications(
   return notificationRepo.findUnreadForRecipient(recipientType, recipientId);
 }
 
+export async function countUnreadNotifications(
+  recipientType: 'seller' | 'agent',
+  recipientId: string,
+) {
+  return notificationRepo.countUnreadForRecipient(recipientType, recipientId);
+}
+
 export async function markAsRead(notificationId: string) {
   return notificationRepo.markAsRead(notificationId);
 }

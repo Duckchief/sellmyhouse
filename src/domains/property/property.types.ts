@@ -55,6 +55,7 @@ export interface CreatePropertyInput {
   leaseCommenceDate: number;
   remainingLease?: string;
   askingPrice?: number;
+  slug?: string;
 }
 
 export interface UpdatePropertyInput {

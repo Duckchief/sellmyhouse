@@ -5,6 +5,8 @@ import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as auditService from '@/domains/shared/audit.service';
 import * as portalService from '@/domains/property/portal.service';
+import * as propertyService from '@/domains/property/property.service';
+import * as viewingService from '@/domains/viewing/viewing.service';
 import { localStorage } from '@/infra/storage/local-storage';
 import { NotFoundError, ValidationError, ConflictError } from '@/domains/shared/errors';
 import { OTP_TRANSITIONS, TRANSACTION_STATUS_ORDER } from './transaction.types';
@@ -100,15 +102,22 @@ export async function advanceTransactionStatus(input: {
 }
 
 async function handleFallenThrough(propertyId: string, transactionId: string, agentId: string) {
-  // Expire active OTP and portal listings; revert property + listing to draft
+  // 1. Expire active OTP
   const otp = await txRepo.findOtpByTransactionId(transactionId);
   if (otp && otp.status !== 'exercised' && otp.status !== 'expired') {
     await txRepo.updateOtpStatus(otp.id, 'expired', { expiredAt: new Date() });
   }
 
+  // 2. Expire portal listings
   await portalService.expirePortalListings(propertyId);
 
-  // Alert agent to manually delist from live portals
+  // 3. Cancel all active viewing slots and notify booked viewers
+  await viewingService.cancelSlotsForPropertyCascade(propertyId, agentId);
+
+  // 4. Revert property and listing back to draft
+  await propertyService.revertPropertyToDraft(propertyId);
+
+  // 5. Alert agent to manually delist from live portals
   await notificationService.send(
     {
       recipientType: 'agent',

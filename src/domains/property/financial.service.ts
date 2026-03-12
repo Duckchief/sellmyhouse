@@ -6,7 +6,7 @@ import * as auditService from '@/domains/shared/audit.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import { calculateNetProceeds } from './financial.calculator';
 import { buildFinancialNarrativePrompt } from '@/domains/shared/ai/prompts/financial-narrative';
-import { NotFoundError, ValidationError } from '@/domains/shared/errors';
+import { NotFoundError, ValidationError, ForbiddenError } from '@/domains/shared/errors';
 import type {
   CreateReportInput,
   ApproveReportInput,
@@ -139,6 +139,13 @@ export async function sendReport(input: SendReportInput) {
 export async function getReport(reportId: string) {
   const report = await financialRepo.findById(reportId);
   if (!report) throw new NotFoundError('FinancialReport', reportId);
+  return report;
+}
+
+export async function getReportForSeller(reportId: string, sellerId: string) {
+  const report = await financialRepo.findById(reportId);
+  if (!report) throw new NotFoundError('FinancialReport', reportId);
+  if (report.sellerId !== sellerId) throw new ForbiddenError('You do not own this report');
   return report;
 }
 

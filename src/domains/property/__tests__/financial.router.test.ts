@@ -154,8 +154,8 @@ describe('financial.router', () => {
   });
 
   describe('GET /seller/financial/report/:id', () => {
-    it('returns a specific report', async () => {
-      mockService.getReport.mockResolvedValue({
+    it('returns a specific report for the owning seller', async () => {
+      mockService.getReportForSeller.mockResolvedValue({
         id: 'report-1',
         sellerId: 'seller-1',
         reportData: {},
@@ -166,7 +166,19 @@ describe('financial.router', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(mockService.getReport).toHaveBeenCalledWith('report-1');
+      expect(mockService.getReportForSeller).toHaveBeenCalledWith('report-1', 'seller-1');
+    });
+
+    it('returns 403 when seller tries to access another seller report', async () => {
+      const { ForbiddenError } = await import('@/domains/shared/errors');
+      mockService.getReportForSeller.mockRejectedValue(
+        new ForbiddenError('You do not own this report'),
+      );
+
+      const app = createTestApp();
+      const res = await request(app).get('/seller/financial/report/report-other');
+
+      expect(res.status).toBe(403);
     });
   });
 

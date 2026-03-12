@@ -92,11 +92,13 @@ jest.mock('../providers/whatsapp.provider');
 jest.mock('../providers/email.provider');
 
 jest.mock('../../shared/audit.service');
+jest.mock('../../compliance/compliance.service');
 
 const notificationRepo = jest.requireMock('../notification.repository');
 const { WhatsAppProvider } = jest.requireMock('../providers/whatsapp.provider');
 const { EmailProvider } = jest.requireMock('../providers/email.provider');
 const auditService = jest.requireMock('../../shared/audit.service');
+const complianceService = jest.requireMock('../../compliance/compliance.service');
 
 describe('NotificationService', () => {
   beforeEach(() => {
@@ -114,6 +116,9 @@ describe('NotificationService', () => {
       .mockResolvedValue('whatsapp_and_email');
     notificationRepo.findSellerMarketingConsent = jest.fn().mockResolvedValue(false);
     notificationRepo.withdrawMarketingConsent = jest.fn().mockResolvedValue(undefined);
+
+    // Default: DNC check allows all sends
+    complianceService.checkDncAllowed = jest.fn().mockResolvedValue({ allowed: true });
   });
 
   describe('send', () => {
@@ -421,29 +426,64 @@ describe('NotificationService', () => {
     });
   });
 
-  describe('DNC registry check', () => {
+  describe('DNC compliance gate', () => {
     const input = {
       recipientType: 'seller' as const,
       recipientId: 'seller-1',
       templateName: 'welcome_seller' as const,
       templateData: { name: 'David' },
-      recipientPhone: '+6591234567',
     };
 
-    it('falls back to email when DNC check blocks WhatsApp', async () => {
-      jest
-        .spyOn(service, 'checkDnc')
-        .mockResolvedValue({ blocked: true, reason: 'On DNC registry' });
+    it('blocks send and returns early when compliance DNC gate denies', async () => {
+      complianceService.checkDncAllowed = jest
+        .fn()
+        .mockResolvedValue({ allowed: false, reason: 'Seller has withdrawn service consent' });
       EmailProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: '<email>' });
       WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.1' });
 
       await service.send(input, 'agent-1');
 
       expect(WhatsAppProvider.prototype.send).not.toHaveBeenCalled();
-      expect(EmailProvider.prototype.send).toHaveBeenCalled();
+      expect(EmailProvider.prototype.send).not.toHaveBeenCalled();
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'notification.dnc_blocked' }),
       );
+    });
+
+    it('calls checkDncAllowed with correct sellerId, channel, and messageType', async () => {
+      WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.1' });
+
+      await service.send({ ...input, notificationType: 'transactional' }, 'agent-1');
+
+      expect(complianceService.checkDncAllowed).toHaveBeenCalledWith(
+        'seller-1',
+        'whatsapp',
+        'service',
+      );
+    });
+
+    it('passes messageType=marketing when notificationType is marketing', async () => {
+      notificationRepo.findSellerMarketingConsent = jest.fn().mockResolvedValue(true);
+      WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.1' });
+
+      await service.send({ ...input, notificationType: 'marketing' }, 'agent-1');
+
+      expect(complianceService.checkDncAllowed).toHaveBeenCalledWith(
+        'seller-1',
+        'whatsapp',
+        'marketing',
+      );
+    });
+
+    it('does not call checkDncAllowed for non-seller recipients', async () => {
+      WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.1' });
+
+      await service.send(
+        { ...input, recipientType: 'agent' as const, recipientId: 'agent-1' },
+        'agent-1',
+      );
+
+      expect(complianceService.checkDncAllowed).not.toHaveBeenCalled();
     });
   });
 

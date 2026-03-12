@@ -332,7 +332,7 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
   withdrawalCutoff.setDate(withdrawalCutoff.getDate() - 30);
   const withdrawnSellers = await complianceRepo.findServiceWithdrawnForDeletion(withdrawalCutoff);
   for (const seller of withdrawnSellers) {
-    await flagIfNew('lead', seller.id, 'Service consent withdrawn > 30 days ago', '30_day_grace_expired', 'flagged', {
+    await flagIfNew('lead', seller.id, 'Service consent withdrawn > 30 days ago', '30_day_grace', 'flagged', {
       sellerName: seller.name,
     });
   }
@@ -433,8 +433,19 @@ export async function executeHardDelete(input: {
       for (const filePath of paths) {
         try {
           await fs.unlink(filePath);
-        } catch {
-          // File may already be gone — log and continue
+        } catch (err) {
+          // Log the failure — orphaned files need operator attention
+          await auditService.log({
+            action: 'compliance.file_unlink_failed',
+            entityType: 'cdd_documents',
+            entityId: request.targetId,
+            details: {
+              filePath,
+              error: err instanceof Error ? err.message : String(err),
+              requestId: input.requestId,
+            },
+            agentId: input.agentId,
+          });
         }
       }
       await complianceRepo.hardDeleteCddDocuments(request.targetId);
@@ -453,12 +464,13 @@ export async function executeHardDelete(input: {
       throw new ComplianceError(`Unknown target type for deletion: ${request.targetType}`);
   }
 
+  const now = new Date();
   await complianceRepo.updateDeletionRequest(input.requestId, {
     status: 'executed',
     reviewedByAgentId: input.agentId,
-    reviewedAt: new Date(),
+    reviewedAt: now,
     reviewNotes: input.reviewNotes,
-    executedAt: new Date(),
+    executedAt: now,
   });
 
   await auditService.log({
@@ -478,6 +490,12 @@ export async function anonymiseAgent(input: {
 }): Promise<void> {
   const agent = await complianceRepo.findAgentById(input.agentId);
   if (!agent) throw new NotFoundError('Agent', input.agentId);
+
+  if (agent.isActive) {
+    throw new ComplianceError(
+      'Cannot anonymise an active agent. Deactivate the agent account first.',
+    );
+  }
 
   const snapshot = {
     originalName: agent.name,

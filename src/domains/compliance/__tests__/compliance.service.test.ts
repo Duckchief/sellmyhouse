@@ -367,7 +367,7 @@ describe('executeHardDelete', () => {
 
     await expect(
       complianceService.executeHardDelete({ requestId: 'dr1', agentId: 'agent1' }),
-    ).rejects.toThrow();
+    ).rejects.toThrow('AML/CFT');
   });
 });
 
@@ -389,5 +389,18 @@ describe('anonymiseAgent', () => {
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'agent.anonymised', entityId: 'agent1' }),
     );
+  });
+
+  it('throws ComplianceError if agent is active', async () => {
+    mockRepo.findAgentById.mockResolvedValue({
+      id: 'agent1',
+      name: 'Active Agent',
+      email: 'active@test.com',
+      phone: '+65912345678',
+      isActive: true,
+    });
+    await expect(
+      complianceService.anonymiseAgent({ agentId: 'agent1', requestedByAgentId: 'admin1' }),
+    ).rejects.toThrow('active');
   });
 });

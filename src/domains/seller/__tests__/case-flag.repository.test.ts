@@ -29,7 +29,12 @@ describe('case-flag.repository', () => {
 
   describe('create', () => {
     it('creates a case flag record', async () => {
-      const data = { id: 'flag-1', sellerId: 's-1', flagType: 'other' as const, description: 'test' };
+      const data = {
+        id: 'flag-1',
+        sellerId: 's-1',
+        flagType: 'other' as const,
+        description: 'test',
+      };
       prisma.caseFlag.create.mockResolvedValue({ ...data, status: 'identified' });
 
       const result = await repo.create(data);
@@ -72,7 +77,9 @@ describe('case-flag.repository', () => {
 
       await repo.updateStatus('flag-1', 'in_progress', 'Some guidance text');
 
-      const call = prisma.caseFlag.update.mock.calls[0][0] as { data: { guidanceProvided?: string } };
+      const call = prisma.caseFlag.update.mock.calls[0][0] as {
+        data: { guidanceProvided?: string };
+      };
       expect(call.data.guidanceProvided).toBe('Some guidance text');
     });
   });

@@ -23,7 +23,10 @@ sellerRouter.use(
     try {
       res.locals.currentPath = req.path === '/' ? '/seller/dashboard' : `/seller${req.path}`;
       const user = req.user as AuthenticatedUser;
-      res.locals.unreadCount = await notificationService.countUnreadNotifications('seller', user.id);
+      res.locals.unreadCount = await notificationService.countUnreadNotifications(
+        'seller',
+        user.id,
+      );
       next();
     } catch (err) {
       next(err);

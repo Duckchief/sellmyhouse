@@ -11,11 +11,7 @@ export async function create(data: {
   return prisma.caseFlag.create({ data });
 }
 
-export async function updateStatus(
-  id: string,
-  status: CaseFlagStatus,
-  guidanceProvided?: string,
-) {
+export async function updateStatus(id: string, status: CaseFlagStatus, guidanceProvided?: string) {
   const isTerminal = status === 'resolved' || status === 'out_of_scope';
   return prisma.caseFlag.update({
     where: { id },

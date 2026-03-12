@@ -262,7 +262,10 @@ describe('seller.service', () => {
 
   describe('updateNotificationPreference', () => {
     it('updates preference and writes audit log, returns updated seller', async () => {
-      const updatedSeller = { id: 'seller-1', notificationPreference: 'email_only' as const } as Seller;
+      const updatedSeller = {
+        id: 'seller-1',
+        notificationPreference: 'email_only' as const,
+      } as Seller;
       mockedSellerRepo.findById.mockResolvedValue({
         id: 'seller-1',
         notificationPreference: 'whatsapp_and_email',

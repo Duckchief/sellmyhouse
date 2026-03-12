@@ -2,8 +2,14 @@
 import { body, param } from 'express-validator';
 
 const VALID_FLAG_TYPES = [
-  'deceased_estate', 'divorce', 'mop_not_met', 'eip_restriction',
-  'pr_quota', 'bank_loan', 'court_order', 'other',
+  'deceased_estate',
+  'divorce',
+  'mop_not_met',
+  'eip_restriction',
+  'pr_quota',
+  'bank_loan',
+  'court_order',
+  'other',
 ] as const;
 
 const VALID_STATUSES = ['identified', 'in_progress', 'resolved', 'out_of_scope'] as const;

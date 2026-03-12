@@ -4,7 +4,10 @@ import * as agentService from './agent.service';
 import * as agentRepo from './agent.repository';
 import * as caseFlagService from '@/domains/seller/case-flag.service';
 import { validateSellerListQuery } from './agent.validator';
-import { validateCreateCaseFlag, validateUpdateCaseFlag } from '@/domains/seller/case-flag.validator';
+import {
+  validateCreateCaseFlag,
+  validateUpdateCaseFlag,
+} from '@/domains/seller/case-flag.validator';
 import { processCorrectionValidator } from '../compliance/compliance.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import { ValidationError } from '@/domains/shared/errors';

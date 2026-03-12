@@ -94,10 +94,6 @@ export class HdbService {
 
 const _serviceInstance = new HdbService();
 
-export async function getRecentByTownAndFlatType(
-  town: string,
-  flatType: string,
-  months = 12,
-) {
+export async function getRecentByTownAndFlatType(town: string, flatType: string, months = 12) {
   return _serviceInstance.getRecentByTownAndFlatType(town, flatType, months);
 }

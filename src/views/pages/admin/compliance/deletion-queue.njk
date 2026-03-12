@@ -48,6 +48,10 @@
             <td class="px-6 py-4">
               {% if req.status == 'blocked' %}
                 <span class="text-xs text-gray-400">{{ "Retention active" | t }}</span>
+                {% if req.retentionEndsAt %}
+                  <span class="block text-xs text-gray-400 mt-1">{{ "Until:" | t }} {{ req.retentionEndsAt | date("DD MMM YYYY") }}</span>
+                {% endif %}
+                <span class="block text-xs text-gray-400 mt-1">{{ "AML/CFT 5-year hold applies." | t }}</span>
               {% else %}
                 <button
                   hx-post="/admin/compliance/deletion-queue/{{ req.id }}/approve"

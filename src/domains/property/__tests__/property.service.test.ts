@@ -14,11 +14,18 @@ import type { PropertyWithListing } from '../property.types';
 jest.mock('../property.repository');
 jest.mock('../../shared/audit.service');
 jest.mock('../../review/review.service');
+jest.mock('../../seller/case-flag.service', () => ({
+  hasActiveMopFlag: jest.fn().mockResolvedValue(false),
+}));
 jest.mock('@paralleldrive/cuid2', () => ({ createId: jest.fn().mockReturnValue('abcdef123456') }));
 
 const mockedRepo = jest.mocked(propertyRepo);
 const mockedAudit = jest.mocked(auditService);
 const mockedReviewService = jest.mocked(reviewService);
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const mockedCaseFlagService = jest.requireMock('../../seller/case-flag.service') as {
+  hasActiveMopFlag: jest.Mock;
+};
 
 describe('property.service', () => {
   beforeEach(() => {
@@ -123,6 +130,58 @@ describe('property.service', () => {
       expect(mockedRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           slug: expect.stringContaining('123-ang-mo-kio-ave-3-ang-mo-kio-'),
+        }),
+      );
+    });
+
+    // ─── MOP enforcement ──────────────────────────────────────
+
+    it('throws ComplianceError when active mop_not_met flag exists and no override reason', async () => {
+      mockedCaseFlagService.hasActiveMopFlag.mockResolvedValueOnce(true);
+
+      await expect(
+        propertyService.createProperty({
+          sellerId: 'seller-1',
+          town: 'ANG MO KIO',
+          street: 'Ang Mo Kio Ave 3',
+          block: '123',
+          flatType: '4 ROOM',
+          storeyRange: '04 TO 06',
+          floorAreaSqm: 90,
+          flatModel: 'Model A',
+          leaseCommenceDate: 1990,
+        }),
+      ).rejects.toThrow(ComplianceError);
+
+      expect(mockedRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('proceeds and logs MOP override audit when override reason is provided', async () => {
+      mockedCaseFlagService.hasActiveMopFlag.mockResolvedValueOnce(true);
+      mockedRepo.create.mockResolvedValue({ id: 'prop-1' } as unknown as Property);
+      mockedRepo.createListing.mockResolvedValue({ id: 'listing-1' } as unknown as Listing);
+      mockedAudit.log.mockResolvedValue(undefined);
+
+      await propertyService.createProperty({
+        sellerId: 'seller-1',
+        town: 'ANG MO KIO',
+        street: 'Ang Mo Kio Ave 3',
+        block: '123',
+        flatType: '4 ROOM',
+        storeyRange: '04 TO 06',
+        floorAreaSqm: 90,
+        flatModel: 'Model A',
+        leaseCommenceDate: 1990,
+        mopOverrideReason: 'HDB hardship exemption granted — ref HDB/2026/001',
+      });
+
+      expect(mockedRepo.create).toHaveBeenCalled();
+      expect(mockedAudit.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'case_flag.mop_override',
+          details: expect.objectContaining({
+            mopOverrideReason: 'HDB hardship exemption granted — ref HDB/2026/001',
+          }),
         }),
       );
     });

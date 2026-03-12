@@ -341,9 +341,6 @@ export async function approveDeletion(
   await complianceService.executeHardDelete({ requestId, agentId: adminId, reviewNotes });
 }
 
-export async function anonymiseAgentOnDeparture(
-  agentId: string,
-  adminId: string,
-): Promise<void> {
+export async function anonymiseAgentOnDeparture(agentId: string, adminId: string): Promise<void> {
   await complianceService.anonymiseAgent({ agentId, requestedByAgentId: adminId });
 }

@@ -34,10 +34,14 @@ describe('buildAddress', () => {
 
 describe('buildMarketContentLabel', () => {
   it('returns "Weekly Market Summary (period)" when town is ALL', () => {
-    expect(buildMarketContentLabel('ALL', 'ALL', '2026-W11')).toBe('Weekly Market Summary (2026-W11)');
+    expect(buildMarketContentLabel('ALL', 'ALL', '2026-W11')).toBe(
+      'Weekly Market Summary (2026-W11)',
+    );
   });
 
   it('returns town — flatType (period) for non-ALL records', () => {
-    expect(buildMarketContentLabel('TAMPINES', '4 ROOM', '2026-W11')).toBe('TAMPINES — 4 ROOM (2026-W11)');
+    expect(buildMarketContentLabel('TAMPINES', '4 ROOM', '2026-W11')).toBe(
+      'TAMPINES — 4 ROOM (2026-W11)',
+    );
   });
 });

@@ -37,7 +37,12 @@ export interface HdbTransactionPartial {
   resalePrice: { toNumber(): number };
 }
 
-export type MarketContentStatus = 'ai_generated' | 'pending_review' | 'approved' | 'rejected' | 'published';
+export type MarketContentStatus =
+  | 'ai_generated'
+  | 'pending_review'
+  | 'approved'
+  | 'rejected'
+  | 'published';
 
 export interface TownMedianPrice {
   town: string;
@@ -81,7 +86,11 @@ export interface TestimonialSubmitInput {
 
 // ─── Referrals ────────────────────────────────────────────────────────────────
 
-export type ReferralStatus = 'link_generated' | 'clicked' | 'lead_created' | 'transaction_completed';
+export type ReferralStatus =
+  | 'link_generated'
+  | 'clicked'
+  | 'lead_created'
+  | 'transaction_completed';
 
 export interface ReferralFunnel {
   linksGenerated: number;

@@ -322,9 +322,7 @@ export async function findExistingDeletionRequest(
   });
 }
 
-export async function findStaleCorrectionRequests(
-  cutoffDate: Date,
-): Promise<
+export async function findStaleCorrectionRequests(cutoffDate: Date): Promise<
   {
     id: string;
     sellerId: string;
@@ -439,7 +437,11 @@ export async function findCddRecordsByTransaction(transactionId: string) {
 export async function markOtpScannedCopyDeleted(otpId: string): Promise<void> {
   await prisma.otp.update({
     where: { id: otpId },
-    data: { scannedCopyPathSeller: null, scannedCopyPathReturned: null, scannedCopyDeletedAt: new Date() },
+    data: {
+      scannedCopyPathSeller: null,
+      scannedCopyPathReturned: null,
+      scannedCopyDeletedAt: new Date(),
+    },
   });
 }
 

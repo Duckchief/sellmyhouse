@@ -106,5 +106,4 @@ describe('seller.repository', () => {
       });
     });
   });
-
 });

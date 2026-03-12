@@ -5,7 +5,14 @@ import { logger } from '@/infra/logger';
 import * as contentRepo from './content.repository';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as auditService from '@/domains/shared/audit.service';
-import type { TutorialCreateInput, TutorialUpdateInput, ReorderItem, HdbTransactionPartial, MarketInsights, TestimonialSubmitInput } from './content.types';
+import type {
+  TutorialCreateInput,
+  TutorialUpdateInput,
+  ReorderItem,
+  HdbTransactionPartial,
+  MarketInsights,
+  TestimonialSubmitInput,
+} from './content.types';
 import type { VideoTutorial } from '@prisma/client';
 
 // ─── Video Tutorials ─────────────────────────────────────────────────────────
@@ -13,9 +20,9 @@ import type { VideoTutorial } from '@prisma/client';
 export function generateSlug(title: string): string {
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')  // strip special chars
+    .replace(/[^a-z0-9\s-]/g, '') // strip special chars
     .trim()
-    .replace(/[\s-]+/g, '-');       // collapse spaces/hyphens
+    .replace(/[\s-]+/g, '-'); // collapse spaces/hyphens
 }
 
 export async function getTutorialsGrouped(): Promise<Record<string, VideoTutorial[]>> {
@@ -101,7 +108,11 @@ export function aggregateHdbInsights(transactions: HdbTransactionPartial[]): Mar
     byTown.get(t.town)!.push(price);
   }
   const topTowns = [...byTown.entries()]
-    .map(([town, prices]) => ({ town, medianPrice: median(prices), transactionCount: prices.length }))
+    .map(([town, prices]) => ({
+      town,
+      medianPrice: median(prices),
+      transactionCount: prices.length,
+    }))
     .sort((a, b) => b.medianPrice - a.medianPrice)
     .slice(0, 5);
 
@@ -133,7 +144,8 @@ export function aggregateHdbInsights(transactions: HdbTransactionPartial[]): Mar
     .map(([flatType, { older, recent }]) => {
       const olderMedian = median(older);
       const recentMedian = median(recent);
-      const changePercent = Math.round(((recentMedian - olderMedian) / olderMedian) * 100 * 10) / 10;
+      const changePercent =
+        Math.round(((recentMedian - olderMedian) / olderMedian) * 100 * 10) / 10;
       const direction: 'rising' | 'falling' | 'stable' =
         changePercent >= 5 ? 'rising' : changePercent <= -5 ? 'falling' : 'stable';
       return { flatType, direction, changePercent };
@@ -169,7 +181,9 @@ ${JSON.stringify(insights, null, 2)}`;
 export async function generateMarketContent(period: string) {
   const existing = await contentRepo.findMarketContentByPeriod(period);
   if (existing) {
-    throw new ConflictError(`Market content for period ${period} already exists (status: ${existing.status})`);
+    throw new ConflictError(
+      `Market content for period ${period} already exists (status: ${existing.status})`,
+    );
   }
 
   // Query last 3 months of HDB data for trend computation
@@ -180,11 +194,16 @@ export async function generateMarketContent(period: string) {
 
   const insights = aggregateHdbInsights(transactions);
   if (!insights) {
-    logger.warn({ period, count: transactions.length }, 'Insufficient HDB data for market content generation');
+    logger.warn(
+      { period, count: transactions.length },
+      'Insufficient HDB data for market content generation',
+    );
     return null;
   }
 
-  const { text, provider, model } = await aiFacade.generateText(buildMarketPrompt(insights, period));
+  const { text, provider, model } = await aiFacade.generateText(
+    buildMarketPrompt(insights, period),
+  );
 
   let parsed: { narrative: string; tiktok: string; instagram: string; linkedin: string };
   try {
@@ -237,7 +256,12 @@ export function formatDisplayName(fullName: string): string {
 }
 
 /** Issues a submission token for a completed transaction. */
-export async function issueTestimonialToken(sellerId: string, transactionId: string, sellerName: string, sellerTown: string) {
+export async function issueTestimonialToken(
+  sellerId: string,
+  transactionId: string,
+  sellerName: string,
+  sellerTown: string,
+) {
   const token = createId();
   const tokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
   return contentRepo.createTestimonial({
@@ -255,8 +279,10 @@ export async function issueTestimonialToken(sellerId: string, transactionId: str
 export async function submitTestimonial(token: string, input: TestimonialSubmitInput) {
   const testimonial = await contentRepo.findTestimonialByToken(token);
   if (!testimonial) throw new NotFoundError('Testimonial', token);
-  if (!testimonial.tokenExpiresAt || testimonial.tokenExpiresAt < new Date()) throw new ValidationError('This submission link has expired');
-  if (testimonial.status !== 'pending_submission') throw new ValidationError('This testimonial has already been submitted');
+  if (!testimonial.tokenExpiresAt || testimonial.tokenExpiresAt < new Date())
+    throw new ValidationError('This submission link has expired');
+  if (testimonial.status !== 'pending_submission')
+    throw new ValidationError('This testimonial has already been submitted');
 
   return contentRepo.updateTestimonialSubmission(testimonial.id, {
     content: input.content,
@@ -306,8 +332,9 @@ const REFERRAL_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz2345678
 
 /** Generates a unique 8-character URL-safe referral code. */
 export function generateReferralCode(): string {
-  return Array.from({ length: 8 }, () =>
-    REFERRAL_CHARSET[Math.floor(Math.random() * REFERRAL_CHARSET.length)],
+  return Array.from(
+    { length: 8 },
+    () => REFERRAL_CHARSET[Math.floor(Math.random() * REFERRAL_CHARSET.length)],
   ).join('');
 }
 

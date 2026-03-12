@@ -35,4 +35,3 @@ export async function getConsentHistory(sellerId: string) {
     orderBy: { consentGivenAt: 'desc' },
   });
 }
-

@@ -27,7 +27,9 @@ describe('generateSlug', () => {
   });
 
   it('strips special characters', () => {
-    expect(contentService.generateSlug('5-Room HDB: Tips & Tricks!')).toBe('5-room-hdb-tips-tricks');
+    expect(contentService.generateSlug('5-Room HDB: Tips & Tricks!')).toBe(
+      '5-room-hdb-tips-tricks',
+    );
   });
 
   it('collapses multiple spaces and hyphens', () => {
@@ -108,23 +110,35 @@ describe('updateTutorial', () => {
   it('throws NotFoundError when tutorial does not exist', async () => {
     mockedRepo.findTutorialById.mockResolvedValue(null);
 
-    await expect(
-      contentService.updateTutorial('bad-id', { title: 'New Title' }),
-    ).rejects.toThrow(NotFoundError);
+    await expect(contentService.updateTutorial('bad-id', { title: 'New Title' })).rejects.toThrow(
+      NotFoundError,
+    );
   });
 
   it('throws ConflictError when new slug already taken by another tutorial', async () => {
-    mockedRepo.findTutorialById.mockResolvedValue({ id: 'tut-1', slug: 'old-slug' } as VideoTutorial);
-    mockedRepo.findTutorialBySlug.mockResolvedValue({ id: 'tut-2', slug: 'new-slug' } as VideoTutorial);
+    mockedRepo.findTutorialById.mockResolvedValue({
+      id: 'tut-1',
+      slug: 'old-slug',
+    } as VideoTutorial);
+    mockedRepo.findTutorialBySlug.mockResolvedValue({
+      id: 'tut-2',
+      slug: 'new-slug',
+    } as VideoTutorial);
 
-    await expect(
-      contentService.updateTutorial('tut-1', { slug: 'new-slug' }),
-    ).rejects.toThrow(ConflictError);
+    await expect(contentService.updateTutorial('tut-1', { slug: 'new-slug' })).rejects.toThrow(
+      ConflictError,
+    );
   });
 
   it('allows keeping the same slug on the same tutorial', async () => {
-    mockedRepo.findTutorialById.mockResolvedValue({ id: 'tut-1', slug: 'same-slug' } as VideoTutorial);
-    mockedRepo.findTutorialBySlug.mockResolvedValue({ id: 'tut-1', slug: 'same-slug' } as VideoTutorial);
+    mockedRepo.findTutorialById.mockResolvedValue({
+      id: 'tut-1',
+      slug: 'same-slug',
+    } as VideoTutorial);
+    mockedRepo.findTutorialBySlug.mockResolvedValue({
+      id: 'tut-1',
+      slug: 'same-slug',
+    } as VideoTutorial);
     mockedRepo.updateTutorial.mockResolvedValue({ id: 'tut-1' } as VideoTutorial);
 
     await expect(
@@ -199,9 +213,9 @@ describe('aggregateHdbInsights', () => {
     const insights = contentService.aggregateHdbInsights(txns);
 
     expect(insights?.topTowns).toHaveLength(5);
-    expect(insights?.topTowns[0].town).toBe('BISHAN');       // 700k
-    expect(insights?.topTowns[1].town).toBe('BUONA VISTA');  // 650k
-    expect(insights?.topTowns[4].town).toBe('TAMPINES');     // 500k
+    expect(insights?.topTowns[0].town).toBe('BISHAN'); // 700k
+    expect(insights?.topTowns[1].town).toBe('BUONA VISTA'); // 650k
+    expect(insights?.topTowns[4].town).toBe('TAMPINES'); // 500k
     // SENGKANG (450k) excluded
   });
 
@@ -219,8 +233,12 @@ describe('aggregateHdbInsights', () => {
   it('marks flat type as rising when recent median increases by ≥ 5%', () => {
     // Older month: 500k, newer month: 600k (+20%)
     const txns = [
-      ...Array.from({ length: 5 }, () => makeTxn({ month: '2025-09', flatType: '4 ROOM', resalePrice: 500_000 })),
-      ...Array.from({ length: 5 }, () => makeTxn({ month: '2026-01', flatType: '4 ROOM', resalePrice: 600_000 })),
+      ...Array.from({ length: 5 }, () =>
+        makeTxn({ month: '2025-09', flatType: '4 ROOM', resalePrice: 500_000 }),
+      ),
+      ...Array.from({ length: 5 }, () =>
+        makeTxn({ month: '2026-01', flatType: '4 ROOM', resalePrice: 600_000 }),
+      ),
     ];
     const insights = contentService.aggregateHdbInsights(txns);
     const trend = insights?.trends.find((t) => t.flatType === '4 ROOM');
@@ -231,8 +249,12 @@ describe('aggregateHdbInsights', () => {
   it('marks flat type as falling when recent median decreases by ≥ 5%', () => {
     // Older: 600k, newer: 500k (-17%)
     const txns = [
-      ...Array.from({ length: 5 }, () => makeTxn({ month: '2025-09', flatType: '5 ROOM', resalePrice: 600_000 })),
-      ...Array.from({ length: 5 }, () => makeTxn({ month: '2026-01', flatType: '5 ROOM', resalePrice: 500_000 })),
+      ...Array.from({ length: 5 }, () =>
+        makeTxn({ month: '2025-09', flatType: '5 ROOM', resalePrice: 600_000 }),
+      ),
+      ...Array.from({ length: 5 }, () =>
+        makeTxn({ month: '2026-01', flatType: '5 ROOM', resalePrice: 500_000 }),
+      ),
     ];
     const insights = contentService.aggregateHdbInsights(txns);
     const trend = insights?.trends.find((t) => t.flatType === '5 ROOM');
@@ -243,8 +265,12 @@ describe('aggregateHdbInsights', () => {
   it('marks flat type as stable when price change is under 5%', () => {
     // Older: 400k, newer: 402k (+0.5%)
     const txns = [
-      ...Array.from({ length: 5 }, () => makeTxn({ month: '2025-09', flatType: '3 ROOM', resalePrice: 400_000 })),
-      ...Array.from({ length: 5 }, () => makeTxn({ month: '2026-01', flatType: '3 ROOM', resalePrice: 402_000 })),
+      ...Array.from({ length: 5 }, () =>
+        makeTxn({ month: '2025-09', flatType: '3 ROOM', resalePrice: 400_000 }),
+      ),
+      ...Array.from({ length: 5 }, () =>
+        makeTxn({ month: '2026-01', flatType: '3 ROOM', resalePrice: 402_000 }),
+      ),
     ];
     const insights = contentService.aggregateHdbInsights(txns);
     const trend = insights?.trends.find((t) => t.flatType === '3 ROOM');
@@ -267,7 +293,10 @@ describe('trimToCharLimit', () => {
 
 describe('generateMarketContent', () => {
   it('throws ConflictError when a non-rejected record already exists for the period', async () => {
-    mockedRepo.findMarketContentByPeriod.mockResolvedValue({ id: 'mc-1', status: 'pending_review' } as MarketContent);
+    mockedRepo.findMarketContentByPeriod.mockResolvedValue({
+      id: 'mc-1',
+      status: 'pending_review',
+    } as MarketContent);
 
     await expect(contentService.generateMarketContent('2026-W11')).rejects.toThrow(ConflictError);
   });
@@ -275,7 +304,9 @@ describe('generateMarketContent', () => {
   it('returns null and does not call AI when fewer than 10 transactions exist', async () => {
     mockedRepo.findMarketContentByPeriod.mockResolvedValue(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mockedRepo.findHdbTransactionsForMonths.mockResolvedValue(Array.from({ length: 5 }, () => makeTxn()) as any);
+    mockedRepo.findHdbTransactionsForMonths.mockResolvedValue(
+      Array.from({ length: 5 }, () => makeTxn()) as any,
+    );
 
     const result = await contentService.generateMarketContent('2026-W11');
 
@@ -287,7 +318,9 @@ describe('generateMarketContent', () => {
     mockedRepo.findMarketContentByPeriod.mockResolvedValue(null);
     mockedRepo.findHdbTransactionsForMonths.mockResolvedValue(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Array.from({ length: 12 }, (_, i) => makeTxn({ town: i < 6 ? 'TAMPINES' : 'BISHAN', resalePrice: 500_000 })) as any,
+      Array.from({ length: 12 }, (_, i) =>
+        makeTxn({ town: i < 6 ? 'TAMPINES' : 'BISHAN', resalePrice: 500_000 }),
+      ) as any,
     );
     mockedAi.generateText.mockResolvedValue({
       text: JSON.stringify({
@@ -299,7 +332,10 @@ describe('generateMarketContent', () => {
       provider: 'anthropic',
       model: 'claude-3-5-sonnet',
     });
-    mockedRepo.createMarketContent.mockResolvedValue({ id: 'mc-new', status: 'pending_review' } as MarketContent);
+    mockedRepo.createMarketContent.mockResolvedValue({
+      id: 'mc-new',
+      status: 'pending_review',
+    } as MarketContent);
 
     const result = await contentService.generateMarketContent('2026-W11');
 
@@ -314,13 +350,24 @@ describe('generateMarketContent', () => {
     // 10 transactions split across two months so the trend computation has both older/recent buckets.
     // 2025-09: 5 × TAMPINES 4-ROOM @500k  →  2026-01: 5 × BISHAN 4-ROOM @700k
     const txns = [
-      ...Array.from({ length: 5 }, () => makeTxn({ month: '2025-09', town: 'TAMPINES', flatType: '4 ROOM', resalePrice: 500_000 })),
-      ...Array.from({ length: 5 }, () => makeTxn({ month: '2026-01', town: 'BISHAN',   flatType: '4 ROOM', resalePrice: 700_000 })),
+      ...Array.from({ length: 5 }, () =>
+        makeTxn({ month: '2025-09', town: 'TAMPINES', flatType: '4 ROOM', resalePrice: 500_000 }),
+      ),
+      ...Array.from({ length: 5 }, () =>
+        makeTxn({ month: '2026-01', town: 'BISHAN', flatType: '4 ROOM', resalePrice: 700_000 }),
+      ),
     ];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockedRepo.findHdbTransactionsForMonths.mockResolvedValue(txns as any);
-    mockedAi.generateText.mockResolvedValue({ text: '{"narrative":"","tiktok":"","instagram":"","linkedin":""}', provider: 'stub', model: 'stub' });
-    mockedRepo.createMarketContent.mockResolvedValue({ id: 'mc-1', status: 'pending_review' } as MarketContent);
+    mockedAi.generateText.mockResolvedValue({
+      text: '{"narrative":"","tiktok":"","instagram":"","linkedin":""}',
+      provider: 'stub',
+      model: 'stub',
+    });
+    mockedRepo.createMarketContent.mockResolvedValue({
+      id: 'mc-1',
+      status: 'pending_review',
+    } as MarketContent);
 
     await contentService.generateMarketContent('2026-W11');
 
@@ -342,8 +389,12 @@ describe('generateMarketContent', () => {
   it('stores all AI response fields — narrative, social formats trimmed to char limits, provider, model and raw insights', async () => {
     mockedRepo.findMarketContentByPeriod.mockResolvedValue(null);
     const txns = [
-      ...Array.from({ length: 5 }, () => makeTxn({ month: '2025-09', town: 'TAMPINES', flatType: '4 ROOM', resalePrice: 500_000 })),
-      ...Array.from({ length: 5 }, () => makeTxn({ month: '2026-01', town: 'BISHAN',   flatType: '4 ROOM', resalePrice: 700_000 })),
+      ...Array.from({ length: 5 }, () =>
+        makeTxn({ month: '2025-09', town: 'TAMPINES', flatType: '4 ROOM', resalePrice: 500_000 }),
+      ),
+      ...Array.from({ length: 5 }, () =>
+        makeTxn({ month: '2026-01', town: 'BISHAN', flatType: '4 ROOM', resalePrice: 700_000 }),
+      ),
     ];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockedRepo.findHdbTransactionsForMonths.mockResolvedValue(txns as any);
@@ -352,31 +403,34 @@ describe('generateMarketContent', () => {
     mockedAi.generateText.mockResolvedValue({
       text: JSON.stringify({
         narrative: 'BISHAN leads with $700k median. 4-room flats rose 40%.',
-        tiktok: overlong,     // trimmed to 150
-        instagram: overlong,  // trimmed to 300
-        linkedin: overlong,   // trimmed to 700
+        tiktok: overlong, // trimmed to 150
+        instagram: overlong, // trimmed to 300
+        linkedin: overlong, // trimmed to 700
       }),
       provider: 'anthropic',
       model: 'claude-3-5-sonnet',
     });
-    mockedRepo.createMarketContent.mockResolvedValue({ id: 'mc-1', status: 'pending_review' } as MarketContent);
+    mockedRepo.createMarketContent.mockResolvedValue({
+      id: 'mc-1',
+      status: 'pending_review',
+    } as MarketContent);
 
     await contentService.generateMarketContent('2026-W11');
 
     expect(mockedRepo.createMarketContent).toHaveBeenCalledWith(
       expect.objectContaining({
         // AI text fields
-        aiNarrative:     'BISHAN leads with $700k median. 4-room flats rose 40%.',
-        tiktokFormat:    'X'.repeat(150),
+        aiNarrative: 'BISHAN leads with $700k median. 4-room flats rose 40%.',
+        tiktokFormat: 'X'.repeat(150),
         instagramFormat: 'X'.repeat(300),
-        linkedinFormat:  'X'.repeat(700),
-        aiProvider:      'anthropic',
-        aiModel:         'claude-3-5-sonnet',
+        linkedinFormat: 'X'.repeat(700),
+        aiProvider: 'anthropic',
+        aiModel: 'claude-3-5-sonnet',
         // rawData must be the computed insights object, not raw transaction rows
         rawData: {
           topTowns: [
-            { town: 'BISHAN',    medianPrice: 700_000, transactionCount: 5 },
-            { town: 'TAMPINES',  medianPrice: 500_000, transactionCount: 5 },
+            { town: 'BISHAN', medianPrice: 700_000, transactionCount: 5 },
+            { town: 'TAMPINES', medianPrice: 500_000, transactionCount: 5 },
           ],
           millionDollar: { count: 0, examples: [] },
           trends: [{ flatType: '4 ROOM', direction: 'rising', changePercent: 40 }],
@@ -388,21 +442,35 @@ describe('generateMarketContent', () => {
 
 describe('approveMarketContent', () => {
   it('calls repo updateMarketContentStatus with approved + agentId', async () => {
-    mockedRepo.updateMarketContentStatus.mockResolvedValue({ id: 'mc-1', status: 'approved' } as MarketContent);
+    mockedRepo.updateMarketContentStatus.mockResolvedValue({
+      id: 'mc-1',
+      status: 'approved',
+    } as MarketContent);
 
     await contentService.approveMarketContent('mc-1', 'agent-42');
 
-    expect(mockedRepo.updateMarketContentStatus).toHaveBeenCalledWith('mc-1', 'approved', 'agent-42');
+    expect(mockedRepo.updateMarketContentStatus).toHaveBeenCalledWith(
+      'mc-1',
+      'approved',
+      'agent-42',
+    );
   });
 });
 
 describe('rejectMarketContent', () => {
   it('calls repo updateMarketContentStatus with rejected', async () => {
-    mockedRepo.updateMarketContentStatus.mockResolvedValue({ id: 'mc-1', status: 'rejected' } as MarketContent);
+    mockedRepo.updateMarketContentStatus.mockResolvedValue({
+      id: 'mc-1',
+      status: 'rejected',
+    } as MarketContent);
 
     await contentService.rejectMarketContent('mc-1');
 
-    expect(mockedRepo.updateMarketContentStatus).toHaveBeenCalledWith('mc-1', 'rejected', undefined);
+    expect(mockedRepo.updateMarketContentStatus).toHaveBeenCalledWith(
+      'mc-1',
+      'rejected',
+      undefined,
+    );
   });
 });
 
@@ -433,7 +501,9 @@ describe('submitTestimonial', () => {
   it('throws NotFoundError when token does not exist', async () => {
     mockedRepo.findTestimonialByToken.mockResolvedValue(null);
 
-    await expect(contentService.submitTestimonial('bad-token', validInput)).rejects.toThrow(NotFoundError);
+    await expect(contentService.submitTestimonial('bad-token', validInput)).rejects.toThrow(
+      NotFoundError,
+    );
   });
 
   it('throws ValidationError when token is expired', async () => {
@@ -443,7 +513,9 @@ describe('submitTestimonial', () => {
       tokenExpiresAt: new Date(Date.now() - 1000),
     } as Testimonial);
 
-    await expect(contentService.submitTestimonial('expired-token', validInput)).rejects.toThrow(ValidationError);
+    await expect(contentService.submitTestimonial('expired-token', validInput)).rejects.toThrow(
+      ValidationError,
+    );
   });
 
   it('throws ValidationError when testimonial already submitted', async () => {
@@ -453,7 +525,9 @@ describe('submitTestimonial', () => {
       tokenExpiresAt: new Date(Date.now() + 86_400_000),
     } as Testimonial);
 
-    await expect(contentService.submitTestimonial('used-token', validInput)).rejects.toThrow(ValidationError);
+    await expect(contentService.submitTestimonial('used-token', validInput)).rejects.toThrow(
+      ValidationError,
+    );
   });
 
   it('updates testimonial and returns pending_review record on success', async () => {
@@ -462,22 +536,31 @@ describe('submitTestimonial', () => {
       status: 'pending_submission',
       tokenExpiresAt: new Date(Date.now() + 86_400_000),
     } as Testimonial);
-    mockedRepo.updateTestimonialSubmission.mockResolvedValue({ id: 't-1', status: 'pending_review' } as Testimonial);
+    mockedRepo.updateTestimonialSubmission.mockResolvedValue({
+      id: 't-1',
+      status: 'pending_review',
+    } as Testimonial);
 
     const result = await contentService.submitTestimonial('valid-token', validInput);
 
-    expect(mockedRepo.updateTestimonialSubmission).toHaveBeenCalledWith('t-1', expect.objectContaining({
-      content: 'Great service!',
-      rating: 5,
-      status: 'pending_review',
-    }));
+    expect(mockedRepo.updateTestimonialSubmission).toHaveBeenCalledWith(
+      't-1',
+      expect.objectContaining({
+        content: 'Great service!',
+        rating: 5,
+        status: 'pending_review',
+      }),
+    );
     expect(result).toMatchObject({ id: 't-1', status: 'pending_review' });
   });
 });
 
 describe('removeTestimonial', () => {
   it('hard-deletes testimonial and writes audit log with sellerId and reason', async () => {
-    mockedRepo.findTestimonialBySeller.mockResolvedValue({ id: 't-1', sellerId: 'seller-1' } as Testimonial);
+    mockedRepo.findTestimonialBySeller.mockResolvedValue({
+      id: 't-1',
+      sellerId: 'seller-1',
+    } as Testimonial);
     mockedRepo.hardDeleteTestimonial.mockResolvedValue();
     mockedAudit.log.mockResolvedValue();
 
@@ -522,7 +605,10 @@ describe('generateReferralCode', () => {
 describe('sendReferralLinks', () => {
   it('creates a new referral when none exists for the seller', async () => {
     mockedRepo.findReferralBySellerId.mockResolvedValue(null);
-    mockedRepo.createReferral.mockResolvedValue({ id: 'ref-1', referralCode: 'ABC12345' } as Referral);
+    mockedRepo.createReferral.mockResolvedValue({
+      id: 'ref-1',
+      referralCode: 'ABC12345',
+    } as Referral);
 
     const result = await contentService.sendReferralLinks('seller-1');
 
@@ -533,7 +619,10 @@ describe('sendReferralLinks', () => {
   });
 
   it('returns existing referral without creating a new one', async () => {
-    mockedRepo.findReferralBySellerId.mockResolvedValue({ id: 'ref-1', referralCode: 'EXISTING' } as Referral);
+    mockedRepo.findReferralBySellerId.mockResolvedValue({
+      id: 'ref-1',
+      referralCode: 'EXISTING',
+    } as Referral);
 
     const result = await contentService.sendReferralLinks('seller-1');
 
@@ -545,9 +634,14 @@ describe('sendReferralLinks', () => {
 describe('trackReferralClick', () => {
   it('atomically increments click count', async () => {
     mockedRepo.incrementClickCount.mockResolvedValue({
-      id: 'ref-1', clickCount: 1, status: 'link_generated',
+      id: 'ref-1',
+      clickCount: 1,
+      status: 'link_generated',
     } as Referral);
-    mockedRepo.updateReferralStatus.mockResolvedValue({ id: 'ref-1', status: 'clicked' } as Referral);
+    mockedRepo.updateReferralStatus.mockResolvedValue({
+      id: 'ref-1',
+      status: 'clicked',
+    } as Referral);
 
     await contentService.trackReferralClick('CODE1234');
 
@@ -556,9 +650,14 @@ describe('trackReferralClick', () => {
 
   it('transitions status link_generated → clicked on first click', async () => {
     mockedRepo.incrementClickCount.mockResolvedValue({
-      id: 'ref-1', clickCount: 1, status: 'link_generated',
+      id: 'ref-1',
+      clickCount: 1,
+      status: 'link_generated',
     } as Referral);
-    mockedRepo.updateReferralStatus.mockResolvedValue({ id: 'ref-1', status: 'clicked' } as Referral);
+    mockedRepo.updateReferralStatus.mockResolvedValue({
+      id: 'ref-1',
+      status: 'clicked',
+    } as Referral);
 
     await contentService.trackReferralClick('CODE1234');
 
@@ -567,7 +666,9 @@ describe('trackReferralClick', () => {
 
   it('does not re-transition status on subsequent clicks', async () => {
     mockedRepo.incrementClickCount.mockResolvedValue({
-      id: 'ref-1', clickCount: 5, status: 'clicked',
+      id: 'ref-1',
+      clickCount: 5,
+      status: 'clicked',
     } as Referral);
 
     await contentService.trackReferralClick('CODE1234');
@@ -587,7 +688,10 @@ describe('trackReferralClick', () => {
 describe('linkReferralToLead', () => {
   it('links the referred seller when referral code matches', async () => {
     mockedRepo.findReferralByCode.mockResolvedValue({ id: 'ref-1', status: 'clicked' } as Referral);
-    mockedRepo.linkReferredSeller.mockResolvedValue({ id: 'ref-1', status: 'lead_created' } as Referral);
+    mockedRepo.linkReferredSeller.mockResolvedValue({
+      id: 'ref-1',
+      status: 'lead_created',
+    } as Referral);
 
     await contentService.linkReferralToLead('CODE1234', 'new-seller-id');
 
@@ -605,8 +709,14 @@ describe('linkReferralToLead', () => {
 
 describe('markReferralTransactionComplete', () => {
   it('updates referral status to transaction_completed for the referred seller', async () => {
-    mockedRepo.findReferralByReferredSeller.mockResolvedValue({ id: 'ref-1', status: 'lead_created' } as Referral);
-    mockedRepo.updateReferralStatus.mockResolvedValue({ id: 'ref-1', status: 'transaction_completed' } as Referral);
+    mockedRepo.findReferralByReferredSeller.mockResolvedValue({
+      id: 'ref-1',
+      status: 'lead_created',
+    } as Referral);
+    mockedRepo.updateReferralStatus.mockResolvedValue({
+      id: 'ref-1',
+      status: 'transaction_completed',
+    } as Referral);
 
     await contentService.markReferralTransactionComplete('referred-seller-id');
 

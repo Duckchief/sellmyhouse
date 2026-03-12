@@ -3,7 +3,10 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import * as adminService from './admin.service';
 import { validateAgentCreate, validateSettingUpdate, validateAssign } from './admin.validator';
-import { validateTutorialCreate, validateTutorialUpdate } from '@/domains/content/content.validator';
+import {
+  validateTutorialCreate,
+  validateTutorialUpdate,
+} from '@/domains/content/content.validator';
 import * as contentService from '@/domains/content/content.service';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import { NotFoundError, ConflictError } from '@/domains/shared/errors';
@@ -622,7 +625,9 @@ adminRouter.post(
       if (err instanceof ConflictError) {
         logger.warn({ err }, 'Market content run blocked: duplicate period');
         const records = await contentService.listMarketContent();
-        return res.status(409).render('pages/admin/market-content', { records, error: err.message });
+        return res
+          .status(409)
+          .render('pages/admin/market-content', { records, error: err.message });
       }
       return next(err);
     }
@@ -635,7 +640,8 @@ adminRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const records = await contentService.listMarketContent();
-      const notice = req.query['notice'] === 'no_data' ? 'Insufficient HDB data for the current period.' : null;
+      const notice =
+        req.query['notice'] === 'no_data' ? 'Insufficient HDB data for the current period.' : null;
       if (req.headers['hx-request']) {
         return res.render('partials/admin/market-content-list', { records });
       }
@@ -766,4 +772,3 @@ adminRouter.post(
     }
   },
 );
-

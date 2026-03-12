@@ -12,7 +12,8 @@ jest.mock('@/domains/shared/ai/ai.facade', () => ({
       narrative: 'HDB prices rose this week.',
       tiktok: 'Prices up! #HDB #Singapore #Property',
       instagram: 'Market update. Based on HDB resale data — sellmyhomenow.sg #HDB #SG',
-      linkedin: 'The Singapore HDB market shows strength. Based on HDB resale data — sellmyhomenow.sg',
+      linkedin:
+        'The Singapore HDB market shows strength. Based on HDB resale data — sellmyhomenow.sg',
     }),
     provider: 'anthropic',
     model: 'claude-test',
@@ -216,7 +217,9 @@ describe('POST /admin/tutorials/reorder — reorder', () => {
       .post('/admin/tutorials/reorder')
       .set('HX-Request', 'true')
       .type('form')
-      .send(`items[0][id]=${t1.id}&items[0][orderIndex]=1&items[1][id]=${t2.id}&items[1][orderIndex]=0`);
+      .send(
+        `items[0][id]=${t1.id}&items[0][orderIndex]=1&items[1][id]=${t2.id}&items[1][orderIndex]=0`,
+      );
 
     expect(res.status).toBe(200);
 
@@ -323,7 +326,10 @@ async function loginAsSeller() {
     passwordHash: await bcrypt.hash(password, 12),
   });
   const sellerAgent = request.agent(app);
-  await sellerAgent.post('/auth/login/seller').type('form').send({ email: sellerRecord.email, password });
+  await sellerAgent
+    .post('/auth/login/seller')
+    .type('form')
+    .send({ email: sellerRecord.email, password });
   return { sellerRecord, agentRecord, sellerAgent };
 }
 
@@ -332,7 +338,10 @@ describe('GET /testimonial/:token — public submission form', () => {
     const agentRecord = await factory.agent();
     const sellerRecord = await factory.seller({ agentId: agentRecord.id });
     const property = await factory.property({ sellerId: sellerRecord.id });
-    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const transaction = await factory.transaction({
+      sellerId: sellerRecord.id,
+      propertyId: property.id,
+    });
     const testimonial = await factory.testimonial({
       sellerId: sellerRecord.id,
       transactionId: transaction.id,
@@ -353,7 +362,10 @@ describe('GET /testimonial/:token — public submission form', () => {
     const agentRecord = await factory.agent();
     const sellerRecord = await factory.seller({ agentId: agentRecord.id });
     const property = await factory.property({ sellerId: sellerRecord.id });
-    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const transaction = await factory.transaction({
+      sellerId: sellerRecord.id,
+      propertyId: property.id,
+    });
     const testimonial = await factory.testimonial({
       sellerId: sellerRecord.id,
       transactionId: transaction.id,
@@ -371,7 +383,10 @@ describe('POST /testimonial/:token — submit', () => {
     const agentRecord = await factory.agent();
     const sellerRecord = await factory.seller({ agentId: agentRecord.id });
     const property = await factory.property({ sellerId: sellerRecord.id });
-    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const transaction = await factory.transaction({
+      sellerId: sellerRecord.id,
+      propertyId: property.id,
+    });
     const testimonial = await factory.testimonial({
       sellerId: sellerRecord.id,
       transactionId: transaction.id,
@@ -382,7 +397,12 @@ describe('POST /testimonial/:token — submit', () => {
     const res = await request(app)
       .post(`/testimonial/${testimonial.submissionToken}`)
       .type('form')
-      .send({ content: 'Excellent service!', rating: '5', sellerName: 'John T.', sellerTown: 'Tampines' });
+      .send({
+        content: 'Excellent service!',
+        rating: '5',
+        sellerName: 'John T.',
+        sellerTown: 'Tampines',
+      });
 
     expect(res.status).toBe(302);
 
@@ -395,7 +415,10 @@ describe('POST /testimonial/:token — submit', () => {
     const agentRecord = await factory.agent();
     const sellerRecord = await factory.seller({ agentId: agentRecord.id });
     const property = await factory.property({ sellerId: sellerRecord.id });
-    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const transaction = await factory.transaction({
+      sellerId: sellerRecord.id,
+      propertyId: property.id,
+    });
     const testimonial = await factory.testimonial({
       sellerId: sellerRecord.id,
       transactionId: transaction.id,
@@ -431,7 +454,10 @@ describe('POST /admin/content/testimonials/:id/approve — approve', () => {
     const agentRecord = await factory.agent();
     const sellerRecord = await factory.seller({ agentId: agentRecord.id });
     const property = await factory.property({ sellerId: sellerRecord.id });
-    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const transaction = await factory.transaction({
+      sellerId: sellerRecord.id,
+      propertyId: property.id,
+    });
     const testimonial = await factory.testimonial({
       sellerId: sellerRecord.id,
       transactionId: transaction.id,
@@ -453,7 +479,10 @@ describe('POST /admin/content/testimonials/:id/reject — reject', () => {
     const agentRecord = await factory.agent();
     const sellerRecord = await factory.seller({ agentId: agentRecord.id });
     const property = await factory.property({ sellerId: sellerRecord.id });
-    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const transaction = await factory.transaction({
+      sellerId: sellerRecord.id,
+      propertyId: property.id,
+    });
     const testimonial = await factory.testimonial({
       sellerId: sellerRecord.id,
       transactionId: transaction.id,
@@ -474,7 +503,10 @@ describe('POST /admin/content/testimonials/:id/feature — feature toggle', () =
     const agentRecord = await factory.agent();
     const sellerRecord = await factory.seller({ agentId: agentRecord.id });
     const property = await factory.property({ sellerId: sellerRecord.id });
-    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const transaction = await factory.transaction({
+      sellerId: sellerRecord.id,
+      propertyId: property.id,
+    });
     const testimonial = await factory.testimonial({
       sellerId: sellerRecord.id,
       transactionId: transaction.id,
@@ -497,13 +529,18 @@ describe('POST /seller/testimonial/remove — PDPA testimonial removal', () => {
   it('hard-deletes the testimonial and redirects', async () => {
     const { sellerRecord, agentRecord, sellerAgent } = await loginAsSeller();
     const property = await factory.property({ sellerId: sellerRecord.id });
-    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const transaction = await factory.transaction({
+      sellerId: sellerRecord.id,
+      propertyId: property.id,
+    });
     await factory.testimonial({ sellerId: sellerRecord.id, transactionId: transaction.id });
 
     const res = await sellerAgent.post('/seller/testimonial/remove');
     expect(res.status).toBe(302);
 
-    const testimonial = await testPrisma.testimonial.findFirst({ where: { sellerId: sellerRecord.id } });
+    const testimonial = await testPrisma.testimonial.findFirst({
+      where: { sellerId: sellerRecord.id },
+    });
     expect(testimonial).toBeNull();
     void agentRecord; // used above
   });
@@ -516,7 +553,10 @@ describe('PDPA cascade — hardDeleteSeller removes testimonial without FK error
     const agentRecord = await factory.agent();
     const sellerRecord = await factory.seller({ agentId: agentRecord.id });
     const property = await factory.property({ sellerId: sellerRecord.id });
-    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const transaction = await factory.transaction({
+      sellerId: sellerRecord.id,
+      propertyId: property.id,
+    });
     await factory.testimonial({ sellerId: sellerRecord.id, transactionId: transaction.id });
 
     // hardDeleteSeller now handles the full FK chain: testimonial → otp/invoice → transaction → property → seller
@@ -524,7 +564,9 @@ describe('PDPA cascade — hardDeleteSeller removes testimonial without FK error
 
     const deletedSeller = await testPrisma.seller.findUnique({ where: { id: sellerRecord.id } });
     expect(deletedSeller).toBeNull();
-    const deletedTestimonial = await testPrisma.testimonial.findFirst({ where: { sellerId: sellerRecord.id } });
+    const deletedTestimonial = await testPrisma.testimonial.findFirst({
+      where: { sellerId: sellerRecord.id },
+    });
     expect(deletedTestimonial).toBeNull();
   });
 });
@@ -534,7 +576,10 @@ describe('GET / — homepage with featured testimonials', () => {
     const agentRecord = await factory.agent();
     const sellerRecord = await factory.seller({ agentId: agentRecord.id });
     const property = await factory.property({ sellerId: sellerRecord.id });
-    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const transaction = await factory.transaction({
+      sellerId: sellerRecord.id,
+      propertyId: property.id,
+    });
     await factory.testimonial({
       sellerId: sellerRecord.id,
       transactionId: transaction.id,
@@ -739,7 +784,10 @@ describe('Testimonial removed → disappears from homepage', () => {
   it('homepage no longer renders the testimonial content after seller removes it', async () => {
     const { sellerRecord, sellerAgent } = await loginAsSeller();
     const property = await factory.property({ sellerId: sellerRecord.id });
-    const transaction = await factory.transaction({ sellerId: sellerRecord.id, propertyId: property.id });
+    const transaction = await factory.transaction({
+      sellerId: sellerRecord.id,
+      propertyId: property.id,
+    });
     await factory.testimonial({
       sellerId: sellerRecord.id,
       transactionId: transaction.id,

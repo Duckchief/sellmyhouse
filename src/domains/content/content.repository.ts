@@ -19,7 +19,9 @@ export async function findTutorialBySlug(slug: string) {
   return prisma.videoTutorial.findUnique({ where: { slug } });
 }
 
-export async function createTutorial(input: Omit<TutorialCreateInput, 'slug'> & { id: string; slug: string }) {
+export async function createTutorial(
+  input: Omit<TutorialCreateInput, 'slug'> & { id: string; slug: string },
+) {
   return prisma.videoTutorial.create({
     data: {
       id: input.id,
@@ -164,7 +166,13 @@ export async function createTestimonial(input: {
 
 export async function updateTestimonialSubmission(
   id: string,
-  data: { content: string; rating: number; sellerName: string; sellerTown: string; status: 'pending_review' },
+  data: {
+    content: string;
+    rating: number;
+    sellerName: string;
+    sellerTown: string;
+    status: 'pending_review';
+  },
 ) {
   return prisma.testimonial.update({ where: { id }, data });
 }
@@ -237,14 +245,19 @@ export async function linkReferredSeller(id: string, referredSellerId: string) {
   });
 }
 
-export async function updateReferralStatus(id: string, status: 'clicked' | 'lead_created' | 'transaction_completed') {
+export async function updateReferralStatus(
+  id: string,
+  status: 'clicked' | 'lead_created' | 'transaction_completed',
+) {
   return prisma.referral.update({ where: { id }, data: { status } });
 }
 
 export async function getReferralFunnel() {
   const [linksGenerated, clicked, leadsCreated, transactionsCompleted] = await Promise.all([
     prisma.referral.count(),
-    prisma.referral.count({ where: { status: { in: ['clicked', 'lead_created', 'transaction_completed'] } } }),
+    prisma.referral.count({
+      where: { status: { in: ['clicked', 'lead_created', 'transaction_completed'] } },
+    }),
     prisma.referral.count({ where: { status: { in: ['lead_created', 'transaction_completed'] } } }),
     prisma.referral.count({ where: { status: 'transaction_completed' } }),
   ]);

@@ -11,8 +11,7 @@ import bcrypt from 'bcrypt';
 import { createId } from '@paralleldrive/cuid2';
 
 const E2E_DB_URL =
-  process.env.DATABASE_URL_TEST ||
-  'postgresql://smhn:smhn_test@localhost:5433/sellmyhomenow_test';
+  process.env.DATABASE_URL_TEST || 'postgresql://smhn:smhn_test@localhost:5433/sellmyhomenow_test';
 
 const db = new PrismaClient({ datasources: { db: { url: E2E_DB_URL } } });
 
@@ -278,9 +277,7 @@ test('seller receives testimonial link → fills form → agent approves → tes
   // ── Step 5: Homepage no longer shows the testimonial ─────────────────────
   await page.context().clearCookies();
   await page.goto('/');
-  await expect(
-    page.locator('text=E2E: Excellent service, sold in 2 weeks!'),
-  ).not.toBeVisible();
+  await expect(page.locator('text=E2E: Excellent service, sold in 2 weeks!')).not.toBeVisible();
 });
 
 // ─── Scenario 4: Referral link → visitor clicks → submits lead → funnel ───────

@@ -221,15 +221,19 @@ sellerRouter.get(
 );
 
 // Testimonial removal (PDPA request)
-sellerRouter.post('/seller/testimonial/remove', ...sellerAuth, async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const user = req.user as AuthenticatedUser;
-    await contentService.removeTestimonial(user.id);
-    return res.redirect('/seller/my-data');
-  } catch (err) {
-    next(err);
-  }
-});
+sellerRouter.post(
+  '/seller/testimonial/remove',
+  ...sellerAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      await contentService.removeTestimonial(user.id);
+      return res.redirect('/seller/my-data');
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // My Data (PDPA)
 sellerRouter.get('/seller/my-data', async (req: Request, res: Response, next: NextFunction) => {
@@ -277,15 +281,19 @@ sellerRouter.get('/seller/tutorials', async (req: Request, res: Response, next: 
 });
 
 // Referral programme
-sellerRouter.get('/seller/referral', ...sellerAuth, async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const user = req.user as AuthenticatedUser;
-    const referral = await contentService.sendReferralLinks(user.id);
-    if (req.headers['hx-request']) {
-      return res.render('partials/seller/referral-content', { referral });
+sellerRouter.get(
+  '/seller/referral',
+  ...sellerAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const referral = await contentService.sendReferralLinks(user.id);
+      if (req.headers['hx-request']) {
+        return res.render('partials/seller/referral-content', { referral });
+      }
+      return res.render('pages/seller/referral', { referral });
+    } catch (err) {
+      next(err);
     }
-    return res.render('pages/seller/referral', { referral });
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);

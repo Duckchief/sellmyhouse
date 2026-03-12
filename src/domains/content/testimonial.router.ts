@@ -12,21 +12,25 @@ testimonialRouter.get('/testimonial/thankyou', (_req: Request, res: Response) =>
   res.render('pages/public/testimonial-thankyou');
 });
 
-testimonialRouter.get('/testimonial/:token', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const testimonial = await contentRepo.findTestimonialByToken(req.params['token'] as string);
-    if (!testimonial) return res.status(404).render('pages/public/testimonial-expired', { notFound: true });
-    if (!testimonial.tokenExpiresAt || testimonial.tokenExpiresAt < new Date()) {
-      return res.status(410).render('pages/public/testimonial-expired', { expired: true });
+testimonialRouter.get(
+  '/testimonial/:token',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const testimonial = await contentRepo.findTestimonialByToken(req.params['token'] as string);
+      if (!testimonial)
+        return res.status(404).render('pages/public/testimonial-expired', { notFound: true });
+      if (!testimonial.tokenExpiresAt || testimonial.tokenExpiresAt < new Date()) {
+        return res.status(410).render('pages/public/testimonial-expired', { expired: true });
+      }
+      if (testimonial.status !== 'pending_submission') {
+        return res.redirect('/testimonial/thankyou');
+      }
+      return res.render('pages/public/testimonial-form', { token: req.params.token, testimonial });
+    } catch (err) {
+      next(err);
     }
-    if (testimonial.status !== 'pending_submission') {
-      return res.redirect('/testimonial/thankyou');
-    }
-    return res.render('pages/public/testimonial-form', { token: req.params.token, testimonial });
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 testimonialRouter.post(
   '/testimonial/:token',
@@ -53,8 +57,10 @@ testimonialRouter.post(
 
       return res.redirect('/testimonial/thankyou');
     } catch (err) {
-      if (err instanceof NotFoundError) return res.status(404).render('pages/public/testimonial-expired', { notFound: true });
-      if (err instanceof ValidationError) return res.status(410).render('pages/public/testimonial-expired', { expired: true });
+      if (err instanceof NotFoundError)
+        return res.status(404).render('pages/public/testimonial-expired', { notFound: true });
+      if (err instanceof ValidationError)
+        return res.status(410).render('pages/public/testimonial-expired', { expired: true });
       next(err);
     }
   },

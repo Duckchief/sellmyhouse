@@ -312,7 +312,14 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
       skippedCount++;
       return;
     }
-    await complianceRepo.createDeletionRequest({ targetType, targetId, reason, retentionRule, status, details });
+    await complianceRepo.createDeletionRequest({
+      targetType,
+      targetId,
+      reason,
+      retentionRule,
+      status,
+      details,
+    });
     flaggedCount++;
   }
 
@@ -332,9 +339,16 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
   withdrawalCutoff.setDate(withdrawalCutoff.getDate() - 30);
   const withdrawnSellers = await complianceRepo.findServiceWithdrawnForDeletion(withdrawalCutoff);
   for (const seller of withdrawnSellers) {
-    await flagIfNew('lead', seller.id, 'Service consent withdrawn > 30 days ago', '30_day_grace', 'flagged', {
-      sellerName: seller.name,
-    });
+    await flagIfNew(
+      'lead',
+      seller.id,
+      'Service consent withdrawn > 30 days ago',
+      '30_day_grace',
+      'flagged',
+      {
+        sellerName: seller.name,
+      },
+    );
   }
 
   // 3. Transactions 5+ years post-completion
@@ -342,10 +356,17 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
   txCutoff.setFullYear(txCutoff.getFullYear() - 5);
   const oldTransactions = await complianceRepo.findTransactionsForRetention(txCutoff);
   for (const tx of oldTransactions) {
-    await flagIfNew('transaction', tx.id, 'Transaction record > 5 years post-completion', 'transaction_5_year', 'flagged', {
-      sellerId: tx.sellerId,
-      completionDate: tx.completionDate,
-    });
+    await flagIfNew(
+      'transaction',
+      tx.id,
+      'Transaction record > 5 years post-completion',
+      'transaction_5_year',
+      'flagged',
+      {
+        sellerId: tx.sellerId,
+        completionDate: tx.completionDate,
+      },
+    );
   }
 
   // 4. CDD documents 5+ years since verification
@@ -353,10 +374,17 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
   cddCutoff.setFullYear(cddCutoff.getFullYear() - 5);
   const oldCddRecords = await complianceRepo.findCddRecordsForRetention(cddCutoff);
   for (const cdd of oldCddRecords) {
-    await flagIfNew('cdd_documents', cdd.id, 'CDD documents > 5 years old', 'cdd_5_year', 'flagged', {
-      subjectId: cdd.subjectId,
-      verifiedAt: cdd.verifiedAt,
-    });
+    await flagIfNew(
+      'cdd_documents',
+      cdd.id,
+      'CDD documents > 5 years old',
+      'cdd_5_year',
+      'flagged',
+      {
+        subjectId: cdd.subjectId,
+        verifiedAt: cdd.verifiedAt,
+      },
+    );
   }
 
   // 5. Withdrawn consent records 1+ year post-withdrawal
@@ -364,10 +392,17 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
   consentCutoff.setFullYear(consentCutoff.getFullYear() - 1);
   const oldConsentRecords = await complianceRepo.findConsentRecordsForDeletion(consentCutoff);
   for (const record of oldConsentRecords) {
-    await flagIfNew('consent_record', record.id, 'Consent record > 1 year post-withdrawal', 'consent_1_year_post_withdrawal', 'flagged', {
-      subjectId: record.subjectId,
-      withdrawnAt: record.consentWithdrawnAt,
-    });
+    await flagIfNew(
+      'consent_record',
+      record.id,
+      'Consent record > 1 year post-withdrawal',
+      'consent_1_year_post_withdrawal',
+      'flagged',
+      {
+        subjectId: record.subjectId,
+        withdrawnAt: record.consentWithdrawnAt,
+      },
+    );
   }
 
   // 6. Stale data correction requests — alert agent (not deletion)

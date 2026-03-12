@@ -56,7 +56,10 @@ describe('Phase 1A Schema', () => {
   });
 
   it('creates a video tutorial', async () => {
-    const tutorial = await factory.videoTutorial({ title: 'How to Photograph Your Flat', category: 'photography' });
+    const tutorial = await factory.videoTutorial({
+      title: 'How to Photograph Your Flat',
+      category: 'photography',
+    });
     expect(tutorial.id).toBeDefined();
     expect(tutorial.title).toBe('How to Photograph Your Flat');
     expect(tutorial.category).toBe('photography');

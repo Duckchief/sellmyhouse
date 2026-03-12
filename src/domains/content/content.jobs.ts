@@ -2,7 +2,11 @@
 import { registerJob } from '@/infra/jobs/runner';
 import { logger } from '@/infra/logger';
 import * as settingsService from '@/domains/shared/settings.service';
-import { generateMarketContent, getIsoWeekPeriod, markReferralTransactionComplete } from './content.service';
+import {
+  generateMarketContent,
+  getIsoWeekPeriod,
+  markReferralTransactionComplete,
+} from './content.service';
 import * as contentRepo from './content.repository';
 
 export function registerContentJobs() {

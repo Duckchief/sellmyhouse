@@ -194,7 +194,9 @@ complianceRouter.post(
       if (!txDocs) return next(new NotFoundError('Transaction', transactionId));
 
       if (txDocs.status !== 'completed') {
-        return next(new ForbiddenError('Documents can only be downloaded from completed transactions'));
+        return next(
+          new ForbiddenError('Documents can only be downloaded from completed transactions'),
+        );
       }
 
       const agentId = (req.user as { id: string; role: string }).id;
@@ -207,7 +209,8 @@ complianceRouter.post(
       let docRecordId: string | null = null;
 
       if (docType === 'otp') {
-        const otpPath = txDocs.otp?.scannedCopyPathSeller ?? txDocs.otp?.scannedCopyPathReturned ?? null;
+        const otpPath =
+          txDocs.otp?.scannedCopyPathSeller ?? txDocs.otp?.scannedCopyPathReturned ?? null;
         if (otpPath) {
           filePath = otpPath;
           docRecordId = txDocs.otp!.id;
@@ -261,7 +264,10 @@ complianceRouter.post(
             agentId,
           });
         } catch (deleteErr) {
-          logger.error({ deleteErr, filePath, transactionId }, 'Failed to delete file post-download');
+          logger.error(
+            { deleteErr, filePath, transactionId },
+            'Failed to delete file post-download',
+          );
         }
       });
     } catch (err) {
@@ -293,7 +299,9 @@ complianceRouter.post(
       if (!txDocs) return next(new NotFoundError('Transaction', transactionId));
 
       if (txDocs.status !== 'completed') {
-        return next(new ForbiddenError('Documents can only be downloaded from completed transactions'));
+        return next(
+          new ForbiddenError('Documents can only be downloaded from completed transactions'),
+        );
       }
 
       const agentId = (req.user as { id: string; role: string }).id;
@@ -304,7 +312,8 @@ complianceRouter.post(
 
       const filesToProcess: { filePath: string; docType: string; recordId: string }[] = [];
 
-      const otpPath = txDocs.otp?.scannedCopyPathSeller ?? txDocs.otp?.scannedCopyPathReturned ?? null;
+      const otpPath =
+        txDocs.otp?.scannedCopyPathSeller ?? txDocs.otp?.scannedCopyPathReturned ?? null;
       if (otpPath) {
         filesToProcess.push({
           filePath: otpPath,
@@ -331,7 +340,9 @@ complianceRouter.post(
         }
       }
       if (missingFiles.length > 0) {
-        return next(new ValidationError(`Cannot proceed: missing files: ${missingFiles.join(', ')}`));
+        return next(
+          new ValidationError(`Cannot proceed: missing files: ${missingFiles.join(', ')}`),
+        );
       }
 
       if (filesToProcess.length === 0) {
@@ -390,7 +401,10 @@ complianceRouter.post(
               agentId,
             });
           } catch (auditErr) {
-            logger.error({ auditErr, transactionId }, 'Failed to write audit log post-bulk-download');
+            logger.error(
+              { auditErr, transactionId },
+              'Failed to write audit log post-bulk-download',
+            );
           }
         })();
       });

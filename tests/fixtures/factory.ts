@@ -319,6 +319,103 @@ export const factory = {
     });
   },
 
+  async transaction(overrides: {
+    sellerId: string;
+    propertyId: string;
+    agreedPrice?: number;
+    status?: 'option_issued' | 'option_exercised' | 'completing' | 'completed' | 'fallen_through';
+    completionDate?: Date;
+  }) {
+    return testPrisma.transaction.create({
+      data: {
+        id: createId(),
+        sellerId: overrides.sellerId,
+        propertyId: overrides.propertyId,
+        agreedPrice: overrides.agreedPrice ?? 500000,
+        status: overrides.status ?? 'option_issued',
+        completionDate: overrides.completionDate,
+      },
+    });
+  },
+
+  async testimonial(overrides: {
+    sellerId: string;
+    transactionId: string;
+    status?: 'pending_submission' | 'pending_review' | 'approved' | 'rejected';
+    content?: string | null;
+    rating?: number | null;
+    sellerName?: string;
+    sellerTown?: string;
+    submissionToken?: string;
+    tokenExpiresAt?: Date;
+    displayOnWebsite?: boolean;
+    approvedByAgentId?: string;
+  }) {
+    return testPrisma.testimonial.create({
+      data: {
+        id: createId(),
+        sellerId: overrides.sellerId,
+        transactionId: overrides.transactionId,
+        status: overrides.status ?? 'pending_submission',
+        content: overrides.content ?? null,
+        rating: overrides.rating ?? null,
+        sellerName: overrides.sellerName ?? 'John T.',
+        sellerTown: overrides.sellerTown ?? 'Tampines',
+        submissionToken: overrides.submissionToken ?? createId(),
+        tokenExpiresAt: overrides.tokenExpiresAt ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        displayOnWebsite: overrides.displayOnWebsite ?? false,
+        approvedByAgentId: overrides.approvedByAgentId,
+      },
+    });
+  },
+
+  async referral(overrides: {
+    referrerSellerId: string;
+    referralCode?: string;
+    status?: 'link_generated' | 'clicked' | 'lead_created' | 'transaction_completed';
+    clickCount?: number;
+    referredSellerId?: string;
+  }) {
+    return testPrisma.referral.create({
+      data: {
+        id: createId(),
+        referrerSellerId: overrides.referrerSellerId,
+        referralCode: overrides.referralCode ?? `ref-${createId().slice(0, 8)}`,
+        status: overrides.status ?? 'link_generated',
+        clickCount: overrides.clickCount ?? 0,
+        referredSellerId: overrides.referredSellerId,
+      },
+    });
+  },
+
+  async marketContent(overrides?: {
+    town?: string;
+    flatType?: string;
+    period?: string;
+    status?: 'ai_generated' | 'pending_review' | 'approved' | 'rejected' | 'published';
+    aiNarrative?: string;
+    tiktokFormat?: string;
+    instagramFormat?: string;
+    linkedinFormat?: string;
+    approvedByAgentId?: string;
+  }) {
+    return testPrisma.marketContent.create({
+      data: {
+        id: createId(),
+        town: overrides?.town ?? 'ALL',
+        flatType: overrides?.flatType ?? 'ALL',
+        period: overrides?.period ?? `2026-W${Math.floor(Math.random() * 52) + 1}`,
+        rawData: { topTowns: [], millionDollar: { count: 0 }, trends: {} },
+        status: overrides?.status ?? 'ai_generated',
+        aiNarrative: overrides?.aiNarrative,
+        tiktokFormat: overrides?.tiktokFormat,
+        instagramFormat: overrides?.instagramFormat,
+        linkedinFormat: overrides?.linkedinFormat,
+        approvedByAgentId: overrides?.approvedByAgentId,
+      },
+    });
+  },
+
   async estateAgencyAgreement(overrides: {
     sellerId: string;
     agentId: string;

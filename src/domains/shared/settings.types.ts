@@ -31,6 +31,7 @@ export const SETTING_KEYS = {
   POST_COMPLETION_THANKYOU_DELAY_DAYS: 'post_completion_thankyou_delay_days',
   POST_COMPLETION_TESTIMONIAL_DELAY_DAYS: 'post_completion_testimonial_delay_days',
   POST_COMPLETION_BUYER_FOLLOWUP_DELAY_DAYS: 'post_completion_buyer_followup_delay_days',
+  POST_COMPLETION_REFERRAL_DELAY_DAYS: 'post_completion_referral_delay_days',
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

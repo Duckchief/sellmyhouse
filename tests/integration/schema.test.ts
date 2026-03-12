@@ -1,4 +1,5 @@
 // tests/integration/schema.test.ts
+import { createId } from '@paralleldrive/cuid2';
 import { testPrisma, cleanDatabase } from '../helpers/prisma';
 import { factory } from '../fixtures/factory';
 
@@ -52,6 +53,80 @@ describe('Phase 1A Schema', () => {
     expect(txn.id).toBeDefined();
     expect(txn.resalePrice.toString()).toBe('485000.5');
     expect(txn.source).toBe('csv_seed');
+  });
+
+  it('creates a video tutorial', async () => {
+    const tutorial = await factory.videoTutorial({ title: 'How to Photograph Your Flat', category: 'photography' });
+    expect(tutorial.id).toBeDefined();
+    expect(tutorial.title).toBe('How to Photograph Your Flat');
+    expect(tutorial.category).toBe('photography');
+  });
+
+  it('creates a testimonial with pending_submission status and nullable content/rating', async () => {
+    const agent = await factory.agent();
+    const seller = await factory.seller({ agentId: agent.id });
+    const property = await factory.property({ sellerId: seller.id });
+    const transaction = await factory.transaction({ sellerId: seller.id, propertyId: property.id });
+
+    const token = createId();
+    const testimonial = await testPrisma.testimonial.create({
+      data: {
+        id: createId(),
+        sellerId: seller.id,
+        transactionId: transaction.id,
+        sellerName: 'John T.',
+        sellerTown: 'Tampines',
+        status: 'pending_submission',
+        submissionToken: token,
+        tokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        content: null,
+        rating: null,
+      },
+    });
+
+    expect(testimonial.status).toBe('pending_submission');
+    expect(testimonial.submissionToken).toBe(token);
+    expect(testimonial.tokenExpiresAt).toBeDefined();
+    expect(testimonial.content).toBeNull();
+    expect(testimonial.rating).toBeNull();
+  });
+
+  it('creates a referral with link_generated status', async () => {
+    const agent = await factory.agent();
+    const seller = await factory.seller({ agentId: agent.id });
+
+    const referral = await testPrisma.referral.create({
+      data: {
+        id: createId(),
+        referrerSellerId: seller.id,
+        referralCode: `ref-${createId().slice(0, 8)}`,
+        status: 'link_generated',
+        clickCount: 0,
+      },
+    });
+
+    expect(referral.status).toBe('link_generated');
+    expect(referral.clickCount).toBe(0);
+    expect(referral.referredSellerId).toBeNull();
+  });
+
+  it('creates a market content record with ALL sentinel values', async () => {
+    const marketContent = await testPrisma.marketContent.create({
+      data: {
+        id: createId(),
+        town: 'ALL',
+        flatType: 'ALL',
+        period: '2026-W11',
+        rawData: { topTowns: [], millionDollar: { count: 0 }, trends: {} },
+        status: 'ai_generated',
+      },
+    });
+
+    expect(marketContent.town).toBe('ALL');
+    expect(marketContent.flatType).toBe('ALL');
+    expect(marketContent.period).toBe('2026-W11');
+    expect(marketContent.status).toBe('ai_generated');
+    expect(marketContent.aiNarrative).toBeNull();
   });
 
   it('queries HDB transactions by town and flat type', async () => {

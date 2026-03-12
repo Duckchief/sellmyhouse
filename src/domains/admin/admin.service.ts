@@ -290,6 +290,7 @@ export async function getSettingsGrouped(): Promise<SettingGroup[]> {
       'post_completion_thankyou_delay_days',
       'post_completion_testimonial_delay_days',
       'post_completion_buyer_followup_delay_days',
+      'post_completion_referral_delay_days',
     ]),
     group('Data & Sync', [
       'hdb_sync_schedule',

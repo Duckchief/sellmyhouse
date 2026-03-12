@@ -6,6 +6,7 @@ import { logger } from './infra/logger';
 import { registerJob, startJobs } from './infra/jobs/runner';
 import { HdbSyncService } from './domains/hdb/sync.service';
 import { registerViewingJobs } from './domains/viewing/viewing.jobs';
+import { runRetentionScan } from './infra/jobs/retention.job';
 
 const app = createApp();
 const port = parseInt(process.env.PORT || '3000', 10);
@@ -22,6 +23,14 @@ registerJob(
 );
 
 registerViewingJobs();
+
+// Register retention job (Saturday midnight SGT, configurable via SystemSetting 'retention_schedule')
+registerJob(
+  'retention-scan',
+  '0 0 * * 6', // Saturday midnight
+  runRetentionScan,
+  'Asia/Singapore',
+);
 
 // Start cron jobs and server
 startJobs();

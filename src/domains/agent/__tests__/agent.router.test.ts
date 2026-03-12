@@ -2,11 +2,14 @@ import request from 'supertest';
 import express, { NextFunction, Request, Response } from 'express';
 import { agentRouter } from '../agent.router';
 import * as agentService from '../agent.service';
+import * as caseFlagService from '@/domains/seller/case-flag.service';
 import { NotFoundError } from '@/domains/shared/errors';
 
 jest.mock('../agent.service');
+jest.mock('@/domains/seller/case-flag.service');
 
 const mockService = agentService as jest.Mocked<typeof agentService>;
+const mockCaseFlagService = caseFlagService as jest.Mocked<typeof caseFlagService>;
 
 // Minimal test app with mock auth
 function createTestApp(user?: { id: string; role: string }) {
@@ -152,6 +155,69 @@ describe('agent.router', () => {
       const res = await request(app).get('/agent/leads');
       expect(res.status).toBe(200);
       expect(mockService.getLeadQueue).toHaveBeenCalledWith('agent-1');
+    });
+  });
+
+  describe('POST /agent/sellers/:id/case-flags', () => {
+    it('creates a case flag and returns 201', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockCaseFlagService.createCaseFlag.mockResolvedValue({
+        id: 'flag-1',
+        flagType: 'mop_not_met',
+        status: 'identified',
+      } as never);
+
+      const res = await request(app)
+        .post('/agent/sellers/seller-1/case-flags')
+        .send({ flagType: 'mop_not_met', description: 'MOP date is 2027-01' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.flag).toMatchObject({ id: 'flag-1' });
+    });
+
+    it('returns 400 for invalid flagType', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+
+      const res = await request(app)
+        .post('/agent/sellers/seller-1/case-flags')
+        .send({ flagType: 'not_a_valid_type', description: 'test' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 401 for unauthenticated users', async () => {
+      const app = createTestApp();
+      const res = await request(app)
+        .post('/agent/sellers/seller-1/case-flags')
+        .send({ flagType: 'other', description: 'test' });
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe('PUT /agent/sellers/:id/case-flags/:flagId', () => {
+    it('updates a case flag and returns 200', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockCaseFlagService.updateCaseFlag.mockResolvedValue({
+        id: 'flag-1',
+        status: 'in_progress',
+      } as never);
+
+      const res = await request(app)
+        .put('/agent/sellers/seller-1/case-flags/flag-1')
+        .send({ status: 'in_progress', guidanceProvided: 'Waiting for probate' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.flag).toMatchObject({ status: 'in_progress' });
+    });
+
+    it('returns 400 for invalid status', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+
+      const res = await request(app)
+        .put('/agent/sellers/seller-1/case-flags/flag-1')
+        .send({ status: 'not_valid' });
+
+      expect(res.status).toBe(400);
     });
   });
 });

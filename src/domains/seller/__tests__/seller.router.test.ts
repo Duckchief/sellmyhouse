@@ -9,6 +9,10 @@ jest.mock('../../notification/notification.repository', () => ({
   countUnreadForRecipient: jest.fn().mockResolvedValue(0),
   findUnreadForRecipient: jest.fn().mockResolvedValue([]),
 }));
+jest.mock('../case-flag.service', () => ({
+  getCaseFlagsForSeller: jest.fn().mockResolvedValue([]),
+  getChecklistForType: jest.fn().mockReturnValue([]),
+}));
 
 const mockedService = jest.mocked(sellerService);
 const mockedPropertyService = jest.mocked(propertyService);
@@ -228,6 +232,67 @@ describe('seller.router', () => {
 
       const res = await request(app).get('/seller/tutorials');
 
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe('GET /seller/settings', () => {
+    it('renders settings page for authenticated seller', async () => {
+      mockedService.getSellerSettings = jest
+        .fn()
+        .mockResolvedValue({ notificationPreference: 'whatsapp_and_email' });
+
+      const res = await request(app).get('/seller/settings');
+
+      expect(res.status).toBe(200);
+      expect(mockedService.getSellerSettings).toHaveBeenCalledWith('seller-1');
+    });
+
+    it('returns HTMX partial when HX-Request header is set', async () => {
+      mockedService.getSellerSettings = jest
+        .fn()
+        .mockResolvedValue({ notificationPreference: 'whatsapp_and_email' });
+
+      const res = await request(app).get('/seller/settings').set('HX-Request', 'true');
+
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe('PUT /seller/settings/notifications', () => {
+    it('updates preference and returns 200', async () => {
+      mockedService.updateNotificationPreference = jest
+        .fn()
+        .mockResolvedValue({ notificationPreference: 'email_only' });
+
+      const res = await request(app)
+        .put('/seller/settings/notifications')
+        .set('HX-Request', 'true')
+        .send({ preference: 'email_only' });
+
+      expect(res.status).toBe(200);
+      expect(mockedService.updateNotificationPreference).toHaveBeenCalledWith(
+        expect.objectContaining({ preference: 'email_only', sellerId: 'seller-1' }),
+      );
+    });
+
+    it('returns 400 for invalid preference value', async () => {
+      const res = await request(app)
+        .put('/seller/settings/notifications')
+        .send({ preference: 'invalid_value' });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('GET /seller/case-flags', () => {
+    it('renders case flags page for authenticated seller', async () => {
+      const res = await request(app).get('/seller/case-flags');
+      expect(res.status).toBe(200);
+    });
+
+    it('returns HTMX partial when HX-Request header is set', async () => {
+      const res = await request(app).get('/seller/case-flags').set('HX-Request', 'true');
       expect(res.status).toBe(200);
     });
   });

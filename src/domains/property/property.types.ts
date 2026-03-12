@@ -56,6 +56,7 @@ export interface CreatePropertyInput {
   remainingLease?: string;
   askingPrice?: number;
   slug?: string;
+  mopOverrideReason?: string;
 }
 
 export interface UpdatePropertyInput {

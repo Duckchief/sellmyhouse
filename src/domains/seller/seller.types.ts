@@ -80,3 +80,13 @@ export interface CompleteOnboardingStepInput {
   step: number;
   data?: Record<string, unknown>;
 }
+
+export interface SellerSettings {
+  notificationPreference: 'whatsapp_and_email' | 'email_only';
+}
+
+export interface UpdateNotificationPreferenceInput {
+  sellerId: string;
+  preference: 'whatsapp_and_email' | 'email_only';
+  agentId: string;
+}

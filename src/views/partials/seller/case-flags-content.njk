@@ -1,0 +1,48 @@
+{% if flags.length == 0 %}
+  <p class="text-gray-500 text-sm">{{ "No special circumstances have been noted for your case." | t }}</p>
+{% else %}
+  <div class="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
+    <p class="text-amber-800 text-sm font-medium">
+      {{ "Your agent has noted one or more special circumstances. Please review the guidance below." | t }}
+    </p>
+  </div>
+
+  <div class="space-y-6">
+    {% for flag in flags %}
+      <div class="border border-gray-200 rounded-lg p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-semibold text-gray-900">
+            {{ flag.flagType | replace("_", " ") | title }}
+          </h2>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+            {% if flag.status == 'resolved' %}bg-green-100 text-green-800
+            {% elif flag.status == 'out_of_scope' %}bg-gray-100 text-gray-600
+            {% elif flag.status == 'in_progress' %}bg-blue-100 text-blue-800
+            {% else %}bg-amber-100 text-amber-800{% endif %}">
+            {{ flag.status | replace("_", " ") | title }}
+          </span>
+        </div>
+
+        {% if flag.description %}
+          <p class="text-sm text-gray-700 mb-4">{{ flag.description }}</p>
+        {% endif %}
+
+        {% if flag.checklist.length > 0 %}
+          <h3 class="text-sm font-medium text-gray-700 mb-2">{{ "Guidance checklist:" | t }}</h3>
+          <ul class="list-disc list-inside space-y-1">
+            {% for item in flag.checklist %}
+              <li class="text-sm text-gray-600">{{ item }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if flag.guidanceProvided %}
+          <div class="mt-4 p-3 bg-blue-50 rounded-md">
+            <p class="text-xs font-medium text-blue-700 mb-1">{{ "Agent guidance:" | t }}</p>
+            <p class="text-sm text-blue-800">{{ flag.guidanceProvided }}</p>
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}

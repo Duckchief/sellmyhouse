@@ -1,0 +1,50 @@
+<div class="bg-white border border-gray-200 rounded-lg p-6">
+  <h2 class="text-base font-semibold text-gray-900 mb-1">{{ "Notification preferences" | t }}</h2>
+  <p class="text-sm text-gray-500 mb-4">
+    {{ "Choose how you receive updates. In-app notifications are always sent." | t }}
+  </p>
+
+  {% if successMessage %}
+    <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+      <p class="text-sm text-green-700">{{ "Notification preference updated." | t }}</p>
+    </div>
+  {% endif %}
+
+  <form hx-put="/seller/settings/notifications"
+        hx-target="#settings-notifications"
+        hx-swap="outerHTML">
+
+    <fieldset class="space-y-3">
+      <div class="flex items-start gap-3">
+        <input type="radio"
+               id="pref-whatsapp"
+               name="preference"
+               value="whatsapp_and_email"
+               class="mt-0.5"
+               {% if settings.notificationPreference == 'whatsapp_and_email' %}checked{% endif %}>
+        <label for="pref-whatsapp" class="text-sm">
+          <span class="font-medium text-gray-900">{{ "WhatsApp & Email" | t }}</span>
+          <span class="block text-gray-500">{{ "Receive updates via WhatsApp first, with email as fallback." | t }}</span>
+        </label>
+      </div>
+
+      <div class="flex items-start gap-3">
+        <input type="radio"
+               id="pref-email"
+               name="preference"
+               value="email_only"
+               class="mt-0.5"
+               {% if settings.notificationPreference == 'email_only' %}checked{% endif %}>
+        <label for="pref-email" class="text-sm">
+          <span class="font-medium text-gray-900">{{ "Email only" | t }}</span>
+          <span class="block text-gray-500">{{ "Receive all notifications by email only." | t }}</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <button type="submit"
+            class="mt-4 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
+      {{ "Save preference" | t }}
+    </button>
+  </form>
+</div>

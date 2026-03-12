@@ -1,10 +1,11 @@
 import { createId } from '@paralleldrive/cuid2';
 import * as propertyRepo from './property.repository';
 import * as auditService from '../shared/audit.service';
-import { NotFoundError, ForbiddenError, ValidationError } from '../shared/errors';
+import { NotFoundError, ForbiddenError, ValidationError, ComplianceError } from '../shared/errors';
 import { canTransitionListing } from './property.types';
 import type { CreatePropertyInput, UpdatePropertyInput } from './property.types';
 import { checkComplianceGate } from '@/domains/review/review.service';
+import * as caseFlagService from '@/domains/seller/case-flag.service';
 
 export function generatePropertySlug(block: string, street: string, town: string): string {
   return `${block}-${street}-${town}`
@@ -21,6 +22,14 @@ async function buildUniqueSlug(baseSlug: string): Promise<string> {
 }
 
 export async function createProperty(input: CreatePropertyInput) {
+  // MOP enforcement: block listing if mop_not_met flag is active unless agent provides override reason
+  const hasMopBlock = await caseFlagService.hasActiveMopFlag(input.sellerId);
+  if (hasMopBlock && !input.mopOverrideReason) {
+    throw new ComplianceError(
+      'MOP not yet met: listing creation is blocked. Provide mopOverrideReason to override.',
+    );
+  }
+
   const baseSlug = generatePropertySlug(input.block, input.street, input.town);
   const slug = await buildUniqueSlug(baseSlug);
 
@@ -33,6 +42,16 @@ export async function createProperty(input: CreatePropertyInput) {
     entityId: property.id,
     details: { sellerId: input.sellerId },
   });
+
+  // Audit the MOP override when an override reason was provided
+  if (hasMopBlock && input.mopOverrideReason) {
+    auditService.log({
+      action: 'case_flag.mop_override',
+      entityType: 'property',
+      entityId: property.id,
+      details: { sellerId: input.sellerId, mopOverrideReason: input.mopOverrideReason },
+    });
+  }
 
   return property;
 }

@@ -26,6 +26,16 @@ export async function getSellerWithRelations(id: string) {
   });
 }
 
+export async function updateNotificationPreference(
+  id: string,
+  preference: 'whatsapp_and_email' | 'email_only',
+) {
+  return prisma.seller.update({
+    where: { id },
+    data: { notificationPreference: preference },
+  });
+}
+
 export async function getConsentHistory(sellerId: string) {
   return prisma.consentRecord.findMany({
     where: {

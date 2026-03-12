@@ -1,0 +1,11 @@
+{% extends "layouts/seller.njk" %}
+
+{% block title %}{{ "Special Circumstances" | t }}{% endblock %}
+
+{% block content %}
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-semibold text-gray-900 mb-6">{{ "Special Circumstances" | t }}</h1>
+
+    {% include "partials/seller/case-flags-content.njk" %}
+  </div>
+{% endblock %}

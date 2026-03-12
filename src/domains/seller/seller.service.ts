@@ -7,6 +7,8 @@ import {
   type OnboardingStatus,
   type DashboardOverview,
   type SellerMyData,
+  type SellerSettings,
+  type UpdateNotificationPreferenceInput,
   type NextStep,
   type CompleteOnboardingStepInput,
   type TimelineMilestone,
@@ -216,6 +218,31 @@ export function getDocumentChecklist(propertyStatus: string | null): DocumentChe
 
   if (!propertyStatus) return items;
   return items.filter((item) => item.applicableStages.includes(propertyStatus));
+}
+
+export async function getSellerSettings(sellerId: string): Promise<SellerSettings> {
+  const seller = await sellerRepo.findById(sellerId);
+  if (!seller) throw new NotFoundError('Seller', sellerId);
+  return { notificationPreference: seller.notificationPreference };
+}
+
+export async function updateNotificationPreference(
+  input: UpdateNotificationPreferenceInput,
+): Promise<SellerSettings> {
+  const seller = await sellerRepo.findById(input.sellerId);
+  if (!seller) throw new NotFoundError('Seller', input.sellerId);
+
+  const updated = await sellerRepo.updateNotificationPreference(input.sellerId, input.preference);
+
+  await auditService.log({
+    agentId: input.agentId,
+    action: 'seller.notification_preference_changed',
+    entityType: 'seller',
+    entityId: input.sellerId,
+    details: { newPreference: input.preference },
+  });
+
+  return { notificationPreference: updated.notificationPreference };
 }
 
 // --- Private helpers ---

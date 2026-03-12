@@ -198,7 +198,11 @@ export async function processCorrectionRequest(input: {
   if (input.decision === 'approve') {
     const isAutoApply = (AUTO_APPLY_FIELDS as readonly string[]).includes(request.fieldName);
     if (isAutoApply) {
-      await complianceRepo.updateSellerField(request.sellerId, request.fieldName, request.requestedValue);
+      await complianceRepo.updateSellerField(
+        request.sellerId,
+        request.fieldName,
+        request.requestedValue,
+      );
     }
 
     await auditService.log({
@@ -235,9 +239,7 @@ export async function getMyData(sellerId: string) {
   if (!data) throw new NotFoundError('Seller', sellerId);
 
   const { maskNric } = await import('../shared/nric');
-  const nricDisplay = data.cddRecords[0]?.nricLast4
-    ? maskNric(data.cddRecords[0].nricLast4)
-    : null;
+  const nricDisplay = data.cddRecords[0]?.nricLast4 ? maskNric(data.cddRecords[0].nricLast4) : null;
 
   const correctionRequests = await complianceRepo.findCorrectionRequestsBySeller(sellerId);
   const consentHistory = await complianceRepo.findAllConsentRecords(sellerId);

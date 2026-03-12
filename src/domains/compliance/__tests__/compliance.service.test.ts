@@ -186,7 +186,10 @@ describe('processCorrectionRequest — approve', () => {
       requestedValue: 'New Name',
       status: 'pending',
     } as never);
-    mockRepo.updateCorrectionRequest.mockResolvedValue({ id: 'corr1', status: 'completed' } as never);
+    mockRepo.updateCorrectionRequest.mockResolvedValue({
+      id: 'corr1',
+      status: 'completed',
+    } as never);
     mockRepo.updateSellerField.mockResolvedValue(undefined);
     mockAudit.log.mockResolvedValue(undefined);
 
@@ -214,7 +217,10 @@ describe('processCorrectionRequest — approve', () => {
       requestedValue: '123A',
       status: 'pending',
     } as never);
-    mockRepo.updateCorrectionRequest.mockResolvedValue({ id: 'corr1', status: 'completed' } as never);
+    mockRepo.updateCorrectionRequest.mockResolvedValue({
+      id: 'corr1',
+      status: 'completed',
+    } as never);
     mockAudit.log.mockResolvedValue(undefined);
 
     await complianceService.processCorrectionRequest({
@@ -240,7 +246,10 @@ describe('processCorrectionRequest — reject', () => {
       requestedValue: 'New Name',
       status: 'pending',
     } as never);
-    mockRepo.updateCorrectionRequest.mockResolvedValue({ id: 'corr1', status: 'rejected' } as never);
+    mockRepo.updateCorrectionRequest.mockResolvedValue({
+      id: 'corr1',
+      status: 'rejected',
+    } as never);
     mockAudit.log.mockResolvedValue(undefined);
 
     await complianceService.processCorrectionRequest({

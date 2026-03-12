@@ -17,20 +17,10 @@ export const createCorrectionValidator = [
     .trim()
     .notEmpty()
     .withMessage('Field name is required')
-    .isIn([
-      'name',
-      'email',
-      'phone',
-      'notificationPreference',
-      'nricLast4',
-    ])
+    .isIn(['name', 'email', 'phone', 'notificationPreference', 'nricLast4'])
     .withMessage('Invalid field name for correction'),
   body('currentValue').optional().isString().trim(),
-  body('requestedValue')
-    .isString()
-    .trim()
-    .notEmpty()
-    .withMessage('Requested value is required'),
+  body('requestedValue').isString().trim().notEmpty().withMessage('Requested value is required'),
   body('reason').optional().isString().trim().isLength({ max: 500 }),
 ];
 

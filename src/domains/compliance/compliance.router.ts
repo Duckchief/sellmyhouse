@@ -3,10 +3,7 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import { validationResult } from 'express-validator';
 import { requireAuth, requireRole } from '@/infra/http/middleware/require-auth';
 import * as complianceService from './compliance.service';
-import {
-  withdrawConsentValidator,
-  createCorrectionValidator,
-} from './compliance.validator';
+import { withdrawConsentValidator, createCorrectionValidator } from './compliance.validator';
 import { ValidationError } from '../shared/errors';
 
 export const complianceRouter = Router();

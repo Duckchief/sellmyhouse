@@ -11,6 +11,7 @@ import type {
 } from './notification.types';
 import { NOTIFICATION_TEMPLATES, WHATSAPP_TEMPLATE_STATUS } from './notification.templates';
 import * as auditService from '../shared/audit.service';
+import * as complianceService from '../compliance/compliance.service';
 
 async function resolveChannel(
   recipientId: string,
@@ -96,14 +97,18 @@ async function sendExternal(
     }
   }
 
-  // Task 19: DNC registry check — before sending via WhatsApp
-  // Call via `exports` so jest.spyOn works in tests (CJS module interop)
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const selfModule = require('./notification.service') as typeof import('./notification.service');
-  if (resolvedChannel === 'whatsapp' && input.recipientPhone) {
-    const dncResult = await selfModule.checkDnc(input.recipientPhone);
-    if (dncResult.blocked) {
-      // Create a temporary record to log against before we have a real one
+  // DNC compliance gate — calls compliance service with sellerId + messageType
+  if (
+    (resolvedChannel === 'whatsapp' || resolvedChannel === 'email') &&
+    input.recipientType === 'seller'
+  ) {
+    const messageType = input.notificationType === 'marketing' ? 'marketing' : 'service';
+    const dncResult = await complianceService.checkDncAllowed(
+      input.recipientId,
+      resolvedChannel,
+      messageType,
+    );
+    if (!dncResult.allowed) {
       const dncRecord = await notificationRepo.create({
         recipientType: input.recipientType,
         recipientId: input.recipientId,
@@ -116,12 +121,13 @@ async function sendExternal(
         entityType: 'notification',
         entityId: dncRecord.id,
         details: {
-          phone: input.recipientPhone.slice(-4),
+          recipientId: input.recipientId,
           templateName: input.templateName,
           reason: dncResult.reason,
+          messageType,
         },
       });
-      resolvedChannel = 'email';
+      return; // Do not send — in-app notification was already created
     }
   }
 

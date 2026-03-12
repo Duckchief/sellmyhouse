@@ -22,6 +22,7 @@ import { offerRouter } from '../../domains/offer/offer.router';
 import { agentRouter } from '../../domains/agent/agent.router';
 import { reviewRouter } from '../../domains/review/review.router';
 import { adminRouter } from '../../domains/admin/admin.router';
+import { complianceRouter } from '../../domains/compliance/compliance.router';
 import { portalRouter } from '../../domains/property/portal.router';
 import { transactionRouter } from '../../domains/transaction/transaction.router';
 
@@ -125,6 +126,7 @@ export function createApp() {
   app.use(agentRouter);
   app.use(reviewRouter);
   app.use(adminRouter);
+  app.use('/', complianceRouter);
   app.use(portalRouter);
   app.use(transactionRouter);
 

@@ -8,7 +8,6 @@ export const validateCreateOffer = [
   body('flatType').notEmpty().withMessage('flatType is required'),
   body('buyerName').notEmpty().trim().withMessage('buyerName is required'),
   body('buyerPhone').notEmpty().trim().withMessage('buyerPhone is required'),
-  body('isCoBroke').isBoolean().withMessage('isCoBroke must be a boolean'),
   body('offerAmount').notEmpty().isNumeric().withMessage('offerAmount must be a number'),
 ];
 

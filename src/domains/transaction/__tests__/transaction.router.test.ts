@@ -139,6 +139,47 @@ describe('transaction.router', () => {
 
       expect(res.status).toBe(200);
     });
+
+    it('returns 400 with informative message when status is fallen_through', async () => {
+      const res = await request(app)
+        .patch('/agent/transactions/tx-1/status')
+        .send({ status: 'fallen_through' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/fallen-through/);
+    });
+  });
+
+  describe('POST /agent/transactions/:transactionId/fallen-through', () => {
+    it('marks transaction as fallen through and returns 200', async () => {
+      mockTxService.markFallenThrough.mockResolvedValue(
+        makeTx({ status: 'fallen_through' }) as never,
+      );
+
+      const res = await request(app)
+        .post('/agent/transactions/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11/fallen-through')
+        .send({
+          sellerId: 'seller-1',
+          reason: 'Buyer financing fell through at the last minute.',
+        });
+
+      expect(res.status).toBe(200);
+      expect(mockTxService.markFallenThrough).toHaveBeenCalledWith(
+        expect.objectContaining({
+          transactionId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          sellerId: 'seller-1',
+          reason: 'Buyer financing fell through at the last minute.',
+        }),
+      );
+    });
+
+    it('returns 400 when reason is too short', async () => {
+      const res = await request(app)
+        .post('/agent/transactions/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11/fallen-through')
+        .send({ sellerId: 'seller-1', reason: 'short' });
+
+      expect(res.status).toBe(400);
+    });
   });
 
   describe('POST /agent/transactions/:id/otp', () => {

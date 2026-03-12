@@ -6,6 +6,7 @@ import * as txService from './transaction.service';
 import {
   validateCreateTransaction,
   validateAdvanceStatus,
+  validateMarkFallenThrough,
   validateCreateOtp,
   validateUploadInvoice,
   validateUpdateHdb,
@@ -75,17 +76,48 @@ transactionRouter.patch(
   ...validateAdvanceStatus,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (req.body.status === 'fallen_through') {
+        return res.status(400).json({
+          error:
+            'Use POST /agent/transactions/:id/fallen-through to mark a transaction as fallen through',
+        });
+      }
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
       const user = req.user as AuthenticatedUser;
       const tx = await txService.advanceTransactionStatus({
         transactionId: req.params['id'] as string,
-        status: req.body.status as
-          | 'option_exercised'
-          | 'completing'
-          | 'completed'
-          | 'fallen_through',
+        status: req.body.status as 'option_exercised' | 'completing' | 'completed',
+        agentId: user.id,
+      });
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/agent/transaction-detail', { tx });
+      }
+      res.json({ tx });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /agent/transactions/:transactionId/fallen-through — mark transaction as fallen through with reason
+transactionRouter.post(
+  '/agent/transactions/:transactionId/fallen-through',
+  ...agentAuth,
+  ...validateMarkFallenThrough,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+      const user = req.user as AuthenticatedUser;
+      const tx = await txService.markFallenThrough({
+        transactionId: req.params['transactionId'] as string,
+        sellerId: req.body.sellerId as string,
+        reason: req.body.reason as string,
         agentId: user.id,
       });
 

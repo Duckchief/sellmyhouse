@@ -141,9 +141,10 @@ describe('transaction integration', () => {
     const tx = await factory.transaction({ propertyId, sellerId });
     await factory.otp({ transactionId: tx.id, status: 'issued_to_buyer' });
 
-    await txService.advanceTransactionStatus({
+    await txService.markFallenThrough({
       transactionId: tx.id,
-      status: 'fallen_through',
+      sellerId,
+      reason: 'Buyer financing fell through at the last minute.',
       agentId,
     });
 

@@ -60,6 +60,13 @@ export async function updateTransactionStatus(
   });
 }
 
+export async function updateFallenThrough(id: string, reason: string) {
+  return prisma.transaction.update({
+    where: { id },
+    data: { status: 'fallen_through', fallenThroughReason: reason },
+  });
+}
+
 export async function updateHdbTracking(
   id: string,
   data: { hdbApplicationStatus?: string; hdbAppointmentDate?: Date | null },

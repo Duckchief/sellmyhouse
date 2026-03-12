@@ -50,7 +50,7 @@ export async function getTransaction(transactionId: string) {
 
 export async function advanceTransactionStatus(input: {
   transactionId: string;
-  status: 'option_exercised' | 'completing' | 'completed' | 'fallen_through';
+  status: 'option_exercised' | 'completing' | 'completed';
   agentId: string;
 }) {
   const tx = await txRepo.findById(input.transactionId);
@@ -63,19 +63,17 @@ export async function advanceTransactionStatus(input: {
     );
   }
 
-  // Guard: forward-only transitions (fallen_through is always allowed)
-  if (input.status !== 'fallen_through') {
-    const currentIdx = TRANSACTION_STATUS_ORDER.indexOf(
-      tx.status as (typeof TRANSACTION_STATUS_ORDER)[number],
+  // Guard: forward-only transitions
+  const currentIdx = TRANSACTION_STATUS_ORDER.indexOf(
+    tx.status as (typeof TRANSACTION_STATUS_ORDER)[number],
+  );
+  const requestedIdx = TRANSACTION_STATUS_ORDER.indexOf(
+    input.status as (typeof TRANSACTION_STATUS_ORDER)[number],
+  );
+  if (currentIdx >= 0 && requestedIdx >= 0 && requestedIdx <= currentIdx) {
+    throw new ValidationError(
+      `Cannot transition from '${tx.status}' to '${input.status}' — must advance forward`,
     );
-    const requestedIdx = TRANSACTION_STATUS_ORDER.indexOf(
-      input.status as (typeof TRANSACTION_STATUS_ORDER)[number],
-    );
-    if (currentIdx >= 0 && requestedIdx >= 0 && requestedIdx <= currentIdx) {
-      throw new ValidationError(
-        `Cannot transition from '${tx.status}' to '${input.status}' — must advance forward`,
-      );
-    }
   }
 
   const completionDate = input.status === 'completed' ? new Date() : null;
@@ -85,10 +83,6 @@ export async function advanceTransactionStatus(input: {
     input.status,
     completionDate !== null ? completionDate : undefined,
   );
-
-  if (input.status === 'fallen_through') {
-    await handleFallenThrough(tx.propertyId, input.transactionId, input.agentId);
-  }
 
   await auditService.log({
     agentId: input.agentId,
@@ -130,6 +124,49 @@ async function handleFallenThrough(propertyId: string, transactionId: string, ag
     },
     agentId,
   );
+}
+
+export async function markFallenThrough(input: {
+  transactionId: string;
+  sellerId: string;
+  reason: string;
+  agentId: string;
+}) {
+  const tx = await txRepo.findById(input.transactionId);
+  if (!tx) throw new NotFoundError('Transaction', input.transactionId);
+
+  if (tx.status === 'completed' || tx.status === 'fallen_through') {
+    throw new ValidationError(
+      `Transaction status '${tx.status}' is terminal — cannot mark as fallen through`,
+    );
+  }
+
+  const updated = await txRepo.updateFallenThrough(input.transactionId, input.reason);
+
+  await handleFallenThrough(tx.propertyId, input.transactionId, input.agentId);
+
+  await notificationService.send(
+    {
+      recipientType: 'seller',
+      recipientId: input.sellerId,
+      templateName: 'transaction_update',
+      templateData: {
+        address: tx.propertyId,
+        status: `fallen through: ${input.reason}`,
+      },
+    },
+    input.agentId,
+  );
+
+  await auditService.log({
+    agentId: input.agentId,
+    action: 'transaction.fallen_through',
+    entityType: 'transaction',
+    entityId: input.transactionId,
+    details: { reason: input.reason, sellerId: input.sellerId },
+  });
+
+  return updated;
 }
 
 export async function updateHdbTracking(input: {

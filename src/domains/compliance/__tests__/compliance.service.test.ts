@@ -6,7 +6,21 @@ import * as complianceService from '../compliance.service';
 jest.mock('../compliance.repository');
 jest.mock('../../shared/audit.service');
 
-const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo>;
+const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
+  findLeadsForRetention: jest.Mock;
+  findServiceWithdrawnForDeletion: jest.Mock;
+  findTransactionsForRetention: jest.Mock;
+  findCddRecordsForRetention: jest.Mock;
+  findConsentRecordsForDeletion: jest.Mock;
+  findStaleCorrectionRequests: jest.Mock;
+  findExistingDeletionRequest: jest.Mock;
+  hardDeleteSeller: jest.Mock;
+  hardDeleteCddDocuments: jest.Mock;
+  hardDeleteConsentRecord: jest.Mock;
+  hardDeleteTransaction: jest.Mock;
+  anonymiseAgentRecord: jest.Mock;
+  findAgentById: jest.Mock;
+};
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 
 beforeEach(() => jest.clearAllMocks());
@@ -265,6 +279,115 @@ describe('processCorrectionRequest — reject', () => {
     );
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'data_correction.rejected' }),
+    );
+  });
+});
+
+describe('scanRetention', () => {
+  beforeEach(() => {
+    mockRepo.findLeadsForRetention.mockResolvedValue([]);
+    mockRepo.findServiceWithdrawnForDeletion.mockResolvedValue([]);
+    mockRepo.findTransactionsForRetention.mockResolvedValue([]);
+    mockRepo.findCddRecordsForRetention.mockResolvedValue([]);
+    mockRepo.findConsentRecordsForDeletion.mockResolvedValue([]);
+    mockRepo.findStaleCorrectionRequests.mockResolvedValue([]);
+    mockRepo.findExistingDeletionRequest.mockResolvedValue(null);
+    mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
+    mockAudit.log.mockResolvedValue(undefined);
+  });
+
+  it('flags leads inactive for 12+ months', async () => {
+    const oldDate = new Date();
+    oldDate.setFullYear(oldDate.getFullYear() - 2);
+    mockRepo.findLeadsForRetention.mockResolvedValue([
+      { id: 'seller1', name: 'Old Lead', updatedAt: oldDate },
+    ]);
+
+    const result = await complianceService.scanRetention();
+    expect(mockRepo.createDeletionRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetType: 'lead',
+        targetId: 'seller1',
+        retentionRule: 'lead_12_month',
+        status: 'flagged',
+      }),
+    );
+    expect(result.flaggedCount).toBeGreaterThan(0);
+  });
+
+  it('does NOT flag leads that already have a deletion request', async () => {
+    const oldDate = new Date();
+    oldDate.setFullYear(oldDate.getFullYear() - 2);
+    mockRepo.findLeadsForRetention.mockResolvedValue([
+      { id: 'seller1', name: 'Old Lead', updatedAt: oldDate },
+    ]);
+    mockRepo.findExistingDeletionRequest.mockResolvedValue({ id: 'existing', status: 'flagged' });
+
+    const result = await complianceService.scanRetention();
+    expect(mockRepo.createDeletionRequest).not.toHaveBeenCalled();
+    expect(result.flaggedCount).toBe(0);
+  });
+
+  it('flags transaction records older than 5 years', async () => {
+    const oldDate = new Date();
+    oldDate.setFullYear(oldDate.getFullYear() - 6);
+    mockRepo.findTransactionsForRetention.mockResolvedValue([
+      { id: 'tx1', sellerId: 'seller1', completionDate: oldDate },
+    ]);
+
+    const result = await complianceService.scanRetention();
+    expect(mockRepo.createDeletionRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetType: 'transaction',
+        targetId: 'tx1',
+        retentionRule: 'transaction_5_year',
+      }),
+    );
+    expect(result.flaggedCount).toBeGreaterThan(0);
+  });
+});
+
+describe('executeHardDelete', () => {
+  it('throws if deletion request is not found', async () => {
+    mockRepo.findDeletionRequest.mockResolvedValue(null);
+    await expect(
+      complianceService.executeHardDelete({ requestId: 'dr1', agentId: 'agent1' }),
+    ).rejects.toThrow();
+  });
+
+  it('throws ComplianceError if deletion request is blocked', async () => {
+    mockRepo.findDeletionRequest.mockResolvedValue({
+      id: 'dr1',
+      status: 'blocked',
+      targetType: 'lead',
+      targetId: 'seller1',
+      retentionRule: 'aml_cft_5_year',
+      details: {},
+    } as never);
+
+    await expect(
+      complianceService.executeHardDelete({ requestId: 'dr1', agentId: 'agent1' }),
+    ).rejects.toThrow();
+  });
+});
+
+describe('anonymiseAgent', () => {
+  it('calls repository anonymiseAgentRecord and logs audit event', async () => {
+    mockRepo.findAgentById.mockResolvedValue({
+      id: 'agent1',
+      name: 'John Tan',
+      email: 'john@test.com',
+      phone: '+65912345678',
+      isActive: false,
+    });
+    mockRepo.anonymiseAgentRecord.mockResolvedValue(undefined);
+    mockAudit.log.mockResolvedValue(undefined);
+
+    await complianceService.anonymiseAgent({ agentId: 'agent1', requestedByAgentId: 'admin1' });
+
+    expect(mockRepo.anonymiseAgentRecord).toHaveBeenCalledWith('agent1');
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'agent.anonymised', entityId: 'agent1' }),
     );
   });
 });

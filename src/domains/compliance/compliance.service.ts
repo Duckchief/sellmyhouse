@@ -66,25 +66,27 @@ export async function withdrawConsent(
     await complianceRepo.updateSellerConsent(input.sellerId, { consentMarketing: false });
   }
 
-  await auditService.log({
-    action: 'consent.withdrawn',
-    entityType: 'seller',
-    entityId: input.sellerId,
-    details: { type: input.type, channel: input.channel, consentRecordId: newRecord.id },
-  });
-
   // For marketing withdrawal: no deletion request needed
   if (input.type === 'marketing') {
+    await auditService.log({
+      action: 'consent.withdrawn',
+      entityType: 'seller',
+      entityId: input.sellerId,
+      details: { type: input.type, channel: input.channel, consentRecordId: newRecord.id },
+    });
     return { consentRecordId: newRecord.id, deletionBlocked: false };
   }
 
   // For service withdrawal: check if any transactions exist (AML/CFT override)
   const sellerWithTx = await complianceRepo.findSellerWithTransactions(input.sellerId);
-  const hasAnyTransaction = (sellerWithTx?.transactions?.length ?? 0) > 0;
+  if (!sellerWithTx) {
+    throw new NotFoundError('Seller', input.sellerId);
+  }
+  const hasAnyTransaction = sellerWithTx.transactions.length > 0;
 
   if (hasAnyTransaction) {
     // Find the most recent completion date for retention end calculation
-    const completedTxDates = (sellerWithTx?.transactions ?? [])
+    const completedTxDates = sellerWithTx.transactions
       .filter((tx) => tx.completionDate)
       .map((tx) => tx.completionDate as Date)
       .sort((a, b) => b.getTime() - a.getTime());
@@ -93,6 +95,7 @@ export async function withdrawConsent(
     const retentionEndDate = new Date(latestCompletion);
     retentionEndDate.setFullYear(retentionEndDate.getFullYear() + 5);
 
+    // DeletionTargetType enum has no 'seller' value; 'lead' is the closest valid type
     const deletionRequest = await complianceRepo.createDeletionRequest({
       targetType: 'lead',
       targetId: input.sellerId,
@@ -103,8 +106,15 @@ export async function withdrawConsent(
         sellerId: input.sellerId,
         withdrawalDate: now.toISOString(),
         retentionEndDate: retentionEndDate.toISOString(),
-        transactionCount: sellerWithTx?.transactions.length ?? 0,
+        transactionCount: sellerWithTx.transactions.length,
       },
+    });
+
+    await auditService.log({
+      action: 'consent.withdrawn',
+      entityType: 'seller',
+      entityId: input.sellerId,
+      details: { type: input.type, channel: input.channel, consentRecordId: newRecord.id },
     });
 
     return {
@@ -116,6 +126,7 @@ export async function withdrawConsent(
   }
 
   // No transactions: flag for 30-day grace deletion
+  // DeletionTargetType enum has no 'seller' value; 'lead' is the closest valid type
   const deletionRequest = await complianceRepo.createDeletionRequest({
     targetType: 'lead',
     targetId: input.sellerId,
@@ -126,6 +137,13 @@ export async function withdrawConsent(
       sellerId: input.sellerId,
       withdrawalDate: now.toISOString(),
     },
+  });
+
+  await auditService.log({
+    action: 'consent.withdrawn',
+    entityType: 'seller',
+    entityId: input.sellerId,
+    details: { type: input.type, channel: input.channel, consentRecordId: newRecord.id },
   });
 
   return {

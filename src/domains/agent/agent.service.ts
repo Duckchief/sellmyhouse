@@ -1,4 +1,5 @@
 import * as agentRepo from './agent.repository';
+import * as complianceService from '../compliance/compliance.service';
 import { NotFoundError } from '@/domains/shared/errors';
 import type {
   PipelineOverview,
@@ -138,4 +139,13 @@ export function getTimeline(
   transactionStatus: string | null,
 ): TimelineMilestone[] {
   return getTimelineMilestones(propertyStatus, transactionStatus);
+}
+
+export async function processCorrectionRequest(input: {
+  requestId: string;
+  agentId: string;
+  decision: 'approve' | 'reject';
+  processNotes?: string;
+}): Promise<void> {
+  await complianceService.processCorrectionRequest(input);
 }

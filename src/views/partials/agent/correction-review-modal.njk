@@ -1,0 +1,11 @@
+{# src/views/partials/agent/correction-review-modal.njk #}
+<tr id="correction-row-{{ requestId }}" class="{% if success %}bg-green-50{% else %}bg-red-50{% endif %}">
+  <td colspan="5" class="px-6 py-4 text-sm text-center
+    {% if success %}text-green-700{% else %}text-red-700{% endif %}">
+    {% if success %}
+      {% if decision == 'approve' %}{{ "Approved successfully." | t }}{% else %}{{ "Rejected successfully." | t }}{% endif %}
+    {% else %}
+      {{ "Failed to process request." | t }}
+    {% endif %}
+  </td>
+</tr>

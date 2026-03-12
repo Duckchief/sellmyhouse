@@ -1,5 +1,4 @@
 // src/domains/compliance/__tests__/compliance.repository.test.ts
-import { prisma } from '@/infra/database/prisma';
 import * as complianceRepo from '../compliance.repository';
 
 // This is a light smoke test — full DB tests are in tests/integration/

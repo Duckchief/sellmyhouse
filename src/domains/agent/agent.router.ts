@@ -1,8 +1,11 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import * as agentService from './agent.service';
+import * as agentRepo from './agent.repository';
 import { validateSellerListQuery } from './agent.validator';
+import { processCorrectionValidator } from '../compliance/compliance.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
+import { ValidationError } from '@/domains/shared/errors';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import type { SellerListFilter } from './agent.types';
 
@@ -165,6 +168,64 @@ agentRouter.get(
       res.render('partials/agent/seller-notifications', { notifications });
     } catch (err) {
       next(err);
+    }
+  },
+);
+
+// GET /agent/corrections — Correction request review queue
+agentRouter.get(
+  '/agent/corrections',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const requests = await agentRepo.getPendingCorrectionRequests();
+      return res.render('pages/agent/correction-requests', {
+        requests,
+        title: 'Data Correction Requests',
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /agent/corrections/:requestId — Approve or reject
+agentRouter.post(
+  '/agent/corrections/:requestId',
+  ...agentAuth,
+  processCorrectionValidator,
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const fields = Object.fromEntries(
+        Object.entries(errors.mapped()).map(([k, v]) => [k, v.msg as string]),
+      );
+      return next(new ValidationError('Invalid request', fields));
+    }
+
+    try {
+      const agentId = (req.user as { id: string }).id;
+      const { requestId } = req.params as { requestId: string };
+      const { decision, processNotes } = req.body as { decision: string; processNotes?: string };
+
+      await agentService.processCorrectionRequest({
+        requestId,
+        agentId,
+        decision: decision as 'approve' | 'reject',
+        processNotes,
+      });
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/agent/correction-review-modal', {
+          success: true,
+          decision,
+          requestId,
+        });
+      }
+
+      return res.redirect('/agent/corrections');
+    } catch (err) {
+      return next(err);
     }
   },
 );

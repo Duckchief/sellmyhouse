@@ -21,7 +21,7 @@ export interface WithdrawConsentInput {
 export interface ConsentWithdrawalResult {
   consentRecordId: string;
   deletionRequestId?: string; // set if service consent withdrawn
-  deletionBlocked: boolean;   // true if AML/CFT prevents deletion
+  deletionBlocked: boolean; // true if AML/CFT prevents deletion
   retentionRule?: string;
 }
 
@@ -55,3 +55,30 @@ export interface DataDeletionRequest {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface DataCorrectionRequest {
+  id: string;
+  sellerId: string;
+  fieldName: string;
+  currentValue: string | null;
+  requestedValue: string;
+  reason: string | null;
+  status: string;
+  processedByAgentId: string | null;
+  processedAt: Date | null;
+  processNotes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateCorrectionRequestInput {
+  sellerId: string;
+  fieldName: string;
+  currentValue?: string;
+  requestedValue: string;
+  reason?: string;
+}
+
+// Fields that can be auto-applied by the system on agent approval
+export const AUTO_APPLY_FIELDS = ['name', 'email', 'phone', 'notificationPreference'] as const;
+export type AutoApplyField = (typeof AUTO_APPLY_FIELDS)[number];

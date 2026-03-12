@@ -2,6 +2,7 @@
 import * as complianceRepo from './compliance.repository';
 import * as auditService from '../shared/audit.service';
 import { NotFoundError } from '../shared/errors';
+import { AUTO_APPLY_FIELDS, type CreateCorrectionRequestInput } from './compliance.types';
 import type {
   DncChannel,
   MessageType,
@@ -151,5 +152,136 @@ export async function withdrawConsent(
     deletionRequestId: deletionRequest.id,
     deletionBlocked: false,
     retentionRule: '30_day_grace',
+  };
+}
+
+// ─── Correction Requests ──────────────────────────────────────────────────────
+
+export async function createCorrectionRequest(
+  input: CreateCorrectionRequestInput & { sellerId: string },
+) {
+  const request = await complianceRepo.createCorrectionRequest(input);
+
+  await auditService.log({
+    action: 'data_correction.requested',
+    entityType: 'data_correction_request',
+    entityId: request.id,
+    details: {
+      sellerId: input.sellerId,
+      fieldName: input.fieldName,
+      requestedValue: input.requestedValue,
+    },
+  });
+
+  return request;
+}
+
+export async function processCorrectionRequest(input: {
+  requestId: string;
+  agentId: string;
+  decision: 'approve' | 'reject';
+  processNotes?: string;
+}) {
+  const request = await complianceRepo.findCorrectionRequest(input.requestId);
+  if (!request) throw new NotFoundError('DataCorrectionRequest', input.requestId);
+
+  const now = new Date();
+  const newStatus = input.decision === 'approve' ? 'completed' : 'rejected';
+
+  await complianceRepo.updateCorrectionRequest(input.requestId, {
+    status: newStatus,
+    processedByAgentId: input.agentId,
+    processedAt: now,
+    processNotes: input.processNotes,
+  });
+
+  if (input.decision === 'approve') {
+    const isAutoApply = (AUTO_APPLY_FIELDS as readonly string[]).includes(request.fieldName);
+    if (isAutoApply) {
+      await complianceRepo.updateSellerField(
+        request.sellerId,
+        request.fieldName,
+        request.requestedValue,
+      );
+    }
+
+    await auditService.log({
+      action: 'data_correction.processed',
+      entityType: 'data_correction_request',
+      entityId: input.requestId,
+      details: {
+        sellerId: request.sellerId,
+        fieldName: request.fieldName,
+        requestedValue: request.requestedValue,
+        autoApplied: isAutoApply,
+        agentId: input.agentId,
+      },
+    });
+  } else {
+    await auditService.log({
+      action: 'data_correction.rejected',
+      entityType: 'data_correction_request',
+      entityId: input.requestId,
+      details: {
+        sellerId: request.sellerId,
+        fieldName: request.fieldName,
+        processNotes: input.processNotes,
+        agentId: input.agentId,
+      },
+    });
+  }
+}
+
+// ─── My Data ──────────────────────────────────────────────────────────────────
+
+export async function getMyData(sellerId: string) {
+  const data = await complianceRepo.getSellerPersonalData(sellerId);
+  if (!data) throw new NotFoundError('Seller', sellerId);
+
+  const { maskNric } = await import('../shared/nric');
+  const nricDisplay = data.cddRecords[0]?.nricLast4 ? maskNric(data.cddRecords[0].nricLast4) : null;
+
+  const correctionRequests = await complianceRepo.findCorrectionRequestsBySeller(sellerId);
+  const consentHistory = await complianceRepo.findAllConsentRecords(sellerId);
+
+  return {
+    seller: {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      status: data.status,
+      consentService: data.consentService,
+      consentMarketing: data.consentMarketing,
+      notificationPreference: data.notificationPreference,
+      createdAt: data.createdAt,
+      nricDisplay,
+      identityVerified: data.cddRecords[0]?.identityVerified ?? false,
+    },
+    properties: data.properties,
+    consentHistory,
+    correctionRequests,
+  };
+}
+
+export async function generateDataExport(sellerId: string): Promise<Record<string, unknown>> {
+  const myData = await getMyData(sellerId);
+  return {
+    exportedAt: new Date().toISOString(),
+    seller: myData.seller,
+    properties: myData.properties,
+    consentHistory: myData.consentHistory.map((r) => ({
+      purposeService: r.purposeService,
+      purposeMarketing: r.purposeMarketing,
+      consentGivenAt: r.consentGivenAt,
+      consentWithdrawnAt: r.consentWithdrawnAt,
+    })),
+    correctionRequests: myData.correctionRequests.map((r) => ({
+      fieldName: r.fieldName,
+      requestedValue: r.requestedValue,
+      status: r.status,
+      createdAt: r.createdAt,
+      processedAt: r.processedAt,
+    })),
   };
 }

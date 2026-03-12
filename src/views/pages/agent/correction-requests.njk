@@ -1,0 +1,57 @@
+{% extends "layouts/agent.njk" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">{{ "Data Correction Requests" | t }}</h1>
+
+  {% if requests | length == 0 %}
+    <div class="text-center py-12 text-gray-500">
+      <p>{{ "No pending correction requests." | t }}</p>
+    </div>
+  {% else %}
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Seller" | t }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Field" | t }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Requested Value" | t }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Submitted" | t }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Actions" | t }}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          {% for req in requests %}
+          <tr id="correction-row-{{ req.id }}">
+            <td class="px-6 py-4 text-sm text-gray-900">{{ req.seller.name }}</td>
+            <td class="px-6 py-4 text-sm font-mono text-gray-700">{{ req.fieldName }}</td>
+            <td class="px-6 py-4 text-sm text-gray-900">{{ req.requestedValue }}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">{{ req.createdAt | date("DD MMM YYYY") }}</td>
+            <td class="px-6 py-4">
+              <div class="flex gap-2">
+                <button
+                  hx-post="/agent/corrections/{{ req.id }}"
+                  hx-vals='{"decision": "approve"}'
+                  hx-target="#correction-row-{{ req.id }}"
+                  hx-swap="outerHTML"
+                  class="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700">
+                  {{ "Approve" | t }}
+                </button>
+                <button
+                  hx-post="/agent/corrections/{{ req.id }}"
+                  hx-vals='{"decision": "reject"}'
+                  hx-target="#correction-row-{{ req.id }}"
+                  hx-swap="outerHTML"
+                  class="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700">
+                  {{ "Reject" | t }}
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

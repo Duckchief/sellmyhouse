@@ -295,3 +295,13 @@ export async function getNotificationHistory(sellerId: string, agentId?: string)
     take: 50,
   });
 }
+
+export async function getPendingCorrectionRequests() {
+  return prisma.dataCorrectionRequest.findMany({
+    where: { status: { in: ['pending', 'in_progress'] } },
+    include: {
+      seller: { select: { id: true, name: true, phone: true } },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+}

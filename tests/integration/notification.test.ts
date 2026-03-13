@@ -48,19 +48,14 @@ describe('Notification Integration', () => {
       process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN = savedToken;
     });
 
-    it('returns 200 when no verify token is configured', async () => {
-      const savedToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
-      delete process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
-
+    it('returns 403 when signature is missing (signature verification is unconditional)', async () => {
       const res = await request(app)
         .post('/api/webhook/whatsapp')
         .send({
           entry: [{ changes: [{ value: { statuses: [] } }] }],
         });
 
-      expect(res.status).toBe(200);
-
-      process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN = savedToken;
+      expect(res.status).toBe(403);
     });
   });
 

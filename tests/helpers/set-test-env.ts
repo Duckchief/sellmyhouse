@@ -4,3 +4,5 @@ process.env.DATABASE_URL =
 process.env.NODE_ENV = 'test';
 process.env.SESSION_SECRET = 'test-session-secret-must-be-long-enough-for-testing';
 process.env.ENCRYPTION_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN = 'test-webhook-verify-token';
+process.env.JWT_SECRET = 'test-jwt-secret-must-be-long-enough-for-testing';

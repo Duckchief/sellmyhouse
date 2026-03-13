@@ -17,6 +17,10 @@ const SETTINGS = [
   { key: 'post_completion_testimonial_delay_days', value: '7', description: 'Days after transaction completion to send testimonial request' },
   { key: 'post_completion_referral_delay_days', value: '14', description: 'Days after transaction completion to send referral link' },
   { key: 'data_retention_years', value: '6', description: 'Default data retention period in years (PDPA/AML-CFT). Provisional at lead creation; extended to 5 years post transaction completion.' },
+  { key: 'lead_retention_months', value: '12', description: 'Months of inactivity before a lead (no transaction) is flagged for deletion' },
+  { key: 'transaction_retention_years', value: '5', description: 'Years post-completion before a transaction is flagged for deletion (AML/CFT minimum)' },
+  { key: 'cdd_retention_years', value: '5', description: 'Years post-verification before CDD documents are flagged for deletion (AML/CFT minimum)' },
+  { key: 'consent_post_withdrawal_retention_years', value: '1', description: 'Years after consent withdrawal before the consent record is flagged for deletion' },
 ];
 
 export async function seedSystemSettings(prisma: PrismaClient): Promise<void> {

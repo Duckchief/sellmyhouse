@@ -1,7 +1,16 @@
 // src/domains/compliance/__tests__/compliance.service.test.ts
 import * as complianceRepo from '../compliance.repository';
 import * as auditService from '../../shared/audit.service';
+import * as settingsService from '../../shared/settings.service';
 import * as complianceService from '../compliance.service';
+import { localStorage } from '@/infra/storage/local-storage';
+
+jest.mock('@/infra/storage/local-storage', () => ({
+  localStorage: { delete: jest.fn() },
+}));
+jest.mock('../../shared/settings.service');
+const mockStorage = localStorage as jest.Mocked<typeof localStorage>;
+const mockSettings = settingsService as jest.Mocked<typeof settingsService>;
 
 jest.mock('../compliance.repository');
 jest.mock('../../shared/audit.service');
@@ -14,6 +23,7 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   findConsentRecordsForDeletion: jest.Mock;
   findStaleCorrectionRequests: jest.Mock;
   findExistingDeletionRequest: jest.Mock;
+  collectSellerFilePaths: jest.Mock;
   hardDeleteSeller: jest.Mock;
   hardDeleteCddDocuments: jest.Mock;
   hardDeleteConsentRecord: jest.Mock;
@@ -294,6 +304,13 @@ describe('scanRetention', () => {
     mockRepo.findExistingDeletionRequest.mockResolvedValue(null);
     mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
     mockAudit.log.mockResolvedValue(undefined);
+    // Default retention periods from SystemSetting
+    mockSettings.getNumber.mockResolvedValue(12); // lead_retention_months (first call)
+    mockSettings.getNumber
+      .mockResolvedValueOnce(12)  // lead_retention_months
+      .mockResolvedValueOnce(5)   // transaction_retention_years
+      .mockResolvedValueOnce(5)   // cdd_retention_years
+      .mockResolvedValueOnce(1);  // consent_post_withdrawal_retention_years
   });
 
   it('flags leads inactive for 12+ months', async () => {
@@ -348,6 +365,17 @@ describe('scanRetention', () => {
 });
 
 describe('executeHardDelete', () => {
+  beforeEach(() => {
+    mockRepo.collectSellerFilePaths.mockResolvedValue([]);
+    mockRepo.hardDeleteSeller.mockResolvedValue(undefined);
+    mockRepo.hardDeleteCddDocuments.mockResolvedValue(undefined);
+    mockRepo.hardDeleteConsentRecord.mockResolvedValue(undefined);
+    mockRepo.hardDeleteTransaction.mockResolvedValue(undefined);
+    mockRepo.updateDeletionRequest.mockResolvedValue({} as never);
+    mockAudit.log.mockResolvedValue(undefined);
+    mockStorage.delete.mockResolvedValue(undefined);
+  });
+
   it('throws if deletion request is not found', async () => {
     mockRepo.findDeletionRequest.mockResolvedValue(null);
     await expect(
@@ -368,6 +396,68 @@ describe('executeHardDelete', () => {
     await expect(
       complianceService.executeHardDelete({ requestId: 'dr1', agentId: 'agent1' }),
     ).rejects.toThrow('AML/CFT');
+  });
+
+  it('deletes all seller files via localStorage.delete before DB cascade', async () => {
+    mockRepo.findDeletionRequest.mockResolvedValue({
+      id: 'dr1',
+      status: 'flagged',
+      targetType: 'lead',
+      targetId: 'seller1',
+      retentionRule: '30_day_grace',
+      details: {},
+    } as never);
+    mockRepo.collectSellerFilePaths.mockResolvedValue([
+      'photos/listing1/photo1.jpg',
+      'photos/listing1/photo1-optimized.jpg',
+      'otp/tx1/seller-copy.pdf',
+      'invoices/tx1/invoice.pdf',
+    ]);
+
+    await complianceService.executeHardDelete({ requestId: 'dr1', agentId: 'agent1' });
+
+    expect(mockRepo.collectSellerFilePaths).toHaveBeenCalledWith('seller1');
+    expect(mockStorage.delete).toHaveBeenCalledTimes(4);
+    expect(mockStorage.delete).toHaveBeenCalledWith('photos/listing1/photo1.jpg');
+    expect(mockStorage.delete).toHaveBeenCalledWith('invoices/tx1/invoice.pdf');
+  });
+
+  it('logs audit event and continues if a file deletion fails', async () => {
+    mockRepo.findDeletionRequest.mockResolvedValue({
+      id: 'dr1',
+      status: 'flagged',
+      targetType: 'lead',
+      targetId: 'seller1',
+      retentionRule: '30_day_grace',
+      details: {},
+    } as never);
+    mockRepo.collectSellerFilePaths.mockResolvedValue(['otp/tx1/seller-copy.pdf']);
+    mockStorage.delete.mockRejectedValueOnce(new Error('ENOENT: file not found'));
+
+    await complianceService.executeHardDelete({ requestId: 'dr1', agentId: 'agent1' });
+
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'compliance.file_unlink_failed' }),
+    );
+    // DB delete still runs despite file error
+    expect(mockRepo.hardDeleteSeller).toHaveBeenCalledWith('seller1');
+  });
+
+  it('calls hardDeleteSeller even when there are no files', async () => {
+    mockRepo.findDeletionRequest.mockResolvedValue({
+      id: 'dr1',
+      status: 'flagged',
+      targetType: 'lead',
+      targetId: 'seller1',
+      retentionRule: '30_day_grace',
+      details: {},
+    } as never);
+    mockRepo.collectSellerFilePaths.mockResolvedValue([]);
+
+    await complianceService.executeHardDelete({ requestId: 'dr1', agentId: 'agent1' });
+
+    expect(mockStorage.delete).not.toHaveBeenCalled();
+    expect(mockRepo.hardDeleteSeller).toHaveBeenCalledWith('seller1');
   });
 });
 

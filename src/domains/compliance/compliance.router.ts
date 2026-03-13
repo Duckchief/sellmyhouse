@@ -6,7 +6,6 @@ import { validationResult } from 'express-validator';
 import archiver from 'archiver';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import * as complianceService from './compliance.service';
-import * as complianceRepo from './compliance.repository';
 import * as auditService from '../shared/audit.service';
 import { withdrawConsentValidator, createCorrectionValidator } from './compliance.validator';
 import { ValidationError, ForbiddenError, NotFoundError } from '../shared/errors';
@@ -190,7 +189,7 @@ complianceRouter.post(
         return next(new ValidationError('Both confirmation checkboxes must be ticked'));
       }
 
-      const txDocs = await complianceRepo.findTransactionDocuments(transactionId);
+      const txDocs = await complianceService.getTransactionDocuments(transactionId);
       if (!txDocs) return next(new NotFoundError('Transaction', transactionId));
 
       if (txDocs.status !== 'completed') {
@@ -218,6 +217,19 @@ complianceRouter.post(
       } else if (docType === 'invoice' && txDocs.commissionInvoice?.invoiceFilePath) {
         filePath = txDocs.commissionInvoice.invoiceFilePath;
         docRecordId = txDocs.commissionInvoice.id;
+      } else if (docType === 'eaa' && txDocs.estateAgencyAgreement?.signedCopyPath) {
+        filePath = txDocs.estateAgencyAgreement.signedCopyPath;
+        docRecordId = txDocs.estateAgencyAgreement.id;
+      } else if (docType === 'cdd') {
+        const cddRecords = await complianceService.getCddRecordsByTransaction(transactionId);
+        const cddDoc = cddRecords
+          .flatMap((r) => (r.documents as { path: string }[] | null) ?? [])
+          .find((d) => d.path);
+        if (cddDoc?.path) {
+          filePath = cddDoc.path;
+          // For CDD, docRecordId identifies the CDD record — used for audit only (no DB path clear)
+          docRecordId = cddRecords[0]?.id ?? null;
+        }
       }
 
       if (!filePath) return next(new NotFoundError('Document', docType));
@@ -244,9 +256,11 @@ complianceRouter.post(
           await fs.unlink(filePath as string);
 
           if (docType === 'otp' && docRecordId) {
-            await complianceRepo.markOtpScannedCopyDeleted(docRecordId);
+            await complianceService.recordOtpScannedCopyDeleted(docRecordId);
           } else if (docType === 'invoice' && docRecordId) {
-            await complianceRepo.markInvoiceDeleted(docRecordId);
+            await complianceService.recordInvoiceDeleted(docRecordId);
+          } else if (docType === 'eaa' && docRecordId) {
+            await complianceService.recordEaaSignedCopyDeleted(docRecordId);
           }
 
           await auditService.log({
@@ -295,7 +309,7 @@ complianceRouter.post(
         return next(new ValidationError('Both confirmation checkboxes must be ticked'));
       }
 
-      const txDocs = await complianceRepo.findTransactionDocuments(transactionId);
+      const txDocs = await complianceService.getTransactionDocuments(transactionId);
       if (!txDocs) return next(new NotFoundError('Transaction', transactionId));
 
       if (txDocs.status !== 'completed') {
@@ -327,6 +341,22 @@ complianceRouter.post(
           docType: 'invoice',
           recordId: txDocs.commissionInvoice.id,
         });
+      }
+      if (txDocs.estateAgencyAgreement?.signedCopyPath) {
+        filesToProcess.push({
+          filePath: txDocs.estateAgencyAgreement.signedCopyPath,
+          docType: 'eaa',
+          recordId: txDocs.estateAgencyAgreement.id,
+        });
+      }
+      const cddRecords = await complianceService.getCddRecordsByTransaction(transactionId);
+      for (const cddRecord of cddRecords) {
+        const docs = (cddRecord.documents as { path: string }[] | null) ?? [];
+        for (const doc of docs) {
+          if (doc.path) {
+            filesToProcess.push({ filePath: doc.path, docType: 'cdd', recordId: cddRecord.id });
+          }
+        }
       }
 
       // Validate ALL files exist first
@@ -372,9 +402,11 @@ complianceRouter.post(
             try {
               await fs.unlink(doc.filePath);
               if (doc.docType === 'otp') {
-                await complianceRepo.markOtpScannedCopyDeleted(doc.recordId);
+                await complianceService.recordOtpScannedCopyDeleted(doc.recordId);
               } else if (doc.docType === 'invoice') {
-                await complianceRepo.markInvoiceDeleted(doc.recordId);
+                await complianceService.recordInvoiceDeleted(doc.recordId);
+              } else if (doc.docType === 'eaa') {
+                await complianceService.recordEaaSignedCopyDeleted(doc.recordId);
               }
             } catch (deleteErr) {
               logger.error(

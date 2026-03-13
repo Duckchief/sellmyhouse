@@ -1,7 +1,7 @@
 // src/domains/transaction/transaction.types.ts
-import type { TransactionStatus, OtpStatus, InvoiceStatus } from '@prisma/client';
+import type { TransactionStatus, OtpStatus, InvoiceStatus, HdbApplicationStatus } from '@prisma/client';
 
-export type { TransactionStatus, OtpStatus, InvoiceStatus };
+export type { TransactionStatus, OtpStatus, InvoiceStatus, HdbApplicationStatus };
 
 // OTP strict sequential transitions — only one valid next state per current state
 // null means terminal (no further transitions allowed)

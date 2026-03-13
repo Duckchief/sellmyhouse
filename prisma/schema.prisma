@@ -259,6 +259,16 @@ enum CorrectionRequestStatus {
   rejected
 }
 
+enum HdbApplicationStatus {
+  not_started
+  application_submitted
+  approval_in_principle
+  approval_granted
+  resale_checklist_submitted
+  hdb_appointment_booked
+  completed
+}
+
 enum FinancialReportStatus {
   draft
   ai_generated
@@ -605,8 +615,11 @@ model Transaction {
   exerciseDate             DateTime?         @map("exercise_date")
   completionDate           DateTime?         @map("completion_date")
   status                   TransactionStatus @default(option_issued)
-  hdbApplicationStatus     String?           @map("hdb_application_status")
-  hdbAppointmentDate       DateTime?         @map("hdb_appointment_date")
+  hdbApplicationStatus       HdbApplicationStatus? @map("hdb_application_status")
+  hdbAppointmentDate         DateTime?             @map("hdb_appointment_date")
+  hdbAppSubmittedAt          DateTime?             @map("hdb_app_submitted_at")
+  hdbAppSubmittedByAgentId   String?               @map("hdb_app_submitted_by_agent_id")
+  hdbAppApprovedAt           DateTime?             @map("hdb_app_approved_at")
   fallenThroughReason      String?           @map("fallen_through_reason")
   createdAt                DateTime          @default(now()) @map("created_at")
   updatedAt                DateTime          @updatedAt @map("updated_at")

@@ -420,6 +420,65 @@ export async function hardDeleteTransaction(transactionId: string): Promise<void
   await prisma.transaction.delete({ where: { id: transactionId } });
 }
 
+// ─── File Path Collection (for PDPA hard-delete) ──────────────────────────────
+
+/**
+ * Collects all file paths associated with a seller before the delete cascade runs.
+ * Returns an array of storage-relative paths suitable for localStorage.delete().
+ */
+export async function collectSellerFilePaths(sellerId: string): Promise<string[]> {
+  const paths: string[] = [];
+
+  // 1. Property listing photos (stored as JSON array of PhotoRecord objects)
+  const properties = await prisma.property.findMany({
+    where: { sellerId },
+    select: {
+      listings: {
+        select: { photos: true },
+      },
+    },
+  });
+  for (const property of properties) {
+    for (const listing of property.listings) {
+      const photos = (listing.photos ?? []) as { path?: string; optimizedPath?: string }[];
+      for (const photo of photos) {
+        if (photo.path) paths.push(photo.path);
+        if (photo.optimizedPath) paths.push(photo.optimizedPath);
+      }
+    }
+  }
+
+  // 2. OTP scanned copies (seller copy + returned copy)
+  const otps = await prisma.otp.findMany({
+    where: { transaction: { sellerId } },
+    select: { scannedCopyPathSeller: true, scannedCopyPathReturned: true },
+  });
+  for (const otp of otps) {
+    if (otp.scannedCopyPathSeller) paths.push(otp.scannedCopyPathSeller);
+    if (otp.scannedCopyPathReturned) paths.push(otp.scannedCopyPathReturned);
+  }
+
+  // 3. Commission invoice PDFs
+  const invoices = await prisma.commissionInvoice.findMany({
+    where: { transaction: { sellerId } },
+    select: { invoiceFilePath: true },
+  });
+  for (const invoice of invoices) {
+    if (invoice.invoiceFilePath) paths.push(invoice.invoiceFilePath);
+  }
+
+  // 4. Estate agency agreement signed copies
+  const eaas = await prisma.estateAgencyAgreement.findMany({
+    where: { sellerId },
+    select: { signedCopyPath: true },
+  });
+  for (const eaa of eaas) {
+    if (eaa.signedCopyPath) paths.push(eaa.signedCopyPath);
+  }
+
+  return paths;
+}
+
 // ─── Secure Document Access ───────────────────────────────────────────────────
 
 export async function findTransactionDocuments(transactionId: string) {
@@ -443,6 +502,13 @@ export async function findTransactionDocuments(transactionId: string) {
           id: true,
           invoiceFilePath: true,
           invoiceDeletedAt: true,
+        },
+      },
+      estateAgencyAgreement: {
+        select: {
+          id: true,
+          signedCopyPath: true,
+          signedCopyDeletedAt: true,
         },
       },
     },
@@ -477,6 +543,13 @@ export async function markInvoiceDeleted(invoiceId: string): Promise<void> {
   await prisma.commissionInvoice.update({
     where: { id: invoiceId },
     data: { invoiceFilePath: null, invoiceDeletedAt: new Date() },
+  });
+}
+
+export async function markEaaSignedCopyDeleted(eaaId: string): Promise<void> {
+  await prisma.estateAgencyAgreement.update({
+    where: { id: eaaId },
+    data: { signedCopyPath: null, signedCopyDeletedAt: new Date() },
   });
 }
 

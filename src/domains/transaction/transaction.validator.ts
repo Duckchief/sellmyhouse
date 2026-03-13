@@ -32,7 +32,21 @@ export const validateUploadInvoice = [
   body('invoiceNumber').notEmpty().withMessage('invoiceNumber is required'),
 ];
 
-export const validateUpdateHdb = [param('id').notEmpty().withMessage('transactionId is required')];
+export const validateUpdateHdb = [
+  param('id').notEmpty().withMessage('transactionId is required'),
+  body('hdbApplicationStatus')
+    .optional()
+    .isIn([
+      'not_started',
+      'application_submitted',
+      'approval_in_principle',
+      'approval_granted',
+      'resale_checklist_submitted',
+      'hdb_appointment_booked',
+      'completed',
+    ])
+    .withMessage('hdbApplicationStatus must be a valid HdbApplicationStatus value'),
+];
 
 export const validateSendInvoice = [
   param('id').notEmpty().withMessage('transactionId is required'),

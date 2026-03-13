@@ -415,6 +415,89 @@ describe('transaction.service', () => {
     });
   });
 
+  describe('updateHdbTracking', () => {
+    it('notifies seller when hdbApplicationStatus is set', async () => {
+      const tx = makeTransaction();
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.updateHdbTracking.mockResolvedValue({ ...tx, hdbApplicationStatus: 'application_submitted' } as never);
+      mockPropertyService.getPropertyById.mockResolvedValue({
+        block: '123',
+        street: 'Ang Mo Kio Ave 1',
+        town: 'Ang Mo Kio',
+      } as never);
+
+      await txService.updateHdbTracking({
+        transactionId: 'tx-1',
+        hdbApplicationStatus: 'application_submitted',
+        agentId: 'agent-1',
+      });
+
+      expect(mockNotification.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipientType: 'seller',
+          recipientId: 'seller-1',
+          templateName: 'transaction_update',
+        }),
+        'agent-1',
+      );
+    });
+
+    it('does NOT notify seller when hdbApplicationStatus is not provided', async () => {
+      const tx = makeTransaction();
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.updateHdbTracking.mockResolvedValue(tx as never);
+
+      await txService.updateHdbTracking({
+        transactionId: 'tx-1',
+        hdbAppointmentDate: new Date(),
+        agentId: 'agent-1',
+      });
+
+      expect(mockNotification.send).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('markOtpReviewed', () => {
+    it('throws ValidationError when videoCallConfirmedAt is null on the linked EAA', async () => {
+      const otp = makeOtp({ status: 'returned' });
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
+      mockTxRepo.findEaaByTransactionId.mockResolvedValue({
+        id: 'eaa-1',
+        videoCallConfirmedAt: null,
+        signedCopyPath: null,
+      } as never);
+
+      await expect(
+        txService.markOtpReviewed({ transactionId: 'tx-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('throws ValidationError when no EAA is linked to the transaction', async () => {
+      const otp = makeOtp({ status: 'returned' });
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
+      mockTxRepo.findEaaByTransactionId.mockResolvedValue(null);
+
+      await expect(
+        txService.markOtpReviewed({ transactionId: 'tx-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('marks OTP as reviewed when videoCallConfirmedAt is set', async () => {
+      const otp = makeOtp({ status: 'returned' });
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
+      mockTxRepo.findEaaByTransactionId.mockResolvedValue({
+        id: 'eaa-1',
+        videoCallConfirmedAt: new Date(),
+        signedCopyPath: null,
+      } as never);
+      mockTxRepo.updateOtpReview.mockResolvedValue({ ...otp, agentReviewedAt: new Date() } as never);
+
+      await txService.markOtpReviewed({ transactionId: 'tx-1', agentId: 'agent-1' });
+
+      expect(mockTxRepo.updateOtpReview).toHaveBeenCalledWith('otp-1', expect.any(Date), undefined);
+    });
+  });
+
   describe('uploadInvoice', () => {
     it('reads commission amounts from SystemSetting via getCommission(), not schema defaults', async () => {
       const tx = makeTransaction();

@@ -2,6 +2,7 @@
 import { registerJob } from '@/infra/jobs/runner';
 import * as txRepo from './transaction.repository';
 import * as notificationService from '@/domains/notification/notification.service';
+import * as contentService from '@/domains/content/content.service';
 import type { NotificationTemplateName } from '@/domains/notification/notification.types';
 
 const OTP_REMINDER_DAYS = [14, 7, 3, 1];
@@ -80,6 +81,7 @@ export async function sendPostCompletionMessages(): Promise<void> {
     for (const tx of transactions) {
       const seller = tx.seller as {
         id: string;
+        name: string;
         notificationPreference: string;
         consentMarketing: boolean;
       };
@@ -91,15 +93,36 @@ export async function sendPostCompletionMessages(): Promise<void> {
       const existing = await txRepo.findExistingNotification(seq.messageKey, seller.id);
       if (existing) continue;
 
+      // Build template data, extended per day
+      const templateData: Record<string, string> = {
+        address: tx.id,
+        status: seq.messageKey,
+      };
+
+      // Day 7: issue testimonial token if one doesn't exist yet
+      if (seq.daysAgo === 7) {
+        const existingTestimonial = await contentService.getTestimonialBySeller(seller.id);
+        if (!existingTestimonial) {
+          await contentService
+            .issueTestimonialToken(seller.id, tx.id, seller.name ?? '', '')
+            .catch(() => {}); // don't fail the job on token issuance error
+        }
+      }
+
+      // Day 14: include referral link so the seller can share it
+      if (seq.daysAgo === 14) {
+        const referral = await contentService.sendReferralLinks(seller.id).catch(() => null);
+        templateData.referralLink = referral?.referralCode
+          ? `${process.env.APP_URL ?? 'https://sellmyhomenow.sg'}/?ref=${referral.referralCode}`
+          : '';
+      }
+
       await notificationService.send(
         {
           recipientType: 'seller',
           recipientId: seller.id,
-          templateName: seq.messageKey as never,
-          templateData: {
-            address: tx.id,
-            status: seq.messageKey,
-          },
+          templateName: seq.messageKey as NotificationTemplateName,
+          templateData,
         },
         'system',
       );

@@ -104,10 +104,7 @@ financialRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const report = await financialService.acknowledgeDisclaimer(
-        req.params.id as string,
-        user.id,
-      );
+      const report = await financialService.acknowledgeDisclaimer(req.params.id as string, user.id);
 
       if (req.headers['hx-request']) {
         return res.render('partials/seller/financial-report-disclaimer-ack', { report });

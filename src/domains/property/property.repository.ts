@@ -162,5 +162,4 @@ export const updatePropertyStatus =
   propertyRepository.updatePropertyStatus.bind(propertyRepository);
 export const findListingWithSeller =
   propertyRepository.findListingWithSeller.bind(propertyRepository);
-export const findByIdWithSeller =
-  propertyRepository.findByIdWithSeller.bind(propertyRepository);
+export const findByIdWithSeller = propertyRepository.findByIdWithSeller.bind(propertyRepository);

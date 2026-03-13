@@ -141,9 +141,7 @@ async function handleFallenThrough(propertyId: string, transactionId: string, ag
 
   // 5. Alert agent to manually delist from live portals
   const property = await propertyService.getPropertyById(propertyId);
-  const address = property
-    ? `${property.block} ${property.street}, ${property.town}`
-    : propertyId;
+  const address = property ? `${property.block} ${property.street}, ${property.town}` : propertyId;
   await notificationService.send(
     {
       recipientType: 'agent',
@@ -333,9 +331,7 @@ export async function markOtpReviewed(input: {
   // Gate 4: video call must be confirmed on the linked EAA before agent OTP review
   const eaa = await txRepo.findEaaByTransactionId(input.transactionId);
   if (!eaa?.videoCallConfirmedAt) {
-    throw new ValidationError(
-      'Video call with seller must be confirmed before reviewing OTP',
-    );
+    throw new ValidationError('Video call with seller must be confirmed before reviewing OTP');
   }
 
   const updated = await txRepo.updateOtpReview(otp.id, new Date(), input.notes);

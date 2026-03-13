@@ -2,7 +2,12 @@ import * as reviewRepo from './review.repository';
 import * as complianceRepo from '@/domains/compliance/compliance.repository';
 import * as auditService from '@/domains/shared/audit.service';
 import * as portalService from '@/domains/property/portal.service';
-import { ValidationError, ComplianceError, NotFoundError, ForbiddenError } from '@/domains/shared/errors';
+import {
+  ValidationError,
+  ComplianceError,
+  NotFoundError,
+  ForbiddenError,
+} from '@/domains/shared/errors';
 import {
   REVIEW_TRANSITIONS,
   WEEKLY_UPDATE_TRANSITIONS,
@@ -55,9 +60,7 @@ export async function checkComplianceGate(
         'counterparty',
       );
       if (!cddRecord || !cddRecord.verifiedAt) {
-        throw new ComplianceError(
-          'Gate 3: Counterparty CDD must be completed before proceeding',
-        );
+        throw new ComplianceError('Gate 3: Counterparty CDD must be completed before proceeding');
       }
       return;
     }

@@ -103,9 +103,12 @@ describe('transaction.router', () => {
     it('creates transaction and returns 201', async () => {
       mockTxService.createTransaction.mockResolvedValue(makeTx() as never);
 
-      const res = await request(app)
-        .post('/agent/transactions')
-        .send({ propertyId: 'property-1', sellerId: 'seller-1', offerId: 'offer-1', agreedPrice: '600000' });
+      const res = await request(app).post('/agent/transactions').send({
+        propertyId: 'property-1',
+        sellerId: 'seller-1',
+        offerId: 'offer-1',
+        agreedPrice: '600000',
+      });
 
       expect(res.status).toBe(201);
     });

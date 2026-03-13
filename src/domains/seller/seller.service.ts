@@ -264,9 +264,7 @@ export async function updateSellerStatus(
 
   const allowed = STATUS_TRANSITIONS[seller.status] ?? [];
   if (!allowed.includes(newStatus)) {
-    throw new ValidationError(
-      `Cannot transition seller from '${seller.status}' to '${newStatus}'`,
-    );
+    throw new ValidationError(`Cannot transition seller from '${seller.status}' to '${newStatus}'`);
   }
 
   const updateData: { status: SellerStatus; consultationCompletedAt?: Date } = {

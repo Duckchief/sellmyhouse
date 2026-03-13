@@ -330,7 +330,9 @@ export async function findCddRecordsForRetention(
 
 export async function findConsentRecordsForDeletion(
   cutoffDate: Date,
-): Promise<{ id: string; sellerId: string | null; subjectId: string; consentWithdrawnAt: Date | null }[]> {
+): Promise<
+  { id: string; sellerId: string | null; subjectId: string; consentWithdrawnAt: Date | null }[]
+> {
   // Withdrawn consent records older than 1 year post-withdrawal
   return prisma.consentRecord.findMany({
     where: {

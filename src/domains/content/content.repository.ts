@@ -134,6 +134,10 @@ export async function findTestimonialByToken(token: string) {
   return prisma.testimonial.findUnique({ where: { submissionToken: token } });
 }
 
+export async function findTestimonialById(id: string) {
+  return prisma.testimonial.findUnique({ where: { id } });
+}
+
 export async function findTestimonialBySeller(sellerId: string) {
   return prisma.testimonial.findFirst({ where: { sellerId } });
 }
@@ -224,6 +228,20 @@ export async function findReferralByReferredSeller(referredSellerId: string) {
 
 export async function findAllReferrals() {
   return prisma.referral.findMany({ orderBy: { createdAt: 'desc' } });
+}
+
+/** Returns referrals that are in lead_created status and whose referred seller
+ *  has at least one completed transaction — used by the daily completion job. */
+export async function findReferralsWithCompletedTransactions() {
+  return prisma.referral.findMany({
+    where: {
+      status: 'lead_created',
+      referredSellerId: { not: null },
+      referredSeller: {
+        transactions: { some: { status: 'completed' } },
+      },
+    },
+  });
 }
 
 /** Atomically increments click count. Returns null if code not found. */

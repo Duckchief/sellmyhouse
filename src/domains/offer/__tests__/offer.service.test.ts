@@ -183,9 +183,7 @@ describe('offer.service', () => {
     });
 
     it('throws ForbiddenError when agent is not assigned to property', async () => {
-      mockPropertyRepo.findByIdWithSeller.mockResolvedValue(
-        makeProperty('other-agent') as never,
-      );
+      mockPropertyRepo.findByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
 
       await expect(
         offerService.getOffersForProperty('property-1', 'agent-1', 'agent'),
@@ -193,9 +191,7 @@ describe('offer.service', () => {
     });
 
     it('admin bypasses ownership check', async () => {
-      mockPropertyRepo.findByIdWithSeller.mockResolvedValue(
-        makeProperty('other-agent') as never,
-      );
+      mockPropertyRepo.findByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
       mockOfferRepo.findByPropertyId.mockResolvedValue([makeOffer()] as never);
 
       const result = await offerService.getOffersForProperty('property-1', 'agent-1', 'admin');
@@ -274,9 +270,7 @@ describe('offer.service', () => {
     it('throws ForbiddenError when agent is not assigned to property', async () => {
       const offer = makeOffer({ status: 'pending' });
       mockOfferRepo.findById.mockResolvedValue(offer as never);
-      mockPropertyRepo.findByIdWithSeller.mockResolvedValue(
-        makeProperty('other-agent') as never,
-      );
+      mockPropertyRepo.findByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
 
       await expect(
         offerService.acceptOffer({ offerId: 'offer-1', agentId: 'agent-1', role: 'agent' }),
@@ -286,9 +280,7 @@ describe('offer.service', () => {
     it('admin bypasses ownership check on accept', async () => {
       const offer = makeOffer({ status: 'pending' });
       mockOfferRepo.findById.mockResolvedValue(offer as never);
-      mockPropertyRepo.findByIdWithSeller.mockResolvedValue(
-        makeProperty('other-agent') as never,
-      );
+      mockPropertyRepo.findByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
       mockOfferRepo.updateStatusTx.mockResolvedValue({ ...offer, status: 'accepted' } as never);
       mockOfferRepo.expirePendingAndCounteredSiblingsTx.mockResolvedValue({ count: 0 } as never);
 

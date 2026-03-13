@@ -263,9 +263,7 @@ export async function initiateBooking(
     // Rate-limit OTP requests per phone number to prevent abuse
     const otpRequestsThisHour = await viewingRepo.countOtpRequestsThisHour(input.phone);
     if (otpRequestsThisHour >= OTP_MAX_REQUESTS_PER_HOUR) {
-      throw new RateLimitError(
-        'Too many verification requests. Please try again in an hour.',
-      );
+      throw new RateLimitError('Too many verification requests. Please try again in an hour.');
     }
 
     const otp = generateOtp();

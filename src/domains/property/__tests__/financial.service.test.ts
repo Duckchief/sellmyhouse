@@ -359,9 +359,9 @@ describe('financial.service', () => {
         disclaimerAcknowledgedAt: null,
       } as unknown as FinancialReport);
 
-      await expect(
-        financialService.acknowledgeDisclaimer('report-1', 'seller-1'),
-      ).rejects.toThrow('do not own');
+      await expect(financialService.acknowledgeDisclaimer('report-1', 'seller-1')).rejects.toThrow(
+        'do not own',
+      );
     });
 
     it('throws NotFoundError when report does not exist', async () => {

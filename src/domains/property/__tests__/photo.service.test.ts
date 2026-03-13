@@ -459,16 +459,17 @@ describe('photo.service', () => {
       ).rejects.toThrow('sharp processing failed');
 
       // Original should be cleaned up after sharp failure
-      expect(mockedStorage.delete).toHaveBeenCalledWith(
-        expect.stringContaining('original'),
-      );
+      expect(mockedStorage.delete).toHaveBeenCalledWith(expect.stringContaining('original'));
     });
   });
 
   // ─── getPhotoForAgent (S1f) ─────────────────────────────────
 
   describe('getPhotoForAgent', () => {
-    function makeListingWithSeller(agentId: string | null, photos: PhotoRecord[] = [makePhotoRecord()]) {
+    function makeListingWithSeller(
+      agentId: string | null,
+      photos: PhotoRecord[] = [makePhotoRecord()],
+    ) {
       return {
         id: 'listing-1',
         photos: JSON.stringify(photos),
@@ -477,21 +478,22 @@ describe('photo.service', () => {
     }
 
     it('returns photo buffer for agent assigned to the listing', async () => {
-      mockedRepo.findListingWithSeller.mockResolvedValue(
-        makeListingWithSeller('agent-1') as never,
-      );
+      mockedRepo.findListingWithSeller.mockResolvedValue(makeListingWithSeller('agent-1') as never);
       mockedStorage.read.mockResolvedValue(Buffer.from('photo-data'));
 
-      const result = await photoService.getPhotoForAgent('listing-1', 'photo-1', 'agent-1', 'agent');
+      const result = await photoService.getPhotoForAgent(
+        'listing-1',
+        'photo-1',
+        'agent-1',
+        'agent',
+      );
 
       expect(result.buffer).toEqual(Buffer.from('photo-data'));
       expect(result.photo.id).toBe('photo-1');
     });
 
     it('throws ForbiddenError for agent not assigned to the listing', async () => {
-      mockedRepo.findListingWithSeller.mockResolvedValue(
-        makeListingWithSeller('agent-1') as never,
-      );
+      mockedRepo.findListingWithSeller.mockResolvedValue(makeListingWithSeller('agent-1') as never);
 
       await expect(
         photoService.getPhotoForAgent('listing-1', 'photo-1', 'agent-2', 'agent'),
@@ -499,20 +501,21 @@ describe('photo.service', () => {
     });
 
     it('admin can view any listing photo regardless of agent assignment', async () => {
-      mockedRepo.findListingWithSeller.mockResolvedValue(
-        makeListingWithSeller('agent-1') as never,
-      );
+      mockedRepo.findListingWithSeller.mockResolvedValue(makeListingWithSeller('agent-1') as never);
       mockedStorage.read.mockResolvedValue(Buffer.from('photo-data'));
 
-      const result = await photoService.getPhotoForAgent('listing-1', 'photo-1', 'admin-user', 'admin');
+      const result = await photoService.getPhotoForAgent(
+        'listing-1',
+        'photo-1',
+        'admin-user',
+        'admin',
+      );
 
       expect(result.photo.id).toBe('photo-1');
     });
 
     it('throws NotFoundError when photo does not exist in listing', async () => {
-      mockedRepo.findListingWithSeller.mockResolvedValue(
-        makeListingWithSeller('agent-1') as never,
-      );
+      mockedRepo.findListingWithSeller.mockResolvedValue(makeListingWithSeller('agent-1') as never);
 
       await expect(
         photoService.getPhotoForAgent('listing-1', 'nonexistent-photo', 'agent-1', 'agent'),

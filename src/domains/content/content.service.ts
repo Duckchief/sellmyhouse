@@ -1,10 +1,16 @@
 // src/domains/content/content.service.ts
 import { createId } from '@/infra/database/prisma';
-import { NotFoundError, ConflictError, ValidationError } from '@/domains/shared/errors';
+import {
+  NotFoundError,
+  ConflictError,
+  ValidationError,
+  ForbiddenError,
+} from '@/domains/shared/errors';
 import { logger } from '@/infra/logger';
 import * as contentRepo from './content.repository';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as auditService from '@/domains/shared/audit.service';
+import * as notificationService from '@/domains/notification/notification.service';
 import type {
   TutorialCreateInput,
   TutorialUpdateInput,
@@ -306,6 +312,14 @@ export async function removeTestimonial(sellerId: string): Promise<void> {
   });
 }
 
+export async function getTestimonialByToken(token: string) {
+  return contentRepo.findTestimonialByToken(token);
+}
+
+export async function getTestimonialBySeller(sellerId: string) {
+  return contentRepo.findTestimonialBySeller(sellerId);
+}
+
 export async function listTestimonials() {
   return contentRepo.findAllTestimonials();
 }
@@ -318,11 +332,28 @@ export async function approveTestimonial(id: string, agentId: string) {
   return contentRepo.updateTestimonialStatus(id, 'approved', agentId);
 }
 
-export async function rejectTestimonial(id: string) {
-  return contentRepo.updateTestimonialStatus(id, 'rejected');
+export async function rejectTestimonial(id: string, agentId?: string, reason?: string) {
+  const testimonial = await contentRepo.updateTestimonialStatus(id, 'rejected');
+  void notificationService.send(
+    {
+      recipientType: 'seller',
+      recipientId: testimonial.sellerId,
+      templateName: 'testimonial_rejected',
+      templateData: {
+        reason: reason ?? 'Your testimonial did not meet our publication guidelines.',
+      },
+    },
+    agentId ?? 'system',
+  );
+  return testimonial;
 }
 
 export async function featureTestimonial(id: string, displayOnWebsite: boolean) {
+  const testimonial = await contentRepo.findTestimonialById(id);
+  if (!testimonial) throw new NotFoundError('Testimonial', id);
+  if (testimonial.status !== 'approved') {
+    throw new ValidationError('Only approved testimonials can be featured');
+  }
   return contentRepo.setTestimonialDisplay(id, displayOnWebsite);
 }
 
@@ -366,6 +397,7 @@ export async function trackReferralClick(referralCode: string): Promise<void> {
 export async function linkReferralToLead(referralCode: string, newSellerId: string): Promise<void> {
   const referral = await contentRepo.findReferralByCode(referralCode);
   if (!referral) return;
+  if (referral.referrerSellerId === newSellerId) return; // self-referral — silently ignore
   await contentRepo.linkReferredSeller(referral.id, newSellerId);
 }
 

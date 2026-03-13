@@ -307,10 +307,10 @@ describe('scanRetention', () => {
     // Default retention periods from SystemSetting
     mockSettings.getNumber.mockResolvedValue(12); // lead_retention_months (first call)
     mockSettings.getNumber
-      .mockResolvedValueOnce(12)  // lead_retention_months
-      .mockResolvedValueOnce(5)   // transaction_retention_years
-      .mockResolvedValueOnce(5)   // cdd_retention_years
-      .mockResolvedValueOnce(1);  // consent_post_withdrawal_retention_years
+      .mockResolvedValueOnce(12) // lead_retention_months
+      .mockResolvedValueOnce(5) // transaction_retention_years
+      .mockResolvedValueOnce(5) // cdd_retention_years
+      .mockResolvedValueOnce(1); // consent_post_withdrawal_retention_years
   });
 
   it('flags leads inactive for 12+ months', async () => {

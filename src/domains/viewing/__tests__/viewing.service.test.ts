@@ -3,8 +3,17 @@ import * as viewingRepo from '../viewing.repository';
 import * as auditService from '@/domains/shared/audit.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as settingsService from '@/domains/shared/settings.service';
-import { NotFoundError, ValidationError, ConflictError, RateLimitError } from '@/domains/shared/errors';
-import { OTP_MAX_ATTEMPTS, OTP_MAX_REQUESTS_PER_HOUR, BOOKINGS_PER_PHONE_PER_DAY } from '../viewing.types';
+import {
+  NotFoundError,
+  ValidationError,
+  ConflictError,
+  RateLimitError,
+} from '@/domains/shared/errors';
+import {
+  OTP_MAX_ATTEMPTS,
+  OTP_MAX_REQUESTS_PER_HOUR,
+  BOOKINGS_PER_PHONE_PER_DAY,
+} from '../viewing.types';
 
 jest.mock('../viewing.repository');
 jest.mock('@/domains/shared/audit.service');
@@ -502,7 +511,9 @@ describe('viewing.service', () => {
       );
 
       // Must book immediately without OTP
-      expect(result).toEqual(expect.objectContaining({ status: 'scheduled', isReturningViewer: true }));
+      expect(result).toEqual(
+        expect.objectContaining({ status: 'scheduled', isReturningViewer: true }),
+      );
       // countOtpRequestsThisHour must NOT be called for returning viewers
       expect(mockedRepo.countOtpRequestsThisHour).not.toHaveBeenCalled();
     });

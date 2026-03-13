@@ -337,7 +337,11 @@ describe('transaction.service', () => {
         agentId: 'agent-1',
       });
 
-      expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith('tx-1', 'option_exercised', undefined);
+      expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
+        'tx-1',
+        'option_exercised',
+        undefined,
+      );
     });
   });
 
@@ -419,7 +423,10 @@ describe('transaction.service', () => {
     it('notifies seller when hdbApplicationStatus is set', async () => {
       const tx = makeTransaction();
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateHdbTracking.mockResolvedValue({ ...tx, hdbApplicationStatus: 'application_submitted' } as never);
+      mockTxRepo.updateHdbTracking.mockResolvedValue({
+        ...tx,
+        hdbApplicationStatus: 'application_submitted',
+      } as never);
       mockPropertyService.getPropertyById.mockResolvedValue({
         block: '123',
         street: 'Ang Mo Kio Ave 1',
@@ -490,7 +497,10 @@ describe('transaction.service', () => {
         videoCallConfirmedAt: new Date(),
         signedCopyPath: null,
       } as never);
-      mockTxRepo.updateOtpReview.mockResolvedValue({ ...otp, agentReviewedAt: new Date() } as never);
+      mockTxRepo.updateOtpReview.mockResolvedValue({
+        ...otp,
+        agentReviewedAt: new Date(),
+      } as never);
 
       await txService.markOtpReviewed({ transactionId: 'tx-1', agentId: 'agent-1' });
 

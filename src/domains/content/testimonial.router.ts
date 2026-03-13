@@ -2,7 +2,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import * as contentService from './content.service';
-import * as contentRepo from './content.repository';
 import { validateTestimonialSubmit } from './content.validator';
 import { NotFoundError, ValidationError } from '@/domains/shared/errors';
 
@@ -16,7 +15,7 @@ testimonialRouter.get(
   '/testimonial/:token',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const testimonial = await contentRepo.findTestimonialByToken(req.params['token'] as string);
+      const testimonial = await contentService.getTestimonialByToken(req.params['token'] as string);
       if (!testimonial)
         return res.status(404).render('pages/public/testimonial-expired', { notFound: true });
       if (!testimonial.tokenExpiresAt || testimonial.tokenExpiresAt < new Date()) {
@@ -39,7 +38,9 @@ testimonialRouter.post(
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        const testimonial = await contentRepo.findTestimonialByToken(req.params['token'] as string);
+        const testimonial = await contentService.getTestimonialByToken(
+          req.params['token'] as string,
+        );
         return res.status(422).render('pages/public/testimonial-form', {
           token: req.params['token'] as string,
           testimonial,

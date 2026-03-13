@@ -729,7 +729,8 @@ adminRouter.post(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await contentService.rejectTestimonial(req.params['id'] as string);
+      const user = req.user as AuthenticatedUser;
+      await contentService.rejectTestimonial(req.params['id'] as string, user.id);
       return res.redirect('/admin/content/testimonials');
     } catch (err) {
       return next(err);

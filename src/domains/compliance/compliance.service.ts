@@ -400,7 +400,7 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
       'consent_1_year_post_withdrawal',
       'flagged',
       {
-        subjectId: record.subjectId,
+        sellerId: record.sellerId,
         withdrawnAt: record.consentWithdrawnAt,
       },
     );

@@ -45,8 +45,7 @@ export async function registerSeller(input: SellerRegistrationInput) {
   });
 
   await authRepo.createConsentRecord({
-    subjectType: 'seller',
-    subjectId: seller.id,
+    sellerId: seller.id,
     purposeService: input.consentService,
     purposeMarketing: input.consentMarketing,
     ipAddress: input.ipAddress,

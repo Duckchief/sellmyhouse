@@ -310,10 +310,11 @@ model Agent {
   twoFactorLockedUntil      DateTime? @map("two_factor_locked_until")
   failedLoginAttempts       Int       @default(0) @map("failed_login_attempts")
   loginLockedUntil          DateTime? @map("login_locked_until")
-  passwordResetToken        String?   @map("password_reset_token")
-  passwordResetExpiry       DateTime? @map("password_reset_expiry")
-  createdAt                 DateTime  @default(now()) @map("created_at")
-  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  passwordResetToken        String?                @map("password_reset_token")
+  passwordResetExpiry       DateTime?              @map("password_reset_expiry")
+  notificationPreference    NotificationPreference @default(whatsapp_and_email) @map("notification_preference")
+  createdAt                 DateTime               @default(now()) @map("created_at")
+  updatedAt                 DateTime               @updatedAt @map("updated_at")
 
   sellers                   Seller[]
   buyers                    Buyer[]
@@ -397,7 +398,8 @@ model Buyer {
   createdAt          DateTime    @default(now()) @map("created_at")
   updatedAt          DateTime    @updatedAt @map("updated_at")
 
-  transactions Transaction[]
+  transactions   Transaction[]
+  consentRecords ConsentRecord[]
 
   @@map("buyers")
 }
@@ -735,6 +737,11 @@ model ConsentRecord {
   id                 String             @id
   subjectType        ConsentSubjectType @map("subject_type")
   subjectId          String             @map("subject_id")
+  sellerId           String?            @map("seller_id")
+  seller             Seller?            @relation(fields: [sellerId], references: [id])
+  // buyerId: FK to buyers table — relation to be wired in Phase 5 when Buyer consent workflow is implemented
+  buyerId            String?            @map("buyer_id")
+  buyer              Buyer?             @relation(fields: [buyerId], references: [id])
   purposeService     Boolean            @default(false) @map("purpose_service")
   purposeMarketing   Boolean            @default(false) @map("purpose_marketing")
   consentGivenAt     DateTime           @default(now()) @map("consent_given_at")
@@ -742,9 +749,9 @@ model ConsentRecord {
   withdrawalChannel  String?            @map("withdrawal_channel")
   ipAddress          String?            @map("ip_address")
   userAgent          String?            @map("user_agent")
-  seller             Seller?            @relation(fields: [subjectId], references: [id])
   createdAt          DateTime           @default(now()) @map("created_at")
 
+  @@index([subjectType, subjectId])
   @@map("consent_records")
 }
 

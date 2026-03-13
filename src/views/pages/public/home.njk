@@ -68,6 +68,7 @@
   <div id="lead-form-container" class="max-w-md mx-auto">
     <form hx-post="/api/leads" hx-target="#lead-form-container" hx-swap="innerHTML" class="border border-gray-200 rounded-xl p-8">
       <input type="hidden" name="formLoadedAt" value="" id="formLoadedAt">
+      <script nonce="{{ cspNonce }}">document.getElementById('formLoadedAt').value = Date.now();</script>
       <input type="hidden" name="leadSource" value="website">
       {# Honeypot — hidden from real users #}
       <div class="hidden" aria-hidden="true">

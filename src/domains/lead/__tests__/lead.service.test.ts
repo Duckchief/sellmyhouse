@@ -4,6 +4,14 @@ import * as settingsService from '../../shared/settings.service';
 import * as auditService from '../../shared/audit.service';
 import * as notificationService from '../../notification/notification.service';
 
+// Mock prisma so prisma.$transaction executes its callback synchronously with a fake tx
+jest.mock('@/infra/database/prisma', () => ({
+  prisma: {
+    $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>) => fn('mock-tx')),
+  },
+  createId: jest.fn(() => 'mock-id'),
+}));
+
 jest.mock('../lead.repository');
 jest.mock('../../shared/settings.service');
 jest.mock('../../shared/audit.service');
@@ -30,51 +38,59 @@ describe('lead.service', () => {
     userAgent: 'test',
   };
 
-  it('creates seller, consent record, audit log, and notifies admin', async () => {
+  const sellerFixture = {
+    id: 'seller-1',
+    name: 'John Tan',
+    phone: '91234567',
+    email: null,
+    passwordHash: null,
+    agentId: null,
+    status: 'lead',
+    notificationPreference: 'whatsapp_and_email',
+    consentService: true,
+    consentMarketing: false,
+    consentTimestamp: new Date(),
+    consentWithdrawnAt: null,
+    leadSource: 'website',
+    onboardingStep: 0,
+    twoFactorSecret: null,
+    twoFactorEnabled: false,
+    twoFactorBackupCodes: null,
+    failedTwoFactorAttempts: 0,
+    twoFactorLockedUntil: null,
+    failedLoginAttempts: 0,
+    loginLockedUntil: null,
+    passwordResetToken: null,
+    passwordResetExpiry: null,
+    consultationCompletedAt: null,
+    retentionExpiresAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as ReturnType<typeof mockLeadRepo.createSellerLead> extends Promise<infer T> ? T : never;
+
+  const consentFixture = {
+    id: 'consent-1',
+    subjectType: 'seller',
+    subjectId: 'seller-1',
+    sellerId: 'seller-1',
+    buyerId: null,
+    purposeService: true,
+    purposeMarketing: false,
+    consentGivenAt: new Date(),
+    consentWithdrawnAt: null,
+    withdrawalChannel: null,
+    ipAddress: '127.0.0.1',
+    userAgent: 'test',
+    createdAt: new Date(),
+  } as ReturnType<typeof mockLeadRepo.createConsentRecord> extends Promise<infer T> ? T : never;
+
+  it('creates seller and consent record atomically, writes audit log, notifies admin', async () => {
     mockLeadRepo.findActiveSellerByPhone.mockResolvedValue(null);
-    mockLeadRepo.createSellerLead.mockResolvedValue({
-      id: 'seller-1',
-      name: 'John Tan',
-      phone: '91234567',
-      email: null,
-      passwordHash: null,
-      agentId: null,
-      status: 'lead',
-      notificationPreference: 'whatsapp_and_email',
-      consentService: true,
-      consentMarketing: false,
-      consentTimestamp: new Date(),
-      consentWithdrawnAt: null,
-      leadSource: 'website',
-      onboardingStep: 0,
-      twoFactorSecret: null,
-      twoFactorEnabled: false,
-      twoFactorBackupCodes: null,
-      failedTwoFactorAttempts: 0,
-      twoFactorLockedUntil: null,
-      failedLoginAttempts: 0,
-      loginLockedUntil: null,
-      passwordResetToken: null,
-      passwordResetExpiry: null,
-      consultationCompletedAt: null,
-      retentionExpiresAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    mockLeadRepo.createConsentRecord.mockResolvedValue({
-      id: 'consent-1',
-      subjectType: 'seller',
-      subjectId: 'seller-1',
-      purposeService: true,
-      purposeMarketing: false,
-      consentGivenAt: new Date(),
-      consentWithdrawnAt: null,
-      withdrawalChannel: null,
-      ipAddress: '127.0.0.1',
-      userAgent: 'test',
-      createdAt: new Date(),
-    });
-    mockLeadRepo.findAdminAgents.mockResolvedValue([{ id: 'admin-1' }]);
+    mockLeadRepo.createSellerLead.mockResolvedValue(sellerFixture);
+    mockLeadRepo.createConsentRecord.mockResolvedValue(consentFixture);
+    mockLeadRepo.findAdminAgents.mockResolvedValue([
+      { id: 'admin-1', notificationPreference: 'whatsapp_and_email' },
+    ]);
     mockAudit.log.mockResolvedValue(undefined);
     mockNotification.send.mockResolvedValue(undefined);
 
@@ -82,7 +98,8 @@ describe('lead.service', () => {
 
     expect(result.sellerId).toBe('seller-1');
     expect(mockLeadRepo.findActiveSellerByPhone).toHaveBeenCalledWith('91234567');
-    expect(mockLeadRepo.createSellerLead).toHaveBeenCalledWith({
+    // Both repo calls must pass the tx argument (mock-tx) from prisma.$transaction
+    expect(mockLeadRepo.createSellerLead).toHaveBeenCalledWith('mock-tx', {
       name: 'John Tan',
       phone: '91234567',
       consentService: true,
@@ -90,8 +107,8 @@ describe('lead.service', () => {
       leadSource: 'website',
       retentionExpiresAt: expect.any(Date),
     });
-    expect(mockLeadRepo.createConsentRecord).toHaveBeenCalledWith({
-      subjectId: 'seller-1',
+    expect(mockLeadRepo.createConsentRecord).toHaveBeenCalledWith('mock-tx', {
+      sellerId: 'seller-1',
       purposeService: true,
       purposeMarketing: false,
       ipAddress: '127.0.0.1',
@@ -109,6 +126,7 @@ describe('lead.service', () => {
         recipientType: 'agent',
         recipientId: 'admin-1',
         templateName: 'generic',
+        preferredChannel: 'whatsapp',
       }),
       'system',
     );
@@ -129,46 +147,18 @@ describe('lead.service', () => {
   it('logs warning when no admin agents exist', async () => {
     mockLeadRepo.findActiveSellerByPhone.mockResolvedValue(null);
     mockLeadRepo.createSellerLead.mockResolvedValue({
+      ...sellerFixture,
       id: 'seller-2',
-      name: 'Jane',
       phone: '81234567',
-      email: null,
-      passwordHash: null,
-      agentId: null,
-      status: 'lead',
-      notificationPreference: 'whatsapp_and_email',
-      consentService: true,
-      consentMarketing: false,
-      consentTimestamp: new Date(),
-      consentWithdrawnAt: null,
-      leadSource: 'website',
-      onboardingStep: 0,
-      twoFactorSecret: null,
-      twoFactorEnabled: false,
-      twoFactorBackupCodes: null,
-      failedTwoFactorAttempts: 0,
-      twoFactorLockedUntil: null,
-      failedLoginAttempts: 0,
-      loginLockedUntil: null,
-      passwordResetToken: null,
-      passwordResetExpiry: null,
-      consultationCompletedAt: null,
-      retentionExpiresAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      name: 'Jane',
     });
     mockLeadRepo.createConsentRecord.mockResolvedValue({
+      ...consentFixture,
       id: 'consent-2',
-      subjectType: 'seller',
       subjectId: 'seller-2',
-      purposeService: true,
-      purposeMarketing: false,
-      consentGivenAt: new Date(),
-      consentWithdrawnAt: null,
-      withdrawalChannel: null,
+      sellerId: 'seller-2',
       ipAddress: null,
       userAgent: null,
-      createdAt: new Date(),
     });
     mockLeadRepo.findAdminAgents.mockResolvedValue([]);
     mockAudit.log.mockResolvedValue(undefined);
@@ -178,5 +168,35 @@ describe('lead.service', () => {
     expect(result.sellerId).toBe('seller-2');
     // Notification should NOT be called when there are no admin agents
     expect(mockNotification.send).not.toHaveBeenCalled();
+  });
+
+  it('uses email channel when admin notificationPreference is email_only', async () => {
+    mockLeadRepo.findActiveSellerByPhone.mockResolvedValue(null);
+    mockLeadRepo.createSellerLead.mockResolvedValue(sellerFixture);
+    mockLeadRepo.createConsentRecord.mockResolvedValue(consentFixture);
+    mockLeadRepo.findAdminAgents.mockResolvedValue([
+      { id: 'admin-2', notificationPreference: 'email_only' },
+    ]);
+    mockAudit.log.mockResolvedValue(undefined);
+    mockNotification.send.mockResolvedValue(undefined);
+
+    await submitLead(validInput);
+
+    expect(mockNotification.send).toHaveBeenCalledWith(
+      expect.objectContaining({ preferredChannel: 'email' }),
+      'system',
+    );
+  });
+
+  it('rolls back if createConsentRecord throws — error propagates out of submitLead', async () => {
+    mockLeadRepo.findActiveSellerByPhone.mockResolvedValue(null);
+    mockLeadRepo.createSellerLead.mockResolvedValue(sellerFixture);
+    mockLeadRepo.createConsentRecord.mockRejectedValue(new Error('DB constraint error'));
+
+    await expect(submitLead(validInput)).rejects.toThrow('DB constraint error');
+    // In production the real prisma.$transaction rolls back the seller insert.
+    // Here we verify the service propagates the error without swallowing it,
+    // and does NOT proceed to write the audit log.
+    expect(mockAudit.log).not.toHaveBeenCalled();
   });
 });

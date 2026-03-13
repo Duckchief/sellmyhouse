@@ -1,5 +1,5 @@
 import { prisma } from '@/infra/database/prisma';
-import type { Seller } from '@prisma/client';
+import type { Seller, SellerStatus } from '@prisma/client';
 
 export async function findById(id: string): Promise<Seller | null> {
   return prisma.seller.findUnique({
@@ -38,10 +38,18 @@ export async function updateNotificationPreference(
 
 export async function getConsentHistory(sellerId: string) {
   return prisma.consentRecord.findMany({
-    where: {
-      subjectType: 'seller',
-      subjectId: sellerId,
-    },
+    // Legacy: subjectId/subjectType retained in DB until explicit FK migration is complete
+    where: { sellerId },
     orderBy: { consentGivenAt: 'desc' },
+  });
+}
+
+export async function updateSellerStatus(
+  id: string,
+  data: { status: SellerStatus; consultationCompletedAt?: Date },
+): Promise<Seller> {
+  return prisma.seller.update({
+    where: { id },
+    data,
   });
 }

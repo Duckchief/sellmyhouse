@@ -1,6 +1,7 @@
 // src/domains/lead/lead.service.ts
 import { ConflictError } from '../shared/errors';
 import { logger } from '../../infra/logger';
+import { prisma } from '../../infra/database/prisma';
 import * as leadRepo from './lead.repository';
 import * as settingsService from '../shared/settings.service';
 import * as auditService from '../shared/audit.service';
@@ -19,23 +20,27 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
   const retentionExpiresAt = new Date();
   retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + retentionYears);
 
-  // Create seller
-  const seller = await leadRepo.createSellerLead({
-    name: input.name.trim(),
-    phone: input.phone,
-    consentService: input.consentService,
-    consentMarketing: input.consentMarketing,
-    leadSource: input.leadSource,
-    retentionExpiresAt,
-  });
+  // Create seller and consent record atomically — if consent creation fails,
+  // the seller row is rolled back (PDPA: no personal data without consent audit trail)
+  const seller = await prisma.$transaction(async (tx) => {
+    const s = await leadRepo.createSellerLead(tx, {
+      name: input.name.trim(),
+      phone: input.phone,
+      consentService: input.consentService,
+      consentMarketing: input.consentMarketing,
+      leadSource: input.leadSource,
+      retentionExpiresAt,
+    });
 
-  // Create consent record (append-only)
-  await leadRepo.createConsentRecord({
-    subjectId: seller.id,
-    purposeService: input.consentService,
-    purposeMarketing: input.consentMarketing,
-    ipAddress: input.ipAddress,
-    userAgent: input.userAgent,
+    await leadRepo.createConsentRecord(tx, {
+      sellerId: s.id,
+      purposeService: input.consentService,
+      purposeMarketing: input.consentMarketing,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+    });
+
+    return s;
   });
 
   // Audit log
@@ -46,12 +51,14 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     details: { leadSource: input.leadSource, phone: input.phone },
   });
 
-  // Notify admin agents
+  // Notify admin agents via their preferred channel
   const admins = await leadRepo.findAdminAgents();
   if (admins.length === 0) {
     logger.warn('No admin agents found to notify about new lead');
   } else {
     for (const admin of admins) {
+      const preferredChannel =
+        admin.notificationPreference === 'email_only' ? 'email' : 'whatsapp';
       await notificationService.send(
         {
           recipientType: 'agent',
@@ -60,7 +67,7 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
           templateData: {
             message: `New lead: ${input.name} (${input.phone}) from ${input.leadSource}`,
           },
-          preferredChannel: 'in_app',
+          preferredChannel,
         },
         'system',
       );

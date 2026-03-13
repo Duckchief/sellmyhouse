@@ -1,21 +1,29 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../../logger';
-import { AppError } from '../../../domains/shared/errors';
+import { AppError, ConflictError } from '../../../domains/shared/errors';
 
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof AppError) {
     logger.warn({ err, path: req.path }, `${err.name}: ${err.message}`);
 
+    // ConflictError messages can reveal sensitive information (e.g. whether a phone
+    // number is registered). Send a generic client message while retaining the
+    // original message in the server-side log above.
+    const clientMessage =
+      err instanceof ConflictError
+        ? 'Unable to process your submission. Please try again.'
+        : err.message;
+
     if (req.headers['hx-request']) {
       return res.status(err.statusCode).render('partials/error-message', {
-        message: err.message,
+        message: clientMessage,
       });
     }
 
     return res.status(err.statusCode).json({
       error: {
         code: err.code,
-        message: err.message,
+        message: clientMessage,
       },
     });
   }

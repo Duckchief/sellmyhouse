@@ -42,6 +42,7 @@ export const factory = {
     passwordHash?: string;
     role?: 'admin' | 'agent';
     isActive?: boolean;
+    notificationPreference?: 'whatsapp_and_email' | 'email_only';
   }) {
     const id = createId();
     return testPrisma.agent.create({
@@ -54,6 +55,7 @@ export const factory = {
         passwordHash: overrides?.passwordHash ?? '$2b$12$placeholder.hash.for.testing.only',
         role: overrides?.role ?? 'agent',
         isActive: overrides?.isActive ?? true,
+        notificationPreference: overrides?.notificationPreference ?? 'whatsapp_and_email',
       },
     });
   },

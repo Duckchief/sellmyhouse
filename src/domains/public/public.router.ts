@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { HdbService } from '../hdb/service';
 import * as contentService from '../content/content.service';
+import { hdbRateLimiter } from '../../infra/http/middleware/rate-limit';
 
 export const publicRouter = Router();
 
@@ -29,41 +30,48 @@ publicRouter.get('/market-report', async (_req: Request, res: Response, next: Ne
   }
 });
 
-publicRouter.get('/api/hdb/report', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const town = req.query.town as string;
-    const flatType = req.query.flatType as string;
-    const storeyRange = (req.query.storeyRange as string) || undefined;
-    const months = req.query.months ? parseInt(req.query.months as string, 10) : 24;
-
-    if (!town || !flatType) {
-      return res
-        .status(400)
-        .render('partials/public/report-results', { error: 'Town and flat type are required' });
-    }
-
-    const [report, paginated] = await Promise.all([
-      hdbService.getMarketReport({ town, flatType, storeyRange, months }),
-      hdbService.getPaginatedTransactions({ town, flatType, storeyRange, months }, 1, 10),
-    ]);
-
-    if (req.headers['hx-request']) {
-      return res.render('partials/public/report-results', { report, ...paginated });
-    }
-    return res.json({ report });
-  } catch (err) {
-    next(err);
-  }
-});
-
 publicRouter.get(
-  '/api/hdb/transactions',
+  '/api/hdb/report',
+  hdbRateLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const town = req.query.town as string;
       const flatType = req.query.flatType as string;
       const storeyRange = (req.query.storeyRange as string) || undefined;
-      const months = req.query.months ? parseInt(req.query.months as string, 10) : 24;
+      const rawMonths = parseInt(req.query.months as string, 10);
+      const months = isNaN(rawMonths) || rawMonths < 1 ? 24 : Math.min(rawMonths, 240);
+
+      if (!town || !flatType) {
+        return res
+          .status(400)
+          .render('partials/public/report-results', { error: 'Town and flat type are required' });
+      }
+
+      const [report, paginated] = await Promise.all([
+        hdbService.getMarketReport({ town, flatType, storeyRange, months }),
+        hdbService.getPaginatedTransactions({ town, flatType, storeyRange, months }, 1, 10),
+      ]);
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/public/report-results', { report, ...paginated });
+      }
+      return res.json({ report });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+publicRouter.get(
+  '/api/hdb/transactions',
+  hdbRateLimiter,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const town = req.query.town as string;
+      const flatType = req.query.flatType as string;
+      const storeyRange = (req.query.storeyRange as string) || undefined;
+      const rawMonths = parseInt(req.query.months as string, 10);
+      const months = isNaN(rawMonths) || rawMonths < 1 ? 24 : Math.min(rawMonths, 240);
       const page = req.query.page ? Math.max(1, parseInt(req.query.page as string, 10)) : 1;
       const pageSize = 10;
 

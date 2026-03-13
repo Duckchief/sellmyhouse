@@ -78,8 +78,7 @@ describe('AuthService', () => {
 
       expect(authRepo.createConsentRecord).toHaveBeenCalledWith(
         expect.objectContaining({
-          subjectType: 'seller',
-          subjectId: 'new-seller',
+          sellerId: 'new-seller',
           purposeService: true,
           purposeMarketing: false,
           ipAddress: '127.0.0.1',

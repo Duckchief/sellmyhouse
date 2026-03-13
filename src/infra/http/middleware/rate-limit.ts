@@ -30,3 +30,12 @@ export const leadRateLimiter = rateLimit({
   },
   skip: () => process.env.NODE_ENV === 'test',
 });
+
+export const hdbRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please slow down.' } },
+  skip: () => process.env.NODE_ENV === 'test',
+});

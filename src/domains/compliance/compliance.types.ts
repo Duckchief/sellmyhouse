@@ -28,7 +28,9 @@ export interface ConsentWithdrawalResult {
 export interface ConsentRecord {
   id: string;
   subjectType: string;
-  subjectId: string;
+  subjectId: string; // legacy column — retained during migration period
+  sellerId: string | null;
+  buyerId: string | null;
   purposeService: boolean;
   purposeMarketing: boolean;
   consentGivenAt: Date;

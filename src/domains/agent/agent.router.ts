@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import * as agentService from './agent.service';
 import * as agentRepo from './agent.repository';
+import * as sellerService from '@/domains/seller/seller.service';
 import * as caseFlagService from '@/domains/seller/case-flag.service';
 import { validateSellerListQuery } from './agent.validator';
 import {
@@ -254,6 +255,35 @@ agentRouter.post(
       });
 
       res.status(201).json({ flag });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// PUT /agent/sellers/:id/status — update seller status (e.g. lead → engaged)
+agentRouter.put(
+  '/agent/sellers/:id/status',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const VALID_STATUSES = ['lead', 'engaged', 'active', 'completed', 'archived'];
+      const { status } = req.body as { status?: string };
+
+      if (!status || !VALID_STATUSES.includes(status)) {
+        return res
+          .status(400)
+          .json({ error: { code: 'VALIDATION_ERROR', message: 'Invalid status value' } });
+      }
+
+      const user = req.user as AuthenticatedUser;
+      const updated = await sellerService.updateSellerStatus(
+        req.params['id'] as string,
+        status,
+        user.id,
+      );
+
+      return res.status(200).json({ seller: { id: updated.id, status: updated.status } });
     } catch (err) {
       next(err);
     }

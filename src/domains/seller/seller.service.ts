@@ -2,6 +2,7 @@ import * as sellerRepo from './seller.repository';
 import * as notificationRepo from '../notification/notification.repository';
 import * as auditService from '../shared/audit.service';
 import { NotFoundError, ValidationError } from '../shared/errors';
+import type { Seller, SellerStatus } from '@prisma/client';
 import {
   TOTAL_ONBOARDING_STEPS,
   type OnboardingStatus,
@@ -245,9 +246,48 @@ export async function updateNotificationPreference(
   return { notificationPreference: updated.notificationPreference };
 }
 
-// TODO: Implement updateSellerStatus(sellerId, status, agentId) service method.
-// When status transitions to 'engaged', also set consultationCompletedAt = new Date().
-// Required for consultation tracking. Follow-up task: add PATCH /agent/sellers/:id/status route.
+const STATUS_TRANSITIONS: Record<string, string[]> = {
+  lead: ['engaged', 'archived'],
+  engaged: ['active', 'archived'],
+  active: ['completed', 'archived'],
+  completed: ['archived'],
+  archived: [],
+};
+
+export async function updateSellerStatus(
+  sellerId: string,
+  newStatus: string,
+  agentId: string,
+): Promise<Seller> {
+  const seller = await sellerRepo.findById(sellerId);
+  if (!seller) throw new NotFoundError('Seller', sellerId);
+
+  const allowed = STATUS_TRANSITIONS[seller.status] ?? [];
+  if (!allowed.includes(newStatus)) {
+    throw new ValidationError(
+      `Cannot transition seller from '${seller.status}' to '${newStatus}'`,
+    );
+  }
+
+  const updateData: { status: SellerStatus; consultationCompletedAt?: Date } = {
+    status: newStatus as SellerStatus,
+  };
+  if (newStatus === 'engaged') {
+    updateData.consultationCompletedAt = new Date();
+  }
+
+  const updated = await sellerRepo.updateSellerStatus(sellerId, updateData);
+
+  await auditService.log({
+    agentId,
+    action: 'seller.status_changed',
+    entityType: 'seller',
+    entityId: sellerId,
+    details: { previousStatus: seller.status, newStatus },
+  });
+
+  return updated;
+}
 
 // --- Private helpers ---
 

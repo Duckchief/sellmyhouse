@@ -27,7 +27,8 @@ export async function createConsentRecord(data: {
     data: {
       id: createId(),
       subjectType: 'seller',
-      subjectId: data.subjectId,
+      subjectId: data.subjectId, // legacy column — kept for data continuity
+      sellerId: data.subjectId,
       purposeService: data.purposeService,
       purposeMarketing: data.purposeMarketing,
       consentWithdrawnAt: data.consentWithdrawnAt ?? null,
@@ -40,14 +41,16 @@ export async function createConsentRecord(data: {
 
 export async function findLatestConsentRecord(sellerId: string): Promise<ConsentRecord | null> {
   return prisma.consentRecord.findFirst({
-    where: { subjectType: 'seller', subjectId: sellerId },
+    // Legacy: subjectId/subjectType retained in DB until explicit FK migration is complete
+    where: { sellerId },
     orderBy: { consentGivenAt: 'desc' },
   });
 }
 
 export async function findAllConsentRecords(sellerId: string): Promise<ConsentRecord[]> {
   return prisma.consentRecord.findMany({
-    where: { subjectType: 'seller', subjectId: sellerId },
+    // Legacy: subjectId/subjectType retained in DB until explicit FK migration is complete
+    where: { sellerId },
     orderBy: { consentGivenAt: 'asc' },
   });
 }
@@ -307,13 +310,13 @@ export async function findCddRecordsForRetention(
 
 export async function findConsentRecordsForDeletion(
   cutoffDate: Date,
-): Promise<{ id: string; subjectId: string; consentWithdrawnAt: Date | null }[]> {
+): Promise<{ id: string; sellerId: string | null; subjectId: string; consentWithdrawnAt: Date | null }[]> {
   // Withdrawn consent records older than 1 year post-withdrawal
   return prisma.consentRecord.findMany({
     where: {
       consentWithdrawnAt: { lt: cutoffDate, not: null },
     },
-    select: { id: true, subjectId: true, consentWithdrawnAt: true },
+    select: { id: true, sellerId: true, subjectId: true, consentWithdrawnAt: true },
   });
 }
 

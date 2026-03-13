@@ -115,7 +115,7 @@ describe('seller.repository', () => {
 
       expect(result).toEqual(records);
       expect(prisma.consentRecord.findMany).toHaveBeenCalledWith({
-        where: { subjectType: 'seller', subjectId: 'seller-1' },
+        where: { sellerId: 'seller-1' },
         orderBy: { consentGivenAt: 'desc' },
       });
     });

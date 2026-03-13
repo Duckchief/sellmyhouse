@@ -271,8 +271,7 @@ export async function invalidateUserSessions(userId: string, exceptSessionId?: s
 // ─── ConsentRecord ─────────────────────────────────────────
 
 export function createConsentRecord(data: {
-  subjectType: 'seller' | 'buyer';
-  subjectId: string;
+  sellerId: string;
   purposeService: boolean;
   purposeMarketing: boolean;
   ipAddress?: string;
@@ -281,8 +280,9 @@ export function createConsentRecord(data: {
   return prisma.consentRecord.create({
     data: {
       id: createId(),
-      subjectType: data.subjectType,
-      subjectId: data.subjectId,
+      subjectType: 'seller',
+      subjectId: data.sellerId, // legacy column — kept for data continuity
+      sellerId: data.sellerId,
       purposeService: data.purposeService,
       purposeMarketing: data.purposeMarketing,
       ipAddress: data.ipAddress ?? null,

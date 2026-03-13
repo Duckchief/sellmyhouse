@@ -111,7 +111,8 @@ export async function withdrawMarketingConsent(sellerId: string): Promise<void> 
       data: {
         id: createId(),
         subjectType: 'seller',
-        subjectId: sellerId,
+        subjectId: sellerId, // legacy column — kept for data continuity
+        sellerId,
         purposeService: true,
         purposeMarketing: false,
         consentGivenAt: new Date(),

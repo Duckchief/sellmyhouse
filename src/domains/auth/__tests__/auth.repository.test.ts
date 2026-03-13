@@ -284,8 +284,7 @@ describe('AuthRepository', () => {
     it('creates with correct shape including IP and userAgent', async () => {
       prisma.consentRecord.create.mockResolvedValue({ id: 'test-id' });
       await authRepo.createConsentRecord({
-        subjectType: 'seller',
-        subjectId: 's1',
+        sellerId: 's1',
         purposeService: true,
         purposeMarketing: false,
         ipAddress: '127.0.0.1',
@@ -294,7 +293,7 @@ describe('AuthRepository', () => {
       expect(prisma.consentRecord.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           subjectType: 'seller',
-          subjectId: 's1',
+          sellerId: 's1',
           purposeService: true,
           purposeMarketing: false,
           ipAddress: '127.0.0.1',

@@ -260,6 +260,77 @@ describe('seller.service', () => {
     });
   });
 
+  describe('updateSellerStatus', () => {
+    it('transitions lead to engaged and sets consultationCompletedAt', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', status: 'lead' } as Seller);
+      mockedSellerRepo.updateSellerStatus = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        status: 'engaged',
+        consultationCompletedAt: new Date(),
+      } as Seller);
+
+      const result = await sellerService.updateSellerStatus('seller-1', 'engaged', 'agent-1');
+
+      expect(mockedSellerRepo.updateSellerStatus).toHaveBeenCalledWith(
+        'seller-1',
+        expect.objectContaining({ status: 'engaged', consultationCompletedAt: expect.any(Date) }),
+      );
+      expect(result.status).toBe('engaged');
+    });
+
+    it('does not set consultationCompletedAt for non-engaged transitions', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', status: 'engaged' } as Seller);
+      mockedSellerRepo.updateSellerStatus = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        status: 'active',
+      } as Seller);
+
+      await sellerService.updateSellerStatus('seller-1', 'active', 'agent-1');
+
+      const callArg = (mockedSellerRepo.updateSellerStatus as jest.Mock).mock.calls[0][1] as Record<
+        string,
+        unknown
+      >;
+      expect(callArg).not.toHaveProperty('consultationCompletedAt');
+    });
+
+    it('throws ValidationError for invalid status transition', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', status: 'lead' } as Seller);
+
+      await expect(
+        sellerService.updateSellerStatus('seller-1', 'completed', 'agent-1'),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('throws NotFoundError when seller does not exist', async () => {
+      mockedSellerRepo.findById.mockResolvedValue(null);
+
+      await expect(
+        sellerService.updateSellerStatus('bad-id', 'engaged', 'agent-1'),
+      ).rejects.toThrow(NotFoundError);
+    });
+
+    it('writes audit log on status change', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', status: 'lead' } as Seller);
+      mockedSellerRepo.updateSellerStatus = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        status: 'engaged',
+      } as Seller);
+
+      await sellerService.updateSellerStatus('seller-1', 'engaged', 'agent-1');
+
+      expect(mockedAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          agentId: 'agent-1',
+          action: 'seller.status_changed',
+          entityType: 'seller',
+          entityId: 'seller-1',
+          details: expect.objectContaining({ previousStatus: 'lead', newStatus: 'engaged' }),
+        }),
+      );
+    });
+  });
+
   describe('updateNotificationPreference', () => {
     it('updates preference and writes audit log, returns updated seller', async () => {
       const updatedSeller = {

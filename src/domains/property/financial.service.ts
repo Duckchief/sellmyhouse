@@ -146,10 +146,27 @@ export async function getReportForSeller(reportId: string, sellerId: string) {
   const report = await financialRepo.findById(reportId);
   if (!report) throw new NotFoundError('FinancialReport', reportId);
   if (report.sellerId !== sellerId) throw new ForbiddenError('You do not own this report');
-  // TODO: Set disclaimerAcknowledgedAt when seller acknowledges the financial
-  // report disclaimer. Requires a dedicated POST
-  // /seller/financial-reports/:id/acknowledge-disclaimer route.
   return report;
+}
+
+export async function acknowledgeDisclaimer(reportId: string, sellerId: string) {
+  const report = await financialRepo.findById(reportId);
+  if (!report) throw new NotFoundError('FinancialReport', reportId);
+  if (report.sellerId !== sellerId) throw new ForbiddenError('You do not own this report');
+
+  // Idempotent: if already acknowledged, return as-is
+  if (report.disclaimerAcknowledgedAt) return report;
+
+  const updated = await financialRepo.acknowledgeDisclaimer(reportId);
+
+  await auditService.log({
+    action: 'financial_report.disclaimer_acknowledged',
+    entityType: 'financial_report',
+    entityId: reportId,
+    details: { sellerId, acknowledgedAt: updated.disclaimerAcknowledgedAt },
+  });
+
+  return updated;
 }
 
 export async function getReportsForSeller(sellerId: string) {

@@ -88,5 +88,5 @@ export interface SellerSettings {
 export interface UpdateNotificationPreferenceInput {
   sellerId: string;
   preference: 'whatsapp_and_email' | 'email_only';
-  agentId: string;
+  agentId?: string;
 }

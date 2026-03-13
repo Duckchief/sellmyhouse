@@ -310,4 +310,65 @@ describe('financial.service', () => {
       expect(result).toEqual(reports);
     });
   });
+
+  describe('acknowledgeDisclaimer', () => {
+    it('sets disclaimerAcknowledgedAt and writes audit log', async () => {
+      const now = new Date();
+      const report = {
+        id: 'report-1',
+        sellerId: 'seller-1',
+        disclaimerAcknowledgedAt: null,
+      } as unknown as FinancialReport;
+      const updated = { ...report, disclaimerAcknowledgedAt: now } as unknown as FinancialReport;
+      mockRepo.findById.mockResolvedValue(report);
+      mockRepo.acknowledgeDisclaimer.mockResolvedValue(updated);
+
+      const result = await financialService.acknowledgeDisclaimer('report-1', 'seller-1');
+
+      expect(mockRepo.acknowledgeDisclaimer).toHaveBeenCalledWith('report-1');
+      expect(mockAudit.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'financial_report.disclaimer_acknowledged',
+          entityType: 'financial_report',
+          entityId: 'report-1',
+          details: expect.objectContaining({ sellerId: 'seller-1' }),
+        }),
+      );
+      expect(result).toEqual(updated);
+    });
+
+    it('is idempotent: returns existing report without re-writing if already acknowledged', async () => {
+      const report = {
+        id: 'report-1',
+        sellerId: 'seller-1',
+        disclaimerAcknowledgedAt: new Date('2026-01-01'),
+      } as unknown as FinancialReport;
+      mockRepo.findById.mockResolvedValue(report);
+
+      const result = await financialService.acknowledgeDisclaimer('report-1', 'seller-1');
+
+      expect(mockRepo.acknowledgeDisclaimer).not.toHaveBeenCalled();
+      expect(mockAudit.log).not.toHaveBeenCalled();
+      expect(result).toEqual(report);
+    });
+
+    it('throws ForbiddenError when seller does not own the report', async () => {
+      mockRepo.findById.mockResolvedValue({
+        id: 'report-1',
+        sellerId: 'other-seller',
+        disclaimerAcknowledgedAt: null,
+      } as unknown as FinancialReport);
+
+      await expect(
+        financialService.acknowledgeDisclaimer('report-1', 'seller-1'),
+      ).rejects.toThrow('do not own');
+    });
+
+    it('throws NotFoundError when report does not exist', async () => {
+      mockRepo.findById.mockResolvedValue(null);
+      await expect(
+        financialService.acknowledgeDisclaimer('nonexistent', 'seller-1'),
+      ).rejects.toThrow('not found');
+    });
+  });
 });

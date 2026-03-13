@@ -57,6 +57,7 @@ export interface CreatePropertyInput {
   askingPrice?: number;
   slug?: string;
   mopOverrideReason?: string;
+  agentId?: string;
 }
 
 export interface UpdatePropertyInput {

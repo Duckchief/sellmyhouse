@@ -240,7 +240,7 @@ export async function updateNotificationPreference(
     action: 'seller.notification_preference_changed',
     entityType: 'seller',
     entityId: input.sellerId,
-    details: { newPreference: input.preference },
+    details: { newPreference: input.preference, actorType: input.agentId ? 'agent' : 'seller' },
   });
 
   return { notificationPreference: updated.notificationPreference };

@@ -24,8 +24,8 @@ export function validateCalculationInput(body: Record<string, unknown>): Financi
   if (!body.salePrice && body.salePrice !== 0) {
     throw new ValidationError('Sale price is required');
   }
-  if (isNaN(salePrice) || salePrice < 0) {
-    throw new ValidationError('Sale price must be positive');
+  if (isNaN(salePrice) || salePrice <= 0) {
+    throw new ValidationError('Sale price must be greater than zero');
   }
 
   const outstandingLoan = Number(body.outstandingLoan ?? 0);

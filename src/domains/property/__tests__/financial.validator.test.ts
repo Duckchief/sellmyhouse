@@ -23,10 +23,21 @@ describe('financial.validator', () => {
       expect(result.owner1Cpf.oaUsed).toBe(100000);
     });
 
+    it('throws for zero sale price', () => {
+      expect(() => validateCalculationInput({ ...validBody, salePrice: 0 })).toThrow(
+        'Sale price must be greater than zero',
+      );
+    });
+
     it('throws for negative sale price', () => {
       expect(() => validateCalculationInput({ ...validBody, salePrice: -1 })).toThrow(
-        'Sale price must be positive',
+        'Sale price must be greater than zero',
       );
+    });
+
+    it('accepts sale price of 1 (boundary)', () => {
+      const result = validateCalculationInput({ ...validBody, salePrice: 1 });
+      expect(result.salePrice).toBe(1);
     });
 
     it('throws for negative outstanding loan', () => {

@@ -46,6 +46,7 @@ export async function createProperty(input: CreatePropertyInput) {
   // Audit the MOP override when an override reason was provided
   if (hasMopBlock && input.mopOverrideReason) {
     auditService.log({
+      agentId: input.agentId,
       action: 'case_flag.mop_override',
       entityType: 'property',
       entityId: property.id,

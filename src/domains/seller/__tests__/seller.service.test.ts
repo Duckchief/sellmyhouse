@@ -346,7 +346,6 @@ describe('seller.service', () => {
       const result = await sellerService.updateNotificationPreference({
         sellerId: 'seller-1',
         preference: 'email_only',
-        agentId: 'seller-1',
       });
 
       expect(mockedSellerRepo.updateNotificationPreference).toHaveBeenCalledWith(
@@ -357,10 +356,34 @@ describe('seller.service', () => {
         expect.objectContaining({
           action: 'seller.notification_preference_changed',
           entityId: 'seller-1',
-          details: { newPreference: 'email_only' },
+          details: { newPreference: 'email_only', actorType: 'seller' },
         }),
       );
       expect(result).toEqual({ notificationPreference: 'email_only' });
+    });
+
+    it('records actorType: agent when agentId is provided', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({
+        id: 'seller-1',
+        notificationPreference: 'whatsapp_and_email',
+      } as Seller);
+      mockedSellerRepo.updateNotificationPreference = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        notificationPreference: 'email_only',
+      } as Seller);
+
+      await sellerService.updateNotificationPreference({
+        sellerId: 'seller-1',
+        preference: 'email_only',
+        agentId: 'agent-1',
+      });
+
+      expect(mockedAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          agentId: 'agent-1',
+          details: expect.objectContaining({ actorType: 'agent' }),
+        }),
+      );
     });
 
     it('throws NotFoundError when seller does not exist', async () => {
@@ -369,7 +392,6 @@ describe('seller.service', () => {
         sellerService.updateNotificationPreference({
           sellerId: 'bad-id',
           preference: 'email_only',
-          agentId: 'x',
         }),
       ).rejects.toThrow(NotFoundError);
     });

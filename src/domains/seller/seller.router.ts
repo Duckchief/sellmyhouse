@@ -317,7 +317,6 @@ sellerRouter.put(
       const updated = await sellerService.updateNotificationPreference({
         sellerId: user.id,
         preference: req.body.preference as 'whatsapp_and_email' | 'email_only',
-        agentId: user.id,
       });
 
       if (req.headers['hx-request']) {

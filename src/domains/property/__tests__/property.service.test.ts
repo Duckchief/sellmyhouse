@@ -173,11 +173,13 @@ describe('property.service', () => {
         flatModel: 'Model A',
         leaseCommenceDate: 1990,
         mopOverrideReason: 'HDB hardship exemption granted — ref HDB/2026/001',
+        agentId: 'agent-1',
       });
 
       expect(mockedRepo.create).toHaveBeenCalled();
       expect(mockedAudit.log).toHaveBeenCalledWith(
         expect.objectContaining({
+          agentId: 'agent-1',
           action: 'case_flag.mop_override',
           details: expect.objectContaining({
             mopOverrideReason: 'HDB hardship exemption granted — ref HDB/2026/001',

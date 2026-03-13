@@ -42,16 +42,49 @@ publicRouter.get('/api/hdb/report', async (req: Request, res: Response, next: Ne
         .render('partials/public/report-results', { error: 'Town and flat type are required' });
     }
 
-    const report = await hdbService.getMarketReport({ town, flatType, storeyRange, months });
+    const [report, paginated] = await Promise.all([
+      hdbService.getMarketReport({ town, flatType, storeyRange, months }),
+      hdbService.getPaginatedTransactions({ town, flatType, storeyRange, months }, 1, 10),
+    ]);
 
     if (req.headers['hx-request']) {
-      return res.render('partials/public/report-results', { report });
+      return res.render('partials/public/report-results', { report, ...paginated });
     }
     return res.json({ report });
   } catch (err) {
     next(err);
   }
 });
+
+publicRouter.get(
+  '/api/hdb/transactions',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const town = req.query.town as string;
+      const flatType = req.query.flatType as string;
+      const storeyRange = (req.query.storeyRange as string) || undefined;
+      const months = req.query.months ? parseInt(req.query.months as string, 10) : 24;
+      const page = req.query.page ? Math.max(1, parseInt(req.query.page as string, 10)) : 1;
+      const pageSize = 10;
+
+      if (!town || !flatType) {
+        return res.status(400).render('partials/public/transaction-rows', {
+          error: 'Town and flat type are required',
+        });
+      }
+
+      const result = await hdbService.getPaginatedTransactions(
+        { town, flatType, storeyRange, months },
+        page,
+        pageSize,
+      );
+
+      return res.render('partials/public/transaction-rows', { ...result });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 publicRouter.get('/privacy', (_req: Request, res: Response) => {
   res.render('pages/public/privacy');

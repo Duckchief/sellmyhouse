@@ -5,12 +5,12 @@
       {{ "This will permanently replace the agent's name, email, and phone with anonymised values. This action cannot be undone." | t }}
     </p>
     <div class="flex gap-3 justify-end">
-      <button type="button" onclick="document.getElementById('anonymise-modal').remove()" class="px-4 py-2 text-sm border rounded hover:bg-gray-50">{{ "Cancel" | t }}</button>
+      <button type="button" data-action="remove-element" data-target="anonymise-modal" class="px-4 py-2 text-sm border rounded hover:bg-gray-50">{{ "Cancel" | t }}</button>
       <button
         class="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700"
         hx-post="/admin/team/{{ agentId }}/anonymise"
         hx-target="#action-result"
-        hx-on::after-request="document.getElementById('anonymise-modal').remove()"
+        data-remove-on-success="anonymise-modal"
       >{{ "Anonymise" | t }}</button>
     </div>
   </div>

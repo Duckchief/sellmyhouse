@@ -797,6 +797,7 @@ model HdbTransaction {
   createdAt         DateTime  @default(now()) @map("created_at")
 
   @@index([town, flatType, month])
+  @@index([town, flatType, storeyRange, month])
   @@map("hdb_transactions")
 }
 

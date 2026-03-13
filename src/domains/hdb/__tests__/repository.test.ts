@@ -125,6 +125,58 @@ describe('HdbRepository', () => {
     });
   });
 
+  describe('getRecentTransactions', () => {
+    it('fetches with limit and default offset of 0', async () => {
+      mockPrisma.hdbTransaction.findMany.mockResolvedValue([]);
+
+      await repo.getRecentTransactions({ town: 'TAMPINES' }, 10);
+
+      expect(mockPrisma.hdbTransaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 10, skip: 0 }),
+      );
+    });
+
+    it('fetches with explicit offset for pagination', async () => {
+      mockPrisma.hdbTransaction.findMany.mockResolvedValue([]);
+
+      await repo.getRecentTransactions({ town: 'TAMPINES' }, 10, 20);
+
+      expect(mockPrisma.hdbTransaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 10, skip: 20 }),
+      );
+    });
+  });
+
+  describe('countFilteredTransactions', () => {
+    it('counts transactions matching filters', async () => {
+      mockPrisma.hdbTransaction.count.mockResolvedValue(47);
+
+      const result = await repo.countFilteredTransactions({
+        town: 'TAMPINES',
+        flatType: '4 ROOM',
+      });
+
+      expect(result).toBe(47);
+      expect(mockPrisma.hdbTransaction.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ town: 'TAMPINES', flatType: '4 ROOM' }),
+        }),
+      );
+    });
+
+    it('applies month range filter when fromMonth provided', async () => {
+      mockPrisma.hdbTransaction.count.mockResolvedValue(10);
+
+      await repo.countFilteredTransactions({ town: 'T', fromMonth: '2023-01' });
+
+      expect(mockPrisma.hdbTransaction.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ month: { gte: '2023-01' } }),
+        }),
+      );
+    });
+  });
+
   describe('countTransactions', () => {
     it('returns total count', async () => {
       mockPrisma.hdbTransaction.count.mockResolvedValue(972000);

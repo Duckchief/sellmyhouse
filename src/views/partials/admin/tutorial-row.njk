@@ -17,7 +17,7 @@
     </form>
     <a href="/admin/tutorials/{{ tutorial.id }}/edit" class="text-indigo-600 hover:underline text-xs">{{ "Edit" | t }}</a>
     <form method="POST" action="/admin/tutorials/{{ tutorial.id }}/delete" class="inline"
-          onsubmit="return confirm('{{ 'Delete this tutorial?' | t }}')">
+          data-action="confirm-submit" data-message="{{ 'Delete this tutorial?' | t }}">
       <button type="submit" class="text-red-500 hover:underline text-xs">{{ "Delete" | t }}</button>
     </form>
   </td>

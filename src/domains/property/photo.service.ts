@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import { fromBuffer as fileTypeFromBuffer } from 'file-type';
 import { createId } from '@paralleldrive/cuid2';
 import { localStorage } from '../../infra/storage/local-storage';
 import * as propertyRepo from './property.repository';
@@ -21,11 +22,10 @@ export async function validateImage(
   mimeType: string,
   sizeBytes: number,
 ): Promise<{ valid: boolean; error?: string }> {
-  if (!(ALLOWED_MIME_TYPES as readonly string[]).includes(mimeType)) {
-    return {
-      valid: false,
-      error: `Invalid file type. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`,
-    };
+  // Detect MIME type from actual file bytes — client-supplied Content-Type is not trusted
+  const detected = await fileTypeFromBuffer(buffer);
+  if (!detected || !(ALLOWED_MIME_TYPES as readonly string[]).includes(detected.mime)) {
+    return { valid: false, error: 'Invalid file type detected' };
   }
 
   if (sizeBytes > MAX_PHOTO_SIZE_BYTES) {

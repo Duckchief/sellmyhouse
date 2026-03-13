@@ -30,33 +30,12 @@
   <div class="text-xl font-bold">S${{ report.avgPricePerSqm | formatPrice }}/sqm</div>
 </div>
 
-{# Recent transactions table #}
-{% if report.recentTransactions.length > 0 %}
+{# Recent transactions — #transactions-table swapped by HTMX on page turn #}
+{% if total > 0 %}
 <div class="border border-gray-200 rounded-xl p-4 mb-6">
   <h3 class="font-bold mb-4">{{ "Recent Transactions" | t }}</h3>
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b border-gray-200 text-left">
-          <th class="py-2 pr-4">{{ "Block" | t }}</th>
-          <th class="py-2 pr-4">{{ "Street" | t }}</th>
-          <th class="py-2 pr-4">{{ "Storey" | t }}</th>
-          <th class="py-2 pr-4">{{ "Model" | t }}</th>
-          <th class="py-2 text-right">{{ "Price" | t }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for txn in report.recentTransactions %}
-        <tr class="border-b border-gray-100">
-          <td class="py-2 pr-4">{{ txn.block }}</td>
-          <td class="py-2 pr-4">{{ txn.streetName }}</td>
-          <td class="py-2 pr-4">{{ txn.storeyRange }}</td>
-          <td class="py-2 pr-4">{{ txn.flatModel }}</td>
-          <td class="py-2 text-right text-[#c8553d] font-semibold">S${{ txn.resalePrice | formatPrice }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div id="transactions-table">
+    {% include "partials/public/transaction-rows.njk" %}
   </div>
 </div>
 {% endif %}

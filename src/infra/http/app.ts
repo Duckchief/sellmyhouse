@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import express from 'express';
 import nunjucks from 'nunjucks';
 import helmet from 'helmet';
@@ -29,7 +30,13 @@ import { testimonialRouter } from '../../domains/content/testimonial.router';
 import { referralTrackingMiddleware } from './middleware/referral-tracking';
 
 function validateEnv() {
-  const required = ['SESSION_SECRET', 'DATABASE_URL', 'ENCRYPTION_KEY'];
+  const required = [
+    'SESSION_SECRET',
+    'DATABASE_URL',
+    'ENCRYPTION_KEY',
+    'WHATSAPP_WEBHOOK_VERIFY_TOKEN',
+    'JWT_SECRET',
+  ];
   for (const key of required) {
     if (!process.env[key]) {
       throw new Error(`Missing required environment variable: ${key}`);
@@ -67,13 +74,22 @@ export function createApp() {
 
   app.set('view engine', 'njk');
 
+  // Per-request CSP nonce — must be set before helmet so the nonce function can read it
+  app.use((req, res, next) => {
+    res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+    next();
+  });
+
   // Security
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"], // HTMX needs inline for hx-on
+          scriptSrc: [
+            "'self'",
+            (req, res) => `'nonce-${(res as express.Response).locals.cspNonce}'`,
+          ],
           styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
           fontSrc: ["'self'", 'fonts.gstatic.com'],
           imgSrc: ["'self'", 'data:', 'blob:'],

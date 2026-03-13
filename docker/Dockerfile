@@ -16,6 +16,9 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN npx tsc
 
+# Copy self-hosted HTMX
+RUN cp node_modules/htmx.org/dist/htmx.min.js public/js/htmx.min.js
+
 # Build Tailwind CSS
 COPY tailwind.config.ts postcss.config.js ./
 RUN npx tailwindcss -i src/views/styles/input.css -o public/css/output.css --minify

@@ -2,9 +2,18 @@ import * as photoService from '../photo.service';
 import * as propertyRepo from '../property.repository';
 import * as auditService from '../../shared/audit.service';
 import { localStorage } from '../../../infra/storage/local-storage';
+import { fromBuffer as fileTypeFromBuffer } from 'file-type';
 import { NotFoundError, ValidationError } from '../../shared/errors';
 import type { PhotoRecord } from '../property.types';
 import type { Listing } from '@prisma/client';
+
+// ─── Mock file-type ────────────────────────────────────────────────────────────
+
+jest.mock('file-type', () => ({
+  fromBuffer: jest.fn(),
+}));
+
+const mockedFileType = jest.mocked(fileTypeFromBuffer);
 
 // ─── Mock sharp ────────────────────────────────────────────────────────────────
 
@@ -78,7 +87,47 @@ describe('photo.service', () => {
   // ─── validateImage ──────────────────────────────────────────
 
   describe('validateImage', () => {
+    beforeEach(() => {
+      // Default: magic bytes identify a valid JPEG
+      mockedFileType.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
+    });
+
+    // ── New: magic byte detection ──────────────────────────────
+
+    it('rejects when fileTypeFromBuffer returns undefined (unrecognised bytes)', async () => {
+      mockedFileType.mockResolvedValue(undefined);
+      const buffer = Buffer.from('not-an-image');
+      const result = await photoService.validateImage(buffer, 'image/jpeg', 500000);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Invalid file type');
+    });
+
+    it('rejects when detected MIME type is not in ALLOWED_MIME_TYPES', async () => {
+      mockedFileType.mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
+      const buffer = Buffer.from('fake-pdf-bytes');
+      const result = await photoService.validateImage(buffer, 'application/pdf', 500000);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Invalid file type');
+    });
+
+    it('proceeds to size and dimension checks when valid MIME is detected', async () => {
+      // Magic bytes say JPEG — so the type check passes, but size limit fails.
+      // This confirms detection ran and control moved on to subsequent checks.
+      mockedFileType.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
+      const buffer = Buffer.from('fake-jpeg-data');
+      const overLimitSize = 5 * 1024 * 1024 + 1;
+      const result = await photoService.validateImage(buffer, 'image/jpeg', overLimitSize);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('exceeds maximum');
+    });
+
+    // ── Existing tests (now driven by fileTypeFromBuffer mock) ─
+
     it('accepts a valid JPEG image', async () => {
+      // Default mock returns { mime: 'image/jpeg' }
       const buffer = Buffer.from('fake-jpeg-data');
       const result = await photoService.validateImage(buffer, 'image/jpeg', 500000);
 
@@ -87,6 +136,7 @@ describe('photo.service', () => {
     });
 
     it('accepts a valid PNG image', async () => {
+      mockedFileType.mockResolvedValue({ mime: 'image/png', ext: 'png' });
       const buffer = Buffer.from('fake-png-data');
       const result = await photoService.validateImage(buffer, 'image/png', 500000);
 
@@ -95,6 +145,7 @@ describe('photo.service', () => {
     });
 
     it('rejects a non-image mime type', async () => {
+      mockedFileType.mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
       const buffer = Buffer.from('fake-pdf-data');
       const result = await photoService.validateImage(buffer, 'application/pdf', 500000);
 
@@ -104,6 +155,7 @@ describe('photo.service', () => {
     });
 
     it('rejects a file exceeding 5MB', async () => {
+      // Default mock returns valid JPEG; size check fails
       const buffer = Buffer.from('fake-jpeg-data');
       const overLimitSize = 5 * 1024 * 1024 + 1;
       const result = await photoService.validateImage(buffer, 'image/jpeg', overLimitSize);
@@ -123,6 +175,7 @@ describe('photo.service', () => {
         toBuffer: jest.fn().mockResolvedValue(Buffer.from('optimized-image')),
       }));
 
+      // Default mock returns valid JPEG; sharp dimension check fails
       const buffer = Buffer.from('fake-small-jpeg');
       const result = await photoService.validateImage(buffer, 'image/jpeg', 100000);
 
@@ -141,6 +194,7 @@ describe('photo.service', () => {
         toBuffer: jest.fn().mockResolvedValue(Buffer.from('optimized-image')),
       }));
 
+      // Default mock returns valid JPEG
       const buffer = Buffer.from('fake-jpeg');
       const result = await photoService.validateImage(buffer, 'image/jpeg', 100000);
 

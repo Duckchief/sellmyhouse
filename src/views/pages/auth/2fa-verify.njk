@@ -37,7 +37,7 @@
   </div>
 
   <div class="mt-6 border-t pt-4">
-    <button id="toggle-backup" onclick="toggleBackup()" class="text-sm text-indigo-600 hover:text-indigo-500">
+    <button id="toggle-backup" data-action="toggle-backup" class="text-sm text-indigo-600 hover:text-indigo-500">
       {{ "Use a backup code instead" | t }}
     </button>
 
@@ -65,10 +65,4 @@
   </div>
 </div>
 
-<script>
-function toggleBackup() {
-  var section = document.getElementById('backup-section');
-  section.classList.toggle('hidden');
-}
-</script>
 {% endblock %}

@@ -90,13 +90,13 @@
               <label class="flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="viewerType" value="buyer" required
                        class="h-4 w-4 text-blue-600"
-                       onchange="document.getElementById('agent-fields').classList.add('hidden')">
+                       data-action="toggle-agent-fields" data-show="false"
                 <span class="text-sm text-gray-700">{{ "Buyer / Interested Party" | t }}</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="viewerType" value="agent" required
                        class="h-4 w-4 text-blue-600"
-                       onchange="document.getElementById('agent-fields').classList.remove('hidden')">
+                       data-action="toggle-agent-fields" data-show="true"
                 <span class="text-sm text-gray-700">{{ "Property Agent" | t }}</span>
               </label>
             </div>

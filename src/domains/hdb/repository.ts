@@ -58,6 +58,101 @@ export class HdbRepository {
     });
   }
 
+  async getMarketReportStats(filters: HdbTransactionFilters): Promise<{
+    count: number;
+    min: number;
+    max: number;
+    median: number;
+    avgPricePerSqm: number;
+  } | null> {
+    const conditions: string[] = [];
+    const values: (string | number)[] = [];
+    let i = 1;
+
+    if (filters.town) {
+      conditions.push(`town = $${i++}`);
+      values.push(filters.town);
+    }
+    if (filters.flatType) {
+      conditions.push(`flat_type = $${i++}`);
+      values.push(filters.flatType);
+    }
+    if (filters.storeyRange) {
+      conditions.push(`storey_range = $${i++}`);
+      values.push(filters.storeyRange);
+    }
+    if (filters.fromMonth) {
+      conditions.push(`month >= $${i++}`);
+      values.push(filters.fromMonth);
+    }
+    if (filters.toMonth) {
+      conditions.push(`month <= $${i++}`);
+      values.push(filters.toMonth);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    type StatsRow = { count: bigint; min: string; max: string; median: string; avg_psm: string };
+    const rows = await prisma.$queryRawUnsafe<StatsRow[]>(
+      `SELECT
+         COUNT(*)                                                          AS count,
+         MIN(resale_price)                                                 AS min,
+         MAX(resale_price)                                                 AS max,
+         PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY resale_price)        AS median,
+         AVG(resale_price::float / NULLIF(floor_area_sqm, 0))             AS avg_psm
+       FROM hdb_transactions ${where}`,
+      ...values,
+    );
+
+    const row = rows[0];
+    if (!row || Number(row.count) === 0) return null;
+
+    return {
+      count: Number(row.count),
+      min: Math.round(Number(row.min)),
+      max: Math.round(Number(row.max)),
+      median: Math.round(Number(row.median)),
+      avgPricePerSqm: Math.round(Number(row.avg_psm)),
+    };
+  }
+
+  async getRecentTransactions(filters: HdbTransactionFilters, limit = 5, offset = 0) {
+    const where: Record<string, unknown> = {};
+
+    if (filters.town) where.town = filters.town;
+    if (filters.flatType) where.flatType = filters.flatType;
+    if (filters.storeyRange) where.storeyRange = filters.storeyRange;
+    if (filters.fromMonth || filters.toMonth) {
+      const monthFilter: Record<string, string> = {};
+      if (filters.fromMonth) monthFilter.gte = filters.fromMonth;
+      if (filters.toMonth) monthFilter.lte = filters.toMonth;
+      where.month = monthFilter;
+    }
+
+    return prisma.hdbTransaction.findMany({
+      where,
+      orderBy: { month: 'desc' },
+      take: limit,
+      skip: offset,
+    });
+  }
+
+  async countFilteredTransactions(filters: HdbTransactionFilters): Promise<number> {
+    const where: Record<string, unknown> = {};
+
+    if (filters.town) where.town = filters.town;
+    if (filters.flatType) where.flatType = filters.flatType;
+    if (filters.storeyRange) where.storeyRange = filters.storeyRange;
+    if (filters.fromMonth || filters.toMonth) {
+      const monthFilter: Record<string, string> = {};
+      if (filters.fromMonth) monthFilter.gte = filters.fromMonth;
+      if (filters.toMonth) monthFilter.lte = filters.toMonth;
+      where.month = monthFilter;
+    }
+
+    return prisma.hdbTransaction.count({ where });
+  }
+
   async getDistinctTowns(): Promise<string[]> {
     const results = await prisma.hdbTransaction.findMany({
       distinct: ['town'],

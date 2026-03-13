@@ -7,9 +7,9 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "build": "tsc && npm run build:css",
+    "build": "tsc && tsc-alias && npm run build:css",
     "build:css": "tailwindcss -i src/views/styles/input.css -o public/css/output.css --minify",
-    "dev": "concurrently \"tsc --watch\" \"tailwindcss -i src/views/styles/input.css -o public/css/output.css --watch\" \"nodemon dist/server.js\"",
+    "dev": "node -e \"require('child_process').execSync('lsof -ti :3000 | xargs kill -9', {stdio:'ignore'})\" ; concurrently \"tsc --watch\" \"tsc-alias --watch\" \"tailwindcss -i src/views/styles/input.css -o public/css/output.css --watch\" \"nodemon dist/server.js\"",
     "start": "node dist/server.js",
     "test": "jest --config jest.config.ts",
     "test:integration": "jest --config jest.integration.config.ts --runInBand",
@@ -49,7 +49,9 @@
     "express-rate-limit": "^8.3.1",
     "express-session": "^1.19.0",
     "express-validator": "^7.3.1",
+    "file-type": "^16.5.4",
     "helmet": "^8.1.0",
+    "htmx.org": "2.0.4",
     "i18next": "^25.8.17",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.1.1",
@@ -96,6 +98,7 @@
     "tailwindcss": "^3.4.19",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3"
   }
 }

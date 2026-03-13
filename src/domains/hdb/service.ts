@@ -26,15 +26,18 @@ export class HdbService {
     return this.repo.findRecentByTownAndFlatType(town, flatType, months);
   }
 
-  async getMarketReport(params: {
-    town: string;
-    flatType: string;
-    storeyRange?: string;
-    months?: number;
-  }): Promise<HdbMarketReport | null> {
+  async getPaginatedTransactions(
+    params: { town: string; flatType: string; storeyRange?: string; months?: number },
+    page: number,
+    pageSize: number,
+  ): Promise<{
+    transactions: Awaited<ReturnType<HdbRepository['getRecentTransactions']>>;
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }> {
     const months = params.months ?? 24;
-
-    // Build filters with month cutoff
     const filters: HdbTransactionFilters = {
       town: params.town.toUpperCase(),
       flatType: params.flatType,
@@ -44,48 +47,62 @@ export class HdbService {
     if (months > 0) {
       const cutoff = new Date();
       cutoff.setMonth(cutoff.getMonth() - months);
-      const cutoffMonth = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}`;
-      filters.fromMonth = cutoffMonth;
+      filters.fromMonth = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}`;
     }
 
-    const transactions = await this.repo.findTransactions(filters);
+    const offset = (page - 1) * pageSize;
+    const [transactions, total] = await Promise.all([
+      this.repo.getRecentTransactions(filters, pageSize, offset),
+      this.repo.countFilteredTransactions(filters),
+    ]);
 
-    if (transactions.length === 0) {
-      return null;
+    return {
+      transactions,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  async getMarketReport(params: {
+    town: string;
+    flatType: string;
+    storeyRange?: string;
+    months?: number;
+  }): Promise<HdbMarketReport | null> {
+    const months = params.months ?? 24;
+
+    const filters: HdbTransactionFilters = {
+      town: params.town.toUpperCase(),
+      flatType: params.flatType,
+      storeyRange: params.storeyRange,
+    };
+
+    if (months > 0) {
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - months);
+      filters.fromMonth = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}`;
     }
 
-    const count = transactions.length;
-    const min = transactions[0].resalePrice;
-    const max = transactions[count - 1].resalePrice;
+    const [stats, recent] = await Promise.all([
+      this.repo.getMarketReportStats(filters),
+      this.repo.getRecentTransactions(filters, 5),
+    ]);
 
-    // Median calculation
-    let median: Decimal;
-    if (count % 2 === 0) {
-      const a = transactions[count / 2 - 1].resalePrice;
-      const b = transactions[count / 2].resalePrice;
-      median = a.add(b).div(2);
-    } else {
-      median = transactions[Math.floor(count / 2)].resalePrice;
-    }
-
-    // Average price per sqm
-    let totalPricePerSqm = 0;
-    for (const t of transactions) {
-      totalPricePerSqm += t.resalePrice.toNumber() / t.floorAreaSqm;
-    }
-    const avgPricePerSqm = Math.round(totalPricePerSqm / count);
+    if (!stats) return null;
 
     return {
       town: params.town.toUpperCase(),
       flatType: params.flatType,
       storeyRange: params.storeyRange ?? 'All',
       months,
-      count,
-      min,
-      max,
-      median,
-      avgPricePerSqm,
-      recentTransactions: transactions.slice(-5).reverse(),
+      count: stats.count,
+      min: new Decimal(stats.min),
+      max: new Decimal(stats.max),
+      median: new Decimal(stats.median),
+      avgPricePerSqm: stats.avgPricePerSqm,
+      recentTransactions: recent,
     };
   }
 }

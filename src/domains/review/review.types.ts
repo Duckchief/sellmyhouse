@@ -63,4 +63,5 @@ export type ComplianceGate =
   | 'cdd_complete'
   | 'eaa_signed'
   | 'counterparty_cdd'
-  | 'agent_otp_review';
+  | 'agent_otp_review'
+  | 'hdb_complete';

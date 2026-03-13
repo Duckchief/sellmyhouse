@@ -731,3 +731,122 @@ describe('markReferralTransactionComplete', () => {
     expect(mockedRepo.updateReferralStatus).not.toHaveBeenCalled();
   });
 });
+
+// ─── Self-referral guard ──────────────────────────────────────────────────────
+
+describe('linkReferralToLead — self-referral prevention', () => {
+  it('does not link when referralCode belongs to the same seller (self-referral)', async () => {
+    mockedRepo.findReferralByCode.mockResolvedValue({
+      id: 'ref-1',
+      referrerSellerId: 'seller-1',
+      status: 'clicked',
+    } as Referral);
+
+    await contentService.linkReferralToLead('CODE1234', 'seller-1');
+
+    expect(mockedRepo.linkReferredSeller).not.toHaveBeenCalled();
+  });
+
+  it('links normally when referrer and referee are different sellers', async () => {
+    mockedRepo.findReferralByCode.mockResolvedValue({
+      id: 'ref-1',
+      referrerSellerId: 'seller-A',
+      status: 'clicked',
+    } as Referral);
+    mockedRepo.linkReferredSeller.mockResolvedValue({
+      id: 'ref-1',
+      status: 'lead_created',
+    } as Referral);
+
+    await contentService.linkReferralToLead('CODE1234', 'seller-B');
+
+    expect(mockedRepo.linkReferredSeller).toHaveBeenCalledWith('ref-1', 'seller-B');
+  });
+});
+
+// ─── featureTestimonial — approved status guard ───────────────────────────────
+
+describe('featureTestimonial — approved status guard', () => {
+  it('throws ValidationError when testimonial is not approved', async () => {
+    mockedRepo.findTestimonialById.mockResolvedValue({
+      id: 't-1',
+      status: 'pending_review',
+    } as Testimonial);
+
+    await expect(contentService.featureTestimonial('t-1', true)).rejects.toMatchObject({
+      name: 'ValidationError',
+    });
+
+    expect(mockedRepo.setTestimonialDisplay).not.toHaveBeenCalled();
+  });
+
+  it('throws NotFoundError when testimonial does not exist', async () => {
+    mockedRepo.findTestimonialById.mockResolvedValue(null);
+
+    await expect(contentService.featureTestimonial('bad-id', true)).rejects.toMatchObject({
+      name: 'NotFoundError',
+    });
+  });
+
+  it('sets displayOnWebsite when testimonial is approved', async () => {
+    mockedRepo.findTestimonialById.mockResolvedValue({
+      id: 't-1',
+      status: 'approved',
+    } as Testimonial);
+    mockedRepo.setTestimonialDisplay.mockResolvedValue({ id: 't-1' } as Testimonial);
+
+    await contentService.featureTestimonial('t-1', true);
+
+    expect(mockedRepo.setTestimonialDisplay).toHaveBeenCalledWith('t-1', true);
+  });
+});
+
+// ─── rejectTestimonial — notification to seller ───────────────────────────────
+
+jest.mock('@/domains/notification/notification.service');
+const mockedNotification = jest.mocked(
+  jest.requireMock(
+    '@/domains/notification/notification.service',
+  ) as typeof import('@/domains/notification/notification.service'),
+);
+
+describe('rejectTestimonial — seller notification', () => {
+  beforeEach(() => {
+    mockedNotification.send = jest.fn().mockResolvedValue(undefined);
+  });
+
+  it('sends testimonial_rejected notification to seller after rejection', async () => {
+    mockedRepo.updateTestimonialStatus.mockResolvedValue({
+      id: 't-1',
+      sellerId: 'seller-1',
+      status: 'rejected',
+    } as Testimonial);
+
+    await contentService.rejectTestimonial('t-1', 'agent-1');
+
+    // Fire-and-forget — wait for the microtask queue to flush
+    await Promise.resolve();
+
+    expect(mockedNotification.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientType: 'seller',
+        recipientId: 'seller-1',
+        templateName: 'testimonial_rejected',
+      }),
+      'agent-1',
+    );
+  });
+
+  it('uses system as agentId when none provided', async () => {
+    mockedRepo.updateTestimonialStatus.mockResolvedValue({
+      id: 't-1',
+      sellerId: 'seller-1',
+      status: 'rejected',
+    } as Testimonial);
+
+    await contentService.rejectTestimonial('t-1');
+    await Promise.resolve();
+
+    expect(mockedNotification.send).toHaveBeenCalledWith(expect.anything(), 'system');
+  });
+});

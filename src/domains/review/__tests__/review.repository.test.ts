@@ -1,4 +1,16 @@
-import { mapMcsToFrs, buildAddress, buildMarketContentLabel } from '../review.repository';
+jest.mock('@/infra/database/prisma', () => ({
+  prisma: {
+    listing: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+  },
+}));
+
+import { prisma } from '@/infra/database/prisma';
+import { mapMcsToFrs, buildAddress, buildMarketContentLabel, approveListingDescription } from '../review.repository';
+
+const mockPrisma = jest.mocked(prisma);
 
 describe('mapMcsToFrs', () => {
   it('maps published to sent', () => {
@@ -43,5 +55,60 @@ describe('buildMarketContentLabel', () => {
     expect(buildMarketContentLabel('TAMPINES', '4 ROOM', '2026-W11')).toBe(
       'TAMPINES — 4 ROOM (2026-W11)',
     );
+  });
+});
+
+describe('approveListingDescription', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('sets aiDescriptionStatus to approved and copies aiDescription to description', async () => {
+    mockPrisma.listing.findUnique.mockResolvedValue({
+      aiDescription: 'AI generated text',
+    } as never);
+    mockPrisma.listing.update.mockResolvedValue({} as never);
+
+    await approveListingDescription('listing-1', 'agent-1');
+
+    expect(mockPrisma.listing.update).toHaveBeenCalledWith({
+      where: { id: 'listing-1' },
+      data: expect.objectContaining({
+        aiDescriptionStatus: 'approved',
+        description: 'AI generated text',
+        descriptionApprovedAt: expect.any(Date),
+        descriptionApprovedByAgentId: 'agent-1',
+      }),
+    });
+  });
+
+  it('sets descriptionApprovedAt on approval', async () => {
+    mockPrisma.listing.findUnique.mockResolvedValue({ aiDescription: 'text' } as never);
+    mockPrisma.listing.update.mockResolvedValue({} as never);
+
+    await approveListingDescription('listing-1', 'agent-1');
+
+    const callData = mockPrisma.listing.update.mock.calls[0][0].data as Record<string, unknown>;
+    expect(callData.descriptionApprovedAt).toBeInstanceOf(Date);
+  });
+
+  it('does not overwrite description when aiDescription is null', async () => {
+    mockPrisma.listing.findUnique.mockResolvedValue({ aiDescription: null } as never);
+    mockPrisma.listing.update.mockResolvedValue({} as never);
+
+    await approveListingDescription('listing-1', 'agent-1');
+
+    const callData = mockPrisma.listing.update.mock.calls[0][0].data as Record<string, unknown>;
+    expect(callData).not.toHaveProperty('description');
+  });
+
+  it('does not overwrite description when listing is not found', async () => {
+    mockPrisma.listing.findUnique.mockResolvedValue(null as never);
+    mockPrisma.listing.update.mockResolvedValue({} as never);
+
+    await approveListingDescription('listing-1', 'agent-1');
+
+    const callData = mockPrisma.listing.update.mock.calls[0][0].data as Record<string, unknown>;
+    expect(callData).not.toHaveProperty('description');
   });
 });

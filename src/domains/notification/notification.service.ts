@@ -12,6 +12,7 @@ import type {
 import { NOTIFICATION_TEMPLATES, WHATSAPP_TEMPLATE_STATUS } from './notification.templates';
 import * as auditService from '../shared/audit.service';
 import * as complianceService from '../compliance/compliance.service';
+import { NotFoundError, ForbiddenError } from '../shared/errors';
 
 async function resolveChannel(
   recipientId: string,
@@ -286,8 +287,17 @@ export async function countUnreadNotifications(
   return notificationRepo.countUnreadForRecipient(recipientType, recipientId);
 }
 
-export async function markAsRead(notificationId: string) {
-  return notificationRepo.markAsRead(notificationId);
+export async function markAsRead(
+  notificationId: string,
+  recipientId: string,
+  recipientType: 'seller' | 'agent',
+): Promise<void> {
+  const notification = await notificationRepo.findById(notificationId);
+  if (!notification) throw new NotFoundError('Notification', notificationId);
+  if (notification.recipientId !== recipientId || notification.recipientType !== recipientType) {
+    throw new ForbiddenError("Cannot mark another user's notification as read");
+  }
+  await notificationRepo.markAsRead(notificationId);
 }
 
 export function verifyWebhookSignature(rawBody: Buffer, signature: string | undefined): boolean {

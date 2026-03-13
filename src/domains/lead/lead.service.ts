@@ -57,8 +57,7 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     logger.warn('No admin agents found to notify about new lead');
   } else {
     for (const admin of admins) {
-      const preferredChannel =
-        admin.notificationPreference === 'email_only' ? 'email' : 'whatsapp';
+      const preferredChannel = admin.notificationPreference === 'email_only' ? 'email' : 'whatsapp';
       await notificationService.send(
         {
           recipientType: 'agent',

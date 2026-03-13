@@ -17,6 +17,9 @@ import type { SellerListFilter } from './agent.types';
 
 export const agentRouter = Router();
 
+// Group-level 2FA guard — defence in depth; individual routes also include requireTwoFactor via agentAuth
+agentRouter.use(requireTwoFactor());
+
 const agentAuth = [requireAuth(), requireRole('agent', 'admin'), requireTwoFactor()];
 
 /** Helper: returns agentId for RBAC filtering, or undefined for admin (sees all) */

@@ -42,17 +42,16 @@ export function registerReferralJobs() {
     'referral-completion-daily',
     '0 2 * * *', // 2am SGT daily
     async () => {
-      // Find completed transactions whose referred sellers haven't been marked yet
-      const completed = await contentRepo.findAllReferrals();
-      const pending = completed.filter((r) => r.status === 'lead_created' && r.referredSellerId);
-      for (const referral of pending) {
+      // Only mark referrals where the referred seller has actually completed a transaction
+      const eligible = await contentRepo.findReferralsWithCompletedTransactions();
+      for (const referral of eligible) {
         if (referral.referredSellerId) {
           await markReferralTransactionComplete(referral.referredSellerId).catch((err) => {
             logger.warn({ err, referralId: referral.id }, 'Failed to mark referral complete');
           });
         }
       }
-      logger.info({ count: pending.length }, 'Referral completion job finished');
+      logger.info({ count: eligible.length }, 'Referral completion job finished');
     },
     'Asia/Singapore',
   );

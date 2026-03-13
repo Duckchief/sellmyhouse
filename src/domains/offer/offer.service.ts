@@ -27,9 +27,7 @@ async function assertOfferOwnership(
   if (!property) throw new NotFoundError('Property', propertyId);
   const assignedAgentId = property.seller?.agentId;
   if (assignedAgentId !== callerAgentId) {
-    throw new ForbiddenError(
-      'You are not authorised to manage offers for this property',
-    );
+    throw new ForbiddenError('You are not authorised to manage offers for this property');
   }
 }
 
@@ -69,17 +67,11 @@ function buildOfferAnalysisPrompt(params: {
 export async function createOffer(input: CreateOfferServiceInput) {
   const listing = await propertyRepo.findActiveListingForProperty(input.propertyId);
   if (!listing) {
-    throw new ValidationError(
-      'Offers can only be submitted for properties with an active listing',
-    );
+    throw new ValidationError('Offers can only be submitted for properties with an active listing');
   }
 
   const offerId = createId();
 
-  // TODO: Anonymisation job required. On schedule, null buyerName and
-  // buyerPhone on Offer records where retentionExpiresAt < now() and
-  // transaction is fallen_through or completed.
-  // See: src/infra/jobs/ (to be implemented).
   const retentionYears = await settingsService.getNumber('data_retention_years', 6);
   const retentionExpiresAt = new Date();
   retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + retentionYears);
@@ -245,11 +237,7 @@ export async function rejectOffer(input: { offerId: string; agentId: string; rol
   return updated;
 }
 
-export async function getOffersForProperty(
-  propertyId: string,
-  agentId: string,
-  role: string,
-) {
+export async function getOffersForProperty(propertyId: string, agentId: string, role: string) {
   await assertOfferOwnership(propertyId, agentId, role);
   return offerRepo.findByPropertyId(propertyId);
 }

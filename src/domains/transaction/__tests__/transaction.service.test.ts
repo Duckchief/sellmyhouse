@@ -8,7 +8,7 @@ import * as portalService from '@/domains/property/portal.service';
 import * as propertyService from '@/domains/property/property.service';
 import * as viewingService from '@/domains/viewing/viewing.service';
 import * as offerService from '@/domains/offer/offer.service';
-import * as complianceRepo from '@/domains/compliance/compliance.repository';
+import * as complianceService from '@/domains/compliance/compliance.service';
 import * as reviewService from '@/domains/review/review.service';
 import { ValidationError, ConflictError, ComplianceError } from '@/domains/shared/errors';
 
@@ -20,7 +20,7 @@ jest.mock('@/domains/property/portal.service');
 jest.mock('@/domains/property/property.service');
 jest.mock('@/domains/viewing/viewing.service');
 jest.mock('@/domains/offer/offer.service');
-jest.mock('@/domains/compliance/compliance.repository');
+jest.mock('@/domains/compliance/compliance.service');
 jest.mock('@/domains/review/review.service');
 jest.mock('@/infra/storage/local-storage', () => ({
   localStorage: {
@@ -39,7 +39,7 @@ const mockPortalService = jest.mocked(portalService);
 const mockPropertyService = jest.mocked(propertyService);
 const mockViewingService = jest.mocked(viewingService);
 const mockOfferService = jest.mocked(offerService);
-const mockComplianceRepo = jest.mocked(complianceRepo);
+const mockComplianceService = jest.mocked(complianceService);
 const mockReviewService = jest.mocked(reviewService);
 
 function makeTransaction(overrides: Record<string, unknown> = {}) {
@@ -93,7 +93,7 @@ describe('transaction.service', () => {
       status: 'accepted',
     } as never);
     // Default: no seller CDD record (H5)
-    mockComplianceRepo.findLatestSellerCddRecord.mockResolvedValue(null);
+    mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(null);
     // Default: Gate 3 passes (H3)
     mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
     // Default: property address for L5
@@ -157,7 +157,7 @@ describe('transaction.service', () => {
     it('sets sellerCddRecordId from the sellers latest CDD record', async () => {
       const tx = makeTransaction();
       mockTxRepo.createTransaction.mockResolvedValue(tx as never);
-      mockComplianceRepo.findLatestSellerCddRecord.mockResolvedValue({
+      mockComplianceService.findLatestSellerCddRecord.mockResolvedValue({
         id: 'cdd-1',
         verifiedAt: new Date(),
       } as never);
@@ -337,7 +337,120 @@ describe('transaction.service', () => {
         agentId: 'agent-1',
       });
 
-      expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith('tx-1', 'option_exercised', undefined);
+      expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
+        'tx-1',
+        'option_exercised',
+        undefined,
+      );
+    });
+
+    it('throws ComplianceError when advancing to completed without HDB approval_granted (Gate 5)', async () => {
+      const tx = makeTransaction({ status: 'completing' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      // Gate 3 passes, Gate 5 fails
+      mockReviewService.checkComplianceGate
+        .mockResolvedValueOnce(undefined) // counterparty_cdd
+        .mockRejectedValueOnce(
+          new ComplianceError(
+            'Gate 5: HDB application must be approved (approval_granted) before transaction can be completed',
+          ),
+        );
+
+      await expect(
+        txService.advanceTransactionStatus({
+          transactionId: 'tx-1',
+          status: 'completed',
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow(ComplianceError);
+
+      expect(mockTxRepo.updateTransactionStatus).not.toHaveBeenCalled();
+    });
+
+    it('Gate 5 is not checked when advancing to non-completed status', async () => {
+      const tx = makeTransaction({ status: 'option_issued' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'option_exercised',
+      } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'option_exercised',
+        agentId: 'agent-1',
+      });
+
+      // checkComplianceGate should only be called once (Gate 3), not twice
+      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledTimes(1);
+      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith('counterparty_cdd', 'tx-1');
+    });
+
+    it('advances to completed when both Gate 3 and Gate 5 pass', async () => {
+      const tx = makeTransaction({ status: 'completing' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'completed',
+        completionDate: new Date(),
+      } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'completed',
+        agentId: 'agent-1',
+      });
+
+      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith('counterparty_cdd', 'tx-1');
+      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith('hdb_complete', 'tx-1');
+      expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
+        'tx-1',
+        'completed',
+        expect.any(Date),
+      );
+    });
+
+    it('calls refreshCddRetentionOnCompletion with (transactionId, sellerId) when advancing to completed', async () => {
+      const tx = makeTransaction({ status: 'completing' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
+      mockComplianceService.refreshCddRetentionOnCompletion.mockResolvedValue(undefined);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'completed',
+        completionDate: new Date(),
+      } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'completed',
+        agentId: 'agent-1',
+      });
+
+      expect(mockComplianceService.refreshCddRetentionOnCompletion).toHaveBeenCalledWith(
+        'tx-1',
+        'seller-1',
+      );
+    });
+
+    it('does NOT call refreshCddRetentionOnCompletion when advancing to option_exercised', async () => {
+      const tx = makeTransaction({ status: 'option_issued' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'option_exercised',
+      } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'option_exercised',
+        agentId: 'agent-1',
+      });
+
+      expect(mockComplianceService.refreshCddRetentionOnCompletion).not.toHaveBeenCalled();
     });
   });
 
@@ -419,7 +532,10 @@ describe('transaction.service', () => {
     it('notifies seller when hdbApplicationStatus is set', async () => {
       const tx = makeTransaction();
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateHdbTracking.mockResolvedValue({ ...tx, hdbApplicationStatus: 'application_submitted' } as never);
+      mockTxRepo.updateHdbTracking.mockResolvedValue({
+        ...tx,
+        hdbApplicationStatus: 'application_submitted',
+      } as never);
       mockPropertyService.getPropertyById.mockResolvedValue({
         block: '123',
         street: 'Ang Mo Kio Ave 1',
@@ -490,7 +606,10 @@ describe('transaction.service', () => {
         videoCallConfirmedAt: new Date(),
         signedCopyPath: null,
       } as never);
-      mockTxRepo.updateOtpReview.mockResolvedValue({ ...otp, agentReviewedAt: new Date() } as never);
+      mockTxRepo.updateOtpReview.mockResolvedValue({
+        ...otp,
+        agentReviewedAt: new Date(),
+      } as never);
 
       await txService.markOtpReviewed({ transactionId: 'tx-1', agentId: 'agent-1' });
 

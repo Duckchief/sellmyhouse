@@ -1,5 +1,10 @@
 // src/domains/transaction/transaction.types.ts
-import type { TransactionStatus, OtpStatus, InvoiceStatus, HdbApplicationStatus } from '@prisma/client';
+import type {
+  TransactionStatus,
+  OtpStatus,
+  InvoiceStatus,
+  HdbApplicationStatus,
+} from '@prisma/client';
 
 export type { TransactionStatus, OtpStatus, InvoiceStatus, HdbApplicationStatus };
 

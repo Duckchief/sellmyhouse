@@ -530,4 +530,57 @@ describe('NotificationService', () => {
       );
     });
   });
+
+  describe('markAsRead — ownership enforcement', () => {
+    it('succeeds when recipientId and recipientType match', async () => {
+      notificationRepo.findById = jest.fn().mockResolvedValue({
+        id: 'notif-1',
+        recipientId: 'seller-1',
+        recipientType: 'seller',
+      });
+      notificationRepo.markAsRead = jest.fn().mockResolvedValue({});
+
+      await expect(service.markAsRead('notif-1', 'seller-1', 'seller')).resolves.toBeUndefined();
+
+      expect(notificationRepo.markAsRead).toHaveBeenCalledWith('notif-1');
+    });
+
+    it('throws ForbiddenError when recipientId does not match', async () => {
+      notificationRepo.findById = jest.fn().mockResolvedValue({
+        id: 'notif-1',
+        recipientId: 'seller-2',
+        recipientType: 'seller',
+      });
+
+      await expect(service.markAsRead('notif-1', 'seller-1', 'seller')).rejects.toMatchObject({
+        name: 'ForbiddenError',
+      });
+
+      expect(notificationRepo.markAsRead).not.toHaveBeenCalled();
+    });
+
+    it('throws ForbiddenError when recipientType does not match', async () => {
+      notificationRepo.findById = jest.fn().mockResolvedValue({
+        id: 'notif-1',
+        recipientId: 'seller-1',
+        recipientType: 'agent',
+      });
+
+      await expect(service.markAsRead('notif-1', 'seller-1', 'seller')).rejects.toMatchObject({
+        name: 'ForbiddenError',
+      });
+
+      expect(notificationRepo.markAsRead).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundError for unknown notificationId', async () => {
+      notificationRepo.findById = jest.fn().mockResolvedValue(null);
+
+      await expect(service.markAsRead('unknown-id', 'seller-1', 'seller')).rejects.toMatchObject({
+        name: 'NotFoundError',
+      });
+
+      expect(notificationRepo.markAsRead).not.toHaveBeenCalled();
+    });
+  });
 });

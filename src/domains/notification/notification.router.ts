@@ -37,7 +37,12 @@ notificationRouter.post(
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      await notificationService.markAsRead(req.params.id as string);
+      const user = req.user as AuthenticatedUser;
+      await notificationService.markAsRead(
+        req.params.id as string,
+        user.id,
+        user.role === 'seller' ? 'seller' : 'agent',
+      );
       res.json({ success: true });
     } catch (err) {
       next(err);

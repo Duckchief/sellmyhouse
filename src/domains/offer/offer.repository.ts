@@ -1,12 +1,12 @@
 import { prisma } from '@/infra/database/prisma';
 import { createId } from '@paralleldrive/cuid2';
-import type { OfferStatus, Prisma } from '@prisma/client';
+import type { Offer, OfferStatus, Prisma } from '@prisma/client';
 
 interface CreateOfferData {
   id?: string;
   propertyId: string;
-  buyerName: string;
-  buyerPhone: string;
+  buyerName: string | null;
+  buyerPhone: string | null;
   buyerAgentName?: string | null;
   buyerAgentCeaReg?: string | null;
   isCoBroke?: boolean;
@@ -29,8 +29,8 @@ export async function create(data: CreateOfferData) {
     data: {
       id: data.id ?? createId(),
       propertyId: data.propertyId,
-      buyerName: data.buyerName,
-      buyerPhone: data.buyerPhone,
+      buyerName: data.buyerName ?? null,
+      buyerPhone: data.buyerPhone ?? null,
       buyerAgentName: data.buyerAgentName ?? null,
       buyerAgentCeaReg: data.buyerAgentCeaReg ?? null,
       isCoBroke: data.isCoBroke ?? false,
@@ -127,5 +127,34 @@ export async function expirePendingAndCounteredSiblingsTx(
       status: { in: ['pending', 'countered'] },
     },
     data: { status: 'expired' },
+  });
+}
+
+/**
+ * Returns all Offer records where retentionExpiresAt is in the past
+ * and at least one PII field (buyerName or buyerPhone) is not yet nulled.
+ * Used by the anonymisation job to find records that need PII erasure.
+ */
+export async function findOffersForAnonymisation(): Promise<Offer[]> {
+  return prisma.offer.findMany({
+    where: {
+      retentionExpiresAt: { lt: new Date() },
+      OR: [
+        { buyerName: { not: null } },
+        { buyerPhone: { not: null } },
+      ],
+    },
+  });
+}
+
+/**
+ * Nulls buyerName and buyerPhone on the given Offer record.
+ * This is the PDPA-compliant anonymisation step — called by the anonymisation job
+ * after retentionExpiresAt has passed.
+ */
+export async function anonymiseOfferPii(offerId: string): Promise<void> {
+  await prisma.offer.update({
+    where: { id: offerId },
+    data: { buyerName: null, buyerPhone: null },
   });
 }

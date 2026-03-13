@@ -11,7 +11,7 @@ import { localStorage } from '@/infra/storage/local-storage';
 import { NotFoundError, ValidationError, ConflictError } from '@/domains/shared/errors';
 import { OTP_TRANSITIONS, TRANSACTION_STATUS_ORDER } from './transaction.types';
 import * as offerService from '@/domains/offer/offer.service';
-import * as complianceRepo from '@/domains/compliance/compliance.repository';
+import * as complianceService from '@/domains/compliance/compliance.service';
 import { checkComplianceGate } from '@/domains/review/review.service';
 import type {
   CreateTransactionInput,
@@ -36,7 +36,7 @@ export async function createTransaction(input: CreateTransactionInput) {
   }
 
   // H5: Look up seller CDD record for audit trail
-  const sellerCdd = await complianceRepo.findLatestSellerCddRecord(input.sellerId);
+  const sellerCdd = await complianceService.findLatestSellerCddRecord(input.sellerId);
 
   const tx = await txRepo.createTransaction({
     id: createId(),
@@ -104,6 +104,13 @@ export async function advanceTransactionStatus(input: {
   // Passes transaction.id as entityId; checkComplianceGate uses it as the CDD subject lookup key
   await checkComplianceGate('counterparty_cdd', tx.id);
 
+  // Gate 5: HDB approval required before marking completed
+  if (input.status === 'completed') {
+    await checkComplianceGate('hdb_complete', tx.id);
+    // Refresh CDD retention to ensure 5-year minimum from actual completion (AML/CFT)
+    await complianceService.refreshCddRetentionOnCompletion(tx.id, tx.sellerId);
+  }
+
   const completionDate = input.status === 'completed' ? new Date() : null;
 
   const updated = await txRepo.updateTransactionStatus(
@@ -141,9 +148,7 @@ async function handleFallenThrough(propertyId: string, transactionId: string, ag
 
   // 5. Alert agent to manually delist from live portals
   const property = await propertyService.getPropertyById(propertyId);
-  const address = property
-    ? `${property.block} ${property.street}, ${property.town}`
-    : propertyId;
+  const address = property ? `${property.block} ${property.street}, ${property.town}` : propertyId;
   await notificationService.send(
     {
       recipientType: 'agent',
@@ -333,9 +338,7 @@ export async function markOtpReviewed(input: {
   // Gate 4: video call must be confirmed on the linked EAA before agent OTP review
   const eaa = await txRepo.findEaaByTransactionId(input.transactionId);
   if (!eaa?.videoCallConfirmedAt) {
-    throw new ValidationError(
-      'Video call with seller must be confirmed before reviewing OTP',
-    );
+    throw new ValidationError('Video call with seller must be confirmed before reviewing OTP');
   }
 
   const updated = await txRepo.updateOtpReview(otp.id, new Date(), input.notes);

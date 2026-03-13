@@ -66,7 +66,11 @@ describe('portal.router', () => {
         .set('HX-Request', 'true');
 
       expect(res.status).toBe(200);
-      expect(mockPortalService.getPortalListings).toHaveBeenCalledWith('listing-1', 'agent-1', 'agent');
+      expect(mockPortalService.getPortalListings).toHaveBeenCalledWith(
+        'listing-1',
+        'agent-1',
+        'agent',
+      );
     });
   });
 

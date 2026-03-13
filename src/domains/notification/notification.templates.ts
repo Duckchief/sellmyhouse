@@ -98,7 +98,11 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationTemplateName, Notificati
   },
   post_completion_day14: {
     subject: 'Thinking of Your Next Property Move?',
-    body: 'Thinking of your next property move? We can help with your next purchase.',
+    body: 'Thinking of your next property move? We can help with your next purchase. Know someone selling? Share your referral link: {{referralLink}}',
+  },
+  testimonial_rejected: {
+    subject: 'Regarding Your Testimonial Submission',
+    body: 'Thank you for submitting your testimonial. Unfortunately, it could not be published at this time. {{reason}}',
   },
   password_reset: {
     subject: 'Reset your SellMyHomeNow password',
@@ -135,6 +139,7 @@ export const WHATSAPP_TEMPLATE_STATUS: Record<NotificationTemplateName, WhatsApp
   invoice_uploaded: 'pending',
   agreement_sent: 'pending',
   financial_report_ready: 'pending',
+  testimonial_rejected: 'pending',
   password_reset: 'pending',
   generic: 'pending',
 };

@@ -11,6 +11,8 @@ import type {
   DncAllowedResult,
   WithdrawConsentInput,
   ConsentWithdrawalResult,
+  CreateCddRecordInput,
+  CddRecord,
 } from './compliance.types';
 
 // ─── DNC Gate ────────────────────────────────────────────────────────────────
@@ -420,7 +422,33 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     );
   }
 
-  // 6. Stale data correction requests — alert agent (not deletion)
+  // 6. VerifiedViewers past retention period — anonymise PII fields
+  const expiredViewers = await complianceRepo.findVerifiedViewersForRetention(now);
+  for (const viewer of expiredViewers) {
+    await complianceRepo.anonymiseVerifiedViewerRecords([viewer.id]);
+    await auditService.log({
+      action: 'compliance.viewer_pii_anonymised',
+      entityType: 'verified_viewer',
+      entityId: viewer.id,
+      details: { reason: 'retentionExpiresAt exceeded' },
+    });
+    flaggedCount++;
+  }
+
+  // 7. Buyers past retention period — anonymise PII fields
+  const expiredBuyers = await complianceRepo.findBuyersForRetention(now);
+  for (const buyer of expiredBuyers) {
+    await complianceRepo.anonymiseBuyerRecords([buyer.id]);
+    await auditService.log({
+      action: 'compliance.buyer_pii_anonymised',
+      entityType: 'buyer',
+      entityId: buyer.id,
+      details: { reason: 'retentionExpiresAt exceeded' },
+    });
+    flaggedCount++;
+  }
+
+  // 8. Stale data correction requests — alert agent (not deletion)
   const correctionCutoff = new Date(now);
   correctionCutoff.setDate(correctionCutoff.getDate() - 30);
   const staleCorrections = await complianceRepo.findStaleCorrectionRequests(correctionCutoff);
@@ -526,9 +554,28 @@ export async function executeHardDelete(input: {
       await complianceRepo.hardDeleteConsentRecord(request.targetId);
       break;
 
-    case 'transaction':
+    case 'transaction': {
+      const filePaths = await complianceRepo.collectTransactionFilePaths(request.targetId);
       await complianceRepo.hardDeleteTransaction(request.targetId);
+      for (const filePath of filePaths) {
+        try {
+          await localStorage.delete(filePath);
+        } catch (err) {
+          await auditService.log({
+            action: 'compliance.file_unlink_failed',
+            entityType: 'transaction',
+            entityId: request.targetId,
+            details: {
+              filePath,
+              error: err instanceof Error ? err.message : String(err),
+              requestId: input.requestId,
+            },
+            agentId: input.agentId,
+          });
+        }
+      }
       break;
+    }
 
     default:
       throw new ComplianceError(`Unknown target type for deletion: ${request.targetType}`);
@@ -558,6 +605,33 @@ export async function getDeletionQueue() {
   return complianceRepo.findPendingDeletionRequests();
 }
 
+// ─── CDD Record Management ────────────────────────────────────────────────────
+
+export async function createCddRecord(
+  input: CreateCddRecordInput,
+  agentId: string,
+): Promise<CddRecord> {
+  const record = await complianceRepo.createCddRecord(input);
+  await auditService.log({
+    agentId,
+    action: 'compliance.cdd_record_created',
+    entityType: 'cdd_record',
+    entityId: record.id,
+    details: {
+      subjectType: input.subjectType,
+      subjectId: input.subjectId,
+    },
+  });
+  return record;
+}
+
+export async function refreshCddRetentionOnCompletion(
+  transactionId: string,
+  sellerId: string,
+): Promise<void> {
+  await complianceRepo.refreshCddRetentionOnCompletion(transactionId, sellerId);
+}
+
 // ─── Secure Document Access (service wrappers for router) ─────────────────────
 
 export async function getTransactionDocuments(transactionId: string) {
@@ -578,6 +652,30 @@ export async function recordEaaSignedCopyDeleted(eaaId: string): Promise<void> {
 
 export async function getCddRecordsByTransaction(transactionId: string) {
   return complianceRepo.findCddRecordsByTransaction(transactionId);
+}
+
+// ─── Viewer Consent Record ────────────────────────────────────────────────────
+
+export async function createViewerConsentRecord(data: {
+  viewerId: string;
+  subjectId: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}) {
+  return complianceRepo.createViewerConsentRecord(data);
+}
+
+// ─── Service wrappers for cross-domain callers (no direct repo access) ─────────
+
+export function findLatestSellerCddRecord(sellerId: string) {
+  return complianceRepo.findLatestSellerCddRecord(sellerId);
+}
+
+export function findCddRecordByTransactionAndSubjectType(
+  transactionId: string,
+  subjectType: string,
+) {
+  return complianceRepo.findCddRecordByTransactionAndSubjectType(transactionId, subjectType);
 }
 
 // ─── SP3: Agent Anonymisation ─────────────────────────────────────────────────

@@ -3,13 +3,24 @@ import * as viewingRepo from '../viewing.repository';
 import * as auditService from '@/domains/shared/audit.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as settingsService from '@/domains/shared/settings.service';
-import { NotFoundError, ValidationError, ConflictError, RateLimitError } from '@/domains/shared/errors';
-import { OTP_MAX_ATTEMPTS, OTP_MAX_REQUESTS_PER_HOUR, BOOKINGS_PER_PHONE_PER_DAY } from '../viewing.types';
+import * as complianceService from '@/domains/compliance/compliance.service';
+import {
+  NotFoundError,
+  ValidationError,
+  ConflictError,
+  RateLimitError,
+} from '@/domains/shared/errors';
+import {
+  OTP_MAX_ATTEMPTS,
+  OTP_MAX_REQUESTS_PER_HOUR,
+  BOOKINGS_PER_PHONE_PER_DAY,
+} from '../viewing.types';
 
 jest.mock('../viewing.repository');
 jest.mock('@/domains/shared/audit.service');
 jest.mock('@/domains/notification/notification.service');
 jest.mock('@/domains/shared/settings.service');
+jest.mock('@/domains/compliance/compliance.service');
 jest.mock('@paralleldrive/cuid2', () => ({ createId: () => 'test-id-123' }));
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashed-otp'),
@@ -20,11 +31,13 @@ const mockedRepo = jest.mocked(viewingRepo);
 const mockedAudit = jest.mocked(auditService);
 const mockedNotification = jest.mocked(notificationService);
 const mockedSettings = jest.mocked(settingsService);
+const mockedComplianceService = jest.mocked(complianceService);
 
 describe('viewing.service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedSettings.getNumber.mockResolvedValue(15);
+    mockedComplianceService.createViewerConsentRecord.mockResolvedValue(undefined as never);
   });
 
   // ─── Slot Management ───────────────────────────────────
@@ -352,6 +365,36 @@ describe('viewing.service', () => {
       expect(mockedNotification.send).toHaveBeenCalled(); // OTP sent
     });
 
+    // FIX 1: retentionExpiresAt is set on VerifiedViewer creation
+    it('sets retentionExpiresAt on new VerifiedViewer creation', async () => {
+      mockedRepo.findDuplicateBooking.mockResolvedValue(null);
+      mockedRepo.countBookingsToday.mockResolvedValue(0);
+      mockedRepo.countOtpRequestsThisHour.mockResolvedValue(0);
+      mockedRepo.findVerifiedViewerByPhone.mockResolvedValue(null);
+      mockedRepo.createVerifiedViewer.mockResolvedValue({
+        id: 'test-id-123',
+        phone: '91234567',
+        noShowCount: 0,
+      } as never);
+      mockedRepo.findSlotById.mockResolvedValue({
+        id: 'slot-1',
+        propertyId: 'prop-1',
+        date: new Date('2026-04-15'),
+        startTime: '10:00',
+      } as never);
+      mockedRepo.createViewingWithLock.mockResolvedValue({
+        id: 'test-id-123',
+        status: 'pending_otp',
+      } as never);
+      mockedSettings.getNumber.mockResolvedValue(6); // data_retention_years
+
+      await viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' });
+
+      expect(mockedRepo.createVerifiedViewer).toHaveBeenCalledWith(
+        expect.objectContaining({ retentionExpiresAt: expect.any(Date) }),
+      );
+    });
+
     it('skips OTP for returning verified viewer', async () => {
       mockedRepo.findDuplicateBooking.mockResolvedValue(null);
       mockedRepo.countBookingsToday.mockResolvedValue(0);
@@ -443,6 +486,27 @@ describe('viewing.service', () => {
       expect(mockedRepo.incrementBookings).toHaveBeenCalledWith('viewer-1');
     });
 
+    // FIX 2: verifyOtp success creates a ConsentRecord with viewerId set
+    it('creates a viewer ConsentRecord after successful OTP verification', async () => {
+      mockedRepo.findViewingById.mockResolvedValue({
+        id: 'v-1',
+        status: 'pending_otp',
+        otpHash: 'hashed-otp',
+        otpExpiresAt: new Date(Date.now() + 300000),
+        otpAttempts: 0,
+        verifiedViewerId: 'viewer-1',
+        property: { sellerId: 'seller-1', town: 'Bishan', street: 'Bishan St 23' },
+        viewingSlot: { date: new Date(), startTime: '10:00' },
+        verifiedViewer: { id: 'viewer-1', name: 'John', viewerType: 'buyer' },
+      } as never);
+
+      await viewingService.verifyOtp({ phone: '91234567', otp: '123456', bookingId: 'v-1' });
+
+      expect(mockedComplianceService.createViewerConsentRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ viewerId: 'viewer-1', subjectId: 'viewer-1' }),
+      );
+    });
+
     // C2e / B-CRIT: phoneVerifiedAt must be set after successful OTP verification
     it('sets phoneVerifiedAt on viewer after successful OTP verification', async () => {
       mockedRepo.findViewingById.mockResolvedValue({
@@ -502,7 +566,9 @@ describe('viewing.service', () => {
       );
 
       // Must book immediately without OTP
-      expect(result).toEqual(expect.objectContaining({ status: 'scheduled', isReturningViewer: true }));
+      expect(result).toEqual(
+        expect.objectContaining({ status: 'scheduled', isReturningViewer: true }),
+      );
       // countOtpRequestsThisHour must NOT be called for returning viewers
       expect(mockedRepo.countOtpRequestsThisHour).not.toHaveBeenCalled();
     });

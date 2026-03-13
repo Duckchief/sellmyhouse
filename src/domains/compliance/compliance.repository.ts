@@ -1,9 +1,4 @@
 // src/domains/compliance/compliance.repository.ts
-// TODO: When CddRecord creation is implemented (agent CDD verification workflow),
-// the create method must set retentionExpiresAt using SystemSetting key
-// 'data_retention_years' (default 6). AML/CFT requires 5 years post-completion,
-// so this should be updated to the actual completion date + 5 years when the
-// transaction completes. Follow-up task: implement compliance.service.ts#createCddRecord().
 import { createId } from '@paralleldrive/cuid2';
 import { Prisma, SubjectType } from '@prisma/client';
 import { prisma } from '@/infra/database/prisma';
@@ -12,6 +7,8 @@ import type {
   DataDeletionRequest,
   DataCorrectionRequest,
   CreateCorrectionRequestInput,
+  CreateCddRecordInput,
+  CddRecord,
 } from './compliance.types';
 
 export async function createConsentRecord(data: {
@@ -33,6 +30,26 @@ export async function createConsentRecord(data: {
       purposeMarketing: data.purposeMarketing,
       consentWithdrawnAt: data.consentWithdrawnAt ?? null,
       withdrawalChannel: data.withdrawalChannel ?? null,
+      ipAddress: data.ipAddress ?? null,
+      userAgent: data.userAgent ?? null,
+    },
+  });
+}
+
+export async function createViewerConsentRecord(data: {
+  viewerId: string;
+  subjectId: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}): Promise<ConsentRecord> {
+  return prisma.consentRecord.create({
+    data: {
+      id: createId(),
+      subjectType: 'viewer',
+      subjectId: data.subjectId,
+      viewerId: data.viewerId,
+      purposeService: true,
+      purposeMarketing: false,
       ipAddress: data.ipAddress ?? null,
       userAgent: data.userAgent ?? null,
     },
@@ -64,6 +81,45 @@ export async function findCddRecordByTransactionAndSubjectType(
       subjectId: transactionId,
     },
     orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function createCddRecord(data: CreateCddRecordInput): Promise<CddRecord> {
+  const retentionExpiresAt = new Date();
+  retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + 5); // AML/CFT 5-year minimum
+  return prisma.cddRecord.create({
+    data: {
+      id: createId(),
+      subjectType: data.subjectType as SubjectType,
+      subjectId: data.subjectId,
+      fullName: data.fullName,
+      nricLast4: data.nricLast4,
+      verifiedByAgentId: data.verifiedByAgentId,
+      dateOfBirth: data.dateOfBirth ?? null,
+      nationality: data.nationality ?? null,
+      occupation: data.occupation ?? null,
+      documents: (data.documents ?? []) as Prisma.InputJsonValue,
+      riskLevel: data.riskLevel ?? undefined,
+      notes: data.notes ?? null,
+      retentionExpiresAt,
+    },
+  }) as unknown as Promise<CddRecord>;
+}
+
+export async function refreshCddRetentionOnCompletion(
+  transactionId: string,
+  sellerId: string,
+): Promise<void> {
+  const newExpiry = new Date();
+  newExpiry.setFullYear(newExpiry.getFullYear() + 5);
+  await prisma.cddRecord.updateMany({
+    where: {
+      OR: [
+        { subjectId: transactionId },
+        { subjectType: SubjectType.seller, subjectId: sellerId },
+      ],
+    },
+    data: { retentionExpiresAt: newExpiry },
   });
 }
 
@@ -330,7 +386,9 @@ export async function findCddRecordsForRetention(
 
 export async function findConsentRecordsForDeletion(
   cutoffDate: Date,
-): Promise<{ id: string; sellerId: string | null; subjectId: string; consentWithdrawnAt: Date | null }[]> {
+): Promise<
+  { id: string; sellerId: string | null; subjectId: string; consentWithdrawnAt: Date | null }[]
+> {
   // Withdrawn consent records older than 1 year post-withdrawal
   return prisma.consentRecord.findMany({
     where: {
@@ -416,7 +474,10 @@ export async function hardDeleteConsentRecord(consentRecordId: string): Promise<
 }
 
 export async function hardDeleteTransaction(transactionId: string): Promise<void> {
-  // Cascades to OTP, CommissionInvoice, EstateAgencyAgreement via Prisma schema cascades
+  // Delete child records in FK-safe order — no schema-level cascade configured
+  await prisma.testimonial.deleteMany({ where: { transactionId } });
+  await prisma.otp.deleteMany({ where: { transactionId } });
+  await prisma.commissionInvoice.deleteMany({ where: { transactionId } });
   await prisma.transaction.delete({ where: { id: transactionId } });
 }
 
@@ -475,6 +536,31 @@ export async function collectSellerFilePaths(sellerId: string): Promise<string[]
   for (const eaa of eaas) {
     if (eaa.signedCopyPath) paths.push(eaa.signedCopyPath);
   }
+
+  return paths;
+}
+
+/**
+ * Collects file paths associated with a single transaction before hard-delete.
+ * Returns an array of storage-relative paths suitable for localStorage.delete().
+ */
+export async function collectTransactionFilePaths(transactionId: string): Promise<string[]> {
+  const paths: string[] = [];
+
+  const otp = await prisma.otp.findUnique({
+    where: { transactionId },
+    select: { scannedCopyPathSeller: true, scannedCopyPathReturned: true },
+  });
+  if (otp) {
+    if (otp.scannedCopyPathSeller) paths.push(otp.scannedCopyPathSeller);
+    if (otp.scannedCopyPathReturned) paths.push(otp.scannedCopyPathReturned);
+  }
+
+  const invoice = await prisma.commissionInvoice.findUnique({
+    where: { transactionId },
+    select: { invoiceFilePath: true },
+  });
+  if (invoice?.invoiceFilePath) paths.push(invoice.invoiceFilePath);
 
   return paths;
 }
@@ -550,6 +636,45 @@ export async function markEaaSignedCopyDeleted(eaaId: string): Promise<void> {
   await prisma.estateAgencyAgreement.update({
     where: { id: eaaId },
     data: { signedCopyPath: null, signedCopyDeletedAt: new Date() },
+  });
+}
+
+// ─── Viewer and Buyer Retention ───────────────────────────────────────────────
+
+export async function findVerifiedViewersForRetention(
+  cutoffDate: Date,
+): Promise<{ id: string; name: string; phone: string }[]> {
+  return prisma.verifiedViewer.findMany({
+    where: {
+      retentionExpiresAt: { lt: cutoffDate },
+      phoneVerifiedAt: { not: null },
+    },
+    select: { id: true, name: true, phone: true },
+  });
+}
+
+export async function anonymiseVerifiedViewerRecords(viewerIds: string[]): Promise<void> {
+  if (viewerIds.length === 0) return;
+  await prisma.verifiedViewer.updateMany({
+    where: { id: { in: viewerIds } },
+    data: { name: 'Anonymised Viewer', phone: '' },
+  });
+}
+
+export async function findBuyersForRetention(
+  cutoffDate: Date,
+): Promise<{ id: string; name: string; email: string | null; phone: string }[]> {
+  return prisma.buyer.findMany({
+    where: { retentionExpiresAt: { lt: cutoffDate } },
+    select: { id: true, name: true, email: true, phone: true },
+  });
+}
+
+export async function anonymiseBuyerRecords(buyerIds: string[]): Promise<void> {
+  if (buyerIds.length === 0) return;
+  await prisma.buyer.updateMany({
+    where: { id: { in: buyerIds } },
+    data: { name: 'Anonymised Buyer', email: null, phone: '' },
   });
 }
 

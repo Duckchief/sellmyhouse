@@ -107,6 +107,8 @@ export async function advanceTransactionStatus(input: {
   // Gate 5: HDB approval required before marking completed
   if (input.status === 'completed') {
     await checkComplianceGate('hdb_complete', tx.id);
+    // Refresh CDD retention to ensure 5-year minimum from actual completion (AML/CFT)
+    await complianceRepo.refreshCddRetentionOnCompletion(tx.id, tx.sellerId);
   }
 
   const completionDate = input.status === 'completed' ? new Date() : null;

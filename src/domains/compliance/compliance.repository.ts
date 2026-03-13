@@ -1,9 +1,4 @@
 // src/domains/compliance/compliance.repository.ts
-// TODO: When CddRecord creation is implemented (agent CDD verification workflow),
-// the create method must set retentionExpiresAt using SystemSetting key
-// 'data_retention_years' (default 6). AML/CFT requires 5 years post-completion,
-// so this should be updated to the actual completion date + 5 years when the
-// transaction completes. Follow-up task: implement compliance.service.ts#createCddRecord().
 import { createId } from '@paralleldrive/cuid2';
 import { Prisma, SubjectType } from '@prisma/client';
 import { prisma } from '@/infra/database/prisma';
@@ -12,6 +7,8 @@ import type {
   DataDeletionRequest,
   DataCorrectionRequest,
   CreateCorrectionRequestInput,
+  CreateCddRecordInput,
+  CddRecord,
 } from './compliance.types';
 
 export async function createConsentRecord(data: {
@@ -64,6 +61,45 @@ export async function findCddRecordByTransactionAndSubjectType(
       subjectId: transactionId,
     },
     orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function createCddRecord(data: CreateCddRecordInput): Promise<CddRecord> {
+  const retentionExpiresAt = new Date();
+  retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + 5); // AML/CFT 5-year minimum
+  return prisma.cddRecord.create({
+    data: {
+      id: createId(),
+      subjectType: data.subjectType as SubjectType,
+      subjectId: data.subjectId,
+      fullName: data.fullName,
+      nricLast4: data.nricLast4,
+      verifiedByAgentId: data.verifiedByAgentId,
+      dateOfBirth: data.dateOfBirth ?? null,
+      nationality: data.nationality ?? null,
+      occupation: data.occupation ?? null,
+      documents: (data.documents ?? []) as Prisma.InputJsonValue,
+      riskLevel: data.riskLevel ?? undefined,
+      notes: data.notes ?? null,
+      retentionExpiresAt,
+    },
+  }) as unknown as Promise<CddRecord>;
+}
+
+export async function refreshCddRetentionOnCompletion(
+  transactionId: string,
+  sellerId: string,
+): Promise<void> {
+  const newExpiry = new Date();
+  newExpiry.setFullYear(newExpiry.getFullYear() + 5);
+  await prisma.cddRecord.updateMany({
+    where: {
+      OR: [
+        { subjectId: transactionId },
+        { subjectType: SubjectType.seller, subjectId: sellerId },
+      ],
+    },
+    data: { retentionExpiresAt: newExpiry },
   });
 }
 

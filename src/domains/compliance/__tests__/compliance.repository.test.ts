@@ -17,6 +17,10 @@ jest.mock('@/infra/database/prisma', () => ({
     transaction: {
       delete: jest.fn(),
     },
+    cddRecord: {
+      create: jest.fn(),
+      updateMany: jest.fn(),
+    },
   },
 }));
 
@@ -27,6 +31,7 @@ const mockPrisma = prisma as jest.Mocked<typeof prisma> & {
   otp: { deleteMany: jest.Mock; findUnique: jest.Mock };
   commissionInvoice: { deleteMany: jest.Mock; findUnique: jest.Mock };
   transaction: { delete: jest.Mock };
+  cddRecord: { create: jest.Mock; updateMany: jest.Mock };
 };
 
 beforeEach(() => jest.clearAllMocks());
@@ -195,5 +200,116 @@ describe('collectTransactionFilePaths', () => {
     expect(mockPrisma.commissionInvoice.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { transactionId: TX_ID } }),
     );
+  });
+});
+
+// ─── createCddRecord ──────────────────────────────────────────────────────────
+
+describe('createCddRecord', () => {
+  const baseInput = {
+    subjectType: 'seller',
+    subjectId: 'seller-1',
+    fullName: 'John Doe',
+    nricLast4: '567A',
+    verifiedByAgentId: 'agent-1',
+  };
+
+  beforeEach(() => {
+    mockPrisma.cddRecord.create.mockResolvedValue({
+      id: 'cdd-001',
+      subjectType: 'seller',
+      subjectId: 'seller-1',
+      fullName: 'John Doe',
+      nricLast4: '567A',
+      verifiedByAgentId: 'agent-1',
+      documents: [],
+      riskLevel: 'standard',
+      identityVerified: false,
+      verifiedAt: null,
+      retentionExpiresAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as never);
+  });
+
+  it('sets retentionExpiresAt to approximately now + 5 years (within 1 second)', async () => {
+    const before = new Date();
+    before.setFullYear(before.getFullYear() + 5);
+
+    await complianceRepo.createCddRecord(baseInput);
+
+    const after = new Date();
+    after.setFullYear(after.getFullYear() + 5);
+
+    const call = mockPrisma.cddRecord.create.mock.calls[0][0];
+    const expiry: Date = call.data.retentionExpiresAt;
+
+    expect(expiry.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000);
+    expect(expiry.getTime()).toBeLessThanOrEqual(after.getTime() + 1000);
+  });
+
+  it('creates record with correct subjectType, subjectId, fullName, nricLast4 fields', async () => {
+    await complianceRepo.createCddRecord({
+      ...baseInput,
+      riskLevel: 'enhanced',
+    });
+
+    expect(mockPrisma.cddRecord.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          subjectType: 'seller',
+          subjectId: 'seller-1',
+          fullName: 'John Doe',
+          nricLast4: '567A',
+          riskLevel: 'enhanced',
+        }),
+      }),
+    );
+  });
+
+  it('defaults documents to empty array when not provided', async () => {
+    await complianceRepo.createCddRecord(baseInput);
+
+    const call = mockPrisma.cddRecord.create.mock.calls[0][0];
+    expect(call.data.documents).toEqual([]);
+  });
+});
+
+// ─── refreshCddRetentionOnCompletion ─────────────────────────────────────────
+
+describe('refreshCddRetentionOnCompletion', () => {
+  beforeEach(() => {
+    mockPrisma.cddRecord.updateMany.mockResolvedValue({ count: 2 } as never);
+  });
+
+  it('calls updateMany with OR clause matching transactionId subjectId and seller subjectId', async () => {
+    await complianceRepo.refreshCddRetentionOnCompletion('tx-abc', 'seller-xyz');
+
+    expect(mockPrisma.cddRecord.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [
+            { subjectId: 'tx-abc' },
+            { subjectType: 'seller', subjectId: 'seller-xyz' },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('sets retentionExpiresAt to approximately now + 5 years (within 1 second)', async () => {
+    const before = new Date();
+    before.setFullYear(before.getFullYear() + 5);
+
+    await complianceRepo.refreshCddRetentionOnCompletion('tx-abc', 'seller-xyz');
+
+    const after = new Date();
+    after.setFullYear(after.getFullYear() + 5);
+
+    const call = mockPrisma.cddRecord.updateMany.mock.calls[0][0];
+    const expiry: Date = call.data.retentionExpiresAt;
+
+    expect(expiry.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000);
+    expect(expiry.getTime()).toBeLessThanOrEqual(after.getTime() + 1000);
   });
 });

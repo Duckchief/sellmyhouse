@@ -411,6 +411,47 @@ describe('transaction.service', () => {
         expect.any(Date),
       );
     });
+
+    it('calls refreshCddRetentionOnCompletion with (transactionId, sellerId) when advancing to completed', async () => {
+      const tx = makeTransaction({ status: 'completing' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
+      mockComplianceRepo.refreshCddRetentionOnCompletion.mockResolvedValue(undefined);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'completed',
+        completionDate: new Date(),
+      } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'completed',
+        agentId: 'agent-1',
+      });
+
+      expect(mockComplianceRepo.refreshCddRetentionOnCompletion).toHaveBeenCalledWith(
+        'tx-1',
+        'seller-1',
+      );
+    });
+
+    it('does NOT call refreshCddRetentionOnCompletion when advancing to option_exercised', async () => {
+      const tx = makeTransaction({ status: 'option_issued' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'option_exercised',
+      } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'option_exercised',
+        agentId: 'agent-1',
+      });
+
+      expect(mockComplianceRepo.refreshCddRetentionOnCompletion).not.toHaveBeenCalled();
+    });
   });
 
   describe('markFallenThrough', () => {

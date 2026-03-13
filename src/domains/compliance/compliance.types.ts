@@ -84,3 +84,37 @@ export interface CreateCorrectionRequestInput {
 // Fields that can be auto-applied by the system on agent approval
 export const AUTO_APPLY_FIELDS = ['name', 'email', 'phone', 'notificationPreference'] as const;
 export type AutoApplyField = (typeof AUTO_APPLY_FIELDS)[number];
+
+export interface CreateCddRecordInput {
+  subjectType: string;
+  subjectId: string;
+  fullName: string;
+  nricLast4: string;
+  verifiedByAgentId: string;
+  dateOfBirth?: Date;
+  nationality?: string;
+  occupation?: string;
+  documents?: object;
+  riskLevel?: 'standard' | 'enhanced';
+  notes?: string;
+}
+
+export interface CddRecord {
+  id: string;
+  subjectType: string;
+  subjectId: string;
+  fullName: string;
+  nricLast4: string;
+  dateOfBirth: Date | null;
+  nationality: string | null;
+  occupation: string | null;
+  documents: unknown;
+  riskLevel: string;
+  identityVerified: boolean;
+  verifiedByAgentId: string;
+  verifiedAt: Date | null;
+  retentionExpiresAt: Date | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}

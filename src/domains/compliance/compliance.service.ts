@@ -11,6 +11,8 @@ import type {
   DncAllowedResult,
   WithdrawConsentInput,
   ConsentWithdrawalResult,
+  CreateCddRecordInput,
+  CddRecord,
 } from './compliance.types';
 
 // ─── DNC Gate ────────────────────────────────────────────────────────────────
@@ -575,6 +577,33 @@ export async function executeHardDelete(input: {
 
 export async function getDeletionQueue() {
   return complianceRepo.findPendingDeletionRequests();
+}
+
+// ─── CDD Record Management ────────────────────────────────────────────────────
+
+export async function createCddRecord(
+  input: CreateCddRecordInput,
+  agentId: string,
+): Promise<CddRecord> {
+  const record = await complianceRepo.createCddRecord(input);
+  await auditService.log({
+    agentId,
+    action: 'compliance.cdd_record_created',
+    entityType: 'cdd_record',
+    entityId: record.id,
+    details: {
+      subjectType: input.subjectType,
+      subjectId: input.subjectId,
+    },
+  });
+  return record;
+}
+
+export async function refreshCddRetentionOnCompletion(
+  transactionId: string,
+  sellerId: string,
+): Promise<void> {
+  await complianceRepo.refreshCddRetentionOnCompletion(transactionId, sellerId);
 }
 
 // ─── Secure Document Access (service wrappers for router) ─────────────────────

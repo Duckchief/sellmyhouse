@@ -7,7 +7,7 @@
         class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 font-mono"
         id="referral-link-input">
       <button
-        onclick="navigator.clipboard.writeText(document.getElementById('referral-link-input').value)"
+        data-action="copy-value" data-source="referral-link-input"
         class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-indigo-700 flex-shrink-0">
         {{ "Copy" | t }}
       </button>

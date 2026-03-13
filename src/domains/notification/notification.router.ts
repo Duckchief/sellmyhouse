@@ -59,11 +59,10 @@ notificationRouter.post(
       const signature = req.headers['x-hub-signature-256'] as string | undefined;
       const rawBody = req.rawBody;
 
-      // Verify signature if webhook token is configured
-      if (process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
-        if (!rawBody || !notificationService.verifyWebhookSignature(rawBody, signature)) {
-          return res.status(403).json({ error: 'Invalid signature' });
-        }
+      // Signature verification is unconditional — WHATSAPP_WEBHOOK_VERIFY_TOKEN
+      // is required at startup (see validateEnv in app.ts)
+      if (!rawBody || !notificationService.verifyWebhookSignature(rawBody, signature)) {
+        return res.status(403).json({ error: 'Invalid signature' });
       }
 
       await notificationService.handleWhatsAppWebhook(req.body);
@@ -82,7 +81,7 @@ notificationRouter.get(
       const token = req.query.token as string;
       if (!token) return res.status(400).render('pages/error', { message: 'Missing token' });
 
-      const payload = jwt.verify(token, process.env.SESSION_SECRET!) as {
+      const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
         sellerId: string;
         purpose: string;
       };

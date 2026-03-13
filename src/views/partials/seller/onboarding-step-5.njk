@@ -23,7 +23,7 @@
 
   <div class="mt-6">
     <label class="flex items-start gap-2 mb-4">
-      <input type="checkbox" id="agreement-checkbox" class="mt-1 rounded border-gray-300" onchange="document.getElementById('complete-btn').disabled = !this.checked">
+      <input type="checkbox" id="agreement-checkbox" class="mt-1 rounded border-gray-300" data-action="toggle-complete-btn">
       <span class="text-sm text-gray-700">{{ "I have watched the video and understand the terms" | t }}</span>
     </label>
 

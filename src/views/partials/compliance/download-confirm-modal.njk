@@ -22,7 +22,7 @@
           <input type="checkbox" name="offlineRetentionConfirmed" value="true" required
                  id="confirm-offline"
                  class="mt-0.5 rounded border-gray-300 text-blue-600"
-                 onchange="checkBothBoxes()">
+                 data-action="check-both-boxes">
           <span class="text-sm text-gray-700">{{ "I have stored these documents securely offline" | t }}</span>
         </label>
 
@@ -30,14 +30,14 @@
           <input type="checkbox" name="canProduceConfirmed" value="true" required
                  id="confirm-produce"
                  class="mt-0.5 rounded border-gray-300 text-blue-600"
-                 onchange="checkBothBoxes()">
+                 data-action="check-both-boxes">
           <span class="text-sm text-gray-700">{{ "I can produce these documents if requested by authorities" | t }}</span>
         </label>
       </div>
 
       <div class="flex gap-3 justify-end">
         <button type="button"
-                onclick="document.getElementById('download-modal').remove()"
+                data-action="remove-element" data-target="download-modal"
                 class="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
           {{ "Cancel" | t }}
         </button>
@@ -51,10 +51,3 @@
     </form>
   </div>
 </div>
-<script>
-function checkBothBoxes() {
-  const both = document.getElementById('confirm-offline').checked
-             && document.getElementById('confirm-produce').checked;
-  document.getElementById('download-submit-btn').disabled = !both;
-}
-</script>

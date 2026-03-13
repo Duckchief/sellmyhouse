@@ -10,7 +10,7 @@
         hx-post="/admin/sellers/{{ sellerId }}/assign"
       {% endif %}
       hx-target="#action-result"
-      hx-on::after-request="document.getElementById('assign-modal').remove()"
+      data-remove-on-success="assign-modal"
     >
       <div class="mb-4">
         <label class="block text-sm font-medium mb-1">{{ "Select Agent" | t }}</label>
@@ -23,7 +23,7 @@
         </select>
       </div>
       <div class="flex gap-3 justify-end">
-        <button type="button" onclick="document.getElementById('assign-modal').remove()" class="px-4 py-2 text-sm border rounded hover:bg-gray-50">{{ "Cancel" | t }}</button>
+        <button type="button" data-action="remove-element" data-target="assign-modal" class="px-4 py-2 text-sm border rounded hover:bg-gray-50">{{ "Cancel" | t }}</button>
         <button type="submit" class="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">{{ "Confirm" | t }}</button>
       </div>
     </form>

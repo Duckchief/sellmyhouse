@@ -512,9 +512,9 @@ describe('NotificationService', () => {
 
   describe('generateUnsubscribeToken', () => {
     it('generates a valid JWT with sellerId and purpose', () => {
-      process.env.SESSION_SECRET = 'test-secret';
+      process.env.JWT_SECRET = 'test-jwt-secret';
       const token = service.generateUnsubscribeToken('seller-1');
-      const decoded = jwt.verify(token, 'test-secret') as { sellerId: string; purpose: string };
+      const decoded = jwt.verify(token, 'test-jwt-secret') as { sellerId: string; purpose: string };
       expect(decoded.sellerId).toBe('seller-1');
       expect(decoded.purpose).toBe('marketing_consent_withdrawal');
     });

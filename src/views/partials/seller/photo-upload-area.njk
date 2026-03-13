@@ -27,7 +27,7 @@
     class="mt-4">
     <input type="file" name="photo" accept="image/jpeg,image/png"
       class="hidden" id="photo-input"
-      onchange="this.closest('form').requestSubmit()">
+      data-action="auto-submit">
     <label for="photo-input"
       class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer">
       {{ "Choose Photo" | t }}

@@ -1,6 +1,6 @@
 import { prisma } from '@/infra/database/prisma';
 import { Prisma } from '@prisma/client';
-import type { FinancialReportStatus } from '@prisma/client';
+import type { AiDescriptionStatus, FinancialReportStatus } from '@prisma/client';
 
 import type { ReviewItem, EntityType, ReviewStatus } from './review.types';
 
@@ -251,14 +251,17 @@ export async function rejectFinancialReport(
 }
 
 export async function approveListingDescription(entityId: string, agentId: string) {
-  // TODO: When AI description generation service is implemented, copy aiDescription →
-  // description and set aiDescriptionStatus: 'approved' here. Follow-up task: wire
-  // ai.facade.ts → property service → listing description workflow.
+  const listing = await prisma.listing.findUnique({
+    where: { id: entityId },
+    select: { aiDescription: true },
+  });
   return prisma.listing.update({
     where: { id: entityId },
     data: {
       descriptionApprovedByAgentId: agentId,
       descriptionApprovedAt: new Date(),
+      aiDescriptionStatus: 'approved' as AiDescriptionStatus,
+      ...(listing?.aiDescription != null && { description: listing.aiDescription }),
     },
   });
 }

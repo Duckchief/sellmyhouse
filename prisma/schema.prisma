@@ -57,6 +57,14 @@ enum PropertyStatus {
   withdrawn
 }
 
+enum AiDescriptionStatus {
+  pending
+  ai_generated
+  pending_review
+  approved
+  rejected
+}
+
 enum ListingStatus {
   draft
   pending_review
@@ -461,7 +469,7 @@ model Listing {
   aiDescription               String?       @map("ai_description")
   aiDescriptionProvider       String?       @map("ai_description_provider")
   aiDescriptionModel          String?       @map("ai_description_model")
-  aiDescriptionStatus         String?       @map("ai_description_status") // draft | pending_review | approved | rejected
+  aiDescriptionStatus         AiDescriptionStatus? @map("ai_description_status")
   aiDescriptionGeneratedAt    DateTime?     @map("ai_description_generated_at")
   photos                      Json?         @default("[]")
   photosApprovedByAgentId     String?       @map("photos_approved_by_agent_id")

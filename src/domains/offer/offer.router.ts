@@ -8,6 +8,7 @@ import {
   validateShareAnalysis,
 } from './offer.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
+import { offerRateLimiter } from '@/infra/http/middleware/rate-limit';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 
 export const offerRouter = Router();
@@ -21,7 +22,12 @@ offerRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { propertyId } = req.params;
-      const offers = await offerService.getOffersForProperty(propertyId as string);
+      const user = req.user as AuthenticatedUser;
+      const offers = await offerService.getOffersForProperty(
+        propertyId as string,
+        user.id,
+        user.role,
+      );
 
       if (req.headers['hx-request']) {
         return res.render('partials/agent/offer-chain', { offers, propertyId });
@@ -37,6 +43,7 @@ offerRouter.get(
 offerRouter.post(
   '/agent/offers',
   ...agentAuth,
+  offerRateLimiter,
   ...validateCreateOffer,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -53,7 +60,7 @@ offerRouter.post(
         buyerPhone: req.body.buyerPhone as string,
         buyerAgentName: req.body.buyerAgentName as string | undefined,
         buyerAgentCeaReg: req.body.buyerAgentCeaReg as string | undefined,
-        offerAmount: parseFloat(req.body.offerAmount as string),
+        offerAmount: req.body.offerAmount, // pass as-is; Prisma Decimal handles conversion
         notes: req.body.notes as string | undefined,
         agentId: user.id,
       });
@@ -72,6 +79,7 @@ offerRouter.post(
 offerRouter.post(
   '/agent/offers/:id/counter',
   ...agentAuth,
+  offerRateLimiter,
   ...validateCounterOffer,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -81,9 +89,10 @@ offerRouter.post(
       const user = req.user as AuthenticatedUser;
       const child = await offerService.counterOffer({
         parentOfferId: req.params['id'] as string,
-        counterAmount: parseFloat(req.body.counterAmount as string),
+        counterAmount: req.body.counterAmount, // pass as-is; Prisma Decimal handles conversion
         notes: req.body.notes as string | undefined,
         agentId: user.id,
+        role: user.role,
       });
 
       if (req.headers['hx-request']) {
@@ -100,12 +109,14 @@ offerRouter.post(
 offerRouter.post(
   '/agent/offers/:id/accept',
   ...agentAuth,
+  offerRateLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
       const offer = await offerService.acceptOffer({
         offerId: req.params['id'] as string,
         agentId: user.id,
+        role: user.role,
       });
 
       if (req.headers['hx-request']) {
@@ -122,12 +133,14 @@ offerRouter.post(
 offerRouter.post(
   '/agent/offers/:id/reject',
   ...agentAuth,
+  offerRateLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
       const offer = await offerService.rejectOffer({
         offerId: req.params['id'] as string,
         agentId: user.id,
+        role: user.role,
       });
 
       if (req.headers['hx-request']) {

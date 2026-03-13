@@ -28,6 +28,13 @@ export const propertyRepository = {
     });
   },
 
+  async findByIdWithSeller(id: string) {
+    return prisma.property.findUnique({
+      where: { id },
+      select: { id: true, seller: { select: { agentId: true } } },
+    });
+  },
+
   async findBySellerId(sellerId: string) {
     return prisma.property.findFirst({
       where: { sellerId },
@@ -95,6 +102,13 @@ export const propertyRepository = {
     });
   },
 
+  async findListingWithSeller(listingId: string) {
+    return prisma.listing.findUnique({
+      where: { id: listingId },
+      include: { property: { include: { seller: { select: { agentId: true } } } } },
+    });
+  },
+
   async updateListingStatus(listingId: string, status: string) {
     return prisma.listing.update({
       where: { id: listingId },
@@ -146,3 +160,7 @@ export const updateSlug = propertyRepository.updateSlug.bind(propertyRepository)
 export const findWithNullSlug = propertyRepository.findWithNullSlug.bind(propertyRepository);
 export const updatePropertyStatus =
   propertyRepository.updatePropertyStatus.bind(propertyRepository);
+export const findListingWithSeller =
+  propertyRepository.findListingWithSeller.bind(propertyRepository);
+export const findByIdWithSeller =
+  propertyRepository.findByIdWithSeller.bind(propertyRepository);

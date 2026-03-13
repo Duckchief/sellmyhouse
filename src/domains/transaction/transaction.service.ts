@@ -10,6 +10,9 @@ import * as viewingService from '@/domains/viewing/viewing.service';
 import { localStorage } from '@/infra/storage/local-storage';
 import { NotFoundError, ValidationError, ConflictError } from '@/domains/shared/errors';
 import { OTP_TRANSITIONS, TRANSACTION_STATUS_ORDER } from './transaction.types';
+import * as offerService from '@/domains/offer/offer.service';
+import * as complianceRepo from '@/domains/compliance/compliance.repository';
+import { checkComplianceGate } from '@/domains/review/review.service';
 import type {
   CreateTransactionInput,
   CreateOtpInput,
@@ -22,13 +25,25 @@ import path from 'path';
 // ── Transaction ────────────────────────────────────────────────────────────────
 
 export async function createTransaction(input: CreateTransactionInput) {
-  // TODO: Set sellerCddRecordId and counterpartyCddRecordId when CDD gates are
-  // completed. Required for Gate 1 and Gate 3 audit trail enforcement.
-  // Follow-up task: wire CddRecord → Transaction FK in compliance service.
+  // H4: Verify the linked offer exists and is accepted
+  const offer = await offerService.findOffer(input.offerId);
+  if (!offer || offer.status !== 'accepted') {
+    throw new ValidationError('Transaction must be linked to an accepted offer');
+  }
+  if (offer.propertyId !== input.propertyId) {
+    throw new ValidationError('Offer propertyId does not match transaction propertyId');
+  }
+
+  // H5: Look up seller CDD record for audit trail
+  const sellerCdd = await complianceRepo.findLatestSellerCddRecord(input.sellerId);
+
   const tx = await txRepo.createTransaction({
     id: createId(),
     propertyId: input.propertyId,
     sellerId: input.sellerId,
+    offerId: input.offerId,
+    sellerCddRecordId: sellerCdd?.id ?? null,
+    counterpartyCddRecordId: null, // set when counterparty CDD is completed post-acceptance
     agreedPrice: input.agreedPrice,
     optionFee: input.optionFee ?? null,
     optionDate: input.optionDate ?? null,
@@ -39,7 +54,12 @@ export async function createTransaction(input: CreateTransactionInput) {
     action: 'transaction.created',
     entityType: 'transaction',
     entityId: tx.id,
-    details: { propertyId: input.propertyId, agreedPrice: input.agreedPrice },
+    details: {
+      propertyId: input.propertyId,
+      agreedPrice: input.agreedPrice,
+      offerId: input.offerId,
+      sellerCddRecordId: sellerCdd?.id ?? null,
+    },
   });
 
   return tx;
@@ -79,6 +99,10 @@ export async function advanceTransactionStatus(input: {
     );
   }
 
+  // H3: Gate 3 — counterparty CDD must be complete before any status advance
+  // Passes transaction.id as entityId; checkComplianceGate uses it as the CDD subject lookup key
+  await checkComplianceGate('counterparty_cdd', tx.id);
+
   const completionDate = input.status === 'completed' ? new Date() : null;
 
   const updated = await txRepo.updateTransactionStatus(
@@ -115,13 +139,17 @@ async function handleFallenThrough(propertyId: string, transactionId: string, ag
   await propertyService.revertPropertyToDraft(propertyId);
 
   // 5. Alert agent to manually delist from live portals
+  const property = await propertyService.getPropertyById(propertyId);
+  const address = property
+    ? `${property.block} ${property.street}, ${property.town}`
+    : propertyId;
   await notificationService.send(
     {
       recipientType: 'agent',
       recipientId: agentId,
       templateName: 'transaction_update',
       templateData: {
-        address: propertyId,
+        address,
         status: 'fallen_through — please delist manually from live portals',
       },
     },
@@ -148,13 +176,17 @@ export async function markFallenThrough(input: {
 
   await handleFallenThrough(tx.propertyId, input.transactionId, input.agentId);
 
+  const sellerProperty = await propertyService.getPropertyById(tx.propertyId);
+  const sellerAddress = sellerProperty
+    ? `${sellerProperty.block} ${sellerProperty.street}, ${sellerProperty.town}`
+    : tx.propertyId;
   await notificationService.send(
     {
       recipientType: 'seller',
       recipientId: input.sellerId,
       templateName: 'transaction_update',
       templateData: {
-        address: tx.propertyId,
+        address: sellerAddress,
         status: `fallen through: ${input.reason}`,
       },
     },

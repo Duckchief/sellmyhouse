@@ -78,7 +78,7 @@ reviewRouter.post(
       const entityType = req.params['entityType'] as EntityType;
       const entityId = req.params['entityId'] as string;
 
-      await reviewService.approveItem({ entityType, entityId, agentId: user.id });
+      await reviewService.approveItem({ entityType, entityId, agentId: user.id, callerRole: user.role });
 
       res.render('partials/agent/review-row', {
         item: null,
@@ -108,7 +108,7 @@ reviewRouter.post(
       const entityId = req.params['entityId'] as string;
       const reviewNotes = req.body.reviewNotes as string;
 
-      await reviewService.rejectItem({ entityType, entityId, agentId: user.id, reviewNotes });
+      await reviewService.rejectItem({ entityType, entityId, agentId: user.id, reviewNotes, callerRole: user.role });
 
       res.render('partials/agent/review-row', {
         item: null,

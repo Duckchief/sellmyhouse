@@ -39,3 +39,15 @@ export const hdbRateLimiter = rateLimit({
   message: { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please slow down.' } },
   skip: () => process.env.NODE_ENV === 'test',
 });
+
+export const offerRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // 20 offer actions per agent per hour
+  keyGenerator: (req) => (req.user as { id?: string } | undefined)?.id ?? req.ip ?? 'unknown',
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: { code: 'RATE_LIMITED', message: 'Too many offer requests. Please try again later.' },
+  },
+  skip: () => process.env.NODE_ENV === 'test',
+});

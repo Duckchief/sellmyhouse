@@ -171,6 +171,11 @@ export async function updateListingStatus(propertyId: string, newStatus: string)
 
   const updated = await propertyRepo.updateListingStatus(listing.id, newStatus);
 
+  // Sync property.status to 'listed' so public slug queries (findPropertyBySlug) see live listings
+  if (newStatus === 'live') {
+    await propertyRepo.updatePropertyStatus(propertyId, 'listed');
+  }
+
   auditService.log({
     action: 'listing.status_changed',
     entityType: 'listing',

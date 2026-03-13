@@ -1,7 +1,8 @@
 import * as reviewRepo from './review.repository';
+import * as complianceRepo from '@/domains/compliance/compliance.repository';
 import * as auditService from '@/domains/shared/audit.service';
 import * as portalService from '@/domains/property/portal.service';
-import { ValidationError, ComplianceError, NotFoundError } from '@/domains/shared/errors';
+import { ValidationError, ComplianceError, NotFoundError, ForbiddenError } from '@/domains/shared/errors';
 import {
   REVIEW_TRANSITIONS,
   WEEKLY_UPDATE_TRANSITIONS,
@@ -47,9 +48,19 @@ export async function checkComplianceGate(
       }
       break;
     }
-    case 'counterparty_cdd':
-      // No-op stub — wired in future SP when OTP service is built
+    case 'counterparty_cdd': {
+      // sellerId parameter is used as transactionId for this gate
+      const cddRecord = await complianceRepo.findCddRecordByTransactionAndSubjectType(
+        sellerId,
+        'counterparty',
+      );
+      if (!cddRecord || !cddRecord.verifiedAt) {
+        throw new ComplianceError(
+          'Gate 3: Counterparty CDD must be completed before proceeding',
+        );
+      }
       return;
+    }
     case 'agent_otp_review':
       // No-op stub — wired in future SP when transaction service is built
       return;
@@ -86,12 +97,30 @@ const AUDIT_ACTION: Record<EntityType, string> = {
   document_checklist: 'document_checklist.reviewed',
 };
 
+/** For listing entity types, verify the calling agent is assigned to the listing's seller. */
+async function assertListingOwnership(
+  entityType: EntityType,
+  entityId: string,
+  callerAgentId: string,
+  callerRole: string,
+): Promise<void> {
+  if (callerRole === 'admin') return;
+  if (entityType !== 'listing_description' && entityType !== 'listing_photos') return;
+  const assignedAgentId = await reviewRepo.getListingAgentId(entityId);
+  if (assignedAgentId !== callerAgentId) {
+    throw new ForbiddenError('You are not authorised to review this listing');
+  }
+}
+
 export async function approveItem(input: {
   entityType: EntityType;
   entityId: string;
   agentId: string;
+  callerRole?: string;
 }): Promise<void> {
-  const { entityType, entityId, agentId } = input;
+  const { entityType, entityId, agentId, callerRole = 'agent' } = input;
+
+  await assertListingOwnership(entityType, entityId, agentId, callerRole);
 
   const currentStatus = await getCurrentStatus(entityType, entityId);
   validateTransition(currentStatus, 'approved', entityType);
@@ -143,8 +172,11 @@ export async function rejectItem(input: {
   entityId: string;
   agentId: string;
   reviewNotes: string;
+  callerRole?: string;
 }): Promise<void> {
-  const { entityType, entityId, agentId, reviewNotes } = input;
+  const { entityType, entityId, agentId, reviewNotes, callerRole = 'agent' } = input;
+
+  await assertListingOwnership(entityType, entityId, agentId, callerRole);
 
   if (!reviewNotes || reviewNotes.trim() === '') {
     throw new ValidationError('Rejection notes are required');

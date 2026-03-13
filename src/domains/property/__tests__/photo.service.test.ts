@@ -3,7 +3,7 @@ import * as propertyRepo from '../property.repository';
 import * as auditService from '../../shared/audit.service';
 import { localStorage } from '../../../infra/storage/local-storage';
 import { fromBuffer as fileTypeFromBuffer } from 'file-type';
-import { NotFoundError, ValidationError } from '../../shared/errors';
+import { NotFoundError, ValidationError, ForbiddenError } from '../../shared/errors';
 import type { PhotoRecord } from '../property.types';
 import type { Listing } from '@prisma/client';
 
@@ -436,6 +436,95 @@ describe('photo.service', () => {
       await expect(photoService.reorderPhotos('bad-prop', ['photo-1'])).rejects.toThrow(
         NotFoundError,
       );
+    });
+  });
+
+  // ─── processAndSavePhoto — sharp rollback (B2b) ─────────────
+
+  describe('processAndSavePhoto — sharp failure rollback', () => {
+    it('deletes original file when sharp processing throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const sharpMock = require('sharp');
+      sharpMock.mockImplementationOnce(() => ({
+        resize: jest.fn().mockReturnThis(),
+        jpeg: jest.fn().mockReturnThis(),
+        toBuffer: jest.fn().mockRejectedValue(new Error('sharp processing failed')),
+        metadata: jest.fn().mockResolvedValue({ width: 1200, height: 900 }),
+      }));
+
+      const buffer = Buffer.from('fake-image-data');
+
+      await expect(
+        photoService.processAndSavePhoto(buffer, 'photo.jpg', 'image/jpeg', 'seller-1', 'prop-1'),
+      ).rejects.toThrow('sharp processing failed');
+
+      // Original should be cleaned up after sharp failure
+      expect(mockedStorage.delete).toHaveBeenCalledWith(
+        expect.stringContaining('original'),
+      );
+    });
+  });
+
+  // ─── getPhotoForAgent (S1f) ─────────────────────────────────
+
+  describe('getPhotoForAgent', () => {
+    function makeListingWithSeller(agentId: string | null, photos: PhotoRecord[] = [makePhotoRecord()]) {
+      return {
+        id: 'listing-1',
+        photos: JSON.stringify(photos),
+        property: { seller: { agentId } },
+      };
+    }
+
+    it('returns photo buffer for agent assigned to the listing', async () => {
+      mockedRepo.findListingWithSeller.mockResolvedValue(
+        makeListingWithSeller('agent-1') as never,
+      );
+      mockedStorage.read.mockResolvedValue(Buffer.from('photo-data'));
+
+      const result = await photoService.getPhotoForAgent('listing-1', 'photo-1', 'agent-1', 'agent');
+
+      expect(result.buffer).toEqual(Buffer.from('photo-data'));
+      expect(result.photo.id).toBe('photo-1');
+    });
+
+    it('throws ForbiddenError for agent not assigned to the listing', async () => {
+      mockedRepo.findListingWithSeller.mockResolvedValue(
+        makeListingWithSeller('agent-1') as never,
+      );
+
+      await expect(
+        photoService.getPhotoForAgent('listing-1', 'photo-1', 'agent-2', 'agent'),
+      ).rejects.toThrow(ForbiddenError);
+    });
+
+    it('admin can view any listing photo regardless of agent assignment', async () => {
+      mockedRepo.findListingWithSeller.mockResolvedValue(
+        makeListingWithSeller('agent-1') as never,
+      );
+      mockedStorage.read.mockResolvedValue(Buffer.from('photo-data'));
+
+      const result = await photoService.getPhotoForAgent('listing-1', 'photo-1', 'admin-user', 'admin');
+
+      expect(result.photo.id).toBe('photo-1');
+    });
+
+    it('throws NotFoundError when photo does not exist in listing', async () => {
+      mockedRepo.findListingWithSeller.mockResolvedValue(
+        makeListingWithSeller('agent-1') as never,
+      );
+
+      await expect(
+        photoService.getPhotoForAgent('listing-1', 'nonexistent-photo', 'agent-1', 'agent'),
+      ).rejects.toThrow(NotFoundError);
+    });
+
+    it('throws NotFoundError when listing does not exist', async () => {
+      mockedRepo.findListingWithSeller.mockResolvedValue(null);
+
+      await expect(
+        photoService.getPhotoForAgent('bad-listing', 'photo-1', 'agent-1', 'agent'),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 

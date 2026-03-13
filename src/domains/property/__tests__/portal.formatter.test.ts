@@ -1,6 +1,7 @@
 // src/domains/property/__tests__/portal.formatter.test.ts
 import { formatForPortal } from '../portal.formatter';
 import type { PortalFormatterInput } from '../portal.formatter';
+import { ValidationError } from '@/domains/shared/errors';
 
 function makeInput(overrides: Partial<PortalFormatterInput> = {}): PortalFormatterInput {
   return {
@@ -68,11 +69,10 @@ describe('portal.formatter', () => {
       expect(result.photos).toEqual(['/uploads/photos/seller-1/prop-1/optimized/photo1.jpg']);
     });
 
-    it('returns empty photos array when listing has no photos', () => {
+    it('throws ValidationError when listing has no photos', () => {
       const input = makeInput();
       (input.listing as never as { photos: string }).photos = '[]';
-      const result = formatForPortal(input);
-      expect(result.photos).toEqual([]);
+      expect(() => formatForPortal(input)).toThrow(ValidationError);
     });
 
     it('includes the portal name in the result', () => {
@@ -80,11 +80,22 @@ describe('portal.formatter', () => {
       expect(result.portal).toBe('ninety_nine_co');
     });
 
-    it('returns empty photos array when photos JSON is invalid', () => {
+    it('throws ValidationError when photos JSON is invalid', () => {
       const input = makeInput();
       (input.listing as never as { photos: string }).photos = 'not-valid-json';
-      const result = formatForPortal(input);
-      expect(result.photos).toEqual([]);
+      expect(() => formatForPortal(input)).toThrow(ValidationError);
+    });
+
+    it('throws ValidationError when askingPrice is null', () => {
+      const input = makeInput();
+      (input.property as never as { askingPrice: null }).askingPrice = null;
+      expect(() => formatForPortal(input)).toThrow(ValidationError);
+    });
+
+    it('throws ValidationError when askingPrice is zero', () => {
+      const input = makeInput();
+      (input.property as never as { askingPrice: number }).askingPrice = 0;
+      expect(() => formatForPortal(input)).toThrow(ValidationError);
     });
 
     it('uses fallback title when listing.title is null', () => {

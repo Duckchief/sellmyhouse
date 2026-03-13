@@ -3,7 +3,7 @@ import * as portalRepo from './portal.repository';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as auditService from '@/domains/shared/audit.service';
 import { formatForPortal } from './portal.formatter';
-import { NotFoundError } from '@/domains/shared/errors';
+import { NotFoundError, ForbiddenError } from '@/domains/shared/errors';
 
 const PORTALS = ['propertyguru', 'ninety_nine_co', 'srx'] as const;
 
@@ -55,7 +55,19 @@ export async function markAsPosted(portalListingId: string, url: string) {
   });
 }
 
-export async function getPortalListings(listingId: string) {
+export async function getPortalListings(
+  listingId: string,
+  callerAgentId?: string,
+  callerRole?: string,
+) {
+  if (callerAgentId && callerRole !== 'admin') {
+    const listing = await portalRepo.findListingWithAgent(listingId);
+    if (!listing) throw new NotFoundError('Listing', listingId);
+    const assignedAgentId = listing.property?.seller?.agentId ?? null;
+    if (assignedAgentId !== callerAgentId) {
+      throw new ForbiddenError('You are not authorised to view this listing');
+    }
+  }
   return portalRepo.findPortalListingsByListingId(listingId);
 }
 

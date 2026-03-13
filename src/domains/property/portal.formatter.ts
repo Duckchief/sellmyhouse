@@ -1,6 +1,7 @@
 // src/domains/property/portal.formatter.ts
 import type { PortalName } from '@prisma/client';
 import type { Agent, Listing, Property } from '@prisma/client';
+import { ValidationError } from '@/domains/shared/errors';
 
 export interface PortalContent {
   portal: PortalName;
@@ -44,11 +45,19 @@ export interface PortalFormatterInput {
 export function formatForPortal(input: PortalFormatterInput): PortalContent {
   const { portal, listing, property, agent, agencyName, agencyLicence } = input;
 
+  if (!property.askingPrice || Number(property.askingPrice) <= 0) {
+    throw new ValidationError('Asking price must be set before generating portal content');
+  }
+
   let photos: string[] = [];
   try {
     photos = JSON.parse(listing.photos as string) as string[];
   } catch {
     photos = [];
+  }
+
+  if (photos.length === 0) {
+    throw new ValidationError('At least one photo is required before generating portal content');
   }
 
   return {
@@ -61,7 +70,7 @@ export function formatForPortal(input: PortalFormatterInput): PortalContent {
       floorAreaSqm: property.floorAreaSqm,
       storeyRange: property.storeyRange,
       remainingLease: property.remainingLease ?? null,
-      askingPrice: property.askingPrice ? Number(property.askingPrice) : 0,
+      askingPrice: Number(property.askingPrice),
       block: property.block,
       street: property.street,
     },

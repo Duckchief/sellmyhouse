@@ -4,7 +4,8 @@ import { body, param } from 'express-validator';
 export const validateCreateTransaction = [
   body('propertyId').notEmpty().withMessage('propertyId is required'),
   body('sellerId').notEmpty().withMessage('sellerId is required'),
-  body('agreedPrice').notEmpty().isNumeric().withMessage('agreedPrice must be a number'),
+  body('offerId').notEmpty().withMessage('offerId is required'),
+  body('agreedPrice').notEmpty().withMessage('agreedPrice is required'),
 ];
 
 export const validateAdvanceStatus = [
@@ -16,7 +17,7 @@ export const validateAdvanceStatus = [
 ];
 
 export const validateMarkFallenThrough = [
-  param('transactionId').notEmpty().isUUID().withMessage('transactionId must be a valid UUID'),
+  param('transactionId').notEmpty().isString().withMessage('transactionId is required'),
   body('sellerId').notEmpty().withMessage('sellerId is required'),
   body('reason').isLength({ min: 10 }).withMessage('reason must be at least 10 characters'),
 ];

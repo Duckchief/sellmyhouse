@@ -1,6 +1,6 @@
 import { prisma } from '@/infra/database/prisma';
 import { createId } from '@paralleldrive/cuid2';
-import type { OfferStatus } from '@prisma/client';
+import type { OfferStatus, Prisma } from '@prisma/client';
 
 interface CreateOfferData {
   id?: string;
@@ -92,6 +92,35 @@ export async function updateAiAnalysisStatus(id: string, status: string) {
  */
 export async function expirePendingAndCounteredSiblings(propertyId: string, exceptOfferId: string) {
   return prisma.offer.updateMany({
+    where: {
+      propertyId,
+      id: { not: exceptOfferId },
+      status: { in: ['pending', 'countered'] },
+    },
+    data: { status: 'expired' },
+  });
+}
+
+/**
+ * Transactional variant: update offer status within a Prisma transaction client.
+ */
+export async function updateStatusTx(
+  tx: Prisma.TransactionClient,
+  id: string,
+  status: OfferStatus,
+) {
+  return tx.offer.update({ where: { id }, data: { status } });
+}
+
+/**
+ * Transactional variant: expire siblings within a Prisma transaction client.
+ */
+export async function expirePendingAndCounteredSiblingsTx(
+  tx: Prisma.TransactionClient,
+  propertyId: string,
+  exceptOfferId: string,
+) {
+  return tx.offer.updateMany({
     where: {
       propertyId,
       id: { not: exceptOfferId },

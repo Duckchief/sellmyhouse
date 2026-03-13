@@ -7,6 +7,9 @@ interface CreateTransactionData {
   id?: string;
   propertyId: string;
   sellerId: string;
+  offerId?: string | null;
+  sellerCddRecordId?: string | null;
+  counterpartyCddRecordId?: string | null;
   agreedPrice: number;
   optionFee?: number | null;
   optionDate?: Date | null;
@@ -24,6 +27,9 @@ export async function createTransaction(data: CreateTransactionData) {
       id: data.id ?? createId(),
       propertyId: data.propertyId,
       sellerId: data.sellerId,
+      offerId: data.offerId ?? null,
+      sellerCddRecordId: data.sellerCddRecordId ?? null,
+      counterpartyCddRecordId: data.counterpartyCddRecordId ?? null,
       agreedPrice: data.agreedPrice,
       optionFee: data.optionFee ?? null,
       optionDate: data.optionDate ?? null,

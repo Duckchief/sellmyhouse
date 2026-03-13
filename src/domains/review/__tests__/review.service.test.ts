@@ -1,13 +1,16 @@
-import { validateTransition, checkComplianceGate, approveItem } from '../review.service';
-import { ValidationError, ComplianceError } from '@/domains/shared/errors';
+import { validateTransition, checkComplianceGate, approveItem, rejectItem } from '../review.service';
+import { ValidationError, ComplianceError, ForbiddenError } from '@/domains/shared/errors';
 import * as reviewRepo from '../review.repository';
+import * as complianceRepo from '@/domains/compliance/compliance.repository';
 import * as portalService from '@/domains/property/portal.service';
 import * as auditService from '@/domains/shared/audit.service';
 
 jest.mock('../review.repository');
 jest.mock('@/domains/property/portal.service');
 jest.mock('@/domains/shared/audit.service');
+jest.mock('@/domains/compliance/compliance.repository');
 const mockRepo = reviewRepo as jest.Mocked<typeof reviewRepo>;
+const mockComplianceRepo = complianceRepo as jest.Mocked<typeof complianceRepo>;
 const mockPortalService = portalService as jest.Mocked<typeof portalService>;
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 
@@ -96,11 +99,30 @@ describe('checkComplianceGate - eaa_signed', () => {
   });
 });
 
-describe('checkComplianceGate - counterparty_cdd and agent_otp_review (future SPs)', () => {
-  it('counterparty_cdd is a no-op pass-through (wired in future SP)', async () => {
-    await expect(checkComplianceGate('counterparty_cdd', 'seller-1')).resolves.toBeUndefined();
+describe('checkComplianceGate - counterparty_cdd', () => {
+  it('throws ComplianceError when no counterparty CDD record exists', async () => {
+    mockComplianceRepo.findCddRecordByTransactionAndSubjectType.mockResolvedValue(null);
+    await expect(checkComplianceGate('counterparty_cdd', 'tx-1')).rejects.toThrow(ComplianceError);
   });
 
+  it('throws ComplianceError when CDD record exists but is not verified', async () => {
+    mockComplianceRepo.findCddRecordByTransactionAndSubjectType.mockResolvedValue({
+      id: 'cdd-1',
+      verifiedAt: null,
+    } as never);
+    await expect(checkComplianceGate('counterparty_cdd', 'tx-1')).rejects.toThrow(ComplianceError);
+  });
+
+  it('passes when counterparty CDD record is verified', async () => {
+    mockComplianceRepo.findCddRecordByTransactionAndSubjectType.mockResolvedValue({
+      id: 'cdd-1',
+      verifiedAt: new Date(),
+    } as never);
+    await expect(checkComplianceGate('counterparty_cdd', 'tx-1')).resolves.toBeUndefined();
+  });
+});
+
+describe('checkComplianceGate - agent_otp_review (future SP)', () => {
   it('agent_otp_review is a no-op pass-through (wired in future SP)', async () => {
     await expect(checkComplianceGate('agent_otp_review', 'seller-1')).resolves.toBeUndefined();
   });
@@ -130,6 +152,8 @@ describe('approveItem — listing portal generation hook', () => {
     mockRepo.setListingStatus.mockResolvedValue({} as never);
     mockPortalService.generatePortalListings.mockResolvedValue(undefined);
     mockAudit.log.mockResolvedValue(undefined as never);
+    // Ownership check: default to listing assigned to agent-1
+    mockRepo.getListingAgentId.mockResolvedValue('agent-1');
   });
 
   it('generates portal listings when listing_description approval makes listing fully approved', async () => {
@@ -168,5 +192,104 @@ describe('approveItem — listing portal generation hook', () => {
 
     expect(mockPortalService.generatePortalListings).toHaveBeenCalledWith('listing-1');
     expect(mockRepo.setListingStatus).toHaveBeenCalledWith('listing-1', 'approved');
+  });
+});
+
+describe('approveItem — ownership enforcement', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRepo.approveListingDescription.mockResolvedValue({} as never);
+    mockRepo.checkListingFullyApproved.mockResolvedValue(false);
+    mockAudit.log.mockResolvedValue(undefined as never);
+  });
+
+  it('throws ForbiddenError when agent approves listing assigned to another agent', async () => {
+    mockRepo.getListingAgentId.mockResolvedValue('agent-1');
+
+    await expect(
+      approveItem({
+        entityType: 'listing_description',
+        entityId: 'listing-1',
+        agentId: 'agent-2',
+        callerRole: 'agent',
+      }),
+    ).rejects.toThrow(ForbiddenError);
+
+    expect(mockRepo.approveListingDescription).not.toHaveBeenCalled();
+  });
+
+  it('admin can approve any listing regardless of agent assignment', async () => {
+    mockRepo.getListingAgentId.mockResolvedValue('agent-1');
+
+    await expect(
+      approveItem({
+        entityType: 'listing_description',
+        entityId: 'listing-1',
+        agentId: 'admin-user',
+        callerRole: 'admin',
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(mockRepo.approveListingDescription).toHaveBeenCalledWith('listing-1', 'admin-user');
+  });
+
+  it('ownership check is skipped for non-listing entity types', async () => {
+    mockRepo.approveFinancialReport.mockResolvedValue({} as never);
+    mockRepo.getDetailForReview.mockResolvedValue({ status: 'pending_review' } as never);
+
+    await expect(
+      approveItem({
+        entityType: 'financial_report',
+        entityId: 'report-1',
+        agentId: 'agent-99',
+        callerRole: 'agent',
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(mockRepo.getListingAgentId).not.toHaveBeenCalled();
+  });
+});
+
+describe('rejectItem — ownership enforcement', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRepo.rejectListingDescription.mockResolvedValue({} as never);
+    mockAudit.log.mockResolvedValue(undefined as never);
+  });
+
+  it('throws ForbiddenError when agent rejects listing assigned to another agent', async () => {
+    mockRepo.getListingAgentId.mockResolvedValue('agent-1');
+
+    await expect(
+      rejectItem({
+        entityType: 'listing_description',
+        entityId: 'listing-1',
+        agentId: 'agent-2',
+        reviewNotes: 'Not good enough',
+        callerRole: 'agent',
+      }),
+    ).rejects.toThrow(ForbiddenError);
+
+    expect(mockRepo.rejectListingDescription).not.toHaveBeenCalled();
+  });
+
+  it('admin can reject any listing regardless of agent assignment', async () => {
+    mockRepo.getListingAgentId.mockResolvedValue('agent-1');
+
+    await expect(
+      rejectItem({
+        entityType: 'listing_description',
+        entityId: 'listing-1',
+        agentId: 'admin-user',
+        reviewNotes: 'Needs revision',
+        callerRole: 'admin',
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(mockRepo.rejectListingDescription).toHaveBeenCalledWith(
+      'listing-1',
+      'admin-user',
+      'Needs revision',
+    );
   });
 });

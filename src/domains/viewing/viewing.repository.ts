@@ -246,6 +246,24 @@ export async function incrementBookings(viewerId: string) {
   });
 }
 
+export async function setPhoneVerified(viewerId: string): Promise<void> {
+  await prisma.verifiedViewer.update({
+    where: { id: viewerId },
+    data: { phoneVerifiedAt: new Date() },
+  });
+}
+
+export async function countOtpRequestsThisHour(phone: string): Promise<number> {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  return prisma.viewing.count({
+    where: {
+      verifiedViewer: { phone },
+      createdAt: { gte: oneHourAgo },
+      otpHash: { not: null },
+    },
+  });
+}
+
 // ─── Queries ─────────────────────────────────────────────
 
 export async function findUpcomingViewingsForProperty(propertyId: string) {

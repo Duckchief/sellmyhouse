@@ -576,32 +576,40 @@ model Offer {
   createdAt        DateTime    @default(now()) @map("created_at")
   updatedAt        DateTime    @updatedAt @map("updated_at")
 
+  transaction      Transaction? @relation("TransactionOffer")
+
   @@index([propertyId, status])
   @@map("offers")
 }
 
 model Transaction {
-  id                   String            @id
-  propertyId           String            @map("property_id")
-  property             Property          @relation(fields: [propertyId], references: [id])
-  sellerId             String            @map("seller_id")
-  seller               Seller            @relation(fields: [sellerId], references: [id])
-  buyerId              String?           @map("buyer_id")
-  buyer                Buyer?            @relation(fields: [buyerId], references: [id])
-  estateAgencyAgreementId String?        @map("estate_agency_agreement_id")
-  estateAgencyAgreement   EstateAgencyAgreement? @relation(fields: [estateAgencyAgreementId], references: [id])
-  agreedPrice          Decimal           @map("agreed_price") @db.Decimal(12, 2)
-  optionFee            Decimal?          @map("option_fee") @db.Decimal(12, 2)
-  optionDate           DateTime?         @map("option_date")
-  exerciseDeadline     DateTime?         @map("exercise_deadline")
-  exerciseDate         DateTime?         @map("exercise_date")
-  completionDate       DateTime?         @map("completion_date")
-  status               TransactionStatus @default(option_issued)
-  hdbApplicationStatus String?           @map("hdb_application_status")
-  hdbAppointmentDate   DateTime?         @map("hdb_appointment_date")
-  fallenThroughReason  String?           @map("fallen_through_reason")
-  createdAt            DateTime          @default(now()) @map("created_at")
-  updatedAt            DateTime          @updatedAt @map("updated_at")
+  id                       String            @id
+  propertyId               String            @map("property_id")
+  property                 Property          @relation(fields: [propertyId], references: [id])
+  sellerId                 String            @map("seller_id")
+  seller                   Seller            @relation(fields: [sellerId], references: [id])
+  buyerId                  String?           @map("buyer_id")
+  buyer                    Buyer?            @relation(fields: [buyerId], references: [id])
+  estateAgencyAgreementId  String?           @map("estate_agency_agreement_id")
+  estateAgencyAgreement    EstateAgencyAgreement? @relation(fields: [estateAgencyAgreementId], references: [id])
+  offerId                  String?           @unique @map("offer_id")
+  offer                    Offer?            @relation("TransactionOffer", fields: [offerId], references: [id])
+  sellerCddRecordId        String?           @map("seller_cdd_record_id")
+  sellerCddRecord          CddRecord?        @relation("SellerCdd", fields: [sellerCddRecordId], references: [id])
+  counterpartyCddRecordId  String?           @map("counterparty_cdd_record_id")
+  counterpartyCddRecord    CddRecord?        @relation("CounterpartyCdd", fields: [counterpartyCddRecordId], references: [id])
+  agreedPrice              Decimal           @map("agreed_price") @db.Decimal(12, 2)
+  optionFee                Decimal?          @map("option_fee") @db.Decimal(12, 2)
+  optionDate               DateTime?         @map("option_date")
+  exerciseDeadline         DateTime?         @map("exercise_deadline")
+  exerciseDate             DateTime?         @map("exercise_date")
+  completionDate           DateTime?         @map("completion_date")
+  status                   TransactionStatus @default(option_issued)
+  hdbApplicationStatus     String?           @map("hdb_application_status")
+  hdbAppointmentDate       DateTime?         @map("hdb_appointment_date")
+  fallenThroughReason      String?           @map("fallen_through_reason")
+  createdAt                DateTime          @default(now()) @map("created_at")
+  updatedAt                DateTime          @updatedAt @map("updated_at")
 
   otp               Otp?
   commissionInvoice CommissionInvoice?
@@ -728,6 +736,9 @@ model CddRecord {
   retentionExpiresAt DateTime?  @map("retention_expires_at")
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  sellerTransactions       Transaction[] @relation("SellerCdd")
+  counterpartyTransactions Transaction[] @relation("CounterpartyCdd")
 
   @@index([subjectType, subjectId])
   @@map("cdd_records")

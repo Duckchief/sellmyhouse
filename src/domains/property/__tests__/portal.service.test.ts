@@ -3,7 +3,7 @@ import * as portalService from '../portal.service';
 import * as portalRepo from '../portal.repository';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as auditService from '@/domains/shared/audit.service';
-import { NotFoundError } from '@/domains/shared/errors';
+import { NotFoundError, ForbiddenError } from '@/domains/shared/errors';
 
 jest.mock('../portal.repository');
 jest.mock('@/domains/shared/settings.service');
@@ -19,7 +19,7 @@ function makeListingWithRelations(overrides: Record<string, unknown> = {}) {
     propertyId: 'property-1',
     title: '4-Room Flat in Tampines',
     description: 'Great flat',
-    photos: '[]',
+    photos: JSON.stringify(['/uploads/photos/seller-1/prop-1/optimized/photo1.jpg']),
     status: 'approved',
     property: {
       id: 'property-1',
@@ -97,7 +97,7 @@ describe('portal.service', () => {
   });
 
   describe('getPortalListings', () => {
-    it('returns all portal listings for a listing', async () => {
+    it('returns all portal listings for a listing (no ownership filter)', async () => {
       mockPortalRepo.findPortalListingsByListingId.mockResolvedValue([
         { id: 'pl-1', portalName: 'propertyguru' },
         { id: 'pl-2', portalName: 'ninety_nine_co' },
@@ -105,6 +105,41 @@ describe('portal.service', () => {
 
       const results = await portalService.getPortalListings('listing-1');
       expect(results).toHaveLength(2);
+    });
+
+    it('returns portal listings for agent assigned to listing', async () => {
+      mockPortalRepo.findListingWithAgent.mockResolvedValue({
+        id: 'listing-1',
+        property: { seller: { agentId: 'agent-1' } },
+      } as never);
+      mockPortalRepo.findPortalListingsByListingId.mockResolvedValue([
+        { id: 'pl-1', portalName: 'propertyguru' },
+      ] as never);
+
+      const results = await portalService.getPortalListings('listing-1', 'agent-1', 'agent');
+      expect(results).toHaveLength(1);
+    });
+
+    it('throws ForbiddenError for agent not assigned to listing', async () => {
+      mockPortalRepo.findListingWithAgent.mockResolvedValue({
+        id: 'listing-1',
+        property: { seller: { agentId: 'agent-1' } },
+      } as never);
+
+      await expect(
+        portalService.getPortalListings('listing-1', 'agent-2', 'agent'),
+      ).rejects.toThrow(ForbiddenError);
+    });
+
+    it('admin bypasses ownership check and returns all portal listings', async () => {
+      mockPortalRepo.findPortalListingsByListingId.mockResolvedValue([
+        { id: 'pl-1', portalName: 'propertyguru' },
+      ] as never);
+
+      const results = await portalService.getPortalListings('listing-1', 'admin-user', 'admin');
+      expect(results).toHaveLength(1);
+      // ownership check (findListingWithAgent) is skipped for admins
+      expect(mockPortalRepo.findListingWithAgent).not.toHaveBeenCalled();
     });
   });
 });

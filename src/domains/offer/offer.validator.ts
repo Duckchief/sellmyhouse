@@ -8,12 +8,18 @@ export const validateCreateOffer = [
   body('flatType').notEmpty().withMessage('flatType is required'),
   body('buyerName').notEmpty().trim().withMessage('buyerName is required'),
   body('buyerPhone').notEmpty().trim().withMessage('buyerPhone is required'),
-  body('offerAmount').notEmpty().isNumeric().withMessage('offerAmount must be a number'),
+  body('offerAmount')
+    .notEmpty()
+    .matches(/^\d{1,10}(\.\d{1,2})?$/)
+    .withMessage('offerAmount must be a valid dollar amount'),
 ];
 
 export const validateCounterOffer = [
   param('id').notEmpty().withMessage('offerId is required'),
-  body('counterAmount').notEmpty().isNumeric().withMessage('counterAmount must be a number'),
+  body('counterAmount')
+    .notEmpty()
+    .matches(/^\d{1,10}(\.\d{1,2})?$/)
+    .withMessage('counterAmount must be a valid dollar amount'),
 ];
 
 export const validateShareAnalysis = [

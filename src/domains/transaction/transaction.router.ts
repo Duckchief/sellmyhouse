@@ -35,7 +35,8 @@ transactionRouter.post(
       const tx = await txService.createTransaction({
         propertyId: req.body.propertyId as string,
         sellerId: req.body.sellerId as string,
-        agreedPrice: Number(req.body.agreedPrice),
+        offerId: req.body.offerId as string,
+        agreedPrice: req.body.agreedPrice, // pass as-is; Prisma Decimal handles conversion
         optionFee: req.body.optionFee ? Number(req.body.optionFee) : undefined,
         optionDate: req.body.optionDate ? new Date(req.body.optionDate as string) : undefined,
         agentId: user.id,

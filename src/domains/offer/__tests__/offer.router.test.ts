@@ -75,7 +75,7 @@ describe('offer.router', () => {
         .set('HX-Request', 'true');
 
       expect(res.status).toBe(200);
-      expect(mockOfferService.getOffersForProperty).toHaveBeenCalledWith('property-1');
+      expect(mockOfferService.getOffersForProperty).toHaveBeenCalledWith('property-1', 'agent-1', 'agent');
     });
   });
 

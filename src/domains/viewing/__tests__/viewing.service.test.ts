@@ -3,8 +3,8 @@ import * as viewingRepo from '../viewing.repository';
 import * as auditService from '@/domains/shared/audit.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as settingsService from '@/domains/shared/settings.service';
-import { NotFoundError, ValidationError, ConflictError } from '@/domains/shared/errors';
-import { OTP_MAX_ATTEMPTS, BOOKINGS_PER_PHONE_PER_DAY } from '../viewing.types';
+import { NotFoundError, ValidationError, ConflictError, RateLimitError } from '@/domains/shared/errors';
+import { OTP_MAX_ATTEMPTS, OTP_MAX_REQUESTS_PER_HOUR, BOOKINGS_PER_PHONE_PER_DAY } from '../viewing.types';
 
 jest.mock('../viewing.repository');
 jest.mock('@/domains/shared/audit.service');
@@ -279,6 +279,47 @@ describe('viewing.service', () => {
       ).rejects.toThrow(ValidationError);
     });
 
+    // S3e: OTP_MAX_REQUESTS_PER_HOUR must be enforced
+    it('throws RateLimitError when OTP request limit per hour is exceeded for new viewer', async () => {
+      mockedRepo.findDuplicateBooking.mockResolvedValue(null);
+      mockedRepo.countBookingsToday.mockResolvedValue(0);
+      mockedRepo.findVerifiedViewerByPhone.mockResolvedValue(null); // new viewer
+      mockedRepo.createVerifiedViewer.mockResolvedValue({
+        id: 'viewer-new',
+        phone: '91234567',
+        noShowCount: 0,
+      } as never);
+      mockedRepo.countOtpRequestsThisHour.mockResolvedValue(OTP_MAX_REQUESTS_PER_HOUR);
+
+      await expect(
+        viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' }),
+      ).rejects.toThrow(RateLimitError);
+    });
+
+    // C2a: slot full path in createViewingWithLock (tested via repo mock)
+    it('throws ConflictError when slot is full', async () => {
+      mockedRepo.findDuplicateBooking.mockResolvedValue(null);
+      mockedRepo.countBookingsToday.mockResolvedValue(0);
+      mockedRepo.findVerifiedViewerByPhone.mockResolvedValue(null);
+      mockedRepo.createVerifiedViewer.mockResolvedValue({
+        id: 'viewer-new',
+        phone: '91234567',
+        noShowCount: 0,
+      } as never);
+      mockedRepo.countOtpRequestsThisHour.mockResolvedValue(0);
+      mockedRepo.findSlotById.mockResolvedValue({
+        id: 'slot-1',
+        propertyId: 'prop-1',
+        date: new Date('2026-04-15'),
+        startTime: '10:00',
+      } as never);
+      mockedRepo.createViewingWithLock.mockRejectedValue(new ConflictError('Viewing slot is full'));
+
+      await expect(
+        viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' }),
+      ).rejects.toThrow(ConflictError);
+    });
+
     it('creates booking with OTP for new viewer', async () => {
       mockedRepo.findDuplicateBooking.mockResolvedValue(null);
       mockedRepo.countBookingsToday.mockResolvedValue(0);
@@ -400,6 +441,70 @@ describe('viewing.service', () => {
 
       expect(mockedRepo.updateViewingStatus).toHaveBeenCalledWith('v-1', { status: 'scheduled' });
       expect(mockedRepo.incrementBookings).toHaveBeenCalledWith('viewer-1');
+    });
+
+    // C2e / B-CRIT: phoneVerifiedAt must be set after successful OTP verification
+    it('sets phoneVerifiedAt on viewer after successful OTP verification', async () => {
+      mockedRepo.findViewingById.mockResolvedValue({
+        id: 'v-1',
+        status: 'pending_otp',
+        otpHash: 'hashed-otp',
+        otpExpiresAt: new Date(Date.now() + 300000),
+        otpAttempts: 0,
+        verifiedViewerId: 'viewer-1',
+        property: { sellerId: 'seller-1', town: 'Bishan', street: 'Bishan St 23' },
+        viewingSlot: { date: new Date(), startTime: '10:00' },
+        verifiedViewer: { id: 'viewer-1', name: 'John', viewerType: 'buyer' },
+      } as never);
+
+      await viewingService.verifyOtp({ phone: '91234567', otp: '123456', bookingId: 'v-1' });
+
+      expect(mockedRepo.setPhoneVerified).toHaveBeenCalledWith('viewer-1');
+    });
+
+    // B-CRIT: returning viewer (phoneVerifiedAt set) must skip OTP on subsequent booking
+    it('skips OTP and books immediately for viewer with phoneVerifiedAt set', async () => {
+      mockedRepo.findDuplicateBooking.mockResolvedValue(null);
+      mockedRepo.countBookingsToday.mockResolvedValue(0);
+      mockedRepo.findVerifiedViewerByPhone.mockResolvedValue({
+        id: 'viewer-1',
+        phone: '91234567',
+        phoneVerifiedAt: new Date('2026-01-01'), // previously verified
+        noShowCount: 0,
+      } as never);
+      mockedRepo.findSlotById.mockResolvedValue({
+        id: 'slot-1',
+        propertyId: 'prop-1',
+        date: new Date('2026-04-15'),
+        startTime: '10:00',
+      } as never);
+      mockedRepo.createViewingWithLock.mockResolvedValue({
+        id: 'booking-1',
+        status: 'scheduled',
+      } as never);
+      mockedRepo.findViewingById.mockResolvedValue({
+        id: 'booking-1',
+        property: { sellerId: 'seller-1', town: 'Bishan', street: 'Bishan St 23' },
+        viewingSlot: { date: new Date(), startTime: '10:00' },
+        verifiedViewer: { name: 'John', viewerType: 'buyer' },
+      } as never);
+
+      const result = await viewingService.initiateBooking(
+        {
+          name: 'John',
+          phone: '91234567',
+          viewerType: 'buyer',
+          consentService: true,
+          slotId: 'slot-1',
+          formLoadedAt: Date.now() - 10000,
+        },
+        { ipAddress: '127.0.0.1' },
+      );
+
+      // Must book immediately without OTP
+      expect(result).toEqual(expect.objectContaining({ status: 'scheduled', isReturningViewer: true }));
+      // countOtpRequestsThisHour must NOT be called for returning viewers
+      expect(mockedRepo.countOtpRequestsThisHour).not.toHaveBeenCalled();
     });
 
     it('rejects expired OTP', async () => {

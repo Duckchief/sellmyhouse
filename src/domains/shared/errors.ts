@@ -56,3 +56,10 @@ export class ConflictError extends AppError {
     this.name = 'ConflictError';
   }
 }
+
+export class RateLimitError extends AppError {
+  constructor(message = 'Too many requests. Please try again later.') {
+    super(message, 429, 'RATE_LIMIT');
+    this.name = 'RateLimitError';
+  }
+}

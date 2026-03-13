@@ -27,6 +27,7 @@ export const TRANSACTION_STATUS_ORDER: TransactionStatus[] = [
 export interface CreateTransactionInput {
   propertyId: string;
   sellerId: string;
+  offerId: string;
   agreedPrice: number;
   optionFee?: number;
   optionDate?: Date;

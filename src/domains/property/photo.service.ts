@@ -4,7 +4,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { localStorage } from '../../infra/storage/local-storage';
 import * as propertyRepo from './property.repository';
 import * as auditService from '../shared/audit.service';
-import { NotFoundError, ValidationError } from '../shared/errors';
+import { NotFoundError, ValidationError, ForbiddenError } from '../shared/errors';
 import type { PhotoRecord } from './property.types';
 import {
   ALLOWED_MIME_TYPES,
@@ -79,15 +79,21 @@ export async function processAndSavePhoto(
   await localStorage.save(originalPath, buffer);
 
   // Process: resize to max 2000px (fit inside, no enlargement), convert to JPEG at quality 80
-  const optimizedBuffer = await sharp(buffer)
-    .resize(MAX_DIMENSION_PX, MAX_DIMENSION_PX, { fit: 'inside', withoutEnlargement: true })
-    .jpeg({ quality: JPEG_QUALITY })
-    .toBuffer();
+  // Delete original if sharp processing fails to avoid orphaned files (B2b)
+  let optimizedBuffer: Buffer;
+  let metadata: import('sharp').Metadata;
+  try {
+    optimizedBuffer = await sharp(buffer)
+      .resize(MAX_DIMENSION_PX, MAX_DIMENSION_PX, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: JPEG_QUALITY })
+      .toBuffer();
+    metadata = await sharp(buffer).metadata();
+  } catch (err) {
+    await localStorage.delete(originalPath);
+    throw err;
+  }
 
   await localStorage.save(optimizedPath, optimizedBuffer);
-
-  // Get final dimensions from the optimized image
-  const metadata = await sharp(buffer).metadata();
 
   return {
     id,
@@ -207,4 +213,37 @@ export async function getPhotosForProperty(propertyId: string): Promise<PhotoRec
     : [];
 
   return photos.sort((a, b) => a.displayOrder - b.displayOrder);
+}
+
+// ─── Get Photo for Agent Review ────────────────────────────────────────────────
+
+/**
+ * Agents may view photos for listings assigned to them.
+ * Admins may view any listing's photos.
+ */
+export async function getPhotoForAgent(
+  listingId: string,
+  photoId: string,
+  callerAgentId: string,
+  callerRole: string,
+): Promise<{ photo: PhotoRecord; buffer: Buffer }> {
+  const listing = await propertyRepo.findListingWithSeller(listingId);
+  if (!listing) throw new NotFoundError('Listing', listingId);
+
+  if (callerRole !== 'admin') {
+    const assignedAgentId = listing.property?.seller?.agentId ?? null;
+    if (assignedAgentId !== callerAgentId) {
+      throw new ForbiddenError('You are not authorised to view this listing');
+    }
+  }
+
+  const photos: PhotoRecord[] = listing.photos
+    ? (JSON.parse(listing.photos as string) as PhotoRecord[])
+    : [];
+
+  const photo = photos.find((p) => p.id === photoId);
+  if (!photo) throw new NotFoundError('Photo', photoId);
+
+  const buffer = await localStorage.read(photo.optimizedPath);
+  return { photo, buffer };
 }

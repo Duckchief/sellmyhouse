@@ -386,6 +386,18 @@ export async function setListingStatus(listingId: string, status: string) {
   });
 }
 
+/**
+ * Returns the agentId assigned to the seller who owns this listing.
+ * Returns null if the listing or seller does not exist, or if no agent is assigned.
+ */
+export async function getListingAgentId(listingId: string): Promise<string | null> {
+  const listing = await prisma.listing.findUnique({
+    where: { id: listingId },
+    select: { property: { select: { seller: { select: { agentId: true } } } } },
+  });
+  return listing?.property?.seller?.agentId ?? null;
+}
+
 // Compliance gate queries
 
 export async function findVerifiedSellerCdd(sellerId: string) {

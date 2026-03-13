@@ -47,6 +47,26 @@ export async function findLatestConsentRecord(sellerId: string): Promise<Consent
   });
 }
 
+export async function findLatestSellerCddRecord(sellerId: string) {
+  return prisma.cddRecord.findFirst({
+    where: { subjectType: SubjectType.seller, subjectId: sellerId },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function findCddRecordByTransactionAndSubjectType(
+  transactionId: string,
+  subjectType: string,
+) {
+  return prisma.cddRecord.findFirst({
+    where: {
+      subjectType: subjectType as SubjectType,
+      subjectId: transactionId,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
 export async function findAllConsentRecords(sellerId: string): Promise<ConsentRecord[]> {
   return prisma.consentRecord.findMany({
     // Legacy: subjectId/subjectType retained in DB until explicit FK migration is complete

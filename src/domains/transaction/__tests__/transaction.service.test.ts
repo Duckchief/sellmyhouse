@@ -7,7 +7,10 @@ import * as auditService from '@/domains/shared/audit.service';
 import * as portalService from '@/domains/property/portal.service';
 import * as propertyService from '@/domains/property/property.service';
 import * as viewingService from '@/domains/viewing/viewing.service';
-import { ValidationError, ConflictError } from '@/domains/shared/errors';
+import * as offerService from '@/domains/offer/offer.service';
+import * as complianceRepo from '@/domains/compliance/compliance.repository';
+import * as reviewService from '@/domains/review/review.service';
+import { ValidationError, ConflictError, ComplianceError } from '@/domains/shared/errors';
 
 jest.mock('../transaction.repository');
 jest.mock('@/domains/shared/settings.service');
@@ -16,6 +19,9 @@ jest.mock('@/domains/shared/audit.service');
 jest.mock('@/domains/property/portal.service');
 jest.mock('@/domains/property/property.service');
 jest.mock('@/domains/viewing/viewing.service');
+jest.mock('@/domains/offer/offer.service');
+jest.mock('@/domains/compliance/compliance.repository');
+jest.mock('@/domains/review/review.service');
 jest.mock('@/infra/storage/local-storage', () => ({
   localStorage: {
     save: jest.fn().mockResolvedValue('invoices/tx-1/invoice-abc.pdf'),
@@ -32,6 +38,9 @@ const mockAudit = jest.mocked(auditService);
 const mockPortalService = jest.mocked(portalService);
 const mockPropertyService = jest.mocked(propertyService);
 const mockViewingService = jest.mocked(viewingService);
+const mockOfferService = jest.mocked(offerService);
+const mockComplianceRepo = jest.mocked(complianceRepo);
+const mockReviewService = jest.mocked(reviewService);
 
 function makeTransaction(overrides: Record<string, unknown> = {}) {
   return {
@@ -77,22 +86,93 @@ describe('transaction.service', () => {
     } as never);
     mockPropertyService.revertPropertyToDraft.mockResolvedValue(undefined as never);
     mockViewingService.cancelSlotsForPropertyCascade.mockResolvedValue(undefined as never);
+    // Default: offer is accepted (H4)
+    mockOfferService.findOffer.mockResolvedValue({
+      id: 'offer-1',
+      propertyId: 'property-1',
+      status: 'accepted',
+    } as never);
+    // Default: no seller CDD record (H5)
+    mockComplianceRepo.findLatestSellerCddRecord.mockResolvedValue(null);
+    // Default: Gate 3 passes (H3)
+    mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
+    // Default: property address for L5
+    mockPropertyService.getPropertyById.mockResolvedValue({
+      id: 'property-1',
+      block: '123',
+      street: 'Tampines Ave 1',
+      town: 'TAMPINES',
+    } as never);
   });
 
   describe('createTransaction', () => {
-    it('creates a transaction record', async () => {
+    it('creates a transaction record with accepted offerId', async () => {
       const tx = makeTransaction();
       mockTxRepo.createTransaction.mockResolvedValue(tx as never);
 
       const result = await txService.createTransaction({
         propertyId: 'property-1',
         sellerId: 'seller-1',
+        offerId: 'offer-1',
         agreedPrice: 600000,
         agentId: 'agent-1',
       });
 
       expect(mockTxRepo.createTransaction).toHaveBeenCalledTimes(1);
       expect(result.id).toBe('tx-1');
+    });
+
+    it('throws ValidationError when offerId points to non-accepted offer', async () => {
+      mockOfferService.findOffer.mockResolvedValue({
+        id: 'offer-1',
+        propertyId: 'property-1',
+        status: 'pending',
+      } as never);
+
+      await expect(
+        txService.createTransaction({
+          propertyId: 'property-1',
+          sellerId: 'seller-1',
+          offerId: 'offer-1',
+          agreedPrice: 600000,
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('throws ValidationError when offer does not exist', async () => {
+      mockOfferService.findOffer.mockResolvedValue(null);
+
+      await expect(
+        txService.createTransaction({
+          propertyId: 'property-1',
+          sellerId: 'seller-1',
+          offerId: 'bad-offer',
+          agreedPrice: 600000,
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('sets sellerCddRecordId from the sellers latest CDD record', async () => {
+      const tx = makeTransaction();
+      mockTxRepo.createTransaction.mockResolvedValue(tx as never);
+      mockComplianceRepo.findLatestSellerCddRecord.mockResolvedValue({
+        id: 'cdd-1',
+        verifiedAt: new Date(),
+      } as never);
+
+      await txService.createTransaction({
+        propertyId: 'property-1',
+        sellerId: 'seller-1',
+        offerId: 'offer-1',
+        agreedPrice: 600000,
+        agentId: 'agent-1',
+      });
+
+      expect(mockTxRepo.createTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({ sellerCddRecordId: 'cdd-1' }),
+      );
     });
   });
 
@@ -224,6 +304,40 @@ describe('transaction.service', () => {
           agentId: 'agent-1',
         }),
       ).rejects.toThrow(ValidationError);
+    });
+
+    it('throws ComplianceError when counterparty CDD is not completed (Gate 3)', async () => {
+      const tx = makeTransaction({ status: 'option_issued' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockReviewService.checkComplianceGate.mockRejectedValue(
+        new ComplianceError('Gate 3: Counterparty CDD must be completed before proceeding'),
+      );
+
+      await expect(
+        txService.advanceTransactionStatus({
+          transactionId: 'tx-1',
+          status: 'option_exercised',
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow(ComplianceError);
+    });
+
+    it('passes Gate 3 and advances status when counterparty CDD is verified', async () => {
+      const tx = makeTransaction({ status: 'option_issued' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'option_exercised',
+      } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'option_exercised',
+        agentId: 'agent-1',
+      });
+
+      expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith('tx-1', 'option_exercised', undefined);
     });
   });
 

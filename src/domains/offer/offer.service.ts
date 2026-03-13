@@ -1,11 +1,13 @@
 import { createId } from '@paralleldrive/cuid2';
+import { prisma } from '@/infra/database/prisma';
 import * as offerRepo from './offer.repository';
+import * as propertyRepo from '@/domains/property/property.repository';
 import * as hdbService from '@/domains/hdb/service';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as auditService from '@/domains/shared/audit.service';
-import { NotFoundError, ValidationError } from '@/domains/shared/errors';
+import { NotFoundError, ValidationError, ForbiddenError } from '@/domains/shared/errors';
 import { OFFER_TRANSITIONS, AI_ANALYSIS_STATUS } from './offer.types';
 import type { CreateOfferInput, CounterOfferInput } from './offer.types';
 
@@ -13,6 +15,26 @@ export interface CreateOfferServiceInput extends CreateOfferInput {
   sellerId: string;
   town: string;
   flatType: string;
+}
+
+async function assertOfferOwnership(
+  propertyId: string,
+  callerAgentId: string,
+  callerRole: string,
+): Promise<void> {
+  if (callerRole === 'admin') return;
+  const property = await propertyRepo.findByIdWithSeller(propertyId);
+  if (!property) throw new NotFoundError('Property', propertyId);
+  const assignedAgentId = property.seller?.agentId;
+  if (assignedAgentId !== callerAgentId) {
+    throw new ForbiddenError(
+      'You are not authorised to manage offers for this property',
+    );
+  }
+}
+
+export async function findOffer(offerId: string) {
+  return offerRepo.findById(offerId);
 }
 
 function buildOfferAnalysisPrompt(params: {
@@ -45,6 +67,13 @@ function buildOfferAnalysisPrompt(params: {
 }
 
 export async function createOffer(input: CreateOfferServiceInput) {
+  const listing = await propertyRepo.findActiveListingForProperty(input.propertyId);
+  if (!listing) {
+    throw new ValidationError(
+      'Offers can only be submitted for properties with an active listing',
+    );
+  }
+
   const offerId = createId();
 
   // TODO: Anonymisation job required. On schedule, null buyerName and
@@ -124,9 +153,11 @@ export async function createOffer(input: CreateOfferServiceInput) {
   return offer;
 }
 
-export async function counterOffer(input: CounterOfferInput) {
+export async function counterOffer(input: CounterOfferInput & { role: string }) {
   const parent = await offerRepo.findById(input.parentOfferId);
   if (!parent) throw new NotFoundError('Offer', input.parentOfferId);
+
+  await assertOfferOwnership(parent.propertyId, input.agentId, input.role);
 
   const allowed = OFFER_TRANSITIONS[parent.status];
   if (!allowed.includes('countered')) {
@@ -162,19 +193,22 @@ export async function counterOffer(input: CounterOfferInput) {
   return child;
 }
 
-export async function acceptOffer(input: { offerId: string; agentId: string }) {
+export async function acceptOffer(input: { offerId: string; agentId: string; role: string }) {
   const offer = await offerRepo.findById(input.offerId);
   if (!offer) throw new NotFoundError('Offer', input.offerId);
+
+  await assertOfferOwnership(offer.propertyId, input.agentId, input.role);
 
   const allowed = OFFER_TRANSITIONS[offer.status];
   if (!allowed.includes('accepted')) {
     throw new ValidationError(`Cannot accept an offer with status '${offer.status}'`);
   }
 
-  const [updated] = await Promise.all([
-    offerRepo.updateStatus(input.offerId, 'accepted'),
-    offerRepo.expirePendingAndCounteredSiblings(offer.propertyId, input.offerId),
-  ]);
+  const updated = await prisma.$transaction(async (tx) => {
+    const accepted = await offerRepo.updateStatusTx(tx, input.offerId, 'accepted');
+    await offerRepo.expirePendingAndCounteredSiblingsTx(tx, offer.propertyId, input.offerId);
+    return accepted;
+  });
 
   await auditService.log({
     agentId: input.agentId,
@@ -187,9 +221,11 @@ export async function acceptOffer(input: { offerId: string; agentId: string }) {
   return updated;
 }
 
-export async function rejectOffer(input: { offerId: string; agentId: string }) {
+export async function rejectOffer(input: { offerId: string; agentId: string; role: string }) {
   const offer = await offerRepo.findById(input.offerId);
   if (!offer) throw new NotFoundError('Offer', input.offerId);
+
+  await assertOfferOwnership(offer.propertyId, input.agentId, input.role);
 
   const allowed = OFFER_TRANSITIONS[offer.status];
   if (!allowed.includes('rejected')) {
@@ -209,7 +245,12 @@ export async function rejectOffer(input: { offerId: string; agentId: string }) {
   return updated;
 }
 
-export async function getOffersForProperty(propertyId: string) {
+export async function getOffersForProperty(
+  propertyId: string,
+  agentId: string,
+  role: string,
+) {
+  await assertOfferOwnership(propertyId, agentId, role);
   return offerRepo.findByPropertyId(propertyId);
 }
 

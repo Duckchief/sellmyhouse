@@ -10,12 +10,14 @@ import {
   ForbiddenError,
   ValidationError,
   ConflictError,
+  RateLimitError,
 } from '@/domains/shared/errors';
 import {
   computeSlotStatus,
   canTransitionViewing,
   OTP_EXPIRY_MINUTES,
   OTP_MAX_ATTEMPTS,
+  OTP_MAX_REQUESTS_PER_HOUR,
   MIN_FORM_SUBMIT_SECONDS,
   BOOKINGS_PER_PHONE_PER_DAY,
   DEFAULT_SLOT_DURATION_MINUTES,
@@ -258,6 +260,14 @@ export async function initiateBooking(
   let otpExpiresAt: Date | undefined;
 
   if (!isReturningViewer) {
+    // Rate-limit OTP requests per phone number to prevent abuse
+    const otpRequestsThisHour = await viewingRepo.countOtpRequestsThisHour(input.phone);
+    if (otpRequestsThisHour >= OTP_MAX_REQUESTS_PER_HOUR) {
+      throw new RateLimitError(
+        'Too many verification requests. Please try again in an hour.',
+      );
+    }
+
     const otp = generateOtp();
     otpHash = await bcrypt.hash(otp, 10);
     otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
@@ -403,8 +413,9 @@ export async function verifyOtp(input: VerifyOtpInput) {
     throw new ValidationError('Invalid OTP');
   }
 
-  // OTP valid — transition to scheduled
+  // OTP valid — transition to scheduled and mark phone as verified
   await viewingRepo.updateViewingStatus(v.id, { status: 'scheduled' });
+  await viewingRepo.setPhoneVerified(v.verifiedViewerId);
   await viewingRepo.incrementBookings(v.verifiedViewerId);
 
   // Notify seller

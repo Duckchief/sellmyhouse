@@ -145,9 +145,16 @@ transactionRouter.patch(
       const user = req.user as AuthenticatedUser;
       const tx = await txService.updateHdbTracking({
         transactionId: req.params['id'] as string,
-        hdbApplicationStatus: req.body.hdbApplicationStatus as string | undefined,
+        hdbApplicationStatus: req.body.hdbApplicationStatus,
         hdbAppointmentDate: req.body.hdbAppointmentDate
           ? new Date(req.body.hdbAppointmentDate as string)
+          : undefined,
+        hdbAppSubmittedAt: req.body.hdbAppSubmittedAt
+          ? new Date(req.body.hdbAppSubmittedAt as string)
+          : undefined,
+        hdbAppSubmittedByAgentId: req.body.hdbAppSubmittedByAgentId as string | undefined,
+        hdbAppApprovedAt: req.body.hdbAppApprovedAt
+          ? new Date(req.body.hdbAppApprovedAt as string)
           : undefined,
         agentId: user.id,
       });

@@ -1,6 +1,7 @@
 // src/domains/compliance/compliance.service.ts
-import fs from 'fs/promises';
 import * as complianceRepo from './compliance.repository';
+import * as settingsService from '@/domains/shared/settings.service';
+import { localStorage } from '@/infra/storage/local-storage';
 import * as auditService from '../shared/audit.service';
 import { NotFoundError, ComplianceError } from '../shared/errors';
 import { AUTO_APPLY_FIELDS, type CreateCorrectionRequestInput } from './compliance.types';
@@ -300,6 +301,19 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
   let flaggedCount = 0;
   let skippedCount = 0;
 
+  // Load retention periods from SystemSetting (never hardcode)
+  const [
+    leadRetentionMonths,
+    transactionRetentionYears,
+    cddRetentionYears,
+    consentPostWithdrawalRetentionYears,
+  ] = await Promise.all([
+    settingsService.getNumber('lead_retention_months', 12),
+    settingsService.getNumber('transaction_retention_years', 5),
+    settingsService.getNumber('cdd_retention_years', 5),
+    settingsService.getNumber('consent_post_withdrawal_retention_years', 1),
+  ]);
+
   async function flagIfNew(
     targetType: string,
     targetId: string,
@@ -324,9 +338,9 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     flaggedCount++;
   }
 
-  // 1. Leads inactive 12+ months
+  // 1. Leads inactive for configured months
   const leadCutoff = new Date(now);
-  leadCutoff.setMonth(leadCutoff.getMonth() - 12);
+  leadCutoff.setMonth(leadCutoff.getMonth() - leadRetentionMonths);
   const staleLeads = await complianceRepo.findLeadsForRetention(leadCutoff);
   for (const lead of staleLeads) {
     await flagIfNew('lead', lead.id, 'Lead inactive for 12+ months', 'lead_12_month', 'flagged', {
@@ -352,9 +366,9 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     );
   }
 
-  // 3. Transactions 5+ years post-completion
+  // 3. Transactions post configured retention period
   const txCutoff = new Date(now);
-  txCutoff.setFullYear(txCutoff.getFullYear() - 5);
+  txCutoff.setFullYear(txCutoff.getFullYear() - transactionRetentionYears);
   const oldTransactions = await complianceRepo.findTransactionsForRetention(txCutoff);
   for (const tx of oldTransactions) {
     await flagIfNew(
@@ -370,9 +384,9 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     );
   }
 
-  // 4. CDD documents 5+ years since verification
+  // 4. CDD documents past configured retention period since verification
   const cddCutoff = new Date(now);
-  cddCutoff.setFullYear(cddCutoff.getFullYear() - 5);
+  cddCutoff.setFullYear(cddCutoff.getFullYear() - cddRetentionYears);
   const oldCddRecords = await complianceRepo.findCddRecordsForRetention(cddCutoff);
   for (const cdd of oldCddRecords) {
     await flagIfNew(
@@ -388,9 +402,9 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     );
   }
 
-  // 5. Withdrawn consent records 1+ year post-withdrawal
+  // 5. Withdrawn consent records past configured retention period post-withdrawal
   const consentCutoff = new Date(now);
-  consentCutoff.setFullYear(consentCutoff.getFullYear() - 1);
+  consentCutoff.setFullYear(consentCutoff.getFullYear() - consentPostWithdrawalRetentionYears);
   const oldConsentRecords = await complianceRepo.findConsentRecordsForDeletion(consentCutoff);
   for (const record of oldConsentRecords) {
     await flagIfNew(
@@ -458,9 +472,29 @@ export async function executeHardDelete(input: {
 
   switch (request.targetType) {
     case 'lead':
-    case 'seller':
+    case 'seller': {
+      // Collect all file paths before the DB cascade removes FK references
+      const filePaths = await complianceRepo.collectSellerFilePaths(request.targetId);
       await complianceRepo.hardDeleteSeller(request.targetId);
+      for (const filePath of filePaths) {
+        try {
+          await localStorage.delete(filePath);
+        } catch (err) {
+          await auditService.log({
+            action: 'compliance.file_unlink_failed',
+            entityType: 'seller',
+            entityId: request.targetId,
+            details: {
+              filePath,
+              error: err instanceof Error ? err.message : String(err),
+              requestId: input.requestId,
+            },
+            agentId: input.agentId,
+          });
+        }
+      }
       break;
+    }
 
     case 'cdd_documents': {
       // File paths may be stored in details; unlink before clearing DB record
@@ -468,7 +502,7 @@ export async function executeHardDelete(input: {
       const paths = docDetails?.filePaths ?? [];
       for (const filePath of paths) {
         try {
-          await fs.unlink(filePath);
+          await localStorage.delete(filePath);
         } catch (err) {
           // Log the failure — orphaned files need operator attention
           await auditService.log({
@@ -522,6 +556,28 @@ export async function executeHardDelete(input: {
 
 export async function getDeletionQueue() {
   return complianceRepo.findPendingDeletionRequests();
+}
+
+// ─── Secure Document Access (service wrappers for router) ─────────────────────
+
+export async function getTransactionDocuments(transactionId: string) {
+  return complianceRepo.findTransactionDocuments(transactionId);
+}
+
+export async function recordOtpScannedCopyDeleted(otpId: string): Promise<void> {
+  return complianceRepo.markOtpScannedCopyDeleted(otpId);
+}
+
+export async function recordInvoiceDeleted(invoiceId: string): Promise<void> {
+  return complianceRepo.markInvoiceDeleted(invoiceId);
+}
+
+export async function recordEaaSignedCopyDeleted(eaaId: string): Promise<void> {
+  return complianceRepo.markEaaSignedCopyDeleted(eaaId);
+}
+
+export async function getCddRecordsByTransaction(transactionId: string) {
+  return complianceRepo.findCddRecordsByTransaction(transactionId);
 }
 
 // ─── SP3: Agent Anonymisation ─────────────────────────────────────────────────

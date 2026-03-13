@@ -19,6 +19,7 @@ import type {
   AdvanceOtpInput,
   UploadOtpScanInput,
   UploadInvoiceInput,
+  HdbApplicationStatus,
 } from './transaction.types';
 import path from 'path';
 
@@ -206,8 +207,11 @@ export async function markFallenThrough(input: {
 
 export async function updateHdbTracking(input: {
   transactionId: string;
-  hdbApplicationStatus?: string;
+  hdbApplicationStatus?: HdbApplicationStatus;
   hdbAppointmentDate?: Date | null;
+  hdbAppSubmittedAt?: Date | null;
+  hdbAppSubmittedByAgentId?: string | null;
+  hdbAppApprovedAt?: Date | null;
   agentId: string;
 }) {
   const tx = await txRepo.findById(input.transactionId);
@@ -216,7 +220,29 @@ export async function updateHdbTracking(input: {
   const updated = await txRepo.updateHdbTracking(input.transactionId, {
     hdbApplicationStatus: input.hdbApplicationStatus,
     hdbAppointmentDate: input.hdbAppointmentDate,
+    hdbAppSubmittedAt: input.hdbAppSubmittedAt,
+    hdbAppSubmittedByAgentId: input.hdbAppSubmittedByAgentId,
+    hdbAppApprovedAt: input.hdbAppApprovedAt,
   });
+
+  if (input.hdbApplicationStatus) {
+    const property = await propertyService.getPropertyById(tx.propertyId);
+    const address = property
+      ? `${property.block} ${property.street}, ${property.town}`
+      : tx.propertyId;
+    await notificationService.send(
+      {
+        recipientType: 'seller',
+        recipientId: tx.sellerId,
+        templateName: 'transaction_update',
+        templateData: {
+          address,
+          status: `HDB application status updated to: ${input.hdbApplicationStatus}`,
+        },
+      },
+      input.agentId,
+    );
+  }
 
   await auditService.log({
     agentId: input.agentId,
@@ -303,6 +329,14 @@ export async function markOtpReviewed(input: {
 }) {
   const otp = await txRepo.findOtpByTransactionId(input.transactionId);
   if (!otp) throw new NotFoundError('OTP', input.transactionId);
+
+  // Gate 4: video call must be confirmed on the linked EAA before agent OTP review
+  const eaa = await txRepo.findEaaByTransactionId(input.transactionId);
+  if (!eaa?.videoCallConfirmedAt) {
+    throw new ValidationError(
+      'Video call with seller must be confirmed before reviewing OTP',
+    );
+  }
 
   const updated = await txRepo.updateOtpReview(otp.id, new Date(), input.notes);
 

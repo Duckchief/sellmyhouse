@@ -1,7 +1,7 @@
 // src/domains/transaction/transaction.repository.ts
 import { prisma } from '@/infra/database/prisma';
 import { createId } from '@paralleldrive/cuid2';
-import type { TransactionStatus, OtpStatus } from '@prisma/client';
+import type { TransactionStatus, OtpStatus, HdbApplicationStatus } from '@prisma/client';
 
 interface CreateTransactionData {
   id?: string;
@@ -75,13 +75,22 @@ export async function updateFallenThrough(id: string, reason: string) {
 
 export async function updateHdbTracking(
   id: string,
-  data: { hdbApplicationStatus?: string; hdbAppointmentDate?: Date | null },
+  data: {
+    hdbApplicationStatus?: HdbApplicationStatus;
+    hdbAppointmentDate?: Date | null;
+    hdbAppSubmittedAt?: Date | null;
+    hdbAppSubmittedByAgentId?: string | null;
+    hdbAppApprovedAt?: Date | null;
+  },
 ) {
   return prisma.transaction.update({
     where: { id },
     data: {
       hdbApplicationStatus: data.hdbApplicationStatus,
       hdbAppointmentDate: data.hdbAppointmentDate,
+      hdbAppSubmittedAt: data.hdbAppSubmittedAt,
+      hdbAppSubmittedByAgentId: data.hdbAppSubmittedByAgentId,
+      hdbAppApprovedAt: data.hdbAppApprovedAt,
     },
   });
 }
@@ -180,6 +189,18 @@ export async function updateInvoiceStatus(
       ...(extra?.sentVia ? { sentVia: extra.sentVia } : {}),
       ...(extra?.paidAt ? { paidAt: extra.paidAt } : {}),
     },
+  });
+}
+
+export async function findEaaByTransactionId(transactionId: string) {
+  const tx = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    select: { estateAgencyAgreementId: true },
+  });
+  if (!tx?.estateAgencyAgreementId) return null;
+  return prisma.estateAgencyAgreement.findUnique({
+    where: { id: tx.estateAgencyAgreementId },
+    select: { id: true, videoCallConfirmedAt: true, signedCopyPath: true },
   });
 }
 

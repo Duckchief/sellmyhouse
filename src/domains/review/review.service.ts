@@ -1,5 +1,5 @@
 import * as reviewRepo from './review.repository';
-import * as complianceRepo from '@/domains/compliance/compliance.repository';
+import * as complianceService from '@/domains/compliance/compliance.service';
 import * as txRepo from '@/domains/transaction/transaction.repository';
 import * as auditService from '@/domains/shared/audit.service';
 import { HdbApplicationStatus } from '@prisma/client';
@@ -37,28 +37,30 @@ export function validateTransition(
 
 export async function checkComplianceGate(
   gate: ComplianceGate,
-  sellerId: string,
+  entityId: string, // was: sellerId — renamed for clarity; meaning varies per gate (see comments below)
   _context?: { buyerRepresented?: boolean },
 ): Promise<void> {
   switch (gate) {
     case 'cdd_complete': {
-      const cdd = await reviewRepo.findVerifiedSellerCdd(sellerId);
+      // entityId = sellerId — check seller CDD is verified
+      const cdd = await reviewRepo.findVerifiedSellerCdd(entityId);
       if (!cdd) {
         throw new ComplianceError('Seller CDD must be verified before this action');
       }
       break;
     }
     case 'eaa_signed': {
-      const eaa = await reviewRepo.findActiveEaa(sellerId);
+      // entityId = sellerId — check EAA is signed/active for this seller
+      const eaa = await reviewRepo.findActiveEaa(entityId);
       if (!eaa) {
         throw new ComplianceError('EAA must be signed or active before listing can go live');
       }
       break;
     }
     case 'counterparty_cdd': {
-      // sellerId parameter is used as transactionId for this gate
-      const cddRecord = await complianceRepo.findCddRecordByTransactionAndSubjectType(
-        sellerId,
+      // entityId = transactionId — counterparty CDD uses transactionId as subjectId
+      const cddRecord = await complianceService.findCddRecordByTransactionAndSubjectType(
+        entityId,
         'counterparty',
       );
       if (!cddRecord || !cddRecord.verifiedAt) {
@@ -70,8 +72,8 @@ export async function checkComplianceGate(
       // No-op stub — wired in future SP when transaction service is built
       return;
     case 'hdb_complete': {
-      // sellerId parameter is used as transactionId for this gate (same pattern as counterparty_cdd)
-      const tx = await txRepo.findById(sellerId);
+      // entityId = transactionId — check HDB approval_granted status on the transaction
+      const tx = await txRepo.findById(entityId);
       if (!tx) throw new NotFoundError('Transaction not found');
       if (tx.hdbApplicationStatus !== HdbApplicationStatus.approval_granted) {
         throw new ComplianceError(

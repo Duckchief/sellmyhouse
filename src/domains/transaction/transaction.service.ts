@@ -11,7 +11,7 @@ import { localStorage } from '@/infra/storage/local-storage';
 import { NotFoundError, ValidationError, ConflictError } from '@/domains/shared/errors';
 import { OTP_TRANSITIONS, TRANSACTION_STATUS_ORDER } from './transaction.types';
 import * as offerService from '@/domains/offer/offer.service';
-import * as complianceRepo from '@/domains/compliance/compliance.repository';
+import * as complianceService from '@/domains/compliance/compliance.service';
 import { checkComplianceGate } from '@/domains/review/review.service';
 import type {
   CreateTransactionInput,
@@ -36,7 +36,7 @@ export async function createTransaction(input: CreateTransactionInput) {
   }
 
   // H5: Look up seller CDD record for audit trail
-  const sellerCdd = await complianceRepo.findLatestSellerCddRecord(input.sellerId);
+  const sellerCdd = await complianceService.findLatestSellerCddRecord(input.sellerId);
 
   const tx = await txRepo.createTransaction({
     id: createId(),
@@ -108,7 +108,7 @@ export async function advanceTransactionStatus(input: {
   if (input.status === 'completed') {
     await checkComplianceGate('hdb_complete', tx.id);
     // Refresh CDD retention to ensure 5-year minimum from actual completion (AML/CFT)
-    await complianceRepo.refreshCddRetentionOnCompletion(tx.id, tx.sellerId);
+    await complianceService.refreshCddRetentionOnCompletion(tx.id, tx.sellerId);
   }
 
   const completionDate = input.status === 'completed' ? new Date() : null;

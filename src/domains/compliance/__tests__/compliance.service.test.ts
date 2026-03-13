@@ -31,6 +31,10 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   hardDeleteTransaction: jest.Mock;
   anonymiseAgentRecord: jest.Mock;
   findAgentById: jest.Mock;
+  findVerifiedViewersForRetention: jest.Mock;
+  anonymiseVerifiedViewerRecords: jest.Mock;
+  findBuyersForRetention: jest.Mock;
+  anonymiseBuyerRecords: jest.Mock;
 };
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 
@@ -304,6 +308,10 @@ describe('scanRetention', () => {
     mockRepo.findStaleCorrectionRequests.mockResolvedValue([]);
     mockRepo.findExistingDeletionRequest.mockResolvedValue(null);
     mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
+    mockRepo.findVerifiedViewersForRetention.mockResolvedValue([]);
+    mockRepo.anonymiseVerifiedViewerRecords.mockResolvedValue(undefined);
+    mockRepo.findBuyersForRetention.mockResolvedValue([]);
+    mockRepo.anonymiseBuyerRecords.mockResolvedValue(undefined);
     mockAudit.log.mockResolvedValue(undefined);
     // Default retention periods from SystemSetting
     mockSettings.getNumber.mockResolvedValue(12); // lead_retention_months (first call)
@@ -359,6 +367,44 @@ describe('scanRetention', () => {
         targetType: 'transaction',
         targetId: 'tx1',
         retentionRule: 'transaction_5_year',
+      }),
+    );
+    expect(result.flaggedCount).toBeGreaterThan(0);
+  });
+
+  // FIX 1: scanRetention anonymises expired VerifiedViewer PII fields
+  it('anonymises expired VerifiedViewer PII and writes audit log', async () => {
+    mockRepo.findVerifiedViewersForRetention.mockResolvedValue([
+      { id: 'viewer-1', name: 'Alice', phone: '91234567' },
+    ]);
+
+    const result = await complianceService.scanRetention();
+
+    expect(mockRepo.anonymiseVerifiedViewerRecords).toHaveBeenCalledWith(['viewer-1']);
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'compliance.viewer_pii_anonymised',
+        entityType: 'verified_viewer',
+        entityId: 'viewer-1',
+      }),
+    );
+    expect(result.flaggedCount).toBeGreaterThan(0);
+  });
+
+  // FIX 1: scanRetention anonymises expired Buyer PII fields
+  it('anonymises expired Buyer PII and writes audit log', async () => {
+    mockRepo.findBuyersForRetention.mockResolvedValue([
+      { id: 'buyer-1', name: 'Bob', email: 'bob@example.com', phone: '98765432' },
+    ]);
+
+    const result = await complianceService.scanRetention();
+
+    expect(mockRepo.anonymiseBuyerRecords).toHaveBeenCalledWith(['buyer-1']);
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'compliance.buyer_pii_anonymised',
+        entityType: 'buyer',
+        entityId: 'buyer-1',
       }),
     );
     expect(result.flaggedCount).toBeGreaterThan(0);

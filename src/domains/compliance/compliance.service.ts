@@ -422,7 +422,33 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     );
   }
 
-  // 6. Stale data correction requests — alert agent (not deletion)
+  // 6. VerifiedViewers past retention period — anonymise PII fields
+  const expiredViewers = await complianceRepo.findVerifiedViewersForRetention(now);
+  for (const viewer of expiredViewers) {
+    await complianceRepo.anonymiseVerifiedViewerRecords([viewer.id]);
+    await auditService.log({
+      action: 'compliance.viewer_pii_anonymised',
+      entityType: 'verified_viewer',
+      entityId: viewer.id,
+      details: { reason: 'retentionExpiresAt exceeded' },
+    });
+    flaggedCount++;
+  }
+
+  // 7. Buyers past retention period — anonymise PII fields
+  const expiredBuyers = await complianceRepo.findBuyersForRetention(now);
+  for (const buyer of expiredBuyers) {
+    await complianceRepo.anonymiseBuyerRecords([buyer.id]);
+    await auditService.log({
+      action: 'compliance.buyer_pii_anonymised',
+      entityType: 'buyer',
+      entityId: buyer.id,
+      details: { reason: 'retentionExpiresAt exceeded' },
+    });
+    flaggedCount++;
+  }
+
+  // 8. Stale data correction requests — alert agent (not deletion)
   const correctionCutoff = new Date(now);
   correctionCutoff.setDate(correctionCutoff.getDate() - 30);
   const staleCorrections = await complianceRepo.findStaleCorrectionRequests(correctionCutoff);
@@ -626,6 +652,30 @@ export async function recordEaaSignedCopyDeleted(eaaId: string): Promise<void> {
 
 export async function getCddRecordsByTransaction(transactionId: string) {
   return complianceRepo.findCddRecordsByTransaction(transactionId);
+}
+
+// ─── Viewer Consent Record ────────────────────────────────────────────────────
+
+export async function createViewerConsentRecord(data: {
+  viewerId: string;
+  subjectId: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}) {
+  return complianceRepo.createViewerConsentRecord(data);
+}
+
+// ─── Service wrappers for cross-domain callers (no direct repo access) ─────────
+
+export function findLatestSellerCddRecord(sellerId: string) {
+  return complianceRepo.findLatestSellerCddRecord(sellerId);
+}
+
+export function findCddRecordByTransactionAndSubjectType(
+  transactionId: string,
+  subjectType: string,
+) {
+  return complianceRepo.findCddRecordByTransactionAndSubjectType(transactionId, subjectType);
 }
 
 // ─── SP3: Agent Anonymisation ─────────────────────────────────────────────────

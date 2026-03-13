@@ -225,6 +225,7 @@ export async function createVerifiedViewer(data: {
   consentTimestamp?: Date;
   consentIpAddress?: string;
   consentUserAgent?: string;
+  retentionExpiresAt?: Date;
 }) {
   return prisma.verifiedViewer.create({ data });
 }

@@ -36,6 +36,26 @@ export async function createConsentRecord(data: {
   });
 }
 
+export async function createViewerConsentRecord(data: {
+  viewerId: string;
+  subjectId: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}): Promise<ConsentRecord> {
+  return prisma.consentRecord.create({
+    data: {
+      id: createId(),
+      subjectType: 'viewer',
+      subjectId: data.subjectId,
+      viewerId: data.viewerId,
+      purposeService: true,
+      purposeMarketing: false,
+      ipAddress: data.ipAddress ?? null,
+      userAgent: data.userAgent ?? null,
+    },
+  });
+}
+
 export async function findLatestConsentRecord(sellerId: string): Promise<ConsentRecord | null> {
   return prisma.consentRecord.findFirst({
     // Legacy: subjectId/subjectType retained in DB until explicit FK migration is complete
@@ -616,6 +636,45 @@ export async function markEaaSignedCopyDeleted(eaaId: string): Promise<void> {
   await prisma.estateAgencyAgreement.update({
     where: { id: eaaId },
     data: { signedCopyPath: null, signedCopyDeletedAt: new Date() },
+  });
+}
+
+// ─── Viewer and Buyer Retention ───────────────────────────────────────────────
+
+export async function findVerifiedViewersForRetention(
+  cutoffDate: Date,
+): Promise<{ id: string; name: string; phone: string }[]> {
+  return prisma.verifiedViewer.findMany({
+    where: {
+      retentionExpiresAt: { lt: cutoffDate },
+      phoneVerifiedAt: { not: null },
+    },
+    select: { id: true, name: true, phone: true },
+  });
+}
+
+export async function anonymiseVerifiedViewerRecords(viewerIds: string[]): Promise<void> {
+  if (viewerIds.length === 0) return;
+  await prisma.verifiedViewer.updateMany({
+    where: { id: { in: viewerIds } },
+    data: { name: 'Anonymised Viewer', phone: '' },
+  });
+}
+
+export async function findBuyersForRetention(
+  cutoffDate: Date,
+): Promise<{ id: string; name: string; email: string | null; phone: string }[]> {
+  return prisma.buyer.findMany({
+    where: { retentionExpiresAt: { lt: cutoffDate } },
+    select: { id: true, name: true, email: true, phone: true },
+  });
+}
+
+export async function anonymiseBuyerRecords(buyerIds: string[]): Promise<void> {
+  if (buyerIds.length === 0) return;
+  await prisma.buyer.updateMany({
+    where: { id: { in: buyerIds } },
+    data: { name: 'Anonymised Buyer', email: null, phone: '' },
   });
 }
 

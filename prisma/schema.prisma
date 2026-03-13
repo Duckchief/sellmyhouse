@@ -165,6 +165,7 @@ enum SubjectType {
 enum ConsentSubjectType {
   seller
   buyer
+  viewer
 }
 
 enum RecipientType {
@@ -405,6 +406,7 @@ model Buyer {
   consentMarketing   Boolean     @default(false) @map("consent_marketing")
   consentTimestamp    DateTime?   @map("consent_timestamp")
   consentWithdrawnAt DateTime?   @map("consent_withdrawn_at")
+  retentionExpiresAt DateTime?   @map("retention_expires_at")
   createdAt          DateTime    @default(now()) @map("created_at")
   updatedAt          DateTime    @updatedAt @map("updated_at")
 
@@ -492,25 +494,27 @@ model PortalListing {
 }
 
 model VerifiedViewer {
-  id              String     @id
-  name            String
-  phone           String     @unique
-  phoneVerifiedAt DateTime?  @map("phone_verified_at")
-  viewerType      ViewerType @map("viewer_type")
-  agentName       String?    @map("agent_name")
-  agentCeaReg     String?    @map("agent_cea_reg")
-  agentAgencyName String?    @map("agent_agency_name")
-  consentService   Boolean   @default(false) @map("consent_service")
-  consentTimestamp DateTime? @map("consent_timestamp")
-  consentIpAddress String?   @map("consent_ip_address")
-  consentUserAgent String?   @map("consent_user_agent")
-  totalBookings   Int        @default(0) @map("total_bookings")
-  lastBookingAt   DateTime?  @map("last_booking_at")
-  noShowCount     Int        @default(0) @map("no_show_count")
-  createdAt       DateTime   @default(now()) @map("created_at")
-  updatedAt       DateTime   @updatedAt @map("updated_at")
+  id                 String     @id
+  name               String
+  phone              String     @unique
+  phoneVerifiedAt    DateTime?  @map("phone_verified_at")
+  viewerType         ViewerType @map("viewer_type")
+  agentName          String?    @map("agent_name")
+  agentCeaReg        String?    @map("agent_cea_reg")
+  agentAgencyName    String?    @map("agent_agency_name")
+  consentService      Boolean   @default(false) @map("consent_service")
+  consentTimestamp   DateTime?  @map("consent_timestamp")
+  consentIpAddress   String?    @map("consent_ip_address")
+  consentUserAgent   String?    @map("consent_user_agent")
+  totalBookings      Int        @default(0) @map("total_bookings")
+  lastBookingAt      DateTime?  @map("last_booking_at")
+  noShowCount        Int        @default(0) @map("no_show_count")
+  retentionExpiresAt DateTime?  @map("retention_expires_at")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
 
-  viewings Viewing[]
+  viewings       Viewing[]
+  consentRecords ConsentRecord[]
 
   @@map("verified_viewers")
 }
@@ -766,6 +770,8 @@ model ConsentRecord {
   // buyerId: FK to buyers table — relation to be wired in Phase 5 when Buyer consent workflow is implemented
   buyerId            String?            @map("buyer_id")
   buyer              Buyer?             @relation(fields: [buyerId], references: [id])
+  viewerId           String?            @map("viewer_id")
+  viewer             VerifiedViewer?    @relation(fields: [viewerId], references: [id])
   purposeService     Boolean            @default(false) @map("purpose_service")
   purposeMarketing   Boolean            @default(false) @map("purpose_marketing")
   consentGivenAt     DateTime           @default(now()) @map("consent_given_at")

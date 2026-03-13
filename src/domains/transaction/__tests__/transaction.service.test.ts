@@ -8,7 +8,7 @@ import * as portalService from '@/domains/property/portal.service';
 import * as propertyService from '@/domains/property/property.service';
 import * as viewingService from '@/domains/viewing/viewing.service';
 import * as offerService from '@/domains/offer/offer.service';
-import * as complianceRepo from '@/domains/compliance/compliance.repository';
+import * as complianceService from '@/domains/compliance/compliance.service';
 import * as reviewService from '@/domains/review/review.service';
 import { ValidationError, ConflictError, ComplianceError } from '@/domains/shared/errors';
 
@@ -20,7 +20,7 @@ jest.mock('@/domains/property/portal.service');
 jest.mock('@/domains/property/property.service');
 jest.mock('@/domains/viewing/viewing.service');
 jest.mock('@/domains/offer/offer.service');
-jest.mock('@/domains/compliance/compliance.repository');
+jest.mock('@/domains/compliance/compliance.service');
 jest.mock('@/domains/review/review.service');
 jest.mock('@/infra/storage/local-storage', () => ({
   localStorage: {
@@ -39,7 +39,7 @@ const mockPortalService = jest.mocked(portalService);
 const mockPropertyService = jest.mocked(propertyService);
 const mockViewingService = jest.mocked(viewingService);
 const mockOfferService = jest.mocked(offerService);
-const mockComplianceRepo = jest.mocked(complianceRepo);
+const mockComplianceService = jest.mocked(complianceService);
 const mockReviewService = jest.mocked(reviewService);
 
 function makeTransaction(overrides: Record<string, unknown> = {}) {
@@ -93,7 +93,7 @@ describe('transaction.service', () => {
       status: 'accepted',
     } as never);
     // Default: no seller CDD record (H5)
-    mockComplianceRepo.findLatestSellerCddRecord.mockResolvedValue(null);
+    mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(null);
     // Default: Gate 3 passes (H3)
     mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
     // Default: property address for L5
@@ -157,7 +157,7 @@ describe('transaction.service', () => {
     it('sets sellerCddRecordId from the sellers latest CDD record', async () => {
       const tx = makeTransaction();
       mockTxRepo.createTransaction.mockResolvedValue(tx as never);
-      mockComplianceRepo.findLatestSellerCddRecord.mockResolvedValue({
+      mockComplianceService.findLatestSellerCddRecord.mockResolvedValue({
         id: 'cdd-1',
         verifiedAt: new Date(),
       } as never);
@@ -416,7 +416,7 @@ describe('transaction.service', () => {
       const tx = makeTransaction({ status: 'completing' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
-      mockComplianceRepo.refreshCddRetentionOnCompletion.mockResolvedValue(undefined);
+      mockComplianceService.refreshCddRetentionOnCompletion.mockResolvedValue(undefined);
       mockTxRepo.updateTransactionStatus.mockResolvedValue({
         ...tx,
         status: 'completed',
@@ -429,7 +429,7 @@ describe('transaction.service', () => {
         agentId: 'agent-1',
       });
 
-      expect(mockComplianceRepo.refreshCddRetentionOnCompletion).toHaveBeenCalledWith(
+      expect(mockComplianceService.refreshCddRetentionOnCompletion).toHaveBeenCalledWith(
         'tx-1',
         'seller-1',
       );
@@ -450,7 +450,7 @@ describe('transaction.service', () => {
         agentId: 'agent-1',
       });
 
-      expect(mockComplianceRepo.refreshCddRetentionOnCompletion).not.toHaveBeenCalled();
+      expect(mockComplianceService.refreshCddRetentionOnCompletion).not.toHaveBeenCalled();
     });
   });
 

@@ -5,6 +5,7 @@ import * as viewingRepo from './viewing.repository';
 import * as auditService from '@/domains/shared/audit.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as settingsService from '@/domains/shared/settings.service';
+import * as complianceService from '@/domains/compliance/compliance.service';
 import {
   NotFoundError,
   ForbiddenError,
@@ -231,6 +232,10 @@ export async function initiateBooking(
   const isReturningViewer = !!(viewer as { phoneVerifiedAt?: Date } | null)?.phoneVerifiedAt;
 
   if (!viewer) {
+    const retentionYears = await settingsService.getNumber('data_retention_years', 6);
+    const retentionExpiresAt = new Date();
+    retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + retentionYears);
+
     viewer = await viewingRepo.createVerifiedViewer({
       id: createId(),
       name: input.name,
@@ -243,6 +248,7 @@ export async function initiateBooking(
       consentTimestamp: new Date(),
       consentIpAddress: consentMeta.ipAddress,
       consentUserAgent: consentMeta.userAgent,
+      retentionExpiresAt,
     });
   }
 
@@ -415,6 +421,12 @@ export async function verifyOtp(input: VerifyOtpInput) {
   await viewingRepo.updateViewingStatus(v.id, { status: 'scheduled' });
   await viewingRepo.setPhoneVerified(v.verifiedViewerId);
   await viewingRepo.incrementBookings(v.verifiedViewerId);
+
+  // Create consent record for viewer OTP verification (PDPA — records consent at verification time)
+  await complianceService.createViewerConsentRecord({
+    viewerId: v.verifiedViewerId,
+    subjectId: v.verifiedViewerId,
+  });
 
   // Notify seller
   const noShowCount = v.verifiedViewer.noShowCount ?? 0;

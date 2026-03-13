@@ -9,6 +9,7 @@ import { registerViewingJobs } from './domains/viewing/viewing.jobs';
 import { registerTransactionJobs } from './domains/transaction/transaction.jobs';
 import { registerContentJobs } from './domains/content/content.jobs';
 import { runRetentionScan } from './infra/jobs/retention.job';
+import { runAnonymiseOffersJob } from './infra/jobs/anonymise-offers.job';
 
 const app = createApp();
 const port = parseInt(process.env.PORT || '3000', 10);
@@ -33,6 +34,14 @@ registerJob(
   'retention-scan',
   '0 0 * * 6', // Saturday midnight
   runRetentionScan,
+  'Asia/Singapore',
+);
+
+// Register offer PII anonymisation job (daily at 2:30am SGT)
+registerJob(
+  'anonymise-offers',
+  '30 2 * * *', // 2:30am daily
+  runAnonymiseOffersJob,
   'Asia/Singapore',
 );
 

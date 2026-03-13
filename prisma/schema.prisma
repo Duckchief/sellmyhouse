@@ -566,8 +566,8 @@ model Offer {
   /// retentionExpiresAt must be set by the service layer on offer creation.
   /// On transaction fallthrough or expiry, the anonymisation job must null
   /// these fields after retentionExpiresAt. See data retention policy.
-  buyerName        String      @map("buyer_name")
-  buyerPhone       String      @map("buyer_phone")
+  buyerName        String?     @map("buyer_name")
+  buyerPhone       String?     @map("buyer_phone")
   buyerAgentName   String?     @map("buyer_agent_name")
   buyerAgentCeaReg String?     @map("buyer_agent_cea_reg")
   isCoBroke        Boolean     @default(false) @map("is_co_broke")

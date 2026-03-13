@@ -72,10 +72,6 @@ export async function createOffer(input: CreateOfferServiceInput) {
 
   const offerId = createId();
 
-  // TODO: Anonymisation job required. On schedule, null buyerName and
-  // buyerPhone on Offer records where retentionExpiresAt < now() and
-  // transaction is fallen_through or completed.
-  // See: src/infra/jobs/ (to be implemented).
   const retentionYears = await settingsService.getNumber('data_retention_years', 6);
   const retentionExpiresAt = new Date();
   retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + retentionYears);

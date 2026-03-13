@@ -43,8 +43,8 @@ export interface CounterOfferInput {
 export interface OfferWithChain {
   id: string;
   propertyId: string;
-  buyerName: string;
-  buyerPhone: string;
+  buyerName: string | null;
+  buyerPhone: string | null;
   buyerAgentName: string | null;
   buyerAgentCeaReg: string | null;
   isCoBroke: boolean;

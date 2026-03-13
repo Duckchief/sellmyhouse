@@ -24,6 +24,7 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   findStaleCorrectionRequests: jest.Mock;
   findExistingDeletionRequest: jest.Mock;
   collectSellerFilePaths: jest.Mock;
+  collectTransactionFilePaths: jest.Mock;
   hardDeleteSeller: jest.Mock;
   hardDeleteCddDocuments: jest.Mock;
   hardDeleteConsentRecord: jest.Mock;
@@ -367,6 +368,7 @@ describe('scanRetention', () => {
 describe('executeHardDelete', () => {
   beforeEach(() => {
     mockRepo.collectSellerFilePaths.mockResolvedValue([]);
+    mockRepo.collectTransactionFilePaths.mockResolvedValue([]);
     mockRepo.hardDeleteSeller.mockResolvedValue(undefined);
     mockRepo.hardDeleteCddDocuments.mockResolvedValue(undefined);
     mockRepo.hardDeleteConsentRecord.mockResolvedValue(undefined);
@@ -458,6 +460,67 @@ describe('executeHardDelete', () => {
 
     expect(mockStorage.delete).not.toHaveBeenCalled();
     expect(mockRepo.hardDeleteSeller).toHaveBeenCalledWith('seller1');
+  });
+
+  it('collects and unlinks transaction files before DB delete', async () => {
+    mockRepo.findDeletionRequest.mockResolvedValue({
+      id: 'dr2',
+      status: 'flagged',
+      targetType: 'transaction',
+      targetId: 'tx-001',
+      retentionRule: '30_day_grace',
+      details: {},
+    } as never);
+    mockRepo.collectTransactionFilePaths.mockResolvedValue([
+      'otp/tx-001/seller.pdf',
+      'invoices/tx-001/invoice.pdf',
+    ]);
+
+    await complianceService.executeHardDelete({ requestId: 'dr2', agentId: 'agent1' });
+
+    expect(mockRepo.collectTransactionFilePaths).toHaveBeenCalledWith('tx-001');
+    expect(mockStorage.delete).toHaveBeenCalledTimes(2);
+    expect(mockStorage.delete).toHaveBeenCalledWith('otp/tx-001/seller.pdf');
+    expect(mockStorage.delete).toHaveBeenCalledWith('invoices/tx-001/invoice.pdf');
+    expect(mockRepo.hardDeleteTransaction).toHaveBeenCalledWith('tx-001');
+  });
+
+  it('calls hardDeleteTransaction even when there are no transaction files', async () => {
+    mockRepo.findDeletionRequest.mockResolvedValue({
+      id: 'dr2',
+      status: 'flagged',
+      targetType: 'transaction',
+      targetId: 'tx-001',
+      retentionRule: '30_day_grace',
+      details: {},
+    } as never);
+    mockRepo.collectTransactionFilePaths.mockResolvedValue([]);
+
+    await complianceService.executeHardDelete({ requestId: 'dr2', agentId: 'agent1' });
+
+    expect(mockStorage.delete).not.toHaveBeenCalled();
+    expect(mockRepo.hardDeleteTransaction).toHaveBeenCalledWith('tx-001');
+  });
+
+  it('logs audit event and continues if a transaction file deletion fails', async () => {
+    mockRepo.findDeletionRequest.mockResolvedValue({
+      id: 'dr2',
+      status: 'flagged',
+      targetType: 'transaction',
+      targetId: 'tx-001',
+      retentionRule: '30_day_grace',
+      details: {},
+    } as never);
+    mockRepo.collectTransactionFilePaths.mockResolvedValue(['otp/tx-001/seller.pdf']);
+    mockStorage.delete.mockRejectedValueOnce(new Error('ENOENT'));
+
+    await complianceService.executeHardDelete({ requestId: 'dr2', agentId: 'agent1' });
+
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'compliance.file_unlink_failed' }),
+    );
+    // DB delete still runs despite file error
+    expect(mockRepo.hardDeleteTransaction).toHaveBeenCalledWith('tx-001');
   });
 });
 

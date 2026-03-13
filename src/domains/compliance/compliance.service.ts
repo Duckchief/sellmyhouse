@@ -526,9 +526,28 @@ export async function executeHardDelete(input: {
       await complianceRepo.hardDeleteConsentRecord(request.targetId);
       break;
 
-    case 'transaction':
+    case 'transaction': {
+      const filePaths = await complianceRepo.collectTransactionFilePaths(request.targetId);
       await complianceRepo.hardDeleteTransaction(request.targetId);
+      for (const filePath of filePaths) {
+        try {
+          await localStorage.delete(filePath);
+        } catch (err) {
+          await auditService.log({
+            action: 'compliance.file_unlink_failed',
+            entityType: 'transaction',
+            entityId: request.targetId,
+            details: {
+              filePath,
+              error: err instanceof Error ? err.message : String(err),
+              requestId: input.requestId,
+            },
+            agentId: input.agentId,
+          });
+        }
+      }
       break;
+    }
 
     default:
       throw new ComplianceError(`Unknown target type for deletion: ${request.targetType}`);

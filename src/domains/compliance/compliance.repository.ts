@@ -418,7 +418,10 @@ export async function hardDeleteConsentRecord(consentRecordId: string): Promise<
 }
 
 export async function hardDeleteTransaction(transactionId: string): Promise<void> {
-  // Cascades to OTP, CommissionInvoice, EstateAgencyAgreement via Prisma schema cascades
+  // Delete child records in FK-safe order — no schema-level cascade configured
+  await prisma.testimonial.deleteMany({ where: { transactionId } });
+  await prisma.otp.deleteMany({ where: { transactionId } });
+  await prisma.commissionInvoice.deleteMany({ where: { transactionId } });
   await prisma.transaction.delete({ where: { id: transactionId } });
 }
 
@@ -477,6 +480,31 @@ export async function collectSellerFilePaths(sellerId: string): Promise<string[]
   for (const eaa of eaas) {
     if (eaa.signedCopyPath) paths.push(eaa.signedCopyPath);
   }
+
+  return paths;
+}
+
+/**
+ * Collects file paths associated with a single transaction before hard-delete.
+ * Returns an array of storage-relative paths suitable for localStorage.delete().
+ */
+export async function collectTransactionFilePaths(transactionId: string): Promise<string[]> {
+  const paths: string[] = [];
+
+  const otp = await prisma.otp.findUnique({
+    where: { transactionId },
+    select: { scannedCopyPathSeller: true, scannedCopyPathReturned: true },
+  });
+  if (otp) {
+    if (otp.scannedCopyPathSeller) paths.push(otp.scannedCopyPathSeller);
+    if (otp.scannedCopyPathReturned) paths.push(otp.scannedCopyPathReturned);
+  }
+
+  const invoice = await prisma.commissionInvoice.findUnique({
+    where: { transactionId },
+    select: { invoiceFilePath: true },
+  });
+  if (invoice?.invoiceFilePath) paths.push(invoice.invoiceFilePath);
 
   return paths;
 }

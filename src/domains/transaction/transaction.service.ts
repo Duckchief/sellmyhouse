@@ -104,6 +104,11 @@ export async function advanceTransactionStatus(input: {
   // Passes transaction.id as entityId; checkComplianceGate uses it as the CDD subject lookup key
   await checkComplianceGate('counterparty_cdd', tx.id);
 
+  // Gate 5: HDB approval required before marking completed
+  if (input.status === 'completed') {
+    await checkComplianceGate('hdb_complete', tx.id);
+  }
+
   const completionDate = input.status === 'completed' ? new Date() : null;
 
   const updated = await txRepo.updateTransactionStatus(

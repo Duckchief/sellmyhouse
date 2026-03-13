@@ -4,9 +4,10 @@ import {
   approveItem,
   rejectItem,
 } from '../review.service';
-import { ValidationError, ComplianceError, ForbiddenError } from '@/domains/shared/errors';
+import { ValidationError, ComplianceError, ForbiddenError, NotFoundError } from '@/domains/shared/errors';
 import * as reviewRepo from '../review.repository';
 import * as complianceRepo from '@/domains/compliance/compliance.repository';
+import * as txRepo from '@/domains/transaction/transaction.repository';
 import * as portalService from '@/domains/property/portal.service';
 import * as auditService from '@/domains/shared/audit.service';
 
@@ -14,8 +15,10 @@ jest.mock('../review.repository');
 jest.mock('@/domains/property/portal.service');
 jest.mock('@/domains/shared/audit.service');
 jest.mock('@/domains/compliance/compliance.repository');
+jest.mock('@/domains/transaction/transaction.repository');
 const mockRepo = reviewRepo as jest.Mocked<typeof reviewRepo>;
 const mockComplianceRepo = complianceRepo as jest.Mocked<typeof complianceRepo>;
+const mockTxRepo = txRepo as jest.Mocked<typeof txRepo>;
 const mockPortalService = portalService as jest.Mocked<typeof portalService>;
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 
@@ -130,6 +133,37 @@ describe('checkComplianceGate - counterparty_cdd', () => {
 describe('checkComplianceGate - agent_otp_review (future SP)', () => {
   it('agent_otp_review is a no-op pass-through (wired in future SP)', async () => {
     await expect(checkComplianceGate('agent_otp_review', 'seller-1')).resolves.toBeUndefined();
+  });
+});
+
+describe('checkComplianceGate - hdb_complete (Gate 5)', () => {
+  it('throws NotFoundError when transaction is not found', async () => {
+    mockTxRepo.findById.mockResolvedValue(null);
+    await expect(checkComplianceGate('hdb_complete', 'tx-missing')).rejects.toThrow(NotFoundError);
+  });
+
+  it('throws ComplianceError when hdbApplicationStatus is not approval_granted', async () => {
+    mockTxRepo.findById.mockResolvedValue({
+      id: 'tx-1',
+      hdbApplicationStatus: 'application_submitted',
+    } as never);
+    await expect(checkComplianceGate('hdb_complete', 'tx-1')).rejects.toThrow(ComplianceError);
+  });
+
+  it('throws ComplianceError when hdbApplicationStatus is null', async () => {
+    mockTxRepo.findById.mockResolvedValue({
+      id: 'tx-1',
+      hdbApplicationStatus: null,
+    } as never);
+    await expect(checkComplianceGate('hdb_complete', 'tx-1')).rejects.toThrow(ComplianceError);
+  });
+
+  it('passes when hdbApplicationStatus is approval_granted', async () => {
+    mockTxRepo.findById.mockResolvedValue({
+      id: 'tx-1',
+      hdbApplicationStatus: 'approval_granted',
+    } as never);
+    await expect(checkComplianceGate('hdb_complete', 'tx-1')).resolves.toBeUndefined();
   });
 });
 

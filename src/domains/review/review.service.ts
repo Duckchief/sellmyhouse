@@ -1,6 +1,8 @@
 import * as reviewRepo from './review.repository';
 import * as complianceRepo from '@/domains/compliance/compliance.repository';
+import * as txRepo from '@/domains/transaction/transaction.repository';
 import * as auditService from '@/domains/shared/audit.service';
+import { HdbApplicationStatus } from '@prisma/client';
 import * as portalService from '@/domains/property/portal.service';
 import {
   ValidationError,
@@ -67,6 +69,17 @@ export async function checkComplianceGate(
     case 'agent_otp_review':
       // No-op stub — wired in future SP when transaction service is built
       return;
+    case 'hdb_complete': {
+      // sellerId parameter is used as transactionId for this gate (same pattern as counterparty_cdd)
+      const tx = await txRepo.findById(sellerId);
+      if (!tx) throw new NotFoundError('Transaction not found');
+      if (tx.hdbApplicationStatus !== HdbApplicationStatus.approval_granted) {
+        throw new ComplianceError(
+          'Gate 5: HDB application must be approved (approval_granted) before transaction can be completed',
+        );
+      }
+      return;
+    }
   }
 }
 

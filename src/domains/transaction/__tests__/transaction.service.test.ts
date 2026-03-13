@@ -343,6 +343,74 @@ describe('transaction.service', () => {
         undefined,
       );
     });
+
+    it('throws ComplianceError when advancing to completed without HDB approval_granted (Gate 5)', async () => {
+      const tx = makeTransaction({ status: 'completing' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      // Gate 3 passes, Gate 5 fails
+      mockReviewService.checkComplianceGate
+        .mockResolvedValueOnce(undefined) // counterparty_cdd
+        .mockRejectedValueOnce(
+          new ComplianceError(
+            'Gate 5: HDB application must be approved (approval_granted) before transaction can be completed',
+          ),
+        );
+
+      await expect(
+        txService.advanceTransactionStatus({
+          transactionId: 'tx-1',
+          status: 'completed',
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow(ComplianceError);
+
+      expect(mockTxRepo.updateTransactionStatus).not.toHaveBeenCalled();
+    });
+
+    it('Gate 5 is not checked when advancing to non-completed status', async () => {
+      const tx = makeTransaction({ status: 'option_issued' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'option_exercised',
+      } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'option_exercised',
+        agentId: 'agent-1',
+      });
+
+      // checkComplianceGate should only be called once (Gate 3), not twice
+      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledTimes(1);
+      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith('counterparty_cdd', 'tx-1');
+    });
+
+    it('advances to completed when both Gate 3 and Gate 5 pass', async () => {
+      const tx = makeTransaction({ status: 'completing' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'completed',
+        completionDate: new Date(),
+      } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'completed',
+        agentId: 'agent-1',
+      });
+
+      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith('counterparty_cdd', 'tx-1');
+      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith('hdb_complete', 'tx-1');
+      expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
+        'tx-1',
+        'completed',
+        expect.any(Date),
+      );
+    });
   });
 
   describe('markFallenThrough', () => {

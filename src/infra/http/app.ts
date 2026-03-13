@@ -8,7 +8,7 @@ import { requestLogger } from './middleware/request-logger';
 import { errorHandler } from './middleware/error-handler';
 import { createSessionMiddleware } from './middleware/session';
 import { configurePassport } from './middleware/passport';
-import { apiRateLimiter } from './middleware/rate-limit';
+import { apiRateLimiter, globalRateLimiter } from './middleware/rate-limit';
 import { healthRouter } from './health.router';
 import { authRouter } from '../../domains/auth/auth.router';
 import { agentSettingsRouter } from '../../domains/agent-settings/agent-settings.router';
@@ -131,6 +131,9 @@ export function createApp() {
   // Referral tracking — global middleware, captures ?ref= on any page visit
   // Must be before publicRouter (homepage) and leadRouter (lead submission)
   app.use(referralTrackingMiddleware);
+
+  // Global rate limit — covers all routes including HTMX endpoints
+  app.use(globalRateLimiter);
 
   // Routes
   app.use(healthRouter);

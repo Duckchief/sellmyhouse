@@ -20,6 +20,15 @@ export const apiRateLimiter = rateLimit({
   message: { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please slow down.' } },
 });
 
+export const globalRateLimiter = rateLimit({
+  windowMs: 60 * 1000,      // 1 minute
+  max: 300,                  // 300 requests/min/IP — covers HTMX fragment loads
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many requests. Please slow down.',
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
 export const leadRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3,

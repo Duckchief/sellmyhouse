@@ -15,9 +15,11 @@ function buildApp() {
   env.addFilter('t', (s: string) => s);
   app.use(express.json());
   app.use(publicRouter);
-  app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    res.status(500).json({ error: err.message });
-  });
+  app.use(
+    (err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      res.status(500).json({ error: err.message });
+    },
+  );
   return app;
 }
 

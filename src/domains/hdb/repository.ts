@@ -69,11 +69,26 @@ export class HdbRepository {
     const values: (string | number)[] = [];
     let i = 1;
 
-    if (filters.town) { conditions.push(`town = $${i++}`); values.push(filters.town); }
-    if (filters.flatType) { conditions.push(`flat_type = $${i++}`); values.push(filters.flatType); }
-    if (filters.storeyRange) { conditions.push(`storey_range = $${i++}`); values.push(filters.storeyRange); }
-    if (filters.fromMonth) { conditions.push(`month >= $${i++}`); values.push(filters.fromMonth); }
-    if (filters.toMonth) { conditions.push(`month <= $${i++}`); values.push(filters.toMonth); }
+    if (filters.town) {
+      conditions.push(`town = $${i++}`);
+      values.push(filters.town);
+    }
+    if (filters.flatType) {
+      conditions.push(`flat_type = $${i++}`);
+      values.push(filters.flatType);
+    }
+    if (filters.storeyRange) {
+      conditions.push(`storey_range = $${i++}`);
+      values.push(filters.storeyRange);
+    }
+    if (filters.fromMonth) {
+      conditions.push(`month >= $${i++}`);
+      values.push(filters.fromMonth);
+    }
+    if (filters.toMonth) {
+      conditions.push(`month <= $${i++}`);
+      values.push(filters.toMonth);
+    }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 

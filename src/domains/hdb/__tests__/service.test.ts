@@ -115,52 +115,44 @@ describe('HdbService', () => {
       expect(report).toBeNull();
     });
 
-  describe('getPaginatedTransactions', () => {
-    const filters = { town: 'TAMPINES', flatType: '4 ROOM', months: 24 };
+    describe('getPaginatedTransactions', () => {
+      const filters = { town: 'TAMPINES', flatType: '4 ROOM', months: 24 };
 
-    it('returns page 1 transactions with pagination metadata', async () => {
-      mockRepo.getRecentTransactions.mockResolvedValue([
-        makeTxn('1', 500000),
-        makeTxn('2', 510000),
-      ]);
-      mockRepo.countFilteredTransactions.mockResolvedValue(25);
+      it('returns page 1 transactions with pagination metadata', async () => {
+        mockRepo.getRecentTransactions.mockResolvedValue([
+          makeTxn('1', 500000),
+          makeTxn('2', 510000),
+        ]);
+        mockRepo.countFilteredTransactions.mockResolvedValue(25);
 
-      const result = await service.getPaginatedTransactions(filters, 1, 10);
+        const result = await service.getPaginatedTransactions(filters, 1, 10);
 
-      expect(result.transactions).toHaveLength(2);
-      expect(result.total).toBe(25);
-      expect(result.page).toBe(1);
-      expect(result.pageSize).toBe(10);
-      expect(result.totalPages).toBe(3);
-      expect(mockRepo.getRecentTransactions).toHaveBeenCalledWith(
-        expect.anything(),
-        10,
-        0,
-      );
+        expect(result.transactions).toHaveLength(2);
+        expect(result.total).toBe(25);
+        expect(result.page).toBe(1);
+        expect(result.pageSize).toBe(10);
+        expect(result.totalPages).toBe(3);
+        expect(mockRepo.getRecentTransactions).toHaveBeenCalledWith(expect.anything(), 10, 0);
+      });
+
+      it('calculates correct offset for page 2', async () => {
+        mockRepo.getRecentTransactions.mockResolvedValue([makeTxn('1', 500000)]);
+        mockRepo.countFilteredTransactions.mockResolvedValue(25);
+
+        await service.getPaginatedTransactions(filters, 2, 10);
+
+        expect(mockRepo.getRecentTransactions).toHaveBeenCalledWith(expect.anything(), 10, 10);
+      });
+
+      it('totalPages rounds up for partial last page', async () => {
+        mockRepo.getRecentTransactions.mockResolvedValue([]);
+        mockRepo.countFilteredTransactions.mockResolvedValue(21);
+
+        const result = await service.getPaginatedTransactions(filters, 1, 10);
+
+        expect(result.totalPages).toBe(3);
+      });
     });
-
-    it('calculates correct offset for page 2', async () => {
-      mockRepo.getRecentTransactions.mockResolvedValue([makeTxn('1', 500000)]);
-      mockRepo.countFilteredTransactions.mockResolvedValue(25);
-
-      await service.getPaginatedTransactions(filters, 2, 10);
-
-      expect(mockRepo.getRecentTransactions).toHaveBeenCalledWith(
-        expect.anything(),
-        10,
-        10,
-      );
-    });
-
-    it('totalPages rounds up for partial last page', async () => {
-      mockRepo.getRecentTransactions.mockResolvedValue([]);
-      mockRepo.countFilteredTransactions.mockResolvedValue(21);
-
-      const result = await service.getPaginatedTransactions(filters, 1, 10);
-
-      expect(result.totalPages).toBe(3);
-    });
-  });
 
     it('returns correct median from stats', async () => {
       mockRepo.getMarketReportStats.mockResolvedValue({

@@ -310,11 +310,9 @@ function renderTemplate(templateName: string, data: Record<string, string>): str
 }
 
 export function generateUnsubscribeToken(sellerId: string): string {
-  return jwt.sign(
-    { sellerId, purpose: 'marketing_consent_withdrawal' },
-    process.env.SESSION_SECRET!,
-    { expiresIn: '30d' },
-  );
+  return jwt.sign({ sellerId, purpose: 'marketing_consent_withdrawal' }, process.env.JWT_SECRET!, {
+    expiresIn: '30d',
+  });
 }
 
 export async function handleUnsubscribe(sellerId: string): Promise<void> {

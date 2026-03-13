@@ -9,7 +9,7 @@
 
   {# Search form #}
   <div class="border border-gray-200 rounded-xl p-6 mb-8">
-    <form hx-get="/api/hdb/report" hx-target="#report-results" hx-swap="innerHTML" hx-indicator="#search-spinner">
+    <form id="market-report-form" hx-get="/api/hdb/report" hx-target="#report-results" hx-swap="innerHTML" hx-indicator="#search-spinner">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
         <div>
           <label for="town" class="block text-sm font-semibold mb-1">{{ "Town" | t }}</label>
@@ -43,17 +43,24 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
-        <label class="text-sm font-semibold">{{ "Date Range:" | t }}</label>
-        <select name="months" class="border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-sm">
-          <option value="6">{{ "6 Months" | t }}</option>
-          <option value="12">{{ "1 Year" | t }}</option>
-          <option value="24" selected>{{ "2 Years" | t }}</option>
-          <option value="60">{{ "5 Years" | t }}</option>
-          <option value="120">{{ "10 Years" | t }}</option>
-          <option value="240">{{ "20 Years" | t }}</option>
-          <option value="0">{{ "All" | t }}</option>
-        </select>
+      <div class="space-y-1">
+        <div class="flex items-center justify-between">
+          <label for="months-slider" class="text-sm font-semibold">{{ "Date Range:" | t }}</label>
+          <span id="months-label" class="text-sm font-semibold text-[#c8553d]">2 Years</span>
+        </div>
+        <input type="range" id="months-slider" min="0" max="6" step="1" value="3"
+               class="w-full accent-[#c8553d] cursor-pointer"
+               data-action="update-months-label">
+        <input type="hidden" id="months-value" name="months" value="24">
+        <div class="flex justify-between text-xs text-gray-400 px-0.5">
+          <span>6 Mo</span>
+          <span>1 Yr</span>
+          <span>2 Yr</span>
+          <span>5 Yr</span>
+          <span>10 Yr</span>
+          <span>20 Yr</span>
+          <span>All</span>
+        </div>
       </div>
     </form>
   </div>

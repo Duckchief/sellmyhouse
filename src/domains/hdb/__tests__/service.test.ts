@@ -7,6 +7,25 @@ jest.mock('../repository');
 
 const mockRepo = new HdbRepository() as jest.Mocked<HdbRepository>;
 
+const makeTxn = (id: string, price: number) => makeTransaction(id, price);
+
+const makeTransaction = (id: string, price: number, month = '2024-01') => ({
+  id,
+  month,
+  town: 'TAMPINES',
+  flatType: '4 ROOM',
+  block: id,
+  streetName: 'ST',
+  storeyRange: '01 TO 03',
+  floorAreaSqm: 90,
+  flatModel: 'A',
+  leaseCommenceDate: 1995,
+  remainingLease: null,
+  resalePrice: new Decimal(price),
+  source: 'csv_seed' as const,
+  createdAt: new Date(),
+});
+
 describe('HdbService', () => {
   const service = new HdbService(mockRepo);
 
@@ -14,24 +33,7 @@ describe('HdbService', () => {
 
   describe('getTransactions', () => {
     it('delegates to repository with filters', async () => {
-      const mockData = [
-        {
-          id: '1',
-          month: '2024-01',
-          town: 'TAMPINES',
-          flatType: '4 ROOM',
-          block: '123',
-          streetName: 'TAMPINES ST 21',
-          storeyRange: '07 TO 09',
-          floorAreaSqm: 93,
-          flatModel: 'Model A',
-          leaseCommenceDate: 1995,
-          remainingLease: null,
-          resalePrice: new Decimal(500000),
-          source: 'csv_seed' as const,
-          createdAt: new Date(),
-        },
-      ];
+      const mockData = [makeTransaction('1', 500000)];
       mockRepo.findTransactions.mockResolvedValue(mockData);
 
       const result = await service.getTransactions({ town: 'TAMPINES' });
@@ -72,58 +74,19 @@ describe('HdbService', () => {
   });
 
   describe('getMarketReport', () => {
-    it('calculates statistics from transactions', async () => {
-      const transactions = [
-        {
-          id: '1',
-          month: '2024-01',
-          town: 'TAMPINES',
-          flatType: '4 ROOM',
-          block: '1',
-          streetName: 'ST',
-          storeyRange: '01 TO 03',
-          floorAreaSqm: 90,
-          flatModel: 'A',
-          leaseCommenceDate: 1995,
-          remainingLease: null,
-          resalePrice: new Decimal(400000),
-          source: 'csv_seed' as const,
-          createdAt: new Date(),
-        },
-        {
-          id: '2',
-          month: '2024-01',
-          town: 'TAMPINES',
-          flatType: '4 ROOM',
-          block: '2',
-          streetName: 'ST',
-          storeyRange: '04 TO 06',
-          floorAreaSqm: 95,
-          flatModel: 'A',
-          leaseCommenceDate: 1995,
-          remainingLease: null,
-          resalePrice: new Decimal(500000),
-          source: 'csv_seed' as const,
-          createdAt: new Date(),
-        },
-        {
-          id: '3',
-          month: '2024-02',
-          town: 'TAMPINES',
-          flatType: '4 ROOM',
-          block: '3',
-          streetName: 'ST',
-          storeyRange: '07 TO 09',
-          floorAreaSqm: 100,
-          flatModel: 'A',
-          leaseCommenceDate: 1995,
-          remainingLease: null,
-          resalePrice: new Decimal(600000),
-          source: 'csv_seed' as const,
-          createdAt: new Date(),
-        },
-      ];
-      mockRepo.findTransactions.mockResolvedValue(transactions);
+    it('returns aggregated stats from DB', async () => {
+      mockRepo.getMarketReportStats.mockResolvedValue({
+        count: 3,
+        min: 400000,
+        max: 600000,
+        median: 500000,
+        avgPricePerSqm: 5500,
+      });
+      mockRepo.getRecentTransactions.mockResolvedValue([
+        makeTransaction('3', 600000, '2024-02'),
+        makeTransaction('2', 500000, '2024-01'),
+        makeTransaction('1', 400000, '2024-01'),
+      ]);
 
       const report = await service.getMarketReport({
         town: 'TAMPINES',
@@ -140,7 +103,8 @@ describe('HdbService', () => {
     });
 
     it('returns null when no transactions found', async () => {
-      mockRepo.findTransactions.mockResolvedValue([]);
+      mockRepo.getMarketReportStats.mockResolvedValue(null);
+      mockRepo.getRecentTransactions.mockResolvedValue([]);
 
       const report = await service.getMarketReport({
         town: 'NOWHERE',
@@ -151,46 +115,68 @@ describe('HdbService', () => {
       expect(report).toBeNull();
     });
 
-    it('calculates median for even count', async () => {
-      const transactions = [
-        {
-          id: '1',
-          month: '2024-01',
-          town: 'T',
-          flatType: '4R',
-          block: '1',
-          streetName: 'S',
-          storeyRange: 'R',
-          floorAreaSqm: 90,
-          flatModel: 'A',
-          leaseCommenceDate: 1995,
-          remainingLease: null,
-          resalePrice: new Decimal(400000),
-          source: 'csv_seed' as const,
-          createdAt: new Date(),
-        },
-        {
-          id: '2',
-          month: '2024-01',
-          town: 'T',
-          flatType: '4R',
-          block: '2',
-          streetName: 'S',
-          storeyRange: 'R',
-          floorAreaSqm: 90,
-          flatModel: 'A',
-          leaseCommenceDate: 1995,
-          remainingLease: null,
-          resalePrice: new Decimal(600000),
-          source: 'csv_seed' as const,
-          createdAt: new Date(),
-        },
-      ];
-      mockRepo.findTransactions.mockResolvedValue(transactions);
+  describe('getPaginatedTransactions', () => {
+    const filters = { town: 'TAMPINES', flatType: '4 ROOM', months: 24 };
+
+    it('returns page 1 transactions with pagination metadata', async () => {
+      mockRepo.getRecentTransactions.mockResolvedValue([
+        makeTxn('1', 500000),
+        makeTxn('2', 510000),
+      ]);
+      mockRepo.countFilteredTransactions.mockResolvedValue(25);
+
+      const result = await service.getPaginatedTransactions(filters, 1, 10);
+
+      expect(result.transactions).toHaveLength(2);
+      expect(result.total).toBe(25);
+      expect(result.page).toBe(1);
+      expect(result.pageSize).toBe(10);
+      expect(result.totalPages).toBe(3);
+      expect(mockRepo.getRecentTransactions).toHaveBeenCalledWith(
+        expect.anything(),
+        10,
+        0,
+      );
+    });
+
+    it('calculates correct offset for page 2', async () => {
+      mockRepo.getRecentTransactions.mockResolvedValue([makeTxn('1', 500000)]);
+      mockRepo.countFilteredTransactions.mockResolvedValue(25);
+
+      await service.getPaginatedTransactions(filters, 2, 10);
+
+      expect(mockRepo.getRecentTransactions).toHaveBeenCalledWith(
+        expect.anything(),
+        10,
+        10,
+      );
+    });
+
+    it('totalPages rounds up for partial last page', async () => {
+      mockRepo.getRecentTransactions.mockResolvedValue([]);
+      mockRepo.countFilteredTransactions.mockResolvedValue(21);
+
+      const result = await service.getPaginatedTransactions(filters, 1, 10);
+
+      expect(result.totalPages).toBe(3);
+    });
+  });
+
+    it('returns correct median from stats', async () => {
+      mockRepo.getMarketReportStats.mockResolvedValue({
+        count: 2,
+        min: 400000,
+        max: 600000,
+        median: 500000,
+        avgPricePerSqm: 5500,
+      });
+      mockRepo.getRecentTransactions.mockResolvedValue([
+        makeTransaction('2', 600000),
+        makeTransaction('1', 400000),
+      ]);
 
       const report = await service.getMarketReport({ town: 'T', flatType: '4R', months: 12 });
 
-      // Median of [400000, 600000] = 500000
       expect(report!.median).toEqual(new Decimal(500000));
     });
   });

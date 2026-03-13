@@ -10,3 +10,8 @@ prisma/migrations/*.sql.bak
 .DS_Store
 data/hdb/*.csv
 .worktrees/
+tests/**/*.js
+tests/**/*.js.map
+tests/**/*.d.ts
+tests/**/*.d.ts.map
+public/js/app.js.map

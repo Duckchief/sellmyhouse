@@ -22,6 +22,9 @@ jest.mock('@/domains/viewing/viewing.service');
 jest.mock('@/domains/offer/offer.service');
 jest.mock('@/domains/compliance/compliance.service');
 jest.mock('@/domains/review/review.service');
+jest.mock('@/infra/security/virus-scanner', () => ({
+  scanBuffer: jest.fn().mockResolvedValue({ isClean: true, viruses: [] }),
+}));
 jest.mock('@/infra/storage/local-storage', () => ({
   localStorage: {
     save: jest.fn().mockResolvedValue('invoices/tx-1/invoice-abc.pdf'),
@@ -96,6 +99,14 @@ describe('transaction.service', () => {
     mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(null);
     // Default: Gate 3 passes (H3)
     mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
+    // Default: counterparty CDD gate — buyer is represented (has agent)
+    mockTxRepo.findAcceptedOfferByPropertyId.mockResolvedValue({
+      id: 'offer-1',
+      buyerName: 'Jane Buyer',
+      buyerAgentName: 'John Agent',
+      buyerAgentCeaReg: 'R012345B',
+    } as never);
+    mockTxRepo.findCounterpartyCddByPropertyId.mockResolvedValue(null);
     // Default: property address for L5
     mockPropertyService.getPropertyById.mockResolvedValue({
       id: 'property-1',
@@ -267,6 +278,70 @@ describe('transaction.service', () => {
       await txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' });
 
       expect(mockTxRepo.updateExerciseDeadline).toHaveBeenCalledTimes(1);
+    });
+
+    it('blocks issued_to_buyer when buyer is unrepresented and no counterparty CDD exists', async () => {
+      const tx = makeTransaction();
+      const otp = makeOtp({ status: 'returned', agentReviewedAt: new Date() });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
+      mockTxRepo.findAcceptedOfferByPropertyId.mockResolvedValue({
+        id: 'offer-1', buyerName: 'Jane Buyer', buyerAgentName: null, buyerAgentCeaReg: null,
+      } as never);
+      mockTxRepo.findCounterpartyCddByPropertyId.mockResolvedValue(null);
+
+      await expect(
+        txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ComplianceError);
+    });
+
+    it('allows issued_to_buyer when buyer has a buyer agent (represented)', async () => {
+      const tx = makeTransaction();
+      const otp = makeOtp({ status: 'returned', agentReviewedAt: new Date() });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
+      mockTxRepo.findAcceptedOfferByPropertyId.mockResolvedValue({
+        id: 'offer-1', buyerName: 'Jane Buyer', buyerAgentName: 'John Agent', buyerAgentCeaReg: 'R012345B',
+      } as never);
+      mockTxRepo.updateOtpStatus.mockResolvedValue({ ...otp, status: 'issued_to_buyer' } as never);
+      mockTxRepo.updateExerciseDeadline.mockResolvedValue(tx as never);
+      mockSettings.getNumber.mockResolvedValue(21);
+
+      await txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' });
+      expect(mockTxRepo.updateOtpStatus).toHaveBeenCalled();
+    });
+
+    it('allows issued_to_buyer when buyer is unrepresented but counterparty CDD is verified', async () => {
+      const tx = makeTransaction();
+      const otp = makeOtp({ status: 'returned', agentReviewedAt: new Date() });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
+      mockTxRepo.findAcceptedOfferByPropertyId.mockResolvedValue({
+        id: 'offer-1', buyerName: 'Jane Buyer', buyerAgentName: null, buyerAgentCeaReg: null,
+      } as never);
+      mockTxRepo.findCounterpartyCddByPropertyId.mockResolvedValue({
+        id: 'cdd-buyer-1', subjectType: 'buyer', identityVerified: true,
+      } as never);
+      mockTxRepo.updateOtpStatus.mockResolvedValue({ ...otp, status: 'issued_to_buyer' } as never);
+      mockTxRepo.updateExerciseDeadline.mockResolvedValue(tx as never);
+      mockSettings.getNumber.mockResolvedValue(21);
+
+      await txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' });
+      expect(mockTxRepo.updateOtpStatus).toHaveBeenCalled();
+    });
+
+    it('allows issued_to_buyer when no accepted offer exists (edge case)', async () => {
+      const tx = makeTransaction();
+      const otp = makeOtp({ status: 'returned', agentReviewedAt: new Date() });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
+      mockTxRepo.findAcceptedOfferByPropertyId.mockResolvedValue(null);
+      mockTxRepo.updateOtpStatus.mockResolvedValue({ ...otp, status: 'issued_to_buyer' } as never);
+      mockTxRepo.updateExerciseDeadline.mockResolvedValue(tx as never);
+      mockSettings.getNumber.mockResolvedValue(21);
+
+      await txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' });
+      expect(mockTxRepo.updateOtpStatus).toHaveBeenCalled();
     });
   });
 

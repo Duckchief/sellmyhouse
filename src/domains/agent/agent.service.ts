@@ -1,4 +1,5 @@
 import * as agentRepo from './agent.repository';
+import * as viewingRepo from '../viewing/viewing.repository';
 import * as complianceService from '../compliance/compliance.service';
 import { NotFoundError } from '@/domains/shared/errors';
 import type {
@@ -139,6 +140,10 @@ export function getTimeline(
   transactionStatus: string | null,
 ): TimelineMilestone[] {
   return getTimelineMilestones(propertyStatus, transactionStatus);
+}
+
+export async function getRepeatViewers() {
+  return viewingRepo.findRepeatViewers(2);
 }
 
 export async function processCorrectionRequest(input: {

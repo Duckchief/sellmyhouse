@@ -6,6 +6,9 @@ const SETTINGS = [
   { key: 'gst_rate', value: '0.09', description: 'GST rate applied to commission' },
   { key: 'ai_provider', value: 'anthropic', description: 'Active AI provider (anthropic, openai, google)' },
   { key: 'ai_model', value: 'claude-sonnet-4-20250514', description: 'Active AI model identifier' },
+  { key: 'ai_fallback_provider', value: '', description: 'Fallback AI provider if primary fails. Empty = no fallback. Values: anthropic, openai, google' },
+  { key: 'ai_retry_count', value: '1', description: 'Number of retries on AI provider failure before fallback' },
+  { key: 'ai_retry_delay_ms', value: '2000', description: 'Delay in ms between AI retries' },
   { key: 'platform_name', value: 'SellMyHomeNow.sg', description: 'Platform display name' },
   { key: 'agency_name', value: 'Huttons Asia Pte Ltd', description: 'Agency name for CEA compliance' },
   { key: 'agency_licence', value: 'L3008899K', description: 'CEA agency licence number' },
@@ -21,6 +24,7 @@ const SETTINGS = [
   { key: 'transaction_retention_years', value: '5', description: 'Years post-completion before a transaction is flagged for deletion (AML/CFT minimum)' },
   { key: 'cdd_retention_years', value: '5', description: 'Years post-verification before CDD documents are flagged for deletion (AML/CFT minimum)' },
   { key: 'consent_post_withdrawal_retention_years', value: '1', description: 'Years after consent withdrawal before the consent record is flagged for deletion' },
+  { key: 'seller_inactive_alert_days', value: '14', description: 'Days of inactivity before agent alert is sent' },
 ];
 
 export async function seedSystemSettings(prisma: PrismaClient): Promise<void> {

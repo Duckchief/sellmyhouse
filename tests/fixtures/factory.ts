@@ -520,6 +520,31 @@ export const factory = {
     });
   },
 
+  async cddRecord(overrides: {
+    subjectType: 'seller' | 'counterparty' | 'buyer';
+    subjectId: string;
+    verifiedByAgentId: string;
+    fullName?: string;
+    nricLast4?: string;
+    identityVerified?: boolean;
+    verifiedAt?: Date | null;
+    retentionExpiresAt?: Date | null;
+  }) {
+    return testPrisma.cddRecord.create({
+      data: {
+        id: createId(),
+        subjectType: overrides.subjectType,
+        subjectId: overrides.subjectId,
+        fullName: overrides.fullName ?? 'Test Person',
+        nricLast4: overrides.nricLast4 ?? '567A',
+        identityVerified: overrides.identityVerified ?? true,
+        verifiedByAgentId: overrides.verifiedByAgentId,
+        verifiedAt: overrides.verifiedAt ?? new Date(),
+        retentionExpiresAt: overrides.retentionExpiresAt ?? null,
+      },
+    });
+  },
+
   async caseFlag(overrides: {
     sellerId: string;
     flagType?: import('@prisma/client').CaseFlagType;

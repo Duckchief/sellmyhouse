@@ -53,3 +53,27 @@ export async function updateSellerStatus(
     data,
   });
 }
+
+/**
+ * Find active sellers with no activity (updatedAt) for the last N days.
+ * Returns seller ID, name, email, assigned agent ID, and last activity date.
+ */
+export async function findInactiveSellers(inactiveDays: number) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - inactiveDays);
+
+  return prisma.seller.findMany({
+    where: {
+      status: { in: ['engaged', 'active'] },
+      updatedAt: { lt: cutoff },
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      agentId: true,
+      updatedAt: true,
+      status: true,
+    },
+  });
+}

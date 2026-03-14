@@ -583,4 +583,48 @@ describe('NotificationService', () => {
       expect(notificationRepo.markAsRead).not.toHaveBeenCalled();
     });
   });
+
+  describe('tipping-off suppression (AML/CFT Reg 12H)', () => {
+    it('suppresses compliance notification when CDD is flagged as sensitive case', async () => {
+      complianceService.isSensitiveCaseSeller = jest.fn().mockResolvedValue(true);
+
+      await service.send(
+        {
+          recipientType: 'seller',
+          recipientId: 'seller-1',
+          templateName: 'cdd_status_update' as any,
+          templateData: { status: 'verified' },
+        },
+        'agent-1',
+      );
+
+      // Notification should NOT be created (not even in-app)
+      expect(notificationRepo.create).not.toHaveBeenCalled();
+      // Audit log should record the suppression
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'notification.suppressed',
+          details: expect.objectContaining({ reason: 'sensitive_case' }),
+        }),
+      );
+    });
+
+    it('allows non-compliance notifications even when CDD is sensitive', async () => {
+      complianceService.isSensitiveCaseSeller = jest.fn().mockResolvedValue(true);
+      WhatsAppProvider.prototype.send = jest.fn().mockResolvedValue({ messageId: 'wamid.2' });
+
+      await service.send(
+        {
+          recipientType: 'seller',
+          recipientId: 'seller-1',
+          templateName: 'welcome_seller',
+          templateData: { name: 'Test' },
+        },
+        'agent-1',
+      );
+
+      // Non-compliance template should still be sent
+      expect(notificationRepo.create).toHaveBeenCalled();
+    });
+  });
 });

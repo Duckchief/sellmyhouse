@@ -437,8 +437,49 @@ These are legal/regulatory requirements carried from v1 and cannot be changed in
 - **Notification preference** — check `seller.notificationPreference` before sending
 - **Marketing consent required** — marketing messages require explicit marketing consent, separate from service consent
 
+### Data Breach Notification (PDPA s26D)
+
+Under PDPA s26D, the organisation must notify the PDPC within 3 calendar days of
+determining that a data breach is notifiable (significant harm to affected individuals,
+or 500+ individuals affected).
+
+**Procedure:**
+
+1. **Detection.** Any team member who suspects a breach (unauthorised access, data
+   exposure, system compromise) immediately notifies the agent (data protection lead).
+2. **Assessment (within 24 hours).** Determine: what data was affected (PII, NRIC,
+   financial data, CDD documents), how many individuals, whether significant harm is
+   likely (identity theft, financial loss), and whether the breach is contained.
+3. **Notification to PDPC (within 3 calendar days of assessment).** If the breach
+   meets notifiable thresholds, file notification via PDPC's breach notification portal.
+   Include: nature of breach, data types, number affected, remedial actions taken.
+4. **Notification to affected individuals.** If significant harm is likely, notify
+   affected sellers/buyers directly via their registered contact details.
+5. **Remediation.** Fix the vulnerability, rotate compromised credentials, review
+   access logs, update security measures.
+6. **Post-incident review.** Document lessons learned. Update this procedure if needed.
+7. **Huttons escalation.** Any notifiable breach must also be escalated to Huttons'
+   compliance department immediately.
+
+### Cross-Border Data Transfer (PDPA s26)
+
+The AI abstraction layer sends data to external API providers (Anthropic — US, OpenAI —
+US, Google — US/global). Under PDPA s26, personal data must not be transferred outside
+Singapore unless the recipient provides comparable protection.
+
+**Key control:** Prompt templates are designed to **never include PII** (seller name,
+NRIC, DOB, full address, phone number, email). This is enforced by:
+
+1. Prompt template code reviews — templates use property reference data, not seller data
+2. The AI facade receives structured data objects, not raw user input
+3. Seller names in report narratives use a placeholder — the agent personalises after review
+
+**If PII must be sent in future features:** consent-based legal basis required, and the
+AI provider's data processing terms must be reviewed for PDPA transfer compliance.
+
 ### AML/CFT
 - **5-year retention** for transaction records and CDD documents — overrides PDPA deletion requests during retention period
+- **Tipping-off prohibition (Reg 12H)** — when a CDD record is flagged as `sensitiveCase`, the platform suppresses all seller-facing notifications about compliance status. The agent must not inform the seller that a suspicion has been raised. STR filing is handled through Huttons' internal process.
 
 ### Audit
 - **Append-only** — never delete or modify audit log entries
@@ -461,6 +502,41 @@ These are legal/regulatory requirements carried from v1 and cannot be changed in
 - **No formal valuations** — indicative ranges from public HDB data only
 - **OTP is physical** — platform tracks status and stores scanned copies, does not generate or modify the OTP document
 - **Commission invoice from Huttons** — platform stores and distributes only, does not generate the invoice itself
+
+## 11. AML/CFT Reg 16-17: Risk Assessment for New Technologies
+
+Under Regulation 16 of the Estate Agents (Prevention of Money Laundering, Proliferation
+Financing and Terrorism Financing) Regulations 2021, licensed estate agents must identify
+and assess risks arising from new technologies, services, and business practices.
+
+### AI Technologies Used
+
+| Technology | Purpose | Provider | Data Exposure |
+|-----------|---------|----------|---------------|
+| LLM (Claude/GPT/Gemini) | Financial report narratives | Anthropic / OpenAI / Google | Property data, market stats. **No PII sent.** |
+| LLM (Claude/GPT/Gemini) | Listing descriptions | Anthropic / OpenAI / Google | Property details, photos metadata. **No PII sent.** |
+| LLM (Claude/GPT/Gemini) | Weekly seller updates | Anthropic / OpenAI / Google | Aggregated stats only. **No PII sent.** |
+| LLM (Claude/GPT/Gemini) | Offer analysis | Anthropic / OpenAI / Google | Offer amounts, market comparables. **No PII sent.** |
+
+### Identified Risks and Mitigations
+
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| AI generates incorrect financial figures | High | Human-in-the-loop: all AI outputs require agent review before reaching client. Financial calculations use deterministic code, not AI. AI only generates narrative text around verified numbers. |
+| AI generates misleading listing description | Medium | Agent reviews every listing before posting. AI prompt templates include instruction to be factual and not make unverifiable claims. PG 2/2011 compliance checked at review gate. |
+| AI prompt leaks PII to external provider | High | Prompt templates are designed to exclude PII (no NRIC, full name, DOB, address). Templates inject property data and market stats only. Prompt template code review on every change. |
+| AI provider changes terms, begins training on inputs | Medium | Provider-agnostic abstraction allows switching providers. API terms reviewed at onboarding. Enterprise/API tiers used (not consumer tiers that may train on inputs). |
+| AI output used to facilitate money laundering | Low | AI does not handle CDD, risk assessment, or transaction approval. All compliance gates are human-only. AI assists with marketing and reporting text only. |
+
+### Controls
+
+1. **No AI at compliance gates.** CDD verification, EAA signing, OTP review, and HDB submission are human-only. AI cannot approve or bypass these gates.
+2. **PII exclusion.** All prompt templates are reviewed to ensure no personally identifiable information is sent to external AI providers. Templates use property reference IDs and aggregated data only.
+3. **Audit trail.** Every AI-generated output records which provider and model produced it (`aiProvider`, `aiModel` fields on entity records + audit log).
+4. **Provider switching.** The provider-agnostic abstraction layer allows the platform to switch AI providers via SystemSetting without code changes, mitigating vendor lock-in risk.
+5. **Human review mandatory.** The status flow `ai_generated → pending_review → approved → sent` is enforced at the application layer. No code path allows AI content to reach a client without agent approval.
+
+This assessment is reviewed annually or when new AI capabilities are added to the platform.
 
 ## Out of Scope (carried from v1)
 

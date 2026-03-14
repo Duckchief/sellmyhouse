@@ -754,6 +754,47 @@ describe('viewing.service', () => {
     });
   });
 
+  // ─── Viewer Follow-up ──────────────────────────────────
+
+  describe('sendViewerFollowups', () => {
+    it('sends follow-up to viewer 24 hours after completed viewing', async () => {
+      mockedRepo.findViewingsNeedingFollowup.mockResolvedValue([
+        {
+          id: 'v-1',
+          verifiedViewer: { id: 'viewer-1', phone: '91234567' },
+          viewingSlot: {
+            property: {
+              town: 'TAMPINES',
+              street: 'TAMPINES ST 21',
+              sellerId: 's1',
+              seller: { agentId: 'a1' },
+            },
+          },
+        },
+      ] as never);
+
+      const result = await viewingService.sendViewerFollowups();
+
+      expect(result.sent).toBe(1);
+      expect(mockedNotification.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipientType: 'viewer',
+          recipientId: 'viewer-1',
+          templateName: 'viewing_followup_viewer',
+        }),
+        'system',
+      );
+      expect(mockedRepo.markFollowupSent).toHaveBeenCalledWith('v-1');
+    });
+
+    it('returns zero when no viewings need follow-up', async () => {
+      mockedRepo.findViewingsNeedingFollowup.mockResolvedValue([]);
+
+      const result = await viewingService.sendViewerFollowups();
+      expect(result.sent).toBe(0);
+    });
+  });
+
   // ─── Stats ─────────────────────────────────────────────
 
   describe('getViewingStats', () => {

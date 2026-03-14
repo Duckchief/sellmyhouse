@@ -204,6 +204,38 @@ export async function findEaaByTransactionId(transactionId: string) {
   });
 }
 
+export async function findTransactionBySellerId(sellerId: string) {
+  return prisma.transaction.findFirst({
+    where: { sellerId, status: { not: 'fallen_through' } },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+// ── Counterparty CDD queries ─────────────────────────────────────────────────
+
+export async function findAcceptedOfferByPropertyId(propertyId: string) {
+  return prisma.offer.findFirst({
+    where: { propertyId, status: 'accepted' },
+    select: { id: true, buyerName: true, buyerAgentName: true, buyerAgentCeaReg: true },
+  });
+}
+
+export async function findCounterpartyCddByPropertyId(propertyId: string) {
+  const acceptedOffer = await prisma.offer.findFirst({
+    where: { propertyId, status: 'accepted' },
+    select: { id: true },
+  });
+  if (!acceptedOffer) return null;
+
+  return prisma.cddRecord.findFirst({
+    where: {
+      subjectType: { in: ['buyer', 'counterparty'] },
+      subjectId: acceptedOffer.id,
+      identityVerified: true,
+    },
+  });
+}
+
 // ── Cron queries ──────────────────────────────────────────────────────────────
 
 /** Returns all OTPs with status issued_to_buyer for reminder checking */

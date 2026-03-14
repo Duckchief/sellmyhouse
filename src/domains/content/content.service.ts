@@ -9,6 +9,7 @@ import {
 import { logger } from '@/infra/logger';
 import * as contentRepo from './content.repository';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
+import { AIUnavailableError } from '@/domains/shared/ai/ai.facade';
 import * as auditService from '@/domains/shared/audit.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import type {
@@ -207,9 +208,28 @@ export async function generateMarketContent(period: string) {
     return null;
   }
 
-  const { text, provider, model } = await aiFacade.generateText(
-    buildMarketPrompt(insights, period),
-  );
+  let text: string;
+  let provider: string;
+  let model: string;
+
+  try {
+    const result = await aiFacade.generateText(buildMarketPrompt(insights, period));
+    text = result.text;
+    provider = result.provider;
+    model = result.model;
+  } catch (err) {
+    if (err instanceof AIUnavailableError) {
+      logger.warn({ period, err }, 'AI unavailable for market content — skipping generation');
+      await auditService.log({
+        action: 'market_content.ai_unavailable',
+        entityType: 'market_content',
+        entityId: period,
+        details: { error: (err as Error).message },
+      });
+      return null;
+    }
+    throw err;
+  }
 
   let parsed: { narrative: string; tiktok: string; instagram: string; linkedin: string };
   try {
@@ -245,6 +265,8 @@ export async function getMarketContentById(id: string) {
 }
 
 export async function approveMarketContent(id: string, agentId: string) {
+  // Reminder: PG 2/2011 s7.3 — ensure your social media profile displays
+  // CEA licence number and salesperson registration number before posting.
   return contentRepo.updateMarketContentStatus(id, 'approved', agentId);
 }
 

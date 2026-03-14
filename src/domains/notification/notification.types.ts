@@ -29,6 +29,7 @@ export type NotificationTemplateName =
   | 'post_completion_day14'
   | 'testimonial_rejected'
   | 'password_reset'
+  | 'viewing_followup_viewer'
   | 'generic';
 
 export interface EmailAttachment {

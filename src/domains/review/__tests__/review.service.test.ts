@@ -180,6 +180,64 @@ describe('checkComplianceGate - cdd_complete', () => {
     mockRepo.findVerifiedSellerCdd.mockResolvedValue(null);
     await expect(checkComplianceGate('cdd_complete', 'seller-1')).rejects.toThrow(ComplianceError);
   });
+
+  it('throws ComplianceError when CDD is enhanced risk but notes are missing', async () => {
+    mockRepo.findVerifiedSellerCdd.mockResolvedValue({
+      id: '1', identityVerified: true, riskLevel: 'enhanced', notes: null,
+    } as any);
+    await expect(checkComplianceGate('cdd_complete', 'seller-1')).rejects.toThrow(ComplianceError);
+  });
+
+  it('throws ComplianceError when CDD is enhanced risk but notes are too short', async () => {
+    mockRepo.findVerifiedSellerCdd.mockResolvedValue({
+      id: '1', identityVerified: true, riskLevel: 'enhanced', notes: 'ok',
+    } as any);
+    await expect(checkComplianceGate('cdd_complete', 'seller-1')).rejects.toThrow(ComplianceError);
+  });
+
+  it('passes when CDD is enhanced risk with sufficient notes', async () => {
+    mockRepo.findVerifiedSellerCdd.mockResolvedValue({
+      id: '1', identityVerified: true, riskLevel: 'enhanced',
+      notes: 'PEP screening completed. Seller is a former senior civil servant. Source of funds verified via CPF statements and bank records.',
+    } as any);
+    await expect(checkComplianceGate('cdd_complete', 'seller-1')).resolves.toBeUndefined();
+  });
+
+  it('passes when CDD is standard risk without notes', async () => {
+    mockRepo.findVerifiedSellerCdd.mockResolvedValue({
+      id: '1', identityVerified: true, riskLevel: 'standard', notes: null,
+    } as any);
+    await expect(checkComplianceGate('cdd_complete', 'seller-1')).resolves.toBeUndefined();
+  });
+});
+
+describe('checkComplianceGate - hdb_submission_review', () => {
+  it('passes when OTP is exercised', async () => {
+    mockTxRepo.findTransactionBySellerId.mockResolvedValue({ id: 'tx-1' } as never);
+    mockTxRepo.findOtpByTransactionId.mockResolvedValue({ id: 'otp-1', status: 'exercised' } as never);
+
+    await expect(checkComplianceGate('hdb_submission_review', 'seller-1')).resolves.toBeUndefined();
+  });
+
+  it('throws ComplianceError when OTP is not exercised', async () => {
+    mockTxRepo.findTransactionBySellerId.mockResolvedValue({ id: 'tx-1' } as never);
+    mockTxRepo.findOtpByTransactionId.mockResolvedValue({ id: 'otp-1', status: 'issued_to_buyer' } as never);
+
+    await expect(checkComplianceGate('hdb_submission_review', 'seller-1')).rejects.toThrow(ComplianceError);
+  });
+
+  it('throws ComplianceError when no transaction exists', async () => {
+    mockTxRepo.findTransactionBySellerId.mockResolvedValue(null);
+
+    await expect(checkComplianceGate('hdb_submission_review', 'seller-1')).rejects.toThrow(ComplianceError);
+  });
+
+  it('throws ComplianceError when no OTP exists for transaction', async () => {
+    mockTxRepo.findTransactionBySellerId.mockResolvedValue({ id: 'tx-1' } as never);
+    mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
+
+    await expect(checkComplianceGate('hdb_submission_review', 'seller-1')).rejects.toThrow(ComplianceError);
+  });
 });
 
 describe('approveItem — listing portal generation hook', () => {

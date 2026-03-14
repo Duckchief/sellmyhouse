@@ -43,6 +43,25 @@ export async function send(input: SendNotificationInput, agentId: string): Promi
   const content = renderTemplate(input.templateName, input.templateData);
   const notificationType = input.notificationType || 'transactional';
 
+  // AML/CFT Reg 12H — Tipping-off prohibition
+  // When a CDD record is flagged as sensitiveCase, suppress all seller-facing
+  // notifications about compliance status to avoid alerting the seller.
+  if (
+    input.recipientType === 'seller' &&
+    (input.templateName.includes('cdd') || input.templateName.includes('compliance'))
+  ) {
+    const sensitive = await complianceService.isSensitiveCaseSeller(input.recipientId);
+    if (sensitive) {
+      await auditService.log({
+        action: 'notification.suppressed',
+        entityType: 'notification',
+        entityId: input.recipientId,
+        details: { reason: 'sensitive_case', templateName: input.templateName },
+      });
+      return; // silently suppress — do not send
+    }
+  }
+
   // Always create in-app notification
   const inAppRecord = await notificationRepo.create({
     recipientType: input.recipientType,

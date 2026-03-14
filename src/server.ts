@@ -10,6 +10,8 @@ import { registerTransactionJobs } from './domains/transaction/transaction.jobs'
 import { registerContentJobs } from './domains/content/content.jobs';
 import { runRetentionScan } from './infra/jobs/retention.job';
 import { runAnonymiseOffersJob } from './infra/jobs/anonymise-offers.job';
+import { initVirusScanner } from './infra/security/virus-scanner';
+import * as sellerService from './domains/seller/seller.service';
 
 const app = createApp();
 const port = parseInt(process.env.PORT || '3000', 10);
@@ -44,6 +46,19 @@ registerJob(
   runAnonymiseOffersJob,
   'Asia/Singapore',
 );
+
+// Register seller inactive check (Monday 9am SGT)
+registerJob(
+  'seller:inactive-check',
+  '0 9 * * 1',
+  async () => { await sellerService.checkInactiveSellers(); },
+  'Asia/Singapore',
+);
+
+// Initialize virus scanner (graceful if ClamAV unavailable)
+initVirusScanner().catch(() => {
+  // Initialization failure is already logged inside initVirusScanner
+});
 
 // Start cron jobs and server
 startJobs();

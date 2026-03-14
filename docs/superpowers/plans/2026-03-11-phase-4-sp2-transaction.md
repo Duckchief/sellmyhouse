@@ -1026,9 +1026,25 @@ export async function advanceOtp(input: AdvanceOtpInput) {
     throw new ValidationError(`OTP status '${otp.status}' is terminal — cannot advance further`);
   }
 
-  // Gate: issued_to_buyer requires agent review first
+ // Gate: issued_to_buyer requires agent review first
   if (nextStatus === 'issued_to_buyer' && !otp.agentReviewedAt) {
     throw new ValidationError('Agent must review OTP before issuing to buyer');
+  }
+
+  // Gate: counterparty CDD required for unrepresented buyers (AML/CFT Reg 12B)
+  // Before issuing OTP to buyer, check if buyer is unrepresented (no buyer agent)
+  // and if so, require a completed CDD record for the buyer
+  if (nextStatus === 'issued_to_buyer') {
+    const offer = await txRepo.findAcceptedOfferByTransactionProperty(tx.propertyId);
+    if (offer && !offer.buyerAgentName) {
+      // Buyer is unrepresented — counterparty CDD is mandatory
+      const buyerCdd = await txRepo.findCounterpartyCdd(tx.id);
+      if (!buyerCdd || !buyerCdd.identityVerified) {
+        throw new ComplianceError(
+          'Counterparty CDD must be completed for unrepresented buyers before OTP can be issued (AML/CFT Reg 12B)'
+        );
+      }
+    }
   }
 
   const issuedAt = nextStatus === 'issued_to_buyer' ? (input.issuedAt ?? new Date()) : undefined;

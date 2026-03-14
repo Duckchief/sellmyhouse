@@ -691,6 +691,14 @@ export async function anonymiseAgentRecord(agentId: string): Promise<void> {
   });
 }
 
+export async function findSensitiveCaseBySellerId(sellerId: string): Promise<boolean> {
+  const cdd = await prisma.cddRecord.findFirst({
+    where: { subjectType: 'seller', subjectId: sellerId, sensitiveCase: true },
+    select: { id: true },
+  });
+  return !!cdd;
+}
+
 export async function findAgentById(
   agentId: string,
 ): Promise<{ id: string; name: string; email: string; phone: string; isActive: boolean } | null> {

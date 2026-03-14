@@ -3,6 +3,7 @@ import { factory } from '../fixtures/factory';
 import { testPrisma } from '../helpers/prisma';
 import * as txService from '../../src/domains/transaction/transaction.service';
 import * as notificationService from '../../src/domains/notification/notification.service';
+import { ComplianceError } from '../../src/domains/shared/errors';
 
 jest.mock('../../src/domains/notification/notification.service');
 jest.mock('../../src/infra/storage/local-storage', () => ({
@@ -24,6 +25,7 @@ describe('transaction integration', () => {
     await testPrisma.commissionInvoice.deleteMany();
     await testPrisma.otp.deleteMany();
     await testPrisma.transaction.deleteMany();
+    await testPrisma.cddRecord.deleteMany();
     await testPrisma.offer.deleteMany();
     await testPrisma.portalListing.deleteMany();
     await testPrisma.listing.deleteMany();
@@ -186,6 +188,44 @@ describe('transaction integration', () => {
 
     const otp = await testPrisma.otp.findFirst({ where: { transactionId: tx.id } });
     expect(otp?.scannedCopyPathReturned).not.toBeNull();
+  });
+
+  it('OTP: blocks issued_to_buyer for unrepresented buyer without CDD, allows after CDD created', async () => {
+    // Create an accepted offer with no buyer agent (unrepresented)
+    const offer = await factory.offer({
+      propertyId,
+      buyerName: 'Jane Unrepresented',
+      buyerAgentName: null,
+      buyerAgentCeaReg: null,
+      status: 'accepted',
+    });
+
+    const tx = await factory.transaction({ propertyId, sellerId });
+    await factory.otp({
+      transactionId: tx.id,
+      status: 'returned',
+      agentReviewedAt: new Date(),
+    });
+
+    // Should fail — unrepresented buyer, no CDD record
+    await expect(
+      txService.advanceOtp({ transactionId: tx.id, agentId }),
+    ).rejects.toThrow(ComplianceError);
+
+    // Create a verified CDD record for the buyer (subjectType=buyer, subjectId=offerId)
+    await factory.cddRecord({
+      subjectType: 'buyer',
+      subjectId: offer.id,
+      verifiedByAgentId: agentId,
+      fullName: 'Jane Unrepresented',
+      identityVerified: true,
+    });
+
+    // Should now succeed
+    await txService.advanceOtp({ transactionId: tx.id, agentId });
+
+    const otp = await testPrisma.otp.findFirst({ where: { transactionId: tx.id } });
+    expect(otp?.status).toBe('issued_to_buyer');
   });
 
   it('invoice: sendInvoice updates status to sent_to_client', async () => {

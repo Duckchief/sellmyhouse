@@ -8,7 +8,14 @@ import type { VideoTutorial, MarketContent, Testimonial, Referral } from '@prism
 import type { HdbTransactionPartial, TestimonialSubmitInput } from './content.types';
 
 jest.mock('./content.repository');
-jest.mock('@/domains/shared/ai/ai.facade');
+jest.mock('@/domains/shared/ai/ai.facade', () => {
+  const actual = jest.requireActual('@/domains/shared/ai/ai.facade');
+  return {
+    ...actual,
+    generateText: jest.fn(),
+    getProvider: jest.fn(),
+  };
+});
 jest.mock('@/domains/shared/audit.service');
 
 const mockedRepo = jest.mocked(contentRepo);

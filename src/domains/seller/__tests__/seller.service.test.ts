@@ -2,7 +2,9 @@ import * as sellerService from '../seller.service';
 import * as sellerRepo from '../seller.repository';
 import * as contentService from '../../content/content.service';
 import * as notificationRepo from '../../notification/notification.repository';
+import * as notificationService from '../../notification/notification.service';
 import * as auditService from '../../shared/audit.service';
+import * as settingsService from '../../shared/settings.service';
 import { NotFoundError, ValidationError } from '../../shared/errors';
 import { TOTAL_ONBOARDING_STEPS } from '../seller.types';
 import type { Seller } from '@prisma/client';
@@ -12,11 +14,15 @@ type SellerWithRelations = Awaited<ReturnType<typeof sellerRepo.getSellerWithRel
 jest.mock('../seller.repository');
 jest.mock('../../content/content.service');
 jest.mock('../../notification/notification.repository');
+jest.mock('../../notification/notification.service');
 jest.mock('../../shared/audit.service');
+jest.mock('../../shared/settings.service');
 
 const mockedSellerRepo = jest.mocked(sellerRepo);
 const mockedNotificationRepo = jest.mocked(notificationRepo);
+const mockedNotificationService = jest.mocked(notificationService);
 const mockedAuditService = jest.mocked(auditService);
+const mockedSettings = jest.mocked(settingsService);
 
 describe('seller.service', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -394,6 +400,67 @@ describe('seller.service', () => {
           preference: 'email_only',
         }),
       ).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe('checkInactiveSellers', () => {
+    it('sends agent notification for inactive seller', async () => {
+      mockedSellerRepo.findInactiveSellers.mockResolvedValue([
+        {
+          id: 'seller-1',
+          name: 'Jane',
+          email: 'jane@test.com',
+          agentId: 'agent-1',
+          updatedAt: new Date(Date.now() - 20 * 86400000),
+          status: 'active',
+        },
+      ]);
+      mockedSettings.getNumber.mockResolvedValue(14);
+
+      const result = await sellerService.checkInactiveSellers();
+
+      expect(result.checked).toBe(1);
+      expect(mockedNotificationService.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipientType: 'agent',
+          recipientId: 'agent-1',
+          templateName: 'generic',
+        }),
+        'system',
+      );
+      expect(mockedAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'seller.inactive_alert',
+          entityType: 'seller',
+          entityId: 'seller-1',
+        }),
+      );
+    });
+
+    it('skips sellers without assigned agent', async () => {
+      mockedSellerRepo.findInactiveSellers.mockResolvedValue([
+        {
+          id: 'seller-2',
+          name: 'Bob',
+          email: 'bob@test.com',
+          agentId: null,
+          updatedAt: new Date(Date.now() - 20 * 86400000),
+          status: 'engaged',
+        },
+      ]);
+      mockedSettings.getNumber.mockResolvedValue(14);
+
+      await sellerService.checkInactiveSellers();
+
+      expect(mockedNotificationService.send).not.toHaveBeenCalled();
+    });
+
+    it('returns zero when no inactive sellers', async () => {
+      mockedSellerRepo.findInactiveSellers.mockResolvedValue([]);
+      mockedSettings.getNumber.mockResolvedValue(14);
+
+      const result = await sellerService.checkInactiveSellers();
+      expect(result.checked).toBe(0);
     });
   });
 });

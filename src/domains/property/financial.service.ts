@@ -2,7 +2,9 @@ import { createId } from '@paralleldrive/cuid2';
 import * as financialRepo from './financial.repository';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
+import { AIUnavailableError } from '@/domains/shared/ai/ai.facade';
 import * as auditService from '@/domains/shared/audit.service';
+import { logger } from '@/infra/logger';
 import * as notificationService from '@/domains/notification/notification.service';
 import { calculateNetProceeds } from './financial.calculator';
 import { buildFinancialNarrativePrompt } from '@/domains/shared/ai/prompts/financial-narrative';
@@ -62,20 +64,41 @@ export async function generateNarrative(reportId: string) {
     flatType: reportData.metadata.flatType,
   });
 
-  const result = await aiFacade.generateText(prompt);
+  try {
+    const result = await aiFacade.generateText(prompt);
 
-  await financialRepo.updateNarrative(reportId, {
-    aiNarrative: result.text,
-    aiProvider: result.provider,
-    aiModel: result.model,
-  });
+    await financialRepo.updateNarrative(reportId, {
+      aiNarrative: result.text,
+      aiProvider: result.provider,
+      aiModel: result.model,
+    });
 
-  await auditService.log({
-    action: 'financial.narrative_generated',
-    entityType: 'financial_report',
-    entityId: reportId,
-    details: { provider: result.provider, model: result.model },
-  });
+    await auditService.log({
+      action: 'financial.narrative_generated',
+      entityType: 'financial_report',
+      entityId: reportId,
+      details: { provider: result.provider, model: result.model },
+    });
+  } catch (err) {
+    if (err instanceof AIUnavailableError) {
+      // Graceful degradation: mark report as needing manual narrative
+      logger.warn({ reportId, err }, 'AI unavailable for financial narrative — agent must write manually');
+      await financialRepo.updateNarrative(reportId, {
+        aiNarrative: '',
+        aiProvider: 'unavailable',
+        aiModel: 'none',
+      });
+      await auditService.log({
+        action: 'financial.narrative_ai_unavailable',
+        entityType: 'financial_report',
+        entityId: reportId,
+        details: { error: err.message },
+      });
+      // Don't rethrow — report moves to pending_review, agent writes narrative manually
+      return;
+    }
+    throw err;
+  }
 }
 
 export async function approveReport(input: ApproveReportInput) {

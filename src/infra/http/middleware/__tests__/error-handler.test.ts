@@ -28,7 +28,7 @@ describe('errorHandler', () => {
       const res = mockRes();
       errorHandler(new UnauthorizedError('Authentication required'), req, res, next);
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.render).toHaveBeenCalledWith('pages/error', expect.objectContaining({ statusCode: 401 }));
+      expect(res.render).toHaveBeenCalledWith('pages/error', expect.objectContaining({ statusCode: 401, code: 'UNAUTHORIZED' }));
     });
 
     it('renders error page for unhandled 500', () => {
@@ -36,7 +36,7 @@ describe('errorHandler', () => {
       const res = mockRes();
       errorHandler(new Error('boom'), req, res, next);
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.render).toHaveBeenCalledWith('pages/error', expect.objectContaining({ statusCode: 500 }));
+      expect(res.render).toHaveBeenCalledWith('pages/error', expect.objectContaining({ statusCode: 500, code: 'INTERNAL_ERROR' }));
     });
   });
 

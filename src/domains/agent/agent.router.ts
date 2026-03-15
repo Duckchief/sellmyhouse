@@ -39,10 +39,11 @@ agentRouter.get(
         agentService.getRepeatViewers(),
       ]);
 
+      const currentStage = (req.query['stage'] as string) || null;
       if (req.headers['hx-request']) {
-        return res.render('partials/agent/pipeline-overview', { overview });
+        return res.render('partials/agent/pipeline-overview', { overview, currentStage });
       }
-      res.render('pages/agent/dashboard', { overview, repeatViewers });
+      res.render('pages/agent/dashboard', { overview, repeatViewers, currentStage });
     } catch (err) {
       next(err);
     }
@@ -56,8 +57,9 @@ agentRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
+      const currentStage = (req.query['stage'] as string) || null;
       const overview = await agentService.getPipelineOverview(getAgentFilter(user));
-      res.render('partials/agent/pipeline-cards', { overview });
+      res.render('partials/agent/pipeline-cards', { overview, currentStage });
     } catch (err) {
       next(err);
     }

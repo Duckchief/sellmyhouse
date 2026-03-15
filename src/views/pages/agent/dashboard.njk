@@ -5,7 +5,7 @@
 
 {# Pipeline cards auto-refresh #}
 <div id="pipeline-cards"
-     hx-get="/agent/dashboard/stats"
+     hx-get="/agent/dashboard/stats{% if currentStage %}?stage={{ currentStage }}{% endif %}"
      hx-trigger="load, every 30s"
      hx-swap="innerHTML">
   <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">

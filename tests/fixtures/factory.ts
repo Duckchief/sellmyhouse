@@ -390,8 +390,8 @@ export const factory = {
     return testPrisma.transaction.create({
       data: {
         id: createId(),
-        sellerId: overrides.sellerId,
-        propertyId: overrides.propertyId,
+        seller: { connect: { id: overrides.sellerId } },
+        property: { connect: { id: overrides.propertyId } },
         agreedPrice: overrides.agreedPrice ?? 500000,
         status: overrides.status ?? 'option_issued',
         completionDate: overrides.completionDate ?? null,

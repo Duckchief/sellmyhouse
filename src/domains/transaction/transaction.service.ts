@@ -384,7 +384,7 @@ export async function markOtpReviewed(input: {
     throw new ValidationError('Video call with seller must be confirmed before reviewing OTP');
   }
 
-  const updated = await txRepo.updateOtpReview(otp.id, new Date(), input.notes);
+  const updated = await txRepo.updateOtpReview(otp.id, new Date(), input.agentId, input.notes);
 
   await auditService.log({
     agentId: input.agentId,

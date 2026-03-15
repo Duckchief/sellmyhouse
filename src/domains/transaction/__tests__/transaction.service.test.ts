@@ -52,6 +52,7 @@ function makeTransaction(overrides: Record<string, unknown> = {}) {
     sellerId: 'seller-1',
     agreedPrice: '600000',
     status: 'option_issued' as const,
+    hdbApplicationStatus: 'not_started' as const,
     completionDate: null,
     exerciseDeadline: null,
     otp: null,
@@ -68,6 +69,7 @@ function makeOtp(overrides: Record<string, unknown> = {}) {
     status: 'prepared' as const,
     issuedAt: null,
     agentReviewedAt: null,
+    agentReviewedByAgentId: null,
     scannedCopyPathSeller: null,
     scannedCopyPathReturned: null,
     ...overrides,
@@ -705,7 +707,7 @@ describe('transaction.service', () => {
 
       await txService.markOtpReviewed({ transactionId: 'tx-1', agentId: 'agent-1' });
 
-      expect(mockTxRepo.updateOtpReview).toHaveBeenCalledWith('otp-1', expect.any(Date), undefined);
+      expect(mockTxRepo.updateOtpReview).toHaveBeenCalledWith('otp-1', expect.any(Date), 'agent-1', undefined);
     });
   });
 

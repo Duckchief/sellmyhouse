@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -52,7 +52,8 @@ export const hdbRateLimiter = rateLimit({
 export const offerRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20, // 20 offer actions per agent per hour
-  keyGenerator: (req) => (req.user as { id?: string } | undefined)?.id ?? req.ip ?? 'unknown',
+  keyGenerator: (req) =>
+    (req.user as { id?: string } | undefined)?.id ?? ipKeyGenerator(req.ip ?? ''),
   standardHeaders: true,
   legacyHeaders: false,
   message: {

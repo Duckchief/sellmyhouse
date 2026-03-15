@@ -4,7 +4,6 @@ import {
   NotFoundError,
   ConflictError,
   ValidationError,
-  ForbiddenError,
 } from '@/domains/shared/errors';
 import { logger } from '@/infra/logger';
 import * as contentRepo from './content.repository';

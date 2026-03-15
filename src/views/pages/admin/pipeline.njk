@@ -3,22 +3,26 @@
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">{{ "Pipeline" | t }}</h1>
 
-<div class="flex gap-2 mb-6">
-  <a href="/admin/pipeline" hx-get="/admin/pipeline" hx-target="#pipeline-content"
-    class="px-3 py-1 rounded text-sm {% if not stage %}bg-accent text-white{% else %}bg-bg-alt text-gray-600 hover:bg-gray-200{% endif %}">
-    {{ "All" | t }}
+{% set stageList = [
+  { value: 'lead',      label: 'Lead',      color: 'border-blue-500' },
+  { value: 'engaged',   label: 'Engaged',   color: 'border-yellow-500' },
+  { value: 'active',    label: 'Active',    color: 'border-green-500' },
+  { value: 'completed', label: 'Completed', color: 'border-purple-500' },
+  { value: 'archived',  label: 'Archived',  color: 'border-gray-400' }
+] %}
+
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+  {# All card #}
+  <a href="/admin/pipeline"
+     class="card border-t-4 {% if not stage %}border-accent ring-2 ring-accent/20{% else %}border-gray-200 hover:border-gray-300{% endif %}">
+    <p class="text-xs font-medium text-gray-500 uppercase">{{ "All" | t }}</p>
+    <p class="text-2xl font-bold mt-1">{{ stageCounts.lead + stageCounts.engaged + stageCounts.active + stageCounts.completed + stageCounts.archived }}</p>
   </a>
-  {% set stages = [
-    { value: 'lead', label: 'Lead' },
-    { value: 'engaged', label: 'Engaged' },
-    { value: 'active', label: 'Active' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'archived', label: 'Archived' }
-  ] %}
-  {% for s in stages %}
-  <a href="/admin/pipeline?stage={{ s.value }}" hx-get="/admin/pipeline?stage={{ s.value }}" hx-target="#pipeline-content"
-    class="px-3 py-1 rounded text-sm {% if stage == s.value %}bg-accent text-white{% else %}bg-bg-alt text-gray-600 hover:bg-gray-200{% endif %}">
-    {{ s.label | t }}
+  {% for s in stageList %}
+  <a href="/admin/pipeline?stage={{ s.value }}"
+     class="card border-t-4 {% if stage == s.value %}{{ s.color }} ring-2 ring-offset-1{% else %}border-gray-200 hover:{{ s.color }}{% endif %}">
+    <p class="text-xs font-medium text-gray-500 uppercase">{{ s.label | t }}</p>
+    <p class="text-2xl font-bold mt-1">{{ stageCounts[s.value] or 0 }}</p>
   </a>
   {% endfor %}
 </div>

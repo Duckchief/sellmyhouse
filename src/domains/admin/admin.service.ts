@@ -277,6 +277,18 @@ export async function getAdminPipeline(stage?: string): Promise<AdminPipelineRes
   return { stages, totalSellers: sellers.length };
 }
 
+export async function getAdminPipelineCounts(): Promise<Record<string, number>> {
+  const stageOrder = ['lead', 'engaged', 'active', 'completed', 'archived'];
+  const counts = await Promise.all(
+    stageOrder.map((status) => adminRepo.countPipelineStage(status)),
+  );
+  const result: Record<string, number> = {};
+  stageOrder.forEach((status, i) => {
+    result[status] = counts[i];
+  });
+  return result;
+}
+
 // ─── Leads ───────────────────────────────────────────────────
 
 export async function getUnassignedLeads(page?: number): Promise<LeadListResult> {

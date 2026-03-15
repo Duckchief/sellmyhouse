@@ -1,5 +1,6 @@
 // src/domains/admin/admin.repository.ts
 import { prisma, createId } from '@/infra/database/prisma';
+import { SellerStatus } from '@prisma/client';
 import type { TeamMember, AgentCreateInput, HdbDataStatus, HdbSyncRecord } from './admin.types';
 
 // ─── Agent Queries ───────────────────────────────────────────
@@ -117,6 +118,10 @@ export async function getPipelineForAdmin(stage?: string) {
     },
     orderBy: { createdAt: 'desc' },
   });
+}
+
+export async function countPipelineStage(status: string): Promise<number> {
+  return prisma.seller.count({ where: { status: status as SellerStatus } });
 }
 
 // ─── Lead Queries ────────────────────────────────────────────

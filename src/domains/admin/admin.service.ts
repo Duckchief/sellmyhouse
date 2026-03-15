@@ -12,6 +12,7 @@ import { HdbSyncService } from '@/domains/hdb/sync.service';
 import { ConflictError, NotFoundError, ValidationError } from '@/domains/shared/errors';
 import { SETTING_VALIDATORS } from './admin.validator';
 import type {
+  AdminSellerDetail,
   AgentCreateInput,
   AdminPipelineResult,
   AdminPipelineStage,
@@ -531,5 +532,66 @@ export async function getAnalytics(filter: AnalyticsFilter): Promise<AnalyticsDa
     leadSources,
     viewings,
     referrals,
+  };
+}
+
+export async function getAdminSellerDetail(id: string): Promise<AdminSellerDetail> {
+  const raw = await adminRepo.findSellerDetailForAdmin(id);
+  if (!raw) throw new NotFoundError('Seller not found');
+
+  const [cdd, auditLog] = await Promise.all([
+    complianceService.findLatestSellerCddRecord(id),
+    auditRepo.findByEntity('seller', id),
+  ]);
+
+  const property = raw.properties[0] ?? null;
+  const transaction = raw.transactions[0] ?? null;
+
+  return {
+    seller: {
+      id: raw.id,
+      name: raw.name,
+      email: raw.email,
+      phone: raw.phone,
+      status: raw.status,
+      notificationPreference: raw.notificationPreference,
+      createdAt: raw.createdAt,
+    },
+    property: property
+      ? {
+          block: property.block,
+          street: property.street,
+          town: property.town,
+          flatType: property.flatType,
+          floorAreaSqm: property.floorAreaSqm,
+          storeyRange: property.storeyRange,
+          askingPrice: property.askingPrice ? property.askingPrice.toNumber() : null,
+        }
+      : null,
+    agent: raw.agent,
+    transaction: transaction
+      ? {
+          id: transaction.id,
+          status: transaction.status,
+          offerId: transaction.offerId,
+          agreedPrice: transaction.agreedPrice.toNumber(),
+          hdbApplicationStatus: transaction.hdbApplicationStatus,
+          otpStatus: transaction.otp?.status ?? null,
+          createdAt: transaction.createdAt,
+        }
+      : null,
+    compliance: {
+      cdd: cdd
+        ? {
+            riskLevel: cdd.riskLevel,
+            identityVerified: cdd.identityVerified,
+            verifiedAt: cdd.verifiedAt,
+            createdAt: cdd.createdAt,
+          }
+        : null,
+      consentCount: raw.consentRecords.length,
+      hasWithdrawal: raw.consentRecords.some((c) => c.consentWithdrawnAt !== null),
+    },
+    auditLog: auditLog.slice(0, 20),
   };
 }

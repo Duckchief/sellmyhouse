@@ -282,8 +282,16 @@ export async function getMyData(sellerId: string) {
 }
 
 export async function generateDataExport(sellerId: string): Promise<Record<string, unknown>> {
+  // A2: Audit data access request
+  await auditService.log({
+    action: 'data_access.requested',
+    entityType: 'seller',
+    entityId: sellerId,
+    details: { requestedBy: 'seller' },
+  });
+
   const myData = await getMyData(sellerId);
-  return {
+  const exportData = {
     exportedAt: new Date().toISOString(),
     seller: myData.seller,
     properties: myData.properties,
@@ -301,6 +309,16 @@ export async function generateDataExport(sellerId: string): Promise<Record<strin
       processedAt: r.processedAt,
     })),
   };
+
+  // A2: Audit data access fulfilled
+  await auditService.log({
+    action: 'data_access.fulfilled',
+    entityType: 'seller',
+    entityId: sellerId,
+    details: { format: 'json', fieldsIncluded: Object.keys(exportData) },
+  });
+
+  return exportData;
 }
 
 // ─── SP3: Retention Scanning ──────────────────────────────────────────────────
@@ -634,6 +652,27 @@ export async function createCddRecord(
       subjectId: input.subjectId,
     },
   });
+
+  // A4: Audit identity verification and risk assessment if set on creation
+  if (record.identityVerified) {
+    await auditService.log({
+      agentId,
+      action: 'cdd.identity_verified',
+      entityType: 'cdd_record',
+      entityId: record.id,
+      details: { subjectType: input.subjectType, subjectId: input.subjectId },
+    });
+  }
+  if (input.riskLevel) {
+    await auditService.log({
+      agentId,
+      action: 'cdd.risk_assessed',
+      entityType: 'cdd_record',
+      entityId: record.id,
+      details: { riskLevel: input.riskLevel },
+    });
+  }
+
   return record;
 }
 

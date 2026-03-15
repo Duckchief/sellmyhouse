@@ -92,6 +92,14 @@ export async function findSellerNotificationPreference(sellerId: string): Promis
   return seller?.notificationPreference ?? null;
 }
 
+export async function findAgentNotificationPreference(agentId: string): Promise<string | null> {
+  const agent = await prisma.agent.findUnique({
+    where: { id: agentId },
+    select: { notificationPreference: true },
+  });
+  return agent?.notificationPreference ?? null;
+}
+
 export async function findSellerMarketingConsent(sellerId: string): Promise<boolean> {
   const seller = await prisma.seller.findUnique({
     where: { id: sellerId },

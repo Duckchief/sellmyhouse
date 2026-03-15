@@ -495,12 +495,21 @@ export async function sendInvoice(input: {
   const invoice = await txRepo.findInvoiceByTransactionId(input.transactionId);
   if (!invoice) throw new NotFoundError('CommissionInvoice', input.transactionId);
 
+  // N6: Fetch actual property address instead of using transactionId
+  const invoiceTx = await txRepo.findById(input.transactionId);
+  const invoiceProperty = invoiceTx
+    ? await propertyService.getPropertyById(invoiceTx.propertyId)
+    : null;
+  const invoiceAddress = invoiceProperty
+    ? `${invoiceProperty.block} ${invoiceProperty.street}, ${invoiceProperty.town}`
+    : 'your property';
+
   await notificationService.send(
     {
       recipientType: 'seller',
       recipientId: input.sellerId,
       templateName: 'invoice_uploaded',
-      templateData: { address: input.transactionId },
+      templateData: { address: invoiceAddress },
     },
     input.agentId,
   );

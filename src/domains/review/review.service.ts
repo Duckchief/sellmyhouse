@@ -2,6 +2,7 @@ import * as reviewRepo from './review.repository';
 import * as complianceService from '@/domains/compliance/compliance.service';
 import * as txRepo from '@/domains/transaction/transaction.repository';
 import * as auditService from '@/domains/shared/audit.service';
+import * as notificationService from '@/domains/notification/notification.service';
 import { HdbApplicationStatus } from '@prisma/client';
 import * as portalService from '@/domains/property/portal.service';
 import {
@@ -230,6 +231,28 @@ export async function approveItem(input: {
     entityId,
     details: { decision: 'approved' },
   });
+}
+
+// N3: Notify assigned agent when a new item enters review queue
+export async function notifyAgentOfPendingReview(
+  entityType: string,
+  entityId: string,
+  sellerId: string,
+): Promise<void> {
+  const seller = await reviewRepo.findSellerById(sellerId);
+  if (seller?.agentId) {
+    await notificationService.send(
+      {
+        recipientType: 'agent',
+        recipientId: seller.agentId,
+        templateName: 'generic',
+        templateData: {
+          message: `New ${entityType.replace(/_/g, ' ')} for ${seller.name ?? 'a seller'} is ready for your review.`,
+        },
+      },
+      'system',
+    );
+  }
 }
 
 export async function rejectItem(input: {

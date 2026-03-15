@@ -18,7 +18,14 @@ async function resolveChannel(
   recipientId: string,
   recipientType: string,
 ): Promise<NotificationChannel> {
-  if (recipientType !== 'seller') return 'whatsapp'; // agents use both by default
+  // N7: Respect agent notificationPreference (not just sellers)
+  if (recipientType === 'agent') {
+    const agentPreference = await notificationRepo.findAgentNotificationPreference(recipientId);
+    if (agentPreference === 'email_only') return 'email';
+    return 'whatsapp';
+  }
+
+  if (recipientType !== 'seller') return 'whatsapp';
 
   const preference = await notificationRepo.findSellerNotificationPreference(recipientId);
 
@@ -87,6 +94,16 @@ export async function send(input: SendNotificationInput, agentId: string): Promi
         },
       });
       return; // Only in-app delivered
+    }
+
+    // N5: Add unsubscribe URL for marketing emails
+    if (input.recipientType === 'seller') {
+      const unsubscribeToken = generateUnsubscribeToken(input.recipientId);
+      const appUrl = process.env.APP_URL || 'https://sellmyhomenow.sg';
+      input.templateData = {
+        ...input.templateData,
+        unsubscribeUrl: `${appUrl}/api/notifications/unsubscribe?token=${unsubscribeToken}`,
+      };
     }
   }
 

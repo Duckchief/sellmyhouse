@@ -272,3 +272,16 @@ export async function findTransactionsCompletedDaysAgo(daysAgo: number) {
 export async function findExistingNotification(templateName: string, recipientId: string) {
   return prisma.notification.findFirst({ where: { templateName, recipientId } });
 }
+
+/** Returns transactions with HDB appointments within the next N days */
+export async function findUpcomingHdbAppointments(withinDays: number) {
+  const now = new Date();
+  const cutoff = new Date(now.getTime() + withinDays * 86400000);
+  return prisma.transaction.findMany({
+    where: {
+      hdbAppointmentDate: { gte: now, lte: cutoff },
+      status: { in: ['option_exercised', 'completing'] },
+    },
+    select: { id: true, sellerId: true, hdbAppointmentDate: true },
+  });
+}

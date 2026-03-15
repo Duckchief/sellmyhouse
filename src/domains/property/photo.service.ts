@@ -108,6 +108,14 @@ export async function processAndSavePhoto(
 
   await localStorage.save(optimizedPath, optimizedBuffer);
 
+  // A3: Audit photo upload
+  await auditService.log({
+    action: 'photo.uploaded',
+    entityType: 'property',
+    entityId: propertyId,
+    details: { filename, sellerId },
+  });
+
   return {
     id,
     filename,

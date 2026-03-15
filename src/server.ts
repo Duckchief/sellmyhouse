@@ -3,6 +3,16 @@ dotenv.config();
 
 import { createApp } from './infra/http/app';
 import { logger } from './infra/logger';
+
+// E1: Handle uncaught exceptions and unhandled rejections
+process.on('uncaughtException', (err) => {
+  logger.error(err, 'Uncaught exception — shutting down');
+  setTimeout(() => process.exit(1), 1000);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error({ reason: String(reason) }, 'Unhandled rejection');
+});
 import { registerJob, startJobs } from './infra/jobs/runner';
 import { HdbSyncService } from './domains/hdb/sync.service';
 import { registerViewingJobs } from './domains/viewing/viewing.jobs';

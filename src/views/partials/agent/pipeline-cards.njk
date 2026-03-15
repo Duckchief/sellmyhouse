@@ -15,11 +15,13 @@
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
   {% for stage in overview.stages %}
   <a href="/agent/dashboard?stage={{ stage.status }}"
-     class="card border-t-4 relative group {% if currentStage == stage.status %}{{ stageColors[stage.status] or 'border-gray-300' }} ring-2 ring-offset-1{% else %}border-gray-200 hover:{{ stageColors[stage.status] or 'border-gray-300' }}{% endif %} transition">
-    <span class="absolute top-2 right-2 w-4 h-4 rounded-full bg-gray-100 text-gray-400 text-xs flex items-center justify-center cursor-default select-none">?</span>
-    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-xs rounded px-2 py-1.5 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-      {{ stageTooltips[stage.status] | t }}
-      <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+     class="card border-t-4 relative {% if currentStage == stage.status %}{{ stageColors[stage.status] or 'border-gray-300' }} ring-2 ring-offset-1{% else %}border-gray-200 hover:{{ stageColors[stage.status] or 'border-gray-300' }}{% endif %} transition">
+    <div class="absolute top-2 right-2 group">
+      <span class="w-4 h-4 rounded-full bg-gray-100 text-gray-400 text-xs flex items-center justify-center cursor-default select-none">?</span>
+      <div class="absolute bottom-full right-0 mb-2 w-48 bg-gray-900 text-white text-xs rounded px-2 py-1.5 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+        {{ stageTooltips[stage.status] | t }}
+        <div class="absolute top-full right-2 border-4 border-transparent border-t-gray-900"></div>
+      </div>
     </div>
     <p class="text-xs font-medium text-gray-500 uppercase">{{ stage.status | replace("_", " ") | t }}</p>
     <p class="text-2xl font-bold mt-1">{{ stage.count }}</p>

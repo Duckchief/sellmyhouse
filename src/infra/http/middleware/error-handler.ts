@@ -2,6 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from '../../logger';
 import { AppError, ConflictError } from '../../../domains/shared/errors';
 
+function isBrowserRequest(req: Request): boolean {
+  return !req.headers['hx-request'] && (req.headers['accept'] ?? '').includes('text/html');
+}
+
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof AppError) {
     logger.warn({ err, path: req.path }, `${err.name}: ${err.message}`);
@@ -20,6 +24,13 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
       });
     }
 
+    if (isBrowserRequest(req)) {
+      return res.status(err.statusCode).render('pages/error', {
+        statusCode: err.statusCode,
+        code: err.code,
+      });
+    }
+
     return res.status(err.statusCode).json({
       error: {
         code: err.code,
@@ -33,6 +44,13 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
   if (req.headers['hx-request']) {
     return res.status(500).render('partials/error-message', {
       message: 'An unexpected error occurred',
+    });
+  }
+
+  if (isBrowserRequest(req)) {
+    return res.status(500).render('pages/error', {
+      statusCode: 500,
+      code: 'INTERNAL_ERROR',
     });
   }
 

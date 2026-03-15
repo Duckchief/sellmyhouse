@@ -22,7 +22,6 @@ jest.mock('@paralleldrive/cuid2', () => ({ createId: jest.fn().mockReturnValue('
 const mockedRepo = jest.mocked(propertyRepo);
 const mockedAudit = jest.mocked(auditService);
 const mockedReviewService = jest.mocked(reviewService);
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const mockedCaseFlagService = jest.requireMock('../../seller/case-flag.service') as {
   hasActiveMopFlag: jest.Mock;
 };

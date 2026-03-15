@@ -35,6 +35,7 @@ const makeTxn = (id: string) => ({
   flatModel: 'A',
   leaseCommenceDate: 1995,
   remainingLease: null,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resalePrice: { toNumber: () => 500000 } as any,
   source: 'csv_seed' as const,
   createdAt: new Date(),

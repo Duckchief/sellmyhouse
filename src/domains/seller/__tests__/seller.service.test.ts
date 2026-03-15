@@ -329,6 +329,7 @@ describe('seller.service', () => {
   describe('getTutorialsGrouped', () => {
     it('delegates to contentService', async () => {
       const grouped = { photography: [], process: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest.mocked(contentService).getTutorialsGrouped.mockResolvedValue(grouped as any);
 
       const result = await sellerService.getTutorialsGrouped();

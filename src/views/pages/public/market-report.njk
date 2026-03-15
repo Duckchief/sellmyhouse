@@ -13,7 +13,7 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
         <div>
           <label for="town" class="block text-sm font-semibold mb-1">{{ "Town" | t }}</label>
-          <select id="town" name="town" required class="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white">
+          <select id="town" name="town" required class="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white" hx-get="/api/hdb/storey-ranges" hx-include="#market-report-form" hx-target="#storey-range-select" hx-trigger="change">
             <option value="">{{ "Select town" | t }}</option>
             {% for t in towns %}
             <option value="{{ t }}">{{ t }}</option>
@@ -22,7 +22,7 @@
         </div>
         <div>
           <label for="flatType" class="block text-sm font-semibold mb-1">{{ "Flat Type" | t }}</label>
-          <select id="flatType" name="flatType" required class="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white">
+          <select id="flatType" name="flatType" required class="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white" hx-get="/api/hdb/storey-ranges" hx-include="#market-report-form" hx-target="#storey-range-select" hx-trigger="change">
             <option value="">{{ "Select type" | t }}</option>
             {% for ft in flatTypes %}
             <option value="{{ ft }}">{{ ft }}</option>
@@ -30,12 +30,9 @@
           </select>
         </div>
         <div>
-          <label for="storeyRange" class="block text-sm font-semibold mb-1">{{ "Storey Range" | t }}</label>
-          <select id="storeyRange" name="storeyRange" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white">
-            <option value="">{{ "All storeys" | t }}</option>
-            {% for sr in storeyRanges %}
-            <option value="{{ sr }}">{{ sr }}</option>
-            {% endfor %}
+          <label for="storey-range-select" class="block text-sm font-semibold mb-1">{{ "Storey Range" | t }}</label>
+          <select id="storey-range-select" name="storeyRange" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white">
+            {% include "partials/public/storey-range-options.njk" %}
           </select>
         </div>
         <div class="flex items-end">

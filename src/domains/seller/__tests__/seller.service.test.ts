@@ -366,7 +366,12 @@ describe('seller.service', () => {
         consultationCompletedAt: new Date(),
       } as Seller);
 
-      const result = await sellerService.updateSellerStatus('seller-1', 'engaged', 'agent-1');
+      const result = await sellerService.updateSellerStatus(
+        'seller-1',
+        'engaged',
+        'agent-1',
+        'Consultation completed',
+      );
 
       expect(mockedSellerRepo.updateSellerStatus).toHaveBeenCalledWith(
         'seller-1',
@@ -382,7 +387,7 @@ describe('seller.service', () => {
         status: 'active',
       } as Seller);
 
-      await sellerService.updateSellerStatus('seller-1', 'active', 'agent-1');
+      await sellerService.updateSellerStatus('seller-1', 'active', 'agent-1', 'Activating seller');
 
       const callArg = (mockedSellerRepo.updateSellerStatus as jest.Mock).mock.calls[0][1] as Record<
         string,
@@ -414,7 +419,7 @@ describe('seller.service', () => {
         status: 'engaged',
       } as Seller);
 
-      await sellerService.updateSellerStatus('seller-1', 'engaged', 'agent-1');
+      await sellerService.updateSellerStatus('seller-1', 'engaged', 'agent-1', 'Consultation done');
 
       expect(mockedAuditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -423,6 +428,80 @@ describe('seller.service', () => {
           entityType: 'seller',
           entityId: 'seller-1',
           details: expect.objectContaining({ previousStatus: 'lead', newStatus: 'engaged' }),
+        }),
+      );
+    });
+
+    it('throws ValidationError when note is missing for lead→engaged transition', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', status: 'lead' } as Seller);
+
+      await expect(
+        sellerService.updateSellerStatus('seller-1', 'engaged', 'agent-1', undefined),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('throws ValidationError when note is missing for engaged→active transition', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', status: 'engaged' } as Seller);
+
+      await expect(
+        sellerService.updateSellerStatus('seller-1', 'active', 'agent-1', undefined),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('throws ValidationError when note is missing for archive transition', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', status: 'lead' } as Seller);
+
+      await expect(
+        sellerService.updateSellerStatus('seller-1', 'archived', 'agent-1', undefined),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('does NOT require note for active→completed transition', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', status: 'active' } as Seller);
+      mockedSellerRepo.updateSellerStatus = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        status: 'completed',
+      } as Seller);
+
+      await expect(
+        sellerService.updateSellerStatus('seller-1', 'completed', 'agent-1', undefined),
+      ).resolves.not.toThrow();
+    });
+
+    it('includes note in audit log details when provided', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', status: 'lead' } as Seller);
+      mockedSellerRepo.updateSellerStatus = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        status: 'engaged',
+        consultationCompletedAt: new Date(),
+      } as Seller);
+
+      await sellerService.updateSellerStatus(
+        'seller-1',
+        'engaged',
+        'agent-1',
+        'Seller is motivated',
+      );
+
+      expect(mockedAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          details: expect.objectContaining({ note: 'Seller is motivated' }),
+        }),
+      );
+    });
+
+    it('omits note from audit log when not provided', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', status: 'active' } as Seller);
+      mockedSellerRepo.updateSellerStatus = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        status: 'completed',
+      } as Seller);
+
+      await sellerService.updateSellerStatus('seller-1', 'completed', 'agent-1', undefined);
+
+      expect(mockedAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          details: expect.not.objectContaining({ note: expect.anything() }),
         }),
       );
     });

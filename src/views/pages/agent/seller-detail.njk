@@ -5,19 +5,7 @@
   <a href="/agent/sellers" class="text-sm text-blue-600 hover:underline">← {{ "Back to Sellers" | t }}</a>
 </div>
 
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <h1 class="text-2xl font-bold">{{ seller.name }}</h1>
-    <p class="text-gray-500">{{ seller.phone }} · {{ seller.email or "No email" }}</p>
-  </div>
-  <span class="px-3 py-1 text-sm rounded-full
-    {% if seller.status == 'lead' %}bg-blue-100 text-blue-800
-    {% elif seller.status == 'engaged' %}bg-yellow-100 text-yellow-800
-    {% elif seller.status == 'active' %}bg-green-100 text-green-800
-    {% elif seller.status == 'completed' %}bg-gray-100 text-gray-800
-    {% elif seller.status == 'archived' %}bg-red-100 text-red-800
-    {% endif %}">{{ seller.status | t }}</span>
-</div>
+{% include "partials/agent/seller-header.njk" %}
 
 <!-- Tabs -->
 <div class="border-b mb-6">

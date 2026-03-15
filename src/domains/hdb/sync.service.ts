@@ -37,7 +37,7 @@ function mapApiRecord(record: ApiRecord) {
     id: createId(),
     month: record.month,
     town: record.town,
-    flatType: record.flat_type,
+    flatType: record.flat_type === 'MULTI GENERATION' ? 'MULTI-GENERATION' : record.flat_type,
     block: record.block,
     streetName: record.street_name,
     storeyRange: record.storey_range,

@@ -125,6 +125,25 @@ describe('HdbRepository', () => {
     });
   });
 
+  describe('getDistinctStoreyRangesByTownAndFlatType', () => {
+    it('returns storey ranges filtered by town and flat type', async () => {
+      mockPrisma.hdbTransaction.findMany.mockResolvedValue([
+        { storeyRange: '01 TO 03' },
+        { storeyRange: '04 TO 06' },
+      ]);
+
+      const result = await repo.getDistinctStoreyRangesByTownAndFlatType('TAMPINES', '4 ROOM');
+
+      expect(mockPrisma.hdbTransaction.findMany).toHaveBeenCalledWith({
+        distinct: ['storeyRange'],
+        select: { storeyRange: true },
+        orderBy: { storeyRange: 'asc' },
+        where: { town: 'TAMPINES', flatType: '4 ROOM' },
+      });
+      expect(result).toEqual(['01 TO 03', '04 TO 06']);
+    });
+  });
+
   describe('getRecentTransactions', () => {
     it('fetches with limit and default offset of 0', async () => {
       mockPrisma.hdbTransaction.findMany.mockResolvedValue([]);

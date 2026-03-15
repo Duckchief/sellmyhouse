@@ -308,10 +308,20 @@ const STATUS_TRANSITIONS: Record<string, string[]> = {
   archived: [],
 };
 
+const NOTE_REQUIRED_TRANSITIONS = new Set([
+  'lead→engaged',
+  'engaged→active',
+  'lead→archived',
+  'engaged→archived',
+  'active→archived',
+  'completed→archived',
+]);
+
 export async function updateSellerStatus(
   sellerId: string,
   newStatus: string,
   agentId: string,
+  note?: string,
 ): Promise<Seller> {
   const seller = await sellerRepo.findById(sellerId);
   if (!seller) throw new NotFoundError('Seller', sellerId);
@@ -319,6 +329,11 @@ export async function updateSellerStatus(
   const allowed = STATUS_TRANSITIONS[seller.status] ?? [];
   if (!allowed.includes(newStatus)) {
     throw new ValidationError(`Cannot transition seller from '${seller.status}' to '${newStatus}'`);
+  }
+
+  const transitionKey = `${seller.status}→${newStatus}`;
+  if (NOTE_REQUIRED_TRANSITIONS.has(transitionKey) && !note?.trim()) {
+    throw new ValidationError('A note is required for this status transition');
   }
 
   const updateData: { status: SellerStatus; consultationCompletedAt?: Date } = {
@@ -335,7 +350,7 @@ export async function updateSellerStatus(
     action: 'seller.status_changed',
     entityType: 'seller',
     entityId: sellerId,
-    details: { previousStatus: seller.status, newStatus },
+    details: { previousStatus: seller.status, newStatus, ...(note ? { note } : {}) },
   });
 
   return updated;

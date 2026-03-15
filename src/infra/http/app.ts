@@ -66,6 +66,28 @@ export function createApp() {
     return str;
   });
 
+  // Add month formatting filter (e.g., "2024-03" → "Mar 2024")
+  env.addFilter('formatMonth', (str: string) => {
+    if (!str) return str;
+    const [year, month] = str.split('-');
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    const idx = parseInt(month, 10) - 1;
+    return `${months[idx]} ${year}`;
+  });
+
   // Add price formatting filter (e.g., 500000 → "500,000")
   env.addFilter('formatPrice', (val: unknown) => {
     const num = Number(val);

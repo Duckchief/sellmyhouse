@@ -73,6 +73,20 @@ describe('HdbService', () => {
     });
   });
 
+  describe('getDistinctStoreyRangesByTownAndFlatType', () => {
+    it('delegates to repo with town and flatType', async () => {
+      mockRepo.getDistinctStoreyRangesByTownAndFlatType.mockResolvedValue(['01 TO 03', '04 TO 06']);
+
+      const result = await service.getDistinctStoreyRangesByTownAndFlatType('TAMPINES', '4 ROOM');
+
+      expect(mockRepo.getDistinctStoreyRangesByTownAndFlatType).toHaveBeenCalledWith(
+        'TAMPINES',
+        '4 ROOM',
+      );
+      expect(result).toEqual(['01 TO 03', '04 TO 06']);
+    });
+  });
+
   describe('getMarketReport', () => {
     it('returns aggregated stats from DB', async () => {
       mockRepo.getMarketReportStats.mockResolvedValue({

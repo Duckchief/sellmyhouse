@@ -103,6 +103,7 @@ const complianceService = jest.requireMock('../../compliance/compliance.service'
 describe('NotificationService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env.JWT_SECRET = 'test-jwt-secret';
 
     notificationRepo.create = jest.fn().mockResolvedValue({ id: 'notif-1' });
     notificationRepo.updateStatus = jest.fn().mockResolvedValue({});

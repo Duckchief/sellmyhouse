@@ -397,7 +397,7 @@ export const factory = {
         completionDate: overrides.completionDate ?? null,
         exerciseDeadline: overrides.exerciseDeadline ?? null,
         ...(overrides.offerId ? { offer: { connect: { id: overrides.offerId } } } : {}),
-        hdbApplicationStatus: overrides.hdbApplicationStatus ?? null,
+        hdbApplicationStatus: overrides.hdbApplicationStatus ?? 'not_started',
       },
     });
   },

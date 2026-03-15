@@ -1,0 +1,30 @@
+{% set stageColors = {
+  'lead': 'border-blue-500',
+  'engaged': 'border-yellow-500',
+  'active': 'border-green-500',
+  'completed': 'border-purple-500',
+  'archived': 'border-gray-400'
+} %}
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+  {% for stage in overview.stages %}
+  <div class="card border-t-4 {{ stageColors[stage.status] or 'border-gray-300' }}">
+    <p class="text-xs font-medium text-gray-500 uppercase">{{ stage.status | replace("_", " ") | t }}</p>
+    <p class="text-2xl font-bold mt-1">{{ stage.count }}</p>
+    {% if stage.totalValue > 0 %}
+    <p class="text-sm text-gray-500">${{ stage.totalValue | formatPrice }}</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+{# Lead queue summary #}
+{% if overview.unassignedLeadCount > 0 %}
+<div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+  <div class="flex items-center justify-between">
+    <p class="text-sm font-medium text-blue-800">
+      {{ overview.unassignedLeadCount }} {{ "new leads awaiting assignment" | t }}
+    </p>
+    <a href="/agent/leads" class="text-sm text-blue-700 underline hover:text-blue-900">{{ "View leads" | t }} &rarr;</a>
+  </div>
+</div>
+{% endif %}

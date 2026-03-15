@@ -40,9 +40,24 @@ agentRouter.get(
       ]);
 
       if (req.headers['hx-request']) {
-        return res.render('partials/agent/pipeline', { overview, repeatViewers });
+        return res.render('partials/agent/pipeline-overview', { overview });
       }
       res.render('pages/agent/dashboard', { overview, repeatViewers });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// GET /agent/dashboard/stats — Pipeline cards only (HTMX auto-refresh)
+agentRouter.get(
+  '/agent/dashboard/stats',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const overview = await agentService.getPipelineOverview(getAgentFilter(user));
+      res.render('partials/agent/pipeline-cards', { overview });
     } catch (err) {
       next(err);
     }

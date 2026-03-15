@@ -46,12 +46,15 @@ adminRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const stage = req.query['stage'] as string | undefined;
-      const pipeline = await adminService.getAdminPipeline(stage);
+      const [pipeline, stageCounts] = await Promise.all([
+        adminService.getAdminPipeline(stage),
+        adminService.getAdminPipelineCounts(),
+      ]);
 
       if (req.headers['hx-request']) {
         return res.render('partials/admin/pipeline-table', { pipeline, stage });
       }
-      res.render('pages/admin/pipeline', { pipeline, stage, currentPath: '/admin/pipeline' });
+      res.render('pages/admin/pipeline', { pipeline, stageCounts, stage, currentPath: '/admin/pipeline' });
     } catch (err) {
       next(err);
     }
@@ -906,7 +909,8 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/referral-funnel', { funnel, topReferrers });
       }
-      return res.render('pages/admin/referrals', { records, funnel, topReferrers, currentPath: '/admin/content/referrals' });
+      const baseUrl = process.env['SITE_URL'] ?? 'https://www.sellmyhomenow.sg';
+      return res.render('pages/admin/referrals', { records, funnel, topReferrers, baseUrl, currentPath: '/admin/content/referrals' });
     } catch (err) {
       return next(err);
     }

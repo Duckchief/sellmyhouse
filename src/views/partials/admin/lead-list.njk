@@ -14,7 +14,9 @@
     <tbody class="divide-y">
       {% for lead in result.leads %}
       <tr class="hover:bg-gray-50">
-        <td class="px-4 py-3 font-medium">{{ lead.name }}</td>
+        <td class="px-4 py-3 font-medium">
+          <a href="/admin/sellers/{{ lead.id }}" class="text-accent hover:underline">{{ lead.name }}</a>
+        </td>
         <td class="px-4 py-3 text-gray-600">{{ lead.phone or '-' }}</td>
         <td class="px-4 py-3 text-gray-600">{{ lead.town or '-' }}</td>
         <td class="px-4 py-3 text-gray-600">{{ lead.leadSource or '-' }}</td>

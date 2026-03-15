@@ -396,7 +396,7 @@ export const factory = {
         status: overrides.status ?? 'option_issued',
         completionDate: overrides.completionDate ?? null,
         exerciseDeadline: overrides.exerciseDeadline ?? null,
-        offerId: overrides.offerId ?? null,
+        ...(overrides.offerId ? { offer: { connect: { id: overrides.offerId } } } : {}),
         hdbApplicationStatus: overrides.hdbApplicationStatus ?? null,
       },
     });

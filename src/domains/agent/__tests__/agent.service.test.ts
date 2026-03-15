@@ -39,6 +39,31 @@ describe('agent.service', () => {
     });
   });
 
+  describe('getPipelineOverview - enhanced', () => {
+    it('returns sellers array in each pipeline stage', async () => {
+      const stageSellers = [
+        { id: 'seller-1', name: 'Alice Tan', phone: '91111111', askingPrice: 500000, status: 'lead' },
+        { id: 'seller-2', name: 'Bob Lim', phone: '92222222', askingPrice: 600000, status: 'active' },
+      ];
+      mockRepo.getPipelineStagesWithSellers.mockResolvedValue([
+        { status: 'lead', count: 1, totalValue: 500000, sellers: [stageSellers[0]] },
+        { status: 'active', count: 1, totalValue: 600000, sellers: [stageSellers[1]] },
+      ]);
+      mockRepo.getRecentActivity.mockResolvedValue([]);
+      mockRepo.getPendingReviewCount.mockResolvedValue(0);
+      mockRepo.getUnassignedLeadCount.mockResolvedValue(3);
+
+      const result = await agentService.getPipelineOverview('agent-1');
+
+      expect(result.stages).toHaveLength(2);
+      expect(result.stages[0].sellers).toHaveLength(1);
+      expect(result.stages[0].sellers[0].name).toBe('Alice Tan');
+      expect(result.unassignedLeadCount).toBe(3);
+      expect(mockRepo.getPipelineStagesWithSellers).toHaveBeenCalledWith('agent-1');
+      expect(mockRepo.getUnassignedLeadCount).toHaveBeenCalled();
+    });
+  });
+
   describe('getLeadQueue', () => {
     it('returns leads with time since creation and notification status', async () => {
       const now = new Date();

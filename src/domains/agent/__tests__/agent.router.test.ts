@@ -83,6 +83,7 @@ describe('agent.router', () => {
         stages: [],
         recentActivity: [],
         pendingReviewCount: 0,
+        unassignedLeadCount: 0,
       });
 
       const res = await request(app).get('/agent/dashboard');
@@ -96,6 +97,7 @@ describe('agent.router', () => {
         stages: [],
         recentActivity: [],
         pendingReviewCount: 0,
+        unassignedLeadCount: 0,
       });
 
       const res = await request(app).get('/agent/dashboard');

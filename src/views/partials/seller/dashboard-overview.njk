@@ -1,27 +1,48 @@
-{# Status card #}
-<div class="bg-white rounded-lg shadow p-6 mb-6">
+{# Transaction Status Card #}
+<div class="card mb-6">
   <h2 class="font-semibold mb-3">{{ "Transaction Status" | t }}</h2>
-  <div class="flex items-center gap-2">
-    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-      {{ overview.seller.status }}
-    </span>
-    {% if overview.propertyStatus %}
-    <span class="text-sm text-gray-500">{{ "Property:" | t }} {{ overview.propertyStatus }}</span>
+
+  {% if overview.property %}
+  <div class="space-y-2 mb-4">
+    <p class="text-lg font-medium text-gray-900">
+      {{ overview.property.block }} {{ overview.property.street }}
+    </p>
+    <p class="text-sm text-gray-500">{{ overview.property.town }}</p>
+    <div class="flex flex-wrap gap-4 text-sm text-gray-600">
+      <span>{{ overview.property.flatType }}</span>
+      <span>{{ overview.property.floorAreaSqm }} sqm</span>
+    </div>
+    {% if overview.property.askingPrice %}
+    <p class="text-xl font-bold text-accent">${{ overview.property.askingPrice | formatPrice }}</p>
     {% endif %}
   </div>
+  <div class="flex items-center gap-2">
+    {% set badgeStatus = overview.property.status %}{% include "partials/status-badge.njk" %}
+    {% set badgeStatus = overview.seller.status %}{% include "partials/status-badge.njk" %}
+  </div>
+  {% else %}
+  <p class="text-gray-500 mb-4">{{ "No property registered yet." | t }}</p>
+  <a href="/seller/onboarding" class="btn-primary inline-block">{{ "Start Onboarding" | t }}</a>
+  {% endif %}
 </div>
 
 {# Next steps #}
 {% if overview.nextSteps.length > 0 %}
-<div class="bg-white rounded-lg shadow p-6 mb-6">
+<div class="card mb-6">
   <h2 class="font-semibold mb-3">{{ "Next Steps" | t }}</h2>
   <ul class="space-y-3">
     {% for step in overview.nextSteps %}
     <li>
-      <a href="{{ step.href }}" class="flex items-center justify-between p-3 rounded-md border border-gray-200 hover:bg-gray-50 transition">
-        <div>
-          <p class="font-medium text-gray-900">{{ step.label | t }}</p>
-          <p class="text-sm text-gray-500">{{ step.description | t }}</p>
+      <a href="{{ step.href }}" class="flex items-center justify-between p-3 rounded-md border border-gray-200 hover:bg-bg-alt transition">
+        <div class="flex items-center gap-3">
+          <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold
+            {% if step.completed %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}">
+            {% if step.completed %}&#10003;{% else %}{{ loop.index }}{% endif %}
+          </div>
+          <div>
+            <p class="font-medium text-gray-900">{{ step.label | t }}</p>
+            <p class="text-sm text-gray-500">{{ step.description | t }}</p>
+          </div>
         </div>
         <span class="text-gray-400">&rarr;</span>
       </a>

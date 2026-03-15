@@ -476,7 +476,12 @@ describe('seller.service', () => {
         consultationCompletedAt: new Date(),
       } as Seller);
 
-      await sellerService.updateSellerStatus('seller-1', 'engaged', 'agent-1', 'Seller is motivated');
+      await sellerService.updateSellerStatus(
+        'seller-1',
+        'engaged',
+        'agent-1',
+        'Seller is motivated',
+      );
 
       expect(mockedAuditService.log).toHaveBeenCalledWith(
         expect.objectContaining({

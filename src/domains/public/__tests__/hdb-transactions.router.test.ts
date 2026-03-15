@@ -134,9 +134,7 @@ describe('GET /api/hdb/storey-ranges', () => {
   });
 
   it('falls back to all storey ranges when flatType is missing', async () => {
-    jest
-      .spyOn(HdbService.prototype, 'getDistinctStoreyRanges')
-      .mockResolvedValue(['01 TO 03']);
+    jest.spyOn(HdbService.prototype, 'getDistinctStoreyRanges').mockResolvedValue(['01 TO 03']);
     const app = buildApp();
 
     const res = await request(app)

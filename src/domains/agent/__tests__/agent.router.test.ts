@@ -234,9 +234,7 @@ describe('agent.router', () => {
         status: 'lead',
       } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
 
-      const res = await request(app).get(
-        '/agent/sellers/seller-1/status-modal?action=advance',
-      );
+      const res = await request(app).get('/agent/sellers/seller-1/status-modal?action=advance');
       expect(res.status).toBe(200);
     });
 
@@ -247,9 +245,7 @@ describe('agent.router', () => {
         status: 'archived',
       } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
 
-      const res = await request(app).get(
-        '/agent/sellers/seller-1/status-modal?action=advance',
-      );
+      const res = await request(app).get('/agent/sellers/seller-1/status-modal?action=advance');
       expect(res.status).toBe(400);
     });
 
@@ -260,9 +256,7 @@ describe('agent.router', () => {
         status: 'completed',
       } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
 
-      const res = await request(app).get(
-        '/agent/sellers/seller-1/status-modal?action=advance',
-      );
+      const res = await request(app).get('/agent/sellers/seller-1/status-modal?action=advance');
       expect(res.status).toBe(400);
     });
 
@@ -273,9 +267,7 @@ describe('agent.router', () => {
         status: 'engaged',
       } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
 
-      const res = await request(app).get(
-        '/agent/sellers/seller-1/status-modal?action=archive',
-      );
+      const res = await request(app).get('/agent/sellers/seller-1/status-modal?action=archive');
       expect(res.status).toBe(200);
     });
 
@@ -283,9 +275,7 @@ describe('agent.router', () => {
       const app = createTestApp({ id: 'agent-1', role: 'agent' });
       mockService.getSellerDetail.mockRejectedValue(new NotFoundError('Seller', 'bad-id'));
 
-      const res = await request(app).get(
-        '/agent/sellers/bad-id/status-modal?action=advance',
-      );
+      const res = await request(app).get('/agent/sellers/bad-id/status-modal?action=advance');
       expect(res.status).toBe(404);
     });
   });

@@ -70,7 +70,20 @@ export function createApp() {
   env.addFilter('formatMonth', (str: string) => {
     if (!str) return str;
     const [year, month] = str.split('-');
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     const idx = parseInt(month, 10) - 1;
     return `${months[idx]} ${year}`;
   });

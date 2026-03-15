@@ -79,7 +79,10 @@ describe('HdbService', () => {
 
       const result = await service.getDistinctStoreyRangesByTownAndFlatType('TAMPINES', '4 ROOM');
 
-      expect(mockRepo.getDistinctStoreyRangesByTownAndFlatType).toHaveBeenCalledWith('TAMPINES', '4 ROOM');
+      expect(mockRepo.getDistinctStoreyRangesByTownAndFlatType).toHaveBeenCalledWith(
+        'TAMPINES',
+        '4 ROOM',
+      );
       expect(result).toEqual(['01 TO 03', '04 TO 06']);
     });
   });

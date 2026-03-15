@@ -17,15 +17,22 @@ export const adminRouter = Router();
 
 const adminAuth = [requireAuth(), requireRole('admin'), requireTwoFactor()];
 
-// ─── Dashboard ───────────────────────────────────────────────
-
+// ─── Dashboard (Analytics) ─────────────────────────────────────
 adminRouter.get(
   '/admin/dashboard',
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const team = await adminService.getTeam();
-      res.render('pages/admin/dashboard', { team });
+      const filter = {
+        dateFrom: req.query['dateFrom'] as string | undefined,
+        dateTo: req.query['dateTo'] as string | undefined,
+      };
+      const analytics = await adminService.getAnalytics(filter);
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/analytics', { analytics, filter });
+      }
+      res.render('pages/admin/dashboard', { analytics, filter });
     } catch (err) {
       next(err);
     }

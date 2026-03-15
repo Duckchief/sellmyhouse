@@ -195,6 +195,40 @@ export async function assignSeller(sellerId: string, agentId: string): Promise<v
   await prisma.seller.update({ where: { id: sellerId }, data: { agentId } });
 }
 
+// ─── Review Queue Queries ────────────────────────────────────
+
+export async function getReviewQueue() {
+  const [pendingListings, pendingReports] = await Promise.all([
+    prisma.listing.findMany({
+      where: { status: 'pending_review' },
+      select: {
+        id: true,
+        updatedAt: true,
+        property: {
+          select: {
+            block: true,
+            street: true,
+            seller: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { updatedAt: 'asc' },
+    }),
+    prisma.financialReport.findMany({
+      where: { approvedAt: null, aiNarrative: { not: null } },
+      select: {
+        id: true,
+        generatedAt: true,
+        seller: { select: { id: true, name: true } },
+        property: { select: { block: true, street: true } },
+      },
+      orderBy: { generatedAt: 'asc' },
+    }),
+  ]);
+
+  return { pendingListings, pendingReports };
+}
+
 // ─── HDB Queries ─────────────────────────────────────────────
 
 // ─── Analytics Queries ───────────────────────────────────────

@@ -102,6 +102,50 @@ describe('getUnassignedLeads', () => {
   });
 });
 
+// ─── getReviewQueue ─────────────────────────────────────────
+
+describe('getReviewQueue', () => {
+  it('returns unified review items sorted by date ascending', async () => {
+    const earlyDate = new Date('2026-01-01');
+    const lateDate = new Date('2026-02-01');
+    mockAdminRepo.getReviewQueue.mockResolvedValue({
+      pendingListings: [
+        {
+          id: 'p1',
+          updatedAt: lateDate,
+          property: { block: '123', street: 'Tampines St 11', seller: { id: 's1', name: 'Alice' } },
+        },
+      ],
+      pendingReports: [
+        {
+          id: 'r1',
+          generatedAt: earlyDate,
+          seller: { id: 's2', name: 'Bob' },
+          property: { block: '456', street: 'Bedok St 22' },
+        },
+      ],
+    } as never);
+
+    const result = await adminService.getReviewQueue();
+    expect(result).toHaveLength(2);
+    // Sorted ascending by submittedAt — earlyDate first
+    expect(result[0].type).toBe('report');
+    expect(result[0].sellerName).toBe('Bob');
+    expect(result[1].type).toBe('listing');
+    expect(result[1].sellerName).toBe('Alice');
+  });
+
+  it('returns empty array when no pending items', async () => {
+    mockAdminRepo.getReviewQueue.mockResolvedValue({
+      pendingListings: [],
+      pendingReports: [],
+    } as never);
+
+    const result = await adminService.getReviewQueue();
+    expect(result).toHaveLength(0);
+  });
+});
+
 // ─── SETTING_VALIDATORS ───────────────────────────────────────
 
 describe('SETTING_VALIDATORS', () => {

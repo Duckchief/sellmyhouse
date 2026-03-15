@@ -18,6 +18,7 @@ import type {
   AnalyticsFilter,
   HdbDataStatus,
   LeadListResult,
+  ReviewItem,
   SettingGroup,
   SettingWithMeta,
 } from './admin.types';
@@ -299,6 +300,33 @@ export async function getUnassignedLeads(page?: number): Promise<LeadListResult>
     limit,
     totalPages: Math.ceil(total / limit),
   };
+}
+
+// ─── Review Queue ────────────────────────────────────────────
+
+export async function getReviewQueue(): Promise<ReviewItem[]> {
+  const { pendingListings, pendingReports } = await adminRepo.getReviewQueue();
+
+  const items: ReviewItem[] = [
+    ...pendingListings.map((p) => ({
+      type: 'listing' as const,
+      sellerId: p.property?.seller?.id,
+      sellerName: p.property?.seller?.name,
+      property: `${p.property?.block} ${p.property?.street}`,
+      submittedAt: p.updatedAt,
+      reviewUrl: `/agent/sellers/${p.property?.seller?.id}`,
+    })),
+    ...pendingReports.map((r) => ({
+      type: 'report' as const,
+      sellerId: r.seller?.id,
+      sellerName: r.seller?.name,
+      property: `${r.property?.block} ${r.property?.street}`,
+      submittedAt: r.generatedAt,
+      reviewUrl: `/agent/sellers/${r.seller?.id}`,
+    })),
+  ];
+
+  return items.sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
 }
 
 // ─── Settings ────────────────────────────────────────────────

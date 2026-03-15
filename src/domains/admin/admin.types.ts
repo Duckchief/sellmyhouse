@@ -49,3 +49,40 @@ export interface SettingWithMeta {
   description: string;
   updatedAt: Date;
 }
+
+export interface AnalyticsData {
+  revenue: {
+    totalRevenue: number;
+    completedCount: number;
+    pipelineValue: number;
+    activeTransactions: number;
+    commissionPerTransaction: number;
+    pendingInvoices: number;
+  };
+  funnel: Record<string, number>;
+  timeToClose: {
+    averageDays: number;
+    count: number;
+    byFlatType: Record<string, { averageDays: number; count: number }>;
+  };
+  leadSources: Record<string, { total: number; conversionRate: number }>;
+  viewings: {
+    totalViewings: number;
+    completed: number;
+    noShowRate: number;
+    cancellationRate: number;
+  };
+  referrals: {
+    totalLinks: number;
+    totalClicks: number;
+    leadsCreated: number;
+    transactionsCompleted: number;
+    conversionRate: number;
+    topReferrers: Array<{ name: string; clicks: number; status: string }>;
+  };
+}
+
+export interface AnalyticsFilter {
+  dateFrom?: string;
+  dateTo?: string;
+}

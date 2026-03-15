@@ -41,7 +41,7 @@ function mapRow(row: CsvRow) {
     id: createId(),
     month: row.month,
     town: row.town,
-    flatType: row.flat_type,
+    flatType: row.flat_type === 'MULTI GENERATION' ? 'MULTI-GENERATION' : row.flat_type,
     block: row.block,
     streetName: row.street_name,
     storeyRange: row.storey_range,

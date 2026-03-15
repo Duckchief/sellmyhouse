@@ -359,6 +359,19 @@ adminRouter.get(
   },
 );
 
+adminRouter.get(
+  '/admin/sellers/:id',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const detail = await adminService.getAdminSellerDetail(req.params['id'] as string);
+      res.render('pages/admin/seller-detail', { detail });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // GET route for loading the assign/reassign modal
 adminRouter.get(
   '/admin/sellers/:id/assign-modal',

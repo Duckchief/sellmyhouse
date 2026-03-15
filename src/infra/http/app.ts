@@ -6,6 +6,7 @@ import path from 'path';
 import passport from 'passport';
 import { requestLogger } from './middleware/request-logger';
 import { errorHandler } from './middleware/error-handler';
+import { NotFoundError } from '../../domains/shared/errors';
 import { createSessionMiddleware } from './middleware/session';
 import { configurePassport } from './middleware/passport';
 import { apiRateLimiter, globalRateLimiter } from './middleware/rate-limit';
@@ -178,6 +179,11 @@ export function createApp() {
   app.use('/', complianceRouter);
   app.use(portalRouter);
   app.use(transactionRouter);
+
+  // 404 catch-all — must be after all other routes
+  app.use((_req, _res, next) => {
+    next(new NotFoundError('Page'));
+  });
 
   // Error handling (must be last)
   app.use(errorHandler);

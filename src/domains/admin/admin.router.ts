@@ -39,6 +39,44 @@ adminRouter.get(
   },
 );
 
+// ─── Pipeline ────────────────────────────────────────────────
+adminRouter.get(
+  '/admin/pipeline',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const stage = req.query['stage'] as string | undefined;
+      const pipeline = await adminService.getAdminPipeline(stage);
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/pipeline-table', { pipeline, stage });
+      }
+      res.render('pages/admin/pipeline', { pipeline, stage, currentPath: '/admin/pipeline' });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ─── Leads ───────────────────────────────────────────────────
+adminRouter.get(
+  '/admin/leads',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const page = req.query['page'] ? parseInt(req.query['page'] as string, 10) : undefined;
+      const result = await adminService.getUnassignedLeads(page);
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/lead-list', { result });
+      }
+      res.render('pages/admin/leads', { result, currentPath: '/admin/leads' });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // ─── Team Management ─────────────────────────────────────────
 
 adminRouter.get(

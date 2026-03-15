@@ -12,6 +12,7 @@ function buildApp() {
   app.set('view engine', 'njk');
   const env = nunjucks.configure('src/views', { autoescape: true, express: app });
   env.addFilter('formatPrice', (n: unknown) => String(n));
+  env.addFilter('formatMonth', (s: string) => s);
   env.addFilter('t', (s: string) => s);
   app.use(express.json());
   app.use(publicRouter);
@@ -92,5 +93,57 @@ describe('GET /api/hdb/transactions', () => {
       .set('HX-Request', 'true');
 
     expect(spy).toHaveBeenCalledWith(expect.anything(), 2, 10);
+  });
+});
+
+describe('GET /api/hdb/storey-ranges', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns filtered storey range options when town and flatType provided', async () => {
+    jest
+      .spyOn(HdbService.prototype, 'getDistinctStoreyRangesByTownAndFlatType')
+      .mockResolvedValue(['01 TO 03', '04 TO 06', '07 TO 09']);
+    const app = buildApp();
+
+    const res = await request(app)
+      .get('/api/hdb/storey-ranges?town=TAMPINES&flatType=4+ROOM')
+      .set('HX-Request', 'true');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('01 TO 03');
+    expect(res.text).toContain('04 TO 06');
+    expect(res.text).toContain('All storeys');
+    expect(HdbService.prototype.getDistinctStoreyRangesByTownAndFlatType).toHaveBeenCalledWith(
+      'TAMPINES',
+      '4 ROOM',
+    );
+  });
+
+  it('falls back to all storey ranges when town is missing', async () => {
+    jest
+      .spyOn(HdbService.prototype, 'getDistinctStoreyRanges')
+      .mockResolvedValue(['01 TO 03', '04 TO 06']);
+    const app = buildApp();
+
+    const res = await request(app)
+      .get('/api/hdb/storey-ranges?flatType=4+ROOM')
+      .set('HX-Request', 'true');
+
+    expect(res.status).toBe(200);
+    expect(HdbService.prototype.getDistinctStoreyRanges).toHaveBeenCalled();
+  });
+
+  it('falls back to all storey ranges when flatType is missing', async () => {
+    jest
+      .spyOn(HdbService.prototype, 'getDistinctStoreyRanges')
+      .mockResolvedValue(['01 TO 03']);
+    const app = buildApp();
+
+    const res = await request(app)
+      .get('/api/hdb/storey-ranges?town=TAMPINES')
+      .set('HX-Request', 'true');
+
+    expect(res.status).toBe(200);
+    expect(HdbService.prototype.getDistinctStoreyRanges).toHaveBeenCalled();
   });
 });

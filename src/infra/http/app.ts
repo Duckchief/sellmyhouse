@@ -88,6 +88,7 @@ export function createApp() {
           defaultSrc: ["'self'"],
           scriptSrc: [
             "'self'",
+            'https://cdn.jsdelivr.net',
             (req, res) => `'nonce-${(res as express.Response).locals.cspNonce}'`,
           ],
           styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],

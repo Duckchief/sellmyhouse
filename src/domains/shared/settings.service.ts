@@ -24,6 +24,18 @@ export async function getBoolean(
   return value === 'true';
 }
 
+export async function findByKey(key: string) {
+  return settingsRepo.findByKey(key);
+}
+
+export async function findAll() {
+  return settingsRepo.findAll();
+}
+
+export async function upsert(key: string, value: string, description: string, updatedBy: string) {
+  return settingsRepo.upsert(key, value, description, updatedBy);
+}
+
 export async function getCommission(): Promise<{
   amount: number;
   gstRate: number;

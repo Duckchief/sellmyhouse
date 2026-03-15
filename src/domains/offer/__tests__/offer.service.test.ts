@@ -1,6 +1,6 @@
 import * as offerService from '../offer.service';
 import * as offerRepo from '../offer.repository';
-import * as propertyRepo from '@/domains/property/property.repository';
+import * as propertyService from '@/domains/property/property.service';
 import * as hdbService from '@/domains/hdb/service';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as settingsService from '@/domains/shared/settings.service';
@@ -10,20 +10,15 @@ import { ValidationError, NotFoundError, ForbiddenError } from '@/domains/shared
 
 // Mock all dependencies
 jest.mock('../offer.repository');
-jest.mock('@/domains/property/property.repository');
+jest.mock('@/domains/property/property.service');
 jest.mock('@/domains/hdb/service');
 jest.mock('@/domains/shared/ai/ai.facade');
 jest.mock('@/domains/shared/settings.service');
 jest.mock('@/domains/notification/notification.service');
 jest.mock('@/domains/shared/audit.service');
-jest.mock('@/infra/database/prisma', () => ({
-  prisma: {
-    $transaction: jest.fn((fn: (tx: unknown) => unknown) => fn('mock-tx')),
-  },
-}));
 
 const mockOfferRepo = jest.mocked(offerRepo);
-const mockPropertyRepo = jest.mocked(propertyRepo);
+const mockPropertyService = jest.mocked(propertyService);
 const mockHdbService = jest.mocked(hdbService);
 const mockAiFacade = jest.mocked(aiFacade);
 const mockSettings = jest.mocked(settingsService);
@@ -72,9 +67,9 @@ describe('offer.service', () => {
     mockNotification.send.mockResolvedValue(undefined as never);
     mockHdbService.getRecentByTownAndFlatType.mockResolvedValue([]);
     // Default: property assigned to agent-1
-    mockPropertyRepo.findByIdWithSeller.mockResolvedValue(makeProperty() as never);
+    mockPropertyService.findPropertyByIdWithSeller.mockResolvedValue(makeProperty() as never);
     // Default: active listing exists
-    mockPropertyRepo.findActiveListingForProperty.mockResolvedValue(makeListing() as never);
+    mockPropertyService.findActiveListingForProperty.mockResolvedValue(makeListing() as never);
   });
 
   describe('createOffer', () => {
@@ -100,7 +95,7 @@ describe('offer.service', () => {
     });
 
     it('throws ValidationError when no active listing exists for property', async () => {
-      mockPropertyRepo.findActiveListingForProperty.mockResolvedValue(null);
+      mockPropertyService.findActiveListingForProperty.mockResolvedValue(null);
 
       await expect(
         offerService.createOffer({
@@ -183,7 +178,7 @@ describe('offer.service', () => {
     });
 
     it('throws ForbiddenError when agent is not assigned to property', async () => {
-      mockPropertyRepo.findByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
+      mockPropertyService.findPropertyByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
 
       await expect(
         offerService.getOffersForProperty('property-1', 'agent-1', 'agent'),
@@ -191,13 +186,13 @@ describe('offer.service', () => {
     });
 
     it('admin bypasses ownership check', async () => {
-      mockPropertyRepo.findByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
+      mockPropertyService.findPropertyByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
       mockOfferRepo.findByPropertyId.mockResolvedValue([makeOffer()] as never);
 
       const result = await offerService.getOffersForProperty('property-1', 'agent-1', 'admin');
 
       expect(result).toHaveLength(1);
-      expect(mockPropertyRepo.findByIdWithSeller).not.toHaveBeenCalled();
+      expect(mockPropertyService.findPropertyByIdWithSeller).not.toHaveBeenCalled();
     });
   });
 
@@ -254,23 +249,17 @@ describe('offer.service', () => {
     it('accepts offer and expires pending/countered siblings atomically', async () => {
       const offer = makeOffer({ status: 'pending' });
       mockOfferRepo.findById.mockResolvedValue(offer as never);
-      mockOfferRepo.updateStatusTx.mockResolvedValue({ ...offer, status: 'accepted' } as never);
-      mockOfferRepo.expirePendingAndCounteredSiblingsTx.mockResolvedValue({ count: 2 } as never);
+      mockOfferRepo.acceptOfferAtomically.mockResolvedValue({ ...offer, status: 'accepted' } as never);
 
       await offerService.acceptOffer({ offerId: 'offer-1', agentId: 'agent-1', role: 'agent' });
 
-      expect(mockOfferRepo.updateStatusTx).toHaveBeenCalledWith('mock-tx', 'offer-1', 'accepted');
-      expect(mockOfferRepo.expirePendingAndCounteredSiblingsTx).toHaveBeenCalledWith(
-        'mock-tx',
-        'property-1',
-        'offer-1',
-      );
+      expect(mockOfferRepo.acceptOfferAtomically).toHaveBeenCalledWith('offer-1', 'property-1');
     });
 
     it('throws ForbiddenError when agent is not assigned to property', async () => {
       const offer = makeOffer({ status: 'pending' });
       mockOfferRepo.findById.mockResolvedValue(offer as never);
-      mockPropertyRepo.findByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
+      mockPropertyService.findPropertyByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
 
       await expect(
         offerService.acceptOffer({ offerId: 'offer-1', agentId: 'agent-1', role: 'agent' }),
@@ -280,14 +269,13 @@ describe('offer.service', () => {
     it('admin bypasses ownership check on accept', async () => {
       const offer = makeOffer({ status: 'pending' });
       mockOfferRepo.findById.mockResolvedValue(offer as never);
-      mockPropertyRepo.findByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
-      mockOfferRepo.updateStatusTx.mockResolvedValue({ ...offer, status: 'accepted' } as never);
-      mockOfferRepo.expirePendingAndCounteredSiblingsTx.mockResolvedValue({ count: 0 } as never);
+      mockPropertyService.findPropertyByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
+      mockOfferRepo.acceptOfferAtomically.mockResolvedValue({ ...offer, status: 'accepted' } as never);
 
       await offerService.acceptOffer({ offerId: 'offer-1', agentId: 'admin-1', role: 'admin' });
 
-      expect(mockOfferRepo.updateStatusTx).toHaveBeenCalled();
-      expect(mockPropertyRepo.findByIdWithSeller).not.toHaveBeenCalled();
+      expect(mockOfferRepo.acceptOfferAtomically).toHaveBeenCalled();
+      expect(mockPropertyService.findPropertyByIdWithSeller).not.toHaveBeenCalled();
     });
 
     it('throws ValidationError when trying to accept a non-pending offer', async () => {

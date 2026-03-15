@@ -1,5 +1,5 @@
 import * as agentRepo from './agent.repository';
-import * as viewingRepo from '../viewing/viewing.repository';
+import * as viewingService from '../viewing/viewing.service';
 import * as complianceService from '../compliance/compliance.service';
 import { NotFoundError } from '@/domains/shared/errors';
 import type {
@@ -143,7 +143,7 @@ export function getTimeline(
 }
 
 export async function getRepeatViewers() {
-  return viewingRepo.findRepeatViewers(2);
+  return viewingService.getRepeatViewers(2);
 }
 
 export async function processCorrectionRequest(input: {

@@ -323,6 +323,21 @@ export async function countUnreadNotifications(
   return notificationRepo.countUnreadForRecipient(recipientType, recipientId);
 }
 
+export async function createInAppNotification(data: {
+  recipientType: 'seller' | 'agent' | 'viewer';
+  recipientId: string;
+  templateName: string;
+  content: string;
+}) {
+  return notificationRepo.create({
+    recipientType: data.recipientType,
+    recipientId: data.recipientId,
+    channel: 'in_app',
+    templateName: data.templateName,
+    content: data.content,
+  });
+}
+
 export async function markAsRead(
   notificationId: string,
   recipientId: string,

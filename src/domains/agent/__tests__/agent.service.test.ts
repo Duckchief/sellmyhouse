@@ -1,8 +1,10 @@
 import * as agentService from '../agent.service';
 import * as agentRepo from '../agent.repository';
+import * as viewingService from '../../viewing/viewing.service';
 import { NotFoundError } from '@/domains/shared/errors';
 
 jest.mock('../agent.repository');
+jest.mock('../../viewing/viewing.service');
 
 const mockRepo = agentRepo as jest.Mocked<typeof agentRepo>;
 

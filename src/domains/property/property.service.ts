@@ -152,6 +152,18 @@ export async function backfillPropertySlugs(): Promise<number> {
   return count;
 }
 
+export async function findPropertyByIdWithSeller(propertyId: string) {
+  return propertyRepo.findByIdWithSeller(propertyId);
+}
+
+export async function findActiveListingForProperty(propertyId: string) {
+  return propertyRepo.findActiveListingForProperty(propertyId);
+}
+
+export async function findPropertyByIdWithListings(propertyId: string) {
+  return propertyRepo.findByIdWithListings(propertyId);
+}
+
 export async function updateListingStatus(propertyId: string, newStatus: string) {
   const listing = await propertyRepo.findActiveListingForProperty(propertyId);
   if (!listing) throw new NotFoundError('Active listing for property', propertyId);

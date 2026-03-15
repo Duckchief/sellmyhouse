@@ -5,8 +5,8 @@ import { SETTING_KEYS } from '@/domains/shared/settings.types';
 // ─── Pre-load mocks before importing service ──────────────────
 jest.mock('../admin.repository');
 jest.mock('@/domains/shared/audit.service');
-jest.mock('@/domains/shared/settings.repository');
-jest.mock('@/domains/notification/notification.repository');
+jest.mock('@/domains/shared/settings.service');
+jest.mock('@/domains/notification/notification.service');
 jest.mock('nodemailer', () => ({
   createTransport: () => ({
     sendMail: jest.fn().mockResolvedValue({ messageId: 'test-msg-id' }),
@@ -15,12 +15,12 @@ jest.mock('nodemailer', () => ({
 
 import * as adminRepo from '../admin.repository';
 import * as auditService from '@/domains/shared/audit.service';
-import * as settingsRepo from '@/domains/shared/settings.repository';
+import * as settingsService from '@/domains/shared/settings.service';
 import * as adminService from '../admin.service';
 
 const mockAdminRepo = adminRepo as jest.Mocked<typeof adminRepo>;
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
-const mockSettingsRepo = settingsRepo as jest.Mocked<typeof settingsRepo>;
+const mockSettingsService = settingsService as jest.Mocked<typeof settingsService>;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -300,7 +300,7 @@ describe('updateSetting', () => {
   });
 
   it('saves valid value and audits with old and new values', async () => {
-    mockSettingsRepo.findByKey.mockResolvedValue({
+    mockSettingsService.findByKey.mockResolvedValue({
       id: 'id-1',
       key: 'commission_amount',
       value: '1499',
@@ -309,7 +309,7 @@ describe('updateSetting', () => {
       updatedAt: new Date(),
       createdAt: new Date(),
     });
-    mockSettingsRepo.upsert.mockResolvedValue({
+    mockSettingsService.upsert.mockResolvedValue({
       id: 'id-1',
       key: 'commission_amount',
       value: '1600',
@@ -321,7 +321,7 @@ describe('updateSetting', () => {
 
     await adminService.updateSetting('commission_amount', '1600', 'admin-1');
 
-    expect(mockSettingsRepo.upsert).toHaveBeenCalledWith(
+    expect(mockSettingsService.upsert).toHaveBeenCalledWith(
       'commission_amount',
       '1600',
       expect.any(String),

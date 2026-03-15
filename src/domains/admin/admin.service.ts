@@ -5,8 +5,8 @@ import nodemailer from 'nodemailer';
 import * as adminRepo from './admin.repository';
 import * as complianceService from '../compliance/compliance.service';
 import * as auditService from '@/domains/shared/audit.service';
-import * as settingsRepo from '@/domains/shared/settings.repository';
-import * as notificationRepo from '@/domains/notification/notification.repository';
+import * as settingsService from '@/domains/shared/settings.service';
+import * as notificationService from '@/domains/notification/notification.service';
 import { HdbSyncService } from '@/domains/hdb/sync.service';
 import { ConflictError, NotFoundError, ValidationError } from '@/domains/shared/errors';
 import { SETTING_VALIDATORS } from './admin.validator';
@@ -175,10 +175,9 @@ export async function assignSeller(
   await adminRepo.assignSeller(sellerId, newAgentId);
 
   // Notify the new agent (in-app — fire and forget)
-  void notificationRepo.create({
+  void notificationService.createInAppNotification({
     recipientType: 'agent',
     recipientId: newAgentId,
-    channel: 'in_app',
     templateName: 'seller_assigned',
     content: `Seller ${seller.name} has been assigned to you.`,
   });
@@ -209,18 +208,16 @@ export async function reassignSeller(
   await adminRepo.assignSeller(sellerId, newAgentId);
 
   // Notify both agents (in-app — fire and forget)
-  void notificationRepo.create({
+  void notificationService.createInAppNotification({
     recipientType: 'agent',
     recipientId: newAgentId,
-    channel: 'in_app',
     templateName: 'seller_reassigned',
     content: `Seller ${seller.name} has been reassigned to you.`,
   });
   if (fromAgentId) {
-    void notificationRepo.create({
+    void notificationService.createInAppNotification({
       recipientType: 'agent',
       recipientId: fromAgentId,
-      channel: 'in_app',
       templateName: 'seller_reassigned',
       content: `Seller ${seller.name} has been reassigned to another agent.`,
     });
@@ -246,10 +243,10 @@ export async function updateSetting(key: string, value: string, adminId: string)
     throw new ValidationError(`Invalid value for setting: ${key}`);
   }
 
-  const existing = await settingsRepo.findByKey(key);
+  const existing = await settingsService.findByKey(key);
   const oldValue = existing?.value ?? null;
 
-  await settingsRepo.upsert(key, value, `Setting: ${key}`, adminId);
+  await settingsService.upsert(key, value, `Setting: ${key}`, adminId);
 
   await auditService.log({
     agentId: adminId,
@@ -261,7 +258,7 @@ export async function updateSetting(key: string, value: string, adminId: string)
 }
 
 export async function getSettingsGrouped(): Promise<SettingGroup[]> {
-  const all = await settingsRepo.findAll();
+  const all = await settingsService.findAll();
   const map = new Map(all.map((s) => [s.key, s]));
 
   const group = (label: string, keys: string[]): SettingGroup => ({

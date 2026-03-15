@@ -1,7 +1,6 @@
 import * as sellerService from '../seller.service';
 import * as sellerRepo from '../seller.repository';
 import * as contentService from '../../content/content.service';
-import * as notificationRepo from '../../notification/notification.repository';
 import * as notificationService from '../../notification/notification.service';
 import * as auditService from '../../shared/audit.service';
 import * as settingsService from '../../shared/settings.service';
@@ -13,13 +12,11 @@ type SellerWithRelations = Awaited<ReturnType<typeof sellerRepo.getSellerWithRel
 
 jest.mock('../seller.repository');
 jest.mock('../../content/content.service');
-jest.mock('../../notification/notification.repository');
 jest.mock('../../notification/notification.service');
 jest.mock('../../shared/audit.service');
 jest.mock('../../shared/settings.service');
 
 const mockedSellerRepo = jest.mocked(sellerRepo);
-const mockedNotificationRepo = jest.mocked(notificationRepo);
 const mockedNotificationService = jest.mocked(notificationService);
 const mockedAuditService = jest.mocked(auditService);
 const mockedSettings = jest.mocked(settingsService);
@@ -192,7 +189,7 @@ describe('seller.service', () => {
         consentRecords: [],
         caseFlags: [],
       } as unknown as SellerWithRelations);
-      mockedNotificationRepo.countUnreadForRecipient.mockResolvedValue(5);
+      mockedNotificationService.countUnreadNotifications.mockResolvedValue(5);
 
       const result = await sellerService.getDashboardOverview('seller-1');
 

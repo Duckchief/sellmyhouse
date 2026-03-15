@@ -131,6 +131,18 @@ export async function expirePendingAndCounteredSiblingsTx(
 }
 
 /**
+ * Atomically accepts an offer and expires all pending/countered siblings.
+ * Wraps the Prisma $transaction so the service layer doesn't need direct Prisma access.
+ */
+export async function acceptOfferAtomically(offerId: string, propertyId: string) {
+  return prisma.$transaction(async (tx) => {
+    const accepted = await updateStatusTx(tx, offerId, 'accepted');
+    await expirePendingAndCounteredSiblingsTx(tx, propertyId, offerId);
+    return accepted;
+  });
+}
+
+/**
  * Returns all Offer records where retentionExpiresAt is in the past
  * and at least one PII field (buyerName or buyerPhone) is not yet nulled.
  * Used by the anonymisation job to find records that need PII erasure.

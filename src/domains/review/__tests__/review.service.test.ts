@@ -12,7 +12,7 @@ import {
 } from '@/domains/shared/errors';
 import * as reviewRepo from '../review.repository';
 import * as complianceService from '@/domains/compliance/compliance.service';
-import * as txRepo from '@/domains/transaction/transaction.repository';
+import * as transactionService from '@/domains/transaction/transaction.service';
 import * as portalService from '@/domains/property/portal.service';
 import * as auditService from '@/domains/shared/audit.service';
 
@@ -20,10 +20,10 @@ jest.mock('../review.repository');
 jest.mock('@/domains/property/portal.service');
 jest.mock('@/domains/shared/audit.service');
 jest.mock('@/domains/compliance/compliance.service');
-jest.mock('@/domains/transaction/transaction.repository');
+jest.mock('@/domains/transaction/transaction.service');
 const mockRepo = reviewRepo as jest.Mocked<typeof reviewRepo>;
 const mockComplianceService = complianceService as jest.Mocked<typeof complianceService>;
-const mockTxRepo = txRepo as jest.Mocked<typeof txRepo>;
+const mockTransactionService = transactionService as jest.Mocked<typeof transactionService>;
 const mockPortalService = portalService as jest.Mocked<typeof portalService>;
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 
@@ -143,12 +143,12 @@ describe('checkComplianceGate - agent_otp_review (future SP)', () => {
 
 describe('checkComplianceGate - hdb_complete (Gate 5)', () => {
   it('throws NotFoundError when transaction is not found', async () => {
-    mockTxRepo.findById.mockResolvedValue(null);
+    mockTransactionService.findTransactionById.mockResolvedValue(null);
     await expect(checkComplianceGate('hdb_complete', 'tx-missing')).rejects.toThrow(NotFoundError);
   });
 
   it('throws ComplianceError when hdbApplicationStatus is not approval_granted', async () => {
-    mockTxRepo.findById.mockResolvedValue({
+    mockTransactionService.findTransactionById.mockResolvedValue({
       id: 'tx-1',
       hdbApplicationStatus: 'application_submitted',
     } as never);
@@ -156,7 +156,7 @@ describe('checkComplianceGate - hdb_complete (Gate 5)', () => {
   });
 
   it('throws ComplianceError when hdbApplicationStatus is null', async () => {
-    mockTxRepo.findById.mockResolvedValue({
+    mockTransactionService.findTransactionById.mockResolvedValue({
       id: 'tx-1',
       hdbApplicationStatus: null,
     } as never);
@@ -164,7 +164,7 @@ describe('checkComplianceGate - hdb_complete (Gate 5)', () => {
   });
 
   it('passes when hdbApplicationStatus is approval_granted', async () => {
-    mockTxRepo.findById.mockResolvedValue({
+    mockTransactionService.findTransactionById.mockResolvedValue({
       id: 'tx-1',
       hdbApplicationStatus: 'approval_granted',
     } as never);
@@ -230,8 +230,8 @@ describe('checkComplianceGate - cdd_complete', () => {
 
 describe('checkComplianceGate - hdb_submission_review', () => {
   it('passes when OTP is exercised', async () => {
-    mockTxRepo.findTransactionBySellerId.mockResolvedValue({ id: 'tx-1' } as never);
-    mockTxRepo.findOtpByTransactionId.mockResolvedValue({
+    mockTransactionService.findTransactionBySellerId.mockResolvedValue({ id: 'tx-1' } as never);
+    mockTransactionService.findOtpByTransactionId.mockResolvedValue({
       id: 'otp-1',
       status: 'exercised',
     } as never);
@@ -240,8 +240,8 @@ describe('checkComplianceGate - hdb_submission_review', () => {
   });
 
   it('throws ComplianceError when OTP is not exercised', async () => {
-    mockTxRepo.findTransactionBySellerId.mockResolvedValue({ id: 'tx-1' } as never);
-    mockTxRepo.findOtpByTransactionId.mockResolvedValue({
+    mockTransactionService.findTransactionBySellerId.mockResolvedValue({ id: 'tx-1' } as never);
+    mockTransactionService.findOtpByTransactionId.mockResolvedValue({
       id: 'otp-1',
       status: 'issued_to_buyer',
     } as never);
@@ -252,7 +252,7 @@ describe('checkComplianceGate - hdb_submission_review', () => {
   });
 
   it('throws ComplianceError when no transaction exists', async () => {
-    mockTxRepo.findTransactionBySellerId.mockResolvedValue(null);
+    mockTransactionService.findTransactionBySellerId.mockResolvedValue(null);
 
     await expect(checkComplianceGate('hdb_submission_review', 'seller-1')).rejects.toThrow(
       ComplianceError,
@@ -260,8 +260,8 @@ describe('checkComplianceGate - hdb_submission_review', () => {
   });
 
   it('throws ComplianceError when no OTP exists for transaction', async () => {
-    mockTxRepo.findTransactionBySellerId.mockResolvedValue({ id: 'tx-1' } as never);
-    mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
+    mockTransactionService.findTransactionBySellerId.mockResolvedValue({ id: 'tx-1' } as never);
+    mockTransactionService.findOtpByTransactionId.mockResolvedValue(null);
 
     await expect(checkComplianceGate('hdb_submission_review', 'seller-1')).rejects.toThrow(
       ComplianceError,

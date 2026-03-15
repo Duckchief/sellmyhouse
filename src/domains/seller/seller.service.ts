@@ -1,5 +1,4 @@
 import * as sellerRepo from './seller.repository';
-import * as notificationRepo from '../notification/notification.repository';
 import * as notificationService from '../notification/notification.service';
 import * as auditService from '../shared/audit.service';
 import * as settingsService from '../shared/settings.service';
@@ -60,7 +59,7 @@ export async function getDashboardOverview(sellerId: string): Promise<DashboardO
   const seller = await sellerRepo.getSellerWithRelations(sellerId);
   if (!seller) throw new NotFoundError('Seller', sellerId);
 
-  const unreadNotificationCount = await notificationRepo.countUnreadForRecipient(
+  const unreadNotificationCount = await notificationService.countUnreadNotifications(
     'seller',
     sellerId,
   );

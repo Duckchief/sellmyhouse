@@ -416,3 +416,43 @@ export async function getHdbStatus(): Promise<HdbDataStatus> {
     recentSyncs: syncs,
   };
 }
+
+export async function findSellerDetailForAdmin(id: string) {
+  return prisma.seller.findUnique({
+    where: { id },
+    include: {
+      agent: {
+        select: { id: true, name: true, ceaRegNo: true, phone: true },
+      },
+      properties: {
+        take: 1,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          block: true,
+          street: true,
+          town: true,
+          flatType: true,
+          floorAreaSqm: true,
+          storeyRange: true,
+          askingPrice: true,
+        },
+      },
+      transactions: {
+        take: 1,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          status: true,
+          offerId: true,
+          agreedPrice: true,
+          hdbApplicationStatus: true,
+          otp: { select: { status: true } },
+          createdAt: true,
+        },
+      },
+      consentRecords: {
+        select: { id: true, consentWithdrawnAt: true, createdAt: true },
+      },
+    },
+  });
+}

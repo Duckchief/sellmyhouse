@@ -289,7 +289,7 @@ export async function getReferralMetrics(dateFrom?: Date, dateTo?: Date) {
   const topReferrers = referrals.slice(0, 10).map((r) => ({
     name: r.referrer?.name ?? 'Unknown',
     clicks: r.clickCount,
-    status: r.status ?? 'link_generated',
+    status: (r.status ?? 'link_generated') as string,
   }));
   return {
     totalLinks,

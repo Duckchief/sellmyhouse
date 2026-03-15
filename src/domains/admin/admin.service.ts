@@ -10,7 +10,14 @@ import * as notificationService from '@/domains/notification/notification.servic
 import { HdbSyncService } from '@/domains/hdb/sync.service';
 import { ConflictError, NotFoundError, ValidationError } from '@/domains/shared/errors';
 import { SETTING_VALIDATORS } from './admin.validator';
-import type { AgentCreateInput, HdbDataStatus, SettingGroup, SettingWithMeta } from './admin.types';
+import type {
+  AgentCreateInput,
+  AnalyticsData,
+  AnalyticsFilter,
+  HdbDataStatus,
+  SettingGroup,
+  SettingWithMeta,
+} from './admin.types';
 import type { SettingKey } from '@/domains/shared/settings.types';
 
 // ─── Team Management ─────────────────────────────────────────
@@ -340,4 +347,37 @@ export async function approveDeletion(
 
 export async function anonymiseAgentOnDeparture(agentId: string, adminId: string): Promise<void> {
   await complianceService.anonymiseAgent({ agentId, requestedByAgentId: adminId });
+}
+
+// ─── Analytics ────────────────────────────────────────────────
+
+export async function getAnalytics(filter: AnalyticsFilter): Promise<AnalyticsData> {
+  const now = new Date();
+  const defaultFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const dateFrom = filter.dateFrom ? new Date(filter.dateFrom) : defaultFrom;
+  const dateTo = filter.dateTo ? new Date(filter.dateTo) : now;
+
+  const [revenue, funnel, timeToClose, leadSources, viewings, referrals, commission] =
+    await Promise.all([
+      adminRepo.getRevenueMetrics(dateFrom, dateTo),
+      adminRepo.getTransactionFunnel(dateFrom, dateTo),
+      adminRepo.getTimeToClose(dateFrom, dateTo),
+      adminRepo.getLeadSourceMetrics(dateFrom, dateTo),
+      adminRepo.getViewingMetrics(dateFrom, dateTo),
+      adminRepo.getReferralMetrics(dateFrom, dateTo),
+      settingsService.getNumber('commission_total_with_gst', 1633.91),
+    ]);
+
+  return {
+    revenue: {
+      ...revenue,
+      totalRevenue: Math.round(revenue.completedCount * commission * 100) / 100,
+      commissionPerTransaction: commission,
+    },
+    funnel,
+    timeToClose,
+    leadSources,
+    viewings,
+    referrals,
+  };
 }

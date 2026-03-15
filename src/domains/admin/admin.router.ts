@@ -77,6 +77,24 @@ adminRouter.get(
   },
 );
 
+// ─── Review Queue ────────────────────────────────────────────
+adminRouter.get(
+  '/admin/review',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const items = await adminService.getReviewQueue();
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/review-list', { items });
+      }
+      res.render('pages/admin/review-queue', { items, currentPath: '/admin/review' });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // ─── Team Management ─────────────────────────────────────────
 
 adminRouter.get(

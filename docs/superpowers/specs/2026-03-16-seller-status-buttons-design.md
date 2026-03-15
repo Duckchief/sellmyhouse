@@ -31,7 +31,7 @@ All buttons are shown in the header area, to the right of the status badge.
 |---|---|
 | lead → engaged | Yes — "Consultation note" |
 | engaged → active | Yes — "Activation note" |
-| active → completed | Yes — "Completion note" |
+| active → completed | No |
 | Any → archived | Yes — "Reason for archiving" |
 
 ---

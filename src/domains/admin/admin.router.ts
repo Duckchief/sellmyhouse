@@ -54,7 +54,12 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/pipeline-table', { pipeline, stage });
       }
-      res.render('pages/admin/pipeline', { pipeline, stageCounts, stage, currentPath: '/admin/pipeline' });
+      res.render('pages/admin/pipeline', {
+        pipeline,
+        stageCounts,
+        stage,
+        currentPath: '/admin/pipeline',
+      });
     } catch (err) {
       next(err);
     }
@@ -176,7 +181,11 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/notification-list', { result, filter });
       }
-      res.render('pages/admin/notifications', { result, filter, currentPath: '/admin/notifications' });
+      res.render('pages/admin/notifications', {
+        result,
+        filter,
+        currentPath: '/admin/notifications',
+      });
     } catch (err) {
       next(err);
     }
@@ -653,7 +662,11 @@ adminRouter.get(
   ...adminAuth,
   async (_req: Request, res: Response, next: NextFunction) => {
     try {
-      return res.render('pages/admin/tutorial-form', { tutorial: null, errors: [], currentPath: '/admin/tutorials' });
+      return res.render('pages/admin/tutorial-form', {
+        tutorial: null,
+        errors: [],
+        currentPath: '/admin/tutorials',
+      });
     } catch (err) {
       return next(err);
     }
@@ -704,7 +717,11 @@ adminRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const tutorial = await contentService.getTutorialById(req.params['id'] as string);
-      return res.render('pages/admin/tutorial-form', { tutorial, errors: [], currentPath: '/admin/tutorials' });
+      return res.render('pages/admin/tutorial-form', {
+        tutorial,
+        errors: [],
+        currentPath: '/admin/tutorials',
+      });
     } catch (err) {
       return next(err);
     }
@@ -781,9 +798,11 @@ adminRouter.post(
       if (err instanceof ConflictError) {
         logger.warn({ err }, 'Market content run blocked: duplicate period');
         const records = await contentService.listMarketContent();
-        return res
-          .status(409)
-          .render('pages/admin/market-content', { records, error: err.message, currentPath: '/admin/content/market' });
+        return res.status(409).render('pages/admin/market-content', {
+          records,
+          error: err.message,
+          currentPath: '/admin/content/market',
+        });
       }
       return next(err);
     }
@@ -801,7 +820,11 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/market-content-list', { records });
       }
-      return res.render('pages/admin/market-content', { records, error: notice, currentPath: '/admin/content/market' });
+      return res.render('pages/admin/market-content', {
+        records,
+        error: notice,
+        currentPath: '/admin/content/market',
+      });
     } catch (err) {
       return next(err);
     }
@@ -814,7 +837,10 @@ adminRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const record = await contentService.getMarketContentById(req.params['id'] as string);
-      return res.render('pages/admin/market-content-detail', { record, currentPath: '/admin/content/market' });
+      return res.render('pages/admin/market-content-detail', {
+        record,
+        currentPath: '/admin/content/market',
+      });
     } catch (err) {
       return next(err);
     }
@@ -859,7 +885,10 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/testimonial-list', { records });
       }
-      return res.render('pages/admin/testimonials', { records, currentPath: '/admin/content/testimonials' });
+      return res.render('pages/admin/testimonials', {
+        records,
+        currentPath: '/admin/content/testimonials',
+      });
     } catch (err) {
       return next(err);
     }
@@ -910,7 +939,13 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/referral-funnel', { funnel, topReferrers, baseUrl });
       }
-      return res.render('pages/admin/referrals', { records, funnel, topReferrers, baseUrl, currentPath: '/admin/content/referrals' });
+      return res.render('pages/admin/referrals', {
+        records,
+        funnel,
+        topReferrers,
+        baseUrl,
+        currentPath: '/admin/content/referrals',
+      });
     } catch (err) {
       return next(err);
     }

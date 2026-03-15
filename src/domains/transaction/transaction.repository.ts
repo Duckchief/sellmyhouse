@@ -136,7 +136,12 @@ export async function updateOtpStatus(
   });
 }
 
-export async function updateOtpReview(id: string, reviewedAt: Date, agentId: string, notes?: string) {
+export async function updateOtpReview(
+  id: string,
+  reviewedAt: Date,
+  agentId: string,
+  notes?: string,
+) {
   return prisma.otp.update({
     where: { id },
     data: {

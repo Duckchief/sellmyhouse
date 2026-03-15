@@ -273,8 +273,7 @@ export async function getTransactionFunnel(dateFrom?: Date, dateTo?: Date) {
 }
 
 export async function getTimeToClose(dateFrom?: Date, dateTo?: Date) {
-  const dateFilter =
-    dateFrom && dateTo ? { completionDate: { gte: dateFrom, lte: dateTo } } : {};
+  const dateFilter = dateFrom && dateTo ? { completionDate: { gte: dateFrom, lte: dateTo } } : {};
   const completed = await prisma.transaction.findMany({
     where: { status: 'completed', completionDate: { not: null }, ...dateFilter },
     select: {
@@ -334,8 +333,7 @@ export async function getLeadSourceMetrics(dateFrom?: Date, dateTo?: Date) {
 }
 
 export async function getViewingMetrics(dateFrom?: Date, dateTo?: Date) {
-  const dateFilter =
-    dateFrom && dateTo ? { scheduledAt: { gte: dateFrom, lte: dateTo } } : {};
+  const dateFilter = dateFrom && dateTo ? { scheduledAt: { gte: dateFrom, lte: dateTo } } : {};
   const [total, completed, noShows, cancelled] = await Promise.all([
     prisma.viewing.count({ where: dateFilter }),
     prisma.viewing.count({ where: { status: 'completed', ...dateFilter } }),

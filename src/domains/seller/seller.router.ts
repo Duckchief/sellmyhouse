@@ -59,15 +59,18 @@ sellerRouter.get('/seller/dashboard', async (req: Request, res: Response, next: 
 });
 
 // Dashboard stats partial (HTMX auto-refresh)
-sellerRouter.get('/seller/dashboard/stats', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const user = req.user as AuthenticatedUser;
-    const stats = await sellerService.getDashboardStats(user.id);
-    res.render('partials/seller/dashboard-stats', { stats });
-  } catch (err) {
-    next(err);
-  }
-});
+sellerRouter.get(
+  '/seller/dashboard/stats',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const stats = await sellerService.getDashboardStats(user.id);
+      res.render('partials/seller/dashboard-stats', { stats });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // Onboarding wizard
 sellerRouter.get('/seller/onboarding', async (req: Request, res: Response, next: NextFunction) => {

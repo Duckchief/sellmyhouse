@@ -707,7 +707,12 @@ describe('transaction.service', () => {
 
       await txService.markOtpReviewed({ transactionId: 'tx-1', agentId: 'agent-1' });
 
-      expect(mockTxRepo.updateOtpReview).toHaveBeenCalledWith('otp-1', expect.any(Date), 'agent-1', undefined);
+      expect(mockTxRepo.updateOtpReview).toHaveBeenCalledWith(
+        'otp-1',
+        expect.any(Date),
+        'agent-1',
+        undefined,
+      );
     });
   });
 

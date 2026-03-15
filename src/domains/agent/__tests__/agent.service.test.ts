@@ -43,8 +43,20 @@ describe('agent.service', () => {
   describe('getPipelineOverview - enhanced', () => {
     it('returns sellers array in each pipeline stage', async () => {
       const stageSellers = [
-        { id: 'seller-1', name: 'Alice Tan', phone: '91111111', askingPrice: 500000, status: 'lead' },
-        { id: 'seller-2', name: 'Bob Lim', phone: '92222222', askingPrice: 600000, status: 'active' },
+        {
+          id: 'seller-1',
+          name: 'Alice Tan',
+          phone: '91111111',
+          askingPrice: 500000,
+          status: 'lead',
+        },
+        {
+          id: 'seller-2',
+          name: 'Bob Lim',
+          phone: '92222222',
+          askingPrice: 600000,
+          status: 'active',
+        },
       ];
       mockRepo.getPipelineStagesWithSellers.mockResolvedValue([
         { status: 'lead', count: 1, totalValue: 500000, sellers: [stageSellers[0]] },

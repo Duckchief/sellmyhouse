@@ -22,7 +22,11 @@ describe('getAnalytics', () => {
     });
     mockSettings.getNumber.mockResolvedValue(1633.91);
     mockRepo.getTransactionFunnel.mockResolvedValue({
-      lead: 10, engaged: 5, active: 3, option_exercised: 1, completed: 3,
+      lead: 10,
+      engaged: 5,
+      active: 3,
+      option_exercised: 1,
+      completed: 3,
     });
     mockRepo.getTimeToClose.mockResolvedValue({
       averageDays: 45,

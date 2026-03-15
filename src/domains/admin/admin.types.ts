@@ -149,3 +149,57 @@ export interface AdminPipelineResult {
   stages: AdminPipelineStage[];
   totalSellers: number;
 }
+
+export interface AdminSellerDetail {
+  seller: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string;
+    status: string;
+    notificationPreference: string;
+    createdAt: Date;
+  };
+  property: {
+    block: string;
+    street: string;
+    town: string;
+    flatType: string;
+    floorAreaSqm: number;
+    storeyRange: string;
+    askingPrice: number | null;
+  } | null;
+  agent: {
+    id: string;
+    name: string;
+    ceaRegNo: string;
+    phone: string | null;
+  } | null;
+  transaction: {
+    id: string;
+    status: string;
+    offerId: string | null;
+    agreedPrice: number;
+    hdbApplicationStatus: string;
+    otpStatus: string | null;
+    createdAt: Date;
+  } | null;
+  compliance: {
+    cdd: {
+      riskLevel: string;
+      identityVerified: boolean;
+      verifiedAt: Date | null;
+      createdAt: Date;
+    } | null;
+    consentCount: number;
+    hasWithdrawal: boolean;
+  };
+  auditLog: Array<{
+    id: string;
+    action: string;
+    entityType: string;
+    entityId: string;
+    details: unknown;
+    createdAt: Date;
+  }>;
+}

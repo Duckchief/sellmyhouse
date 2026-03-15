@@ -30,12 +30,9 @@
           </select>
         </div>
         <div>
-          <label for="storeyRange" class="block text-sm font-semibold mb-1">{{ "Storey Range" | t }}</label>
-          <select id="storeyRange" name="storeyRange" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white">
-            <option value="">{{ "All storeys" | t }}</option>
-            {% for sr in storeyRanges %}
-            <option value="{{ sr }}">{{ sr }}</option>
-            {% endfor %}
+          <label for="storey-range-select" class="block text-sm font-semibold mb-1">{{ "Storey Range" | t }}</label>
+          <select id="storey-range-select" name="storeyRange" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white">
+            {% include "partials/public/storey-range-options.njk" %}
           </select>
         </div>
         <div class="flex items-end">

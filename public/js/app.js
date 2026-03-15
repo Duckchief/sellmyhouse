@@ -127,6 +127,15 @@
         }
       }
     }
+
+    // Referral table: toggle the pre-composed message expansion row
+    if (action === 'toggle-referral-message') {
+      var msgRow = document.getElementById(el.dataset.target);
+      if (msgRow) {
+        var isHidden = msgRow.classList.toggle('hidden');
+        el.textContent = isHidden ? 'View Message' : 'Hide';
+      }
+    }
   });
 
   // ── Months slider (market report date range) ──────────────────

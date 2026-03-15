@@ -44,8 +44,8 @@ Imported by `admin.service.ts` to set/clear the flag.
 </div>
 ```
 
-### 5. `partials/admin/hdb-sync-done.njk` (new)
-Simple result message (no polling). Uses `hx-get`/`hx-trigger="load"` on the status cards wrapper to refresh the stats after sync completes.
+### 5. Done state (no separate partial)
+When `syncState.running === false`, the status endpoint sets `HX-Redirect: /admin/hdb` and returns 200. HTMX reloads the full page, showing updated stats cards and the new sync history row. No separate done partial required — the page reload provides equivalent feedback more simply.
 
 ### 6. `POST /admin/hdb/sync` (modified)
 On HTMX request, render `hdb-progress.njk` instead of `team-action-result`.
@@ -70,7 +70,7 @@ animation: {
 |---|---|
 | Idle | "Trigger Manual Sync" button visible |
 | Sync triggered | Button replaced by indeterminate bar + "Syncing HDB data, please wait..." |
-| Sync completes | Bar replaced by success/failure message; status cards refresh |
+| Sync completes | HTMX `HX-Redirect` triggers full page reload; admin sees updated stats + new sync history entry |
 | Server restarted mid-sync | `syncState.running` resets to `false`; next poll returns "done" partial |
 
 ## Out of Scope

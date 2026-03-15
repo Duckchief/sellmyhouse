@@ -72,12 +72,26 @@ Update layouts to use brand colors:
 ### Data Requirements
 
 `sellerService.getDashboardOverview()` enhanced to return:
-- `caseFlags: CaseFlag[]` — unresolved case flags
-- `upcomingViewings: number` — count of scheduled viewings
-- `totalViewings: number` — total viewings count
-- Existing fields: seller, propertyStatus, nextSteps, unreadNotificationCount
+```typescript
+{
+  seller: { name: string; status: SellerStatus };
+  property: {
+    block: string; street: string; town: string;
+    flatType: string; floorAreaSqm: number;
+    askingPrice: number; // Decimal → number via .toNumber()
+    status: string;
+  } | null;
+  caseFlags: Array<{ id: string; flagType: string; description: string }>;
+  upcomingViewings: number;   // count of viewings with status=scheduled
+  totalViewings: number;      // count of all viewings for this seller
+  unreadNotificationCount: number;
+  nextSteps: Array<{ label: string; description: string; href: string; completed: boolean }>;
+}
+```
 
-New endpoint: `GET /seller/dashboard/stats` — returns stats partial only (for HTMX auto-refresh).
+New endpoint: `GET /seller/dashboard/stats` — returns `dashboard-stats.njk` partial only.
+Response data: `{ upcomingViewings, totalViewings, unreadNotificationCount }`.
+Access control: seller can only see their own data (enforced via `req.user.id`).
 
 ## 3. Agent Dashboard (Pipeline)
 
@@ -111,22 +125,22 @@ New endpoint: `GET /seller/dashboard/stats` — returns stats partial only (for 
 `agentService.getPipelineOverview()` enhanced to return:
 ```typescript
 {
-  stages: {
-    [stageName: string]: {
-      count: number;
-      totalValue: number;
-      sellers: Array<{
-        id: string;
-        name: string;
-        phone: string;
-        askingPrice: number;
-        status: string;
-      }>;
-    };
-  };
+  stages: Array<{
+    status: SellerStatus;  // lead, engaged, active, completed, archived
+    count: number;
+    totalValue: number;    // sum of askingPrice (Decimal → number)
+    sellers: Array<{
+      id: string;
+      name: string;
+      phone: string;
+      askingPrice: number;
+      status: string;
+    }>;
+  }>;
   unassignedLeadCount: number;
 }
 ```
+Uses array format (consistent with existing service pattern). Template iterates with `{% for stage in pipeline.stages %}`.
 
 ### Layout Update
 
@@ -143,11 +157,11 @@ Agent sidebar: `bg-gray-900` → `bg-ink`. Active link highlight uses accent col
 - Load via CDN in admin layout `{% block head %}`
 - Charts in `<canvas>` elements
 - Data passed as JSON in `<script nonce="{{ cspNonce }}">` blocks
-- Charts auto-update when HTMX refreshes analytics partial
+- HTMX replaces the entire analytics partial (including `<canvas>` + `<script>` blocks). Each chart `<script>` block creates a new Chart instance on the fresh canvas. No need for `Chart.update()` — the old canvas is destroyed by HTMX swap.
 
 ### Sections:
 
-1. **Date Filter** — date range picker (dateFrom/dateTo), submits via HTMX
+1. **Date Filter** — date range picker (dateFrom/dateTo) as GET params, defaults to last 30 days. Submits via `hx-get` with `hx-include` to reload analytics partial. Persists across auto-refreshes via hidden inputs.
 
 2. **Revenue Cards** (4-column grid, auto-refresh every 30s)
    - Total Revenue ($) + completed count
@@ -220,13 +234,17 @@ All three layouts currently lack mobile support. Add:
 
 ## 6. Shared Patterns
 
-- **Status badge macro**: `partials/status-badge.njk` — consistent color mapping across dashboards
+- **Status badge macro**: `partials/status-badge.njk` — color mapping:
+  - `lead` → blue, `engaged` → yellow, `active` → green
+  - `offer_received` → indigo, `under_option` → orange
+  - `completed` → purple, `archived` → gray
+  - `draft` → gray, `listed` → blue, `delisted` → red
 - **Currency formatting**: `$X,XXX.XX` format
 - **Date formatting**: relative ("2d 3h ago") for recent items, absolute for older
 - **Auto-refresh strategy**:
   - Stats cards: `hx-trigger="load, every 30s"` with lightweight dedicated endpoints
   - Pipeline tables: manual refresh only
-  - Charts: refresh with stats via HTMX swap + `Chart.update()`
+  - Charts: full HTMX swap replaces canvas + script blocks (new Chart instances)
 
 ## Dependencies
 

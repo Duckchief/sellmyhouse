@@ -13,29 +13,31 @@ describe('agent.service', () => {
 
   describe('getPipelineOverview', () => {
     it('returns pipeline stages, activity, and review count for an agent', async () => {
-      mockRepo.getPipelineStages.mockResolvedValue([
-        { status: 'lead', count: 3, totalValue: 0 },
-        { status: 'active', count: 2, totalValue: 1000000 },
+      mockRepo.getPipelineStagesWithSellers.mockResolvedValue([
+        { status: 'lead', count: 3, totalValue: 0, sellers: [] },
+        { status: 'active', count: 2, totalValue: 1000000, sellers: [] },
       ]);
       mockRepo.getRecentActivity.mockResolvedValue([]);
       mockRepo.getPendingReviewCount.mockResolvedValue(5);
+      mockRepo.getUnassignedLeadCount.mockResolvedValue(0);
 
       const result = await agentService.getPipelineOverview('agent-1');
 
       expect(result.stages).toHaveLength(2);
-      expect(result.stages[0]).toEqual({ status: 'lead', count: 3, totalValue: 0 });
+      expect(result.stages[0]).toEqual({ status: 'lead', count: 3, totalValue: 0, sellers: [] });
       expect(result.pendingReviewCount).toBe(5);
-      expect(mockRepo.getPipelineStages).toHaveBeenCalledWith('agent-1');
+      expect(mockRepo.getPipelineStagesWithSellers).toHaveBeenCalledWith('agent-1');
     });
 
     it('passes no agentId for admin (sees all)', async () => {
-      mockRepo.getPipelineStages.mockResolvedValue([]);
+      mockRepo.getPipelineStagesWithSellers.mockResolvedValue([]);
       mockRepo.getRecentActivity.mockResolvedValue([]);
       mockRepo.getPendingReviewCount.mockResolvedValue(0);
+      mockRepo.getUnassignedLeadCount.mockResolvedValue(0);
 
       await agentService.getPipelineOverview(undefined);
 
-      expect(mockRepo.getPipelineStages).toHaveBeenCalledWith(undefined);
+      expect(mockRepo.getPipelineStagesWithSellers).toHaveBeenCalledWith(undefined);
     });
   });
 

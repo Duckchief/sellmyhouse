@@ -15,10 +15,11 @@ import type { TimelineMilestone } from '@/domains/seller/seller.types';
 import { getTimelineMilestones } from '@/domains/seller/seller.service';
 
 export async function getPipelineOverview(agentId?: string): Promise<PipelineOverview> {
-  const [stages, recentActivity, pendingReviewCount] = await Promise.all([
-    agentRepo.getPipelineStages(agentId),
+  const [stages, recentActivity, pendingReviewCount, unassignedLeadCount] = await Promise.all([
+    agentRepo.getPipelineStagesWithSellers(agentId),
     agentRepo.getRecentActivity(agentId),
     agentRepo.getPendingReviewCount(agentId),
+    agentRepo.getUnassignedLeadCount(),
   ]);
 
   return {
@@ -32,6 +33,7 @@ export async function getPipelineOverview(agentId?: string): Promise<PipelineOve
       createdAt: a.createdAt,
     })),
     pendingReviewCount,
+    unassignedLeadCount,
   };
 }
 

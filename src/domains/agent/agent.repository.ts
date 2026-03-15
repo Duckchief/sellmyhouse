@@ -1,6 +1,6 @@
 import { prisma } from '@/infra/database/prisma';
 import type { Prisma, SellerStatus, LeadSource } from '@prisma/client';
-import type { SellerListFilter } from './agent.types';
+import type { PipelineStage, PipelineSeller, SellerListFilter } from './agent.types';
 
 export async function getPipelineStages(agentId?: string) {
   const where = agentId ? { agentId } : {};
@@ -26,6 +26,47 @@ export async function getPipelineStages(agentId?: string) {
   );
 
   return stages;
+}
+
+export async function getPipelineStagesWithSellers(agentId?: string): Promise<PipelineStage[]> {
+  const where = agentId ? { agentId } : {};
+  const sellers = await prisma.seller.findMany({
+    where: { ...where, status: { not: 'archived' } },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      status: true,
+      properties: { select: { askingPrice: true }, take: 1 },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const stageOrder: SellerStatus[] = ['lead', 'engaged', 'active', 'completed', 'archived'];
+  const stageMap = new Map<string, PipelineStage>();
+  for (const status of stageOrder) {
+    stageMap.set(status, { status, count: 0, totalValue: 0, sellers: [] });
+  }
+  for (const s of sellers) {
+    const stage = stageMap.get(s.status);
+    if (!stage) continue;
+    const askingPrice = s.properties[0]?.askingPrice ? Number(s.properties[0].askingPrice) : 0;
+    stage.count++;
+    stage.totalValue += askingPrice;
+    const pipelineSeller: PipelineSeller = {
+      id: s.id,
+      name: s.name,
+      phone: s.phone ?? '',
+      askingPrice,
+      status: s.status,
+    };
+    stage.sellers.push(pipelineSeller);
+  }
+  return stageOrder.map((s) => stageMap.get(s)!);
+}
+
+export async function getUnassignedLeadCount(): Promise<number> {
+  return prisma.seller.count({ where: { status: 'lead', agentId: null } });
 }
 
 export async function getRecentActivity(agentId?: string, limit = 10) {

@@ -143,6 +143,70 @@ agentRouter.get(
   },
 );
 
+// GET /agent/sellers/:id/status-modal — HTMX: render status change modal
+agentRouter.get(
+  '/agent/sellers/:id/status-modal',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const seller = await agentService.getSellerDetail(
+        req.params['id'] as string,
+        getAgentFilter(user),
+      );
+
+      const action = req.query['action'] as string;
+
+      const NEXT_STATUS: Record<string, string> = {
+        lead: 'engaged',
+        engaged: 'active',
+        active: 'completed',
+      };
+
+      const ADVANCE_META: Record<string, { title: string; label: string; noteRequired: boolean }> =
+        {
+          engaged: { title: 'Mark as Engaged', label: 'Consultation note', noteRequired: true },
+          active: { title: 'Mark as Active', label: 'Activation note', noteRequired: true },
+          completed: { title: 'Mark as Completed', label: 'Completion note', noteRequired: false },
+        };
+
+      let nextStatus: string;
+      let title: string;
+      let label: string;
+      let noteRequired: boolean;
+
+      if (action === 'archive') {
+        nextStatus = 'archived';
+        title = 'Archive Seller';
+        label = 'Reason for archiving';
+        noteRequired = true;
+      } else {
+        nextStatus = NEXT_STATUS[seller.status];
+        if (!nextStatus) {
+          return res.status(400).send('No advance action available for this status');
+        }
+        const meta = ADVANCE_META[nextStatus];
+        if (!meta) {
+          return res.status(400).send('Unrecognised next status');
+        }
+        title = meta.title;
+        label = meta.label;
+        noteRequired = meta.noteRequired;
+      }
+
+      return res.render('partials/agent/seller-status-modal', {
+        seller,
+        nextStatus,
+        title,
+        label,
+        noteRequired,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // GET /agent/sellers/:id/timeline — HTMX partial
 agentRouter.get(
   '/agent/sellers/:id/timeline',
@@ -291,7 +355,7 @@ agentRouter.put(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const VALID_STATUSES = ['lead', 'engaged', 'active', 'completed', 'archived'];
-      const { status } = req.body as { status?: string };
+      const { status, note } = req.body as { status?: string; note?: string };
 
       if (!status || !VALID_STATUSES.includes(status)) {
         return res
@@ -300,13 +364,15 @@ agentRouter.put(
       }
 
       const user = req.user as AuthenticatedUser;
-      const updated = await sellerService.updateSellerStatus(
-        req.params['id'] as string,
-        status,
-        user.id,
-      );
+      const sellerId = req.params['id'] as string;
+      await sellerService.updateSellerStatus(sellerId, status, user.id, note);
 
-      return res.status(200).json({ seller: { id: updated.id, status: updated.status } });
+      if (req.headers['hx-request']) {
+        const seller = await agentService.getSellerDetail(sellerId, getAgentFilter(user));
+        return res.render('partials/agent/seller-header', { seller });
+      }
+
+      return res.status(200).json({ seller: { id: sellerId, status } });
     } catch (err) {
       next(err);
     }

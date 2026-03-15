@@ -2,13 +2,16 @@ import request from 'supertest';
 import express, { NextFunction, Request, Response } from 'express';
 import { agentRouter } from '../agent.router';
 import * as agentService from '../agent.service';
+import * as sellerService from '@/domains/seller/seller.service';
 import * as caseFlagService from '@/domains/seller/case-flag.service';
-import { NotFoundError } from '@/domains/shared/errors';
+import { NotFoundError, ValidationError } from '@/domains/shared/errors';
 
 jest.mock('../agent.service');
+jest.mock('@/domains/seller/seller.service');
 jest.mock('@/domains/seller/case-flag.service');
 
 const mockService = agentService as jest.Mocked<typeof agentService>;
+const mockSellerService = sellerService as jest.Mocked<typeof sellerService>;
 const mockCaseFlagService = caseFlagService as jest.Mocked<typeof caseFlagService>;
 
 // Minimal test app with mock auth
@@ -220,6 +223,139 @@ describe('agent.router', () => {
         .send({ status: 'not_valid' });
 
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe('GET /agent/sellers/:id/status-modal', () => {
+    it('returns 200 with advance modal for a lead seller', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockService.getSellerDetail.mockResolvedValue({
+        id: 'seller-1',
+        status: 'lead',
+      } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
+
+      const res = await request(app).get(
+        '/agent/sellers/seller-1/status-modal?action=advance',
+      );
+      expect(res.status).toBe(200);
+    });
+
+    it('returns 400 when action=advance and seller status is archived', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockService.getSellerDetail.mockResolvedValue({
+        id: 'seller-1',
+        status: 'archived',
+      } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
+
+      const res = await request(app).get(
+        '/agent/sellers/seller-1/status-modal?action=advance',
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 400 when action=advance and seller status is completed', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockService.getSellerDetail.mockResolvedValue({
+        id: 'seller-1',
+        status: 'completed',
+      } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
+
+      const res = await request(app).get(
+        '/agent/sellers/seller-1/status-modal?action=advance',
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 200 for archive action on an engaged seller', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockService.getSellerDetail.mockResolvedValue({
+        id: 'seller-1',
+        status: 'engaged',
+      } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
+
+      const res = await request(app).get(
+        '/agent/sellers/seller-1/status-modal?action=archive',
+      );
+      expect(res.status).toBe(200);
+    });
+
+    it('returns 404 when seller not found', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockService.getSellerDetail.mockRejectedValue(new NotFoundError('Seller', 'bad-id'));
+
+      const res = await request(app).get(
+        '/agent/sellers/bad-id/status-modal?action=advance',
+      );
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('PUT /agent/sellers/:id/status — note threading', () => {
+    it('passes note to sellerService.updateSellerStatus', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockSellerService.updateSellerStatus.mockResolvedValue({
+        id: 'seller-1',
+        status: 'engaged',
+      } as never);
+
+      await request(app)
+        .put('/agent/sellers/seller-1/status')
+        .send({ status: 'engaged', note: 'Consultation done' });
+
+      expect(mockSellerService.updateSellerStatus).toHaveBeenCalledWith(
+        'seller-1',
+        'engaged',
+        'agent-1',
+        'Consultation done',
+      );
+    });
+
+    it('returns 400 when service throws ValidationError for missing note', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockSellerService.updateSellerStatus.mockRejectedValue(
+        new ValidationError('A note is required for this status transition'),
+      );
+
+      const res = await request(app)
+        .put('/agent/sellers/seller-1/status')
+        .send({ status: 'engaged' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 200 for a valid status update without note (active→completed)', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockSellerService.updateSellerStatus.mockResolvedValue({
+        id: 'seller-1',
+        status: 'completed',
+      } as never);
+
+      const res = await request(app)
+        .put('/agent/sellers/seller-1/status')
+        .send({ status: 'completed' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ seller: { id: 'seller-1', status: 'completed' } });
+    });
+
+    it('returns 200 with re-rendered header for HTMX requests', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockSellerService.updateSellerStatus.mockResolvedValue({
+        id: 'seller-1',
+        status: 'engaged',
+      } as never);
+      mockService.getSellerDetail.mockResolvedValue({
+        id: 'seller-1',
+        status: 'engaged',
+      } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
+
+      const res = await request(app)
+        .put('/agent/sellers/seller-1/status')
+        .set('HX-Request', 'true')
+        .send({ status: 'engaged', note: 'Consultation done' });
+
+      expect(res.status).toBe(200);
+      expect(mockService.getSellerDetail).toHaveBeenCalledWith('seller-1', 'agent-1');
     });
   });
 });

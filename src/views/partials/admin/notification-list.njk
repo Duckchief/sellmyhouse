@@ -1,0 +1,68 @@
+{% if result.notifications and result.notifications.length > 0 %}
+<div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+      <tr>
+        <th class="px-4 py-3 text-left">{{ "Channel" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Recipient" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Template" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Status" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Created" | t }}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y">
+      {% for n in result.notifications %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">
+          {% if n.channel == 'whatsapp' %}
+            <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">{{ "WhatsApp" | t }}</span>
+          {% elif n.channel == 'email' %}
+            <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">{{ "Email" | t }}</span>
+          {% elif n.channel == 'in_app' %}
+            <span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs">{{ "In-App" | t }}</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 font-medium">{{ n.recipientType }} / {{ n.recipientId | truncate(8) }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ n.templateName }}</td>
+        <td class="px-4 py-3">
+          {% if n.status == 'pending' %}
+            <span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs">{{ "Pending" | t }}</span>
+          {% elif n.status == 'sent' %}
+            <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">{{ "Sent" | t }}</span>
+          {% elif n.status == 'delivered' %}
+            <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">{{ "Delivered" | t }}</span>
+          {% elif n.status == 'failed' %}
+            <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs">{{ "Failed" | t }}</span>
+          {% elif n.status == 'read' %}
+            <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">{{ "Read" | t }}</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-gray-600">{{ n.createdAt | date }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if result.totalPages > 1 %}
+<div class="flex justify-between items-center mt-4 px-4">
+  <span class="text-sm text-gray-500">{{ "Page" | t }} {{ result.page }} {{ "of" | t }} {{ result.totalPages }} ({{ result.total }} {{ "total" | t }})</span>
+  <div class="flex gap-2">
+    {% if result.page > 1 %}
+    <a href="/admin/notifications?page={{ result.page - 1 }}{% if filter.channel %}&channel={{ filter.channel }}{% endif %}{% if filter.status %}&status={{ filter.status }}{% endif %}"
+       hx-get="/admin/notifications?page={{ result.page - 1 }}{% if filter.channel %}&channel={{ filter.channel }}{% endif %}{% if filter.status %}&status={{ filter.status }}{% endif %}"
+       hx-target="#notification-list" hx-push-url="true"
+       class="text-sm text-accent hover:underline">&larr; {{ "Previous" | t }}</a>
+    {% endif %}
+    {% if result.page < result.totalPages %}
+    <a href="/admin/notifications?page={{ result.page + 1 }}{% if filter.channel %}&channel={{ filter.channel }}{% endif %}{% if filter.status %}&status={{ filter.status }}{% endif %}"
+       hx-get="/admin/notifications?page={{ result.page + 1 }}{% if filter.channel %}&channel={{ filter.channel }}{% endif %}{% if filter.status %}&status={{ filter.status }}{% endif %}"
+       hx-target="#notification-list" hx-push-url="true"
+       class="text-sm text-accent hover:underline">{{ "Next" | t }} &rarr;</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% else %}
+<p class="text-gray-400 text-sm">{{ "No notifications found." | t }}</p>
+{% endif %}

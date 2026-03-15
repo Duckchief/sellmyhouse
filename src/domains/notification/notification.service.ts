@@ -376,6 +376,17 @@ export function generateUnsubscribeToken(sellerId: string): string {
   });
 }
 
+export async function getNotifications(filter: {
+  channel?: string;
+  status?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  page?: number;
+  limit?: number;
+}) {
+  return notificationRepo.findMany(filter);
+}
+
 export async function handleUnsubscribe(sellerId: string): Promise<void> {
   await notificationRepo.withdrawMarketingConsent(sellerId);
 

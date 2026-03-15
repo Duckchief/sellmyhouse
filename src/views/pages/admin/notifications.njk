@@ -1,0 +1,35 @@
+{% extends "layouts/admin.njk" %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">{{ "Notifications" | t }}</h1>
+
+<div class="bg-white rounded-lg shadow-sm border p-4 mb-6">
+  <form hx-get="/admin/notifications" hx-target="#notification-list" hx-push-url="true" class="flex flex-wrap gap-4 items-end">
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">{{ "Channel" | t }}</label>
+      <select name="channel" class="border rounded px-3 py-1.5 text-sm">
+        <option value="">{{ "All" | t }}</option>
+        <option value="whatsapp" {% if filter.channel == 'whatsapp' %}selected{% endif %}>{{ "WhatsApp" | t }}</option>
+        <option value="email" {% if filter.channel == 'email' %}selected{% endif %}>{{ "Email" | t }}</option>
+        <option value="in_app" {% if filter.channel == 'in_app' %}selected{% endif %}>{{ "In-App" | t }}</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">{{ "Status" | t }}</label>
+      <select name="status" class="border rounded px-3 py-1.5 text-sm">
+        <option value="">{{ "All" | t }}</option>
+        <option value="pending" {% if filter.status == 'pending' %}selected{% endif %}>{{ "Pending" | t }}</option>
+        <option value="sent" {% if filter.status == 'sent' %}selected{% endif %}>{{ "Sent" | t }}</option>
+        <option value="delivered" {% if filter.status == 'delivered' %}selected{% endif %}>{{ "Delivered" | t }}</option>
+        <option value="failed" {% if filter.status == 'failed' %}selected{% endif %}>{{ "Failed" | t }}</option>
+        <option value="read" {% if filter.status == 'read' %}selected{% endif %}>{{ "Read" | t }}</option>
+      </select>
+    </div>
+    <button type="submit" class="bg-accent text-white px-4 py-1.5 rounded text-sm hover:bg-accent/90">{{ "Filter" | t }}</button>
+  </form>
+</div>
+
+<div id="notification-list">
+  {% include "partials/admin/notification-list.njk" %}
+</div>
+{% endblock %}

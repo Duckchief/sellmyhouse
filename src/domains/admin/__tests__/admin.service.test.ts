@@ -16,11 +16,13 @@ jest.mock('nodemailer', () => ({
 import * as adminRepo from '../admin.repository';
 import * as auditService from '@/domains/shared/audit.service';
 import * as settingsService from '@/domains/shared/settings.service';
+import * as notificationService from '@/domains/notification/notification.service';
 import * as adminService from '../admin.service';
 
 const mockAdminRepo = adminRepo as jest.Mocked<typeof adminRepo>;
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 const mockSettingsService = settingsService as jest.Mocked<typeof settingsService>;
+const mockNotificationService = notificationService as jest.Mocked<typeof notificationService>;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -143,6 +145,56 @@ describe('getReviewQueue', () => {
 
     const result = await adminService.getReviewQueue();
     expect(result).toHaveLength(0);
+  });
+});
+
+// ─── getNotifications ────────────────────────────────────────
+
+describe('getNotifications', () => {
+  it('delegates to notificationService with date conversion', async () => {
+    const mockResult = {
+      notifications: [{ id: 'n1', channel: 'email', status: 'sent' }],
+      total: 1,
+      page: 1,
+      limit: 50,
+      totalPages: 1,
+    };
+    mockNotificationService.getNotifications.mockResolvedValue(mockResult as never);
+
+    const result = await adminService.getNotifications({
+      channel: 'email',
+      status: 'sent',
+      dateFrom: '2026-01-01',
+      dateTo: '2026-03-15',
+      page: 1,
+    });
+
+    expect(result).toEqual(mockResult);
+    expect(mockNotificationService.getNotifications).toHaveBeenCalledWith({
+      channel: 'email',
+      status: 'sent',
+      dateFrom: expect.any(Date),
+      dateTo: expect.any(Date),
+      page: 1,
+      limit: 50,
+    });
+  });
+
+  it('handles empty filter', async () => {
+    const mockResult = { notifications: [], total: 0, page: 1, limit: 50, totalPages: 0 };
+    mockNotificationService.getNotifications.mockResolvedValue(mockResult as never);
+
+    const result = await adminService.getNotifications({});
+
+    expect(result).toEqual(mockResult);
+    expect(mockNotificationService.getNotifications).toHaveBeenCalledWith({
+      channel: undefined,
+      status: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
+      page: undefined,
+      limit: 50,
+    });
   });
 });
 

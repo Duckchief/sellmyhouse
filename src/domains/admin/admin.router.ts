@@ -95,6 +95,31 @@ adminRouter.get(
   },
 );
 
+// ─── Notifications ──────────────────────────────────────────
+adminRouter.get(
+  '/admin/notifications',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const filter = {
+        channel: req.query['channel'] as string | undefined,
+        status: req.query['status'] as string | undefined,
+        dateFrom: req.query['dateFrom'] as string | undefined,
+        dateTo: req.query['dateTo'] as string | undefined,
+        page: req.query['page'] ? parseInt(req.query['page'] as string, 10) : undefined,
+      };
+      const result = await adminService.getNotifications(filter);
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/notification-list', { result, filter });
+      }
+      res.render('pages/admin/notifications', { result, filter, currentPath: '/admin/notifications' });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // ─── Team Management ─────────────────────────────────────────
 
 adminRouter.get(

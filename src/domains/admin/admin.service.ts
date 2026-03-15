@@ -329,6 +329,25 @@ export async function getReviewQueue(): Promise<ReviewItem[]> {
   return items.sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
 }
 
+// ─── Notifications ───────────────────────────────────────────
+
+export async function getNotifications(filter: {
+  channel?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+}) {
+  return notificationService.getNotifications({
+    channel: filter.channel,
+    status: filter.status,
+    dateFrom: filter.dateFrom ? new Date(filter.dateFrom) : undefined,
+    dateTo: filter.dateTo ? new Date(filter.dateTo) : undefined,
+    page: filter.page,
+    limit: 50,
+  });
+}
+
 // ─── Settings ────────────────────────────────────────────────
 
 export async function updateSetting(key: string, value: string, adminId: string): Promise<void> {

@@ -1,0 +1,184 @@
+{% extends "layouts/admin.njk" %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="/admin/sellers" class="text-sm text-accent hover:underline">← {{ "Back to Sellers" | t }}</a>
+</div>
+
+{# ── Header ── #}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+  <div class="flex items-center gap-4">
+    <h1 class="text-2xl font-bold">{{ detail.seller.name }}</h1>
+    <span class="px-2 py-0.5 text-xs rounded-full
+      {% if detail.seller.status == 'lead' %}bg-blue-100 text-blue-800
+      {% elif detail.seller.status == 'engaged' %}bg-yellow-100 text-yellow-800
+      {% elif detail.seller.status == 'active' %}bg-green-100 text-green-800
+      {% elif detail.seller.status == 'completed' %}bg-gray-100 text-gray-800
+      {% elif detail.seller.status == 'archived' %}bg-red-100 text-red-800
+      {% endif %}">{{ detail.seller.status | t }}</span>
+  </div>
+</div>
+
+{# ── Seller Info ── #}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+  <h2 class="text-lg font-semibold mb-4">{{ "Seller Information" | t }}</h2>
+  <dl class="grid grid-cols-2 gap-4 text-sm">
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Phone" | t }}</dt>
+      <dd>{{ detail.seller.phone }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Email" | t }}</dt>
+      <dd>{{ detail.seller.email or '—' }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Notification Preference" | t }}</dt>
+      <dd>{{ detail.seller.notificationPreference }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Created" | t }}</dt>
+      <dd>{{ detail.seller.createdAt | date }}</dd>
+    </div>
+  </dl>
+</div>
+
+{# ── Property ── #}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+  <h2 class="text-lg font-semibold mb-4">{{ "Property" | t }}</h2>
+  {% if detail.property %}
+  <dl class="grid grid-cols-2 gap-4 text-sm">
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Address" | t }}</dt>
+      <dd>{{ detail.property.block }} {{ detail.property.street }}, {{ detail.property.town }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Flat Type" | t }}</dt>
+      <dd>{{ detail.property.flatType }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Floor Area" | t }}</dt>
+      <dd>{{ detail.property.floorAreaSqm }} sqm</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Storey" | t }}</dt>
+      <dd>{{ detail.property.storeyRange }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Asking Price" | t }}</dt>
+      <dd>{% if detail.property.askingPrice %}${{ detail.property.askingPrice | formatPrice }}{% else %}—{% endif %}</dd>
+    </div>
+  </dl>
+  {% else %}
+  <p class="text-gray-400 text-sm">{{ "No property on file." | t }}</p>
+  {% endif %}
+</div>
+
+{# ── Assigned Agent ── #}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+  <h2 class="text-lg font-semibold mb-4">{{ "Assigned Agent" | t }}</h2>
+  {% if detail.agent %}
+  <dl class="grid grid-cols-2 gap-4 text-sm">
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Name" | t }}</dt>
+      <dd>{{ detail.agent.name }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "CEA Reg No" | t }}</dt>
+      <dd>{{ detail.agent.ceaRegNo }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Phone" | t }}</dt>
+      <dd>{{ detail.agent.phone or '—' }}</dd>
+    </div>
+  </dl>
+  {% else %}
+  <p class="text-sm">
+    <span class="text-amber-600 font-medium">{{ "Unassigned" | t }}</span>
+    — <a href="/admin/sellers" class="text-accent hover:underline">{{ "Go to sellers list to assign" | t }}</a>
+  </p>
+  {% endif %}
+</div>
+
+{# ── Transaction ── #}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+  <h2 class="text-lg font-semibold mb-4">{{ "Transaction" | t }}</h2>
+  {% if detail.transaction %}
+  <dl class="grid grid-cols-2 gap-4 text-sm">
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Status" | t }}</dt>
+      <dd>{{ detail.transaction.status }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Agreed Price" | t }}</dt>
+      <dd>${{ detail.transaction.agreedPrice | formatPrice }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "HDB Application" | t }}</dt>
+      <dd>{{ detail.transaction.hdbApplicationStatus }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "OTP Status" | t }}</dt>
+      <dd>{{ detail.transaction.otpStatus or '—' }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Started" | t }}</dt>
+      <dd>{{ detail.transaction.createdAt | date }}</dd>
+    </div>
+  </dl>
+  {% else %}
+  <p class="text-gray-400 text-sm">{{ "No transaction yet." | t }}</p>
+  {% endif %}
+</div>
+
+{# ── Compliance ── #}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+  <h2 class="text-lg font-semibold mb-4">{{ "Compliance" | t }}</h2>
+  <dl class="grid grid-cols-2 gap-4 text-sm">
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "CDD Record" | t }}</dt>
+      <dd>
+        {% if detail.compliance.cdd %}
+          <span class="{% if detail.compliance.cdd.identityVerified %}text-green-700{% else %}text-amber-600{% endif %} font-medium">
+            {% if detail.compliance.cdd.identityVerified %}{{ "Verified" | t }}{% else %}{{ "Pending" | t }}{% endif %}
+          </span>
+          <span class="text-gray-500">({{ detail.compliance.cdd.riskLevel }})</span>
+        {% else %}
+          <span class="text-gray-400">{{ "None on file" | t }}</span>
+        {% endif %}
+      </dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Consent Records" | t }}</dt>
+      <dd>{{ detail.compliance.consentCount }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Consent Withdrawal" | t }}</dt>
+      <dd>
+        {% if detail.compliance.hasWithdrawal %}
+          <span class="text-red-600 font-medium">{{ "Yes" | t }}</span>
+        {% else %}
+          {{ "No" | t }}
+        {% endif %}
+      </dd>
+    </div>
+  </dl>
+</div>
+
+{# ── Status History ── #}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+  <h2 class="text-lg font-semibold mb-4">{{ "Status History" | t }}</h2>
+  {% if detail.auditLog.length > 0 %}
+  <ol class="relative border-l border-gray-200 ml-3 space-y-4">
+    {% for entry in detail.auditLog %}
+    <li class="ml-4">
+      <div class="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border-2 border-white bg-gray-300"></div>
+      <time class="text-xs text-gray-400">{{ entry.createdAt | date }}</time>
+      <p class="text-sm font-medium text-gray-800">{{ entry.action }}</p>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="text-gray-400 text-sm">{{ "No audit history." | t }}</p>
+  {% endif %}
+</div>
+{% endblock %}

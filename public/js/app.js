@@ -111,6 +111,22 @@
     if (action === 'navigate') {
       window.location.href = el.dataset.url;
     }
+
+    // Toggle mobile sidebar open/closed
+    if (action === 'toggle-sidebar') {
+      var sidebar = document.getElementById('sidebar');
+      var backdrop = document.getElementById('sidebar-backdrop');
+      if (sidebar && backdrop) {
+        var isOpen = !sidebar.classList.contains('hidden') && window.innerWidth < 768;
+        if (isOpen) {
+          sidebar.classList.add('hidden');
+          backdrop.classList.add('hidden');
+        } else {
+          sidebar.classList.remove('hidden');
+          backdrop.classList.remove('hidden');
+        }
+      }
+    }
   });
 
   // ── Months slider (market report date range) ──────────────────
@@ -294,4 +310,16 @@
       }
     }
   })();
+
+  // ── Close sidebar on nav link click (mobile) ───────────────────
+  document.querySelectorAll('#sidebar a').forEach(function (link) {
+    link.addEventListener('click', function () {
+      if (window.innerWidth < 768) {
+        var sidebar = document.getElementById('sidebar');
+        var backdrop = document.getElementById('sidebar-backdrop');
+        if (sidebar) sidebar.classList.add('hidden');
+        if (backdrop) backdrop.classList.add('hidden');
+      }
+    });
+  });
 })();

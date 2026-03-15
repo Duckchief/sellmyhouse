@@ -36,6 +36,9 @@ describe('offer integration', () => {
     const property = await factory.property({ sellerId, town: 'TAMPINES', flatType: '4 ROOM' });
     propertyId = property.id;
 
+    // createOffer requires an active listing on the property
+    await factory.listing({ propertyId, status: 'live' });
+
     await factory.systemSetting({ key: 'offer_ai_analysis_enabled', value: 'false' });
   });
 

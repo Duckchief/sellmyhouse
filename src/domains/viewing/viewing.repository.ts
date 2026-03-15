@@ -419,7 +419,7 @@ export async function findRepeatViewers(minProperties: number = 2) {
     FROM verified_viewers vv
     JOIN viewings v ON v.verified_viewer_id = vv.id
     JOIN viewing_slots vs ON v.viewing_slot_id = vs.id
-    WHERE v.status IN ('confirmed', 'completed')
+    WHERE v.status IN ('scheduled', 'completed')
     GROUP BY vv.id, vv.name, vv.phone
     HAVING COUNT(DISTINCT vs.property_id) >= ${minProperties}
     ORDER BY property_count DESC

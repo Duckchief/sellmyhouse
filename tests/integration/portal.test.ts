@@ -37,7 +37,7 @@ describe('portal integration', () => {
       title: 'Bright 4-Room in Tampines',
       description: 'Well-maintained flat.',
       status: 'approved',
-      photos: '[]',
+      photos: JSON.stringify(['/uploads/photos/test-photo-1.jpg']),
     });
     listingId = listing.id;
 

@@ -53,11 +53,15 @@ describe('transaction integration', () => {
   });
 
   it('creates a transaction', async () => {
+    // H4: createTransaction requires a linked accepted offer
+    const acceptedOffer = await factory.offer({ propertyId, status: 'accepted' });
+
     const tx = await txService.createTransaction({
       propertyId,
       sellerId,
       agreedPrice: 600000,
       agentId,
+      offerId: acceptedOffer.id,
     });
 
     expect(tx.id).toBeDefined();
@@ -127,7 +131,19 @@ describe('transaction integration', () => {
   });
 
   it('completionDate auto-set on transition to completed', async () => {
-    const tx = await factory.transaction({ propertyId, sellerId, status: 'completing' });
+    const tx = await factory.transaction({
+      propertyId,
+      sellerId,
+      status: 'completing',
+      hdbApplicationStatus: 'approval_granted',
+    });
+
+    // Gate 3: counterparty CDD must exist (subjectType=counterparty, subjectId=transactionId)
+    await factory.cddRecord({
+      subjectType: 'counterparty',
+      subjectId: tx.id,
+      verifiedByAgentId: agentId,
+    });
 
     await txService.advanceTransactionStatus({
       transactionId: tx.id,

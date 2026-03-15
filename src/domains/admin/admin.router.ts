@@ -95,6 +95,66 @@ adminRouter.get(
   },
 );
 
+// ─── Audit Log ──────────────────────────────────────────────
+// Export route MUST come before /admin/audit to avoid path matching issues
+adminRouter.get(
+  '/admin/audit/export',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const filter = {
+        action: req.query['action'] as string | undefined,
+        entityType: req.query['entityType'] as string | undefined,
+        dateFrom: req.query['dateFrom'] ? new Date(req.query['dateFrom'] as string) : undefined,
+        dateTo: req.query['dateTo'] ? new Date(req.query['dateTo'] as string) : undefined,
+      };
+      const entries = await adminService.exportAuditLogCsv(filter, user.id);
+
+      const today = new Date().toISOString().split('T')[0];
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="audit-log-${today}.csv"`);
+
+      res.write('Timestamp,Action,Entity Type,Entity ID,Agent ID,IP Address,Details\n');
+
+      for (const entry of entries) {
+        const details = JSON.stringify(entry.details ?? {}).replace(/"/g, '""');
+        res.write(
+          `"${entry.createdAt.toISOString()}","${entry.action}","${entry.entityType}","${entry.entityId}","${entry.agentId ?? ''}","${entry.ipAddress ?? ''}","${details}"\n`,
+        );
+      }
+
+      res.end();
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+adminRouter.get(
+  '/admin/audit',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const filter = {
+        action: req.query['action'] as string | undefined,
+        entityType: req.query['entityType'] as string | undefined,
+        dateFrom: req.query['dateFrom'] ? new Date(req.query['dateFrom'] as string) : undefined,
+        dateTo: req.query['dateTo'] ? new Date(req.query['dateTo'] as string) : undefined,
+        page: req.query['page'] ? parseInt(req.query['page'] as string, 10) : undefined,
+      };
+      const result = await adminService.getAuditLog(filter);
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/audit-list', { result, filter });
+      }
+      res.render('pages/admin/audit-log', { result, filter, currentPath: '/admin/audit' });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // ─── Notifications ──────────────────────────────────────────
 adminRouter.get(
   '/admin/notifications',

@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 import * as adminRepo from './admin.repository';
 import * as complianceService from '../compliance/compliance.service';
 import * as auditService from '@/domains/shared/audit.service';
+import * as auditRepo from '@/domains/shared/audit.repository';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import { HdbSyncService } from '@/domains/hdb/sync.service';
@@ -456,6 +457,36 @@ export async function approveDeletion(
 
 export async function anonymiseAgentOnDeparture(agentId: string, adminId: string): Promise<void> {
   await complianceService.anonymiseAgent({ agentId, requestedByAgentId: adminId });
+}
+
+// ─── Audit Log ───────────────────────────────────────────────
+
+export async function getAuditLog(filter: {
+  action?: string;
+  entityType?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  page?: number;
+  limit?: number;
+}) {
+  return auditRepo.findMany(filter);
+}
+
+export async function exportAuditLogCsv(
+  filter: { action?: string; entityType?: string; dateFrom?: Date; dateTo?: Date },
+  adminId: string,
+) {
+  const entries = await auditRepo.exportAll(filter);
+
+  await auditService.log({
+    agentId: adminId,
+    action: 'audit_log.exported',
+    entityType: 'AuditLog',
+    entityId: 'bulk',
+    details: { filter, entryCount: entries.length },
+  });
+
+  return entries;
 }
 
 // ─── Analytics ────────────────────────────────────────────────

@@ -25,3 +25,56 @@ export async function findByEntity(
     orderBy: { createdAt: 'desc' },
   });
 }
+
+function buildAuditWhere(filter: {
+  action?: string;
+  entityType?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+}): Prisma.AuditLogWhereInput {
+  const where: Prisma.AuditLogWhereInput = {};
+  if (filter.action) where.action = { contains: filter.action, mode: 'insensitive' };
+  if (filter.entityType) where.entityType = { contains: filter.entityType, mode: 'insensitive' };
+  if (filter.dateFrom || filter.dateTo) {
+    where.createdAt = {
+      ...(filter.dateFrom ? { gte: filter.dateFrom } : {}),
+      ...(filter.dateTo ? { lte: filter.dateTo } : {}),
+    };
+  }
+  return where;
+}
+
+export async function findMany(filter: {
+  action?: string;
+  entityType?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  page?: number;
+  limit?: number;
+}) {
+  const where = buildAuditWhere(filter);
+  const page = filter.page ?? 1;
+  const limit = filter.limit ?? 50;
+
+  const [entries, total] = await Promise.all([
+    prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.auditLog.count({ where }),
+  ]);
+
+  return { entries, total, page, limit, totalPages: Math.ceil(total / limit) };
+}
+
+export async function exportAll(filter: {
+  action?: string;
+  entityType?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+}) {
+  const where = buildAuditWhere(filter);
+  return prisma.auditLog.findMany({ where, orderBy: { createdAt: 'desc' } });
+}

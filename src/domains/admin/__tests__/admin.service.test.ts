@@ -5,6 +5,7 @@ import { SETTING_KEYS } from '@/domains/shared/settings.types';
 // ─── Pre-load mocks before importing service ──────────────────
 jest.mock('../admin.repository');
 jest.mock('@/domains/shared/audit.service');
+jest.mock('@/domains/shared/audit.repository');
 jest.mock('@/domains/shared/settings.service');
 jest.mock('@/domains/notification/notification.service');
 jest.mock('nodemailer', () => ({
@@ -15,12 +16,14 @@ jest.mock('nodemailer', () => ({
 
 import * as adminRepo from '../admin.repository';
 import * as auditService from '@/domains/shared/audit.service';
+import * as auditRepo from '@/domains/shared/audit.repository';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as adminService from '../admin.service';
 
 const mockAdminRepo = adminRepo as jest.Mocked<typeof adminRepo>;
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
+const mockAuditRepo = auditRepo as jest.Mocked<typeof auditRepo>;
 const mockSettingsService = settingsService as jest.Mocked<typeof settingsService>;
 const mockNotificationService = notificationService as jest.Mocked<typeof notificationService>;
 
@@ -195,6 +198,50 @@ describe('getNotifications', () => {
       page: undefined,
       limit: 50,
     });
+  });
+});
+
+// ─── getAuditLog ─────────────────────────────────────────────
+
+describe('getAuditLog', () => {
+  it('delegates to auditRepo.findMany', async () => {
+    const mockResult = {
+      entries: [{ id: 'a1', action: 'agent.created', entityType: 'agent', entityId: 'x' }],
+      total: 1,
+      page: 1,
+      limit: 50,
+      totalPages: 1,
+    };
+    mockAuditRepo.findMany.mockResolvedValue(mockResult as never);
+
+    const result = await adminService.getAuditLog({ action: 'agent.created', page: 1 });
+
+    expect(result).toEqual(mockResult);
+    expect(mockAuditRepo.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'agent.created', page: 1 }),
+    );
+  });
+});
+
+// ─── exportAuditLogCsv ──────────────────────────────────────
+
+describe('exportAuditLogCsv', () => {
+  it('exports entries and logs the export action', async () => {
+    const entries = [
+      { id: 'a1', action: 'test', entityType: 'x', entityId: '1', createdAt: new Date() },
+    ];
+    mockAuditRepo.exportAll.mockResolvedValue(entries as never);
+
+    const result = await adminService.exportAuditLogCsv({}, 'admin-1');
+
+    expect(result).toEqual(entries);
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'audit_log.exported',
+        agentId: 'admin-1',
+        details: expect.objectContaining({ entryCount: 1 }),
+      }),
+    );
   });
 });
 

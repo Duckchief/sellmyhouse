@@ -1,0 +1,62 @@
+{% extends "layouts/base.njk" %}
+
+{% block title %}{{ statusCode }} — SellMyHomeNow{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-bg flex items-center justify-center px-4">
+  <div class="max-w-md w-full text-center">
+
+    {% if statusCode == 401 %}
+      <div class="text-6xl mb-4">🚪</div>
+      <p class="text-sm text-gray-400 mb-1">{{ "Error" | t }} {{ statusCode }}</p>
+      <h1 class="text-2xl font-bold text-gray-900 mb-3">{{ "Looks like you wandered off!" | t }}</h1>
+      <p class="text-gray-500 mb-8">{{ "You've been away a while and your session expired. Totally normal — it happens to the best of us." | t }}</p>
+      <a href="/auth/login"
+        class="inline-block px-6 py-3 rounded-md text-white font-medium bg-[#c8553d] hover:bg-[#b04a34] transition-colors">
+        {{ "Log back in" | t }}
+      </a>
+
+    {% elif statusCode == 403 %}
+      <div class="text-6xl mb-4">🔒</div>
+      <p class="text-sm text-gray-400 mb-1">{{ "Error" | t }} {{ statusCode }}</p>
+      <h1 class="text-2xl font-bold text-gray-900 mb-3">{{ "Nothing to see here!" | t }}</h1>
+      <p class="text-gray-500 mb-8">{{ "You don't have permission to view this page. If you think that's a mistake, give us a shout." | t }}</p>
+      <a href="/"
+        class="inline-block px-6 py-3 rounded-md text-white font-medium bg-[#c8553d] hover:bg-[#b04a34] transition-colors">
+        {{ "Go to dashboard" | t }}
+      </a>
+
+    {% elif statusCode == 404 %}
+      <div class="text-6xl mb-4">🏠</div>
+      <p class="text-sm text-gray-400 mb-1">{{ "Error" | t }} {{ statusCode }}</p>
+      <h1 class="text-2xl font-bold text-gray-900 mb-3">{{ "This page seems to have moved out already." | t }}</h1>
+      <p class="text-gray-500 mb-8">{{ "We can't find what you're looking for — it may have been removed or the link is wrong." | t }}</p>
+      <a href="/"
+        class="inline-block px-6 py-3 rounded-md text-white font-medium bg-[#c8553d] hover:bg-[#b04a34] transition-colors">
+        {{ "Go home" | t }}
+      </a>
+
+    {% elif statusCode == 500 %}
+      <div class="text-6xl mb-4">🔧</div>
+      <p class="text-sm text-gray-400 mb-1">{{ "Error" | t }} {{ statusCode }}</p>
+      <h1 class="text-2xl font-bold text-gray-900 mb-3">{{ "Oops, we tripped over something." | t }}</h1>
+      <p class="text-gray-500 mb-8">{{ "An unexpected error occurred on our end. We've been notified and we're on it." | t }}</p>
+      <a href="/"
+        class="inline-block px-6 py-3 rounded-md text-white font-medium bg-[#c8553d] hover:bg-[#b04a34] transition-colors">
+        {{ "Go home" | t }}
+      </a>
+
+    {% else %}
+      <div class="text-6xl mb-4">😬</div>
+      <p class="text-sm text-gray-400 mb-1">{{ "Error" | t }} {{ statusCode }}</p>
+      <h1 class="text-2xl font-bold text-gray-900 mb-3">{{ "Something went a bit sideways." | t }}</h1>
+      <p class="text-gray-500 mb-8">{{ "An error occurred. Our team has been notified." | t }}</p>
+      <a href="/"
+        class="inline-block px-6 py-3 rounded-md text-white font-medium bg-[#c8553d] hover:bg-[#b04a34] transition-colors">
+        {{ "Go home" | t }}
+      </a>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

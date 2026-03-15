@@ -1,0 +1,224 @@
+{# Date filter #}
+<div class="flex flex-wrap items-end gap-4 mb-6">
+  <div>
+    <label class="block text-xs text-gray-500 mb-1">{{ "From" | t }}</label>
+    <input type="date" name="dateFrom" id="dateFrom" value="{{ filter.dateFrom or '' }}" class="input-field w-40">
+  </div>
+  <div>
+    <label class="block text-xs text-gray-500 mb-1">{{ "To" | t }}</label>
+    <input type="date" name="dateTo" id="dateTo" value="{{ filter.dateTo or '' }}" class="input-field w-40">
+  </div>
+  <button
+    hx-get="/admin/dashboard"
+    hx-include="#dateFrom, #dateTo"
+    hx-target="#analytics-content"
+    hx-swap="innerHTML"
+    class="btn-primary">
+    {{ "Filter" | t }}
+  </button>
+</div>
+
+{# Revenue cards #}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <div class="card text-center">
+    <p class="text-xs text-gray-500 uppercase">{{ "Total Revenue" | t }}</p>
+    <p class="text-2xl font-bold text-accent">${{ analytics.revenue.totalRevenue | formatPrice }}</p>
+    <p class="text-sm text-gray-500">{{ analytics.revenue.completedCount }} {{ "completed" | t }}</p>
+  </div>
+  <div class="card text-center">
+    <p class="text-xs text-gray-500 uppercase">{{ "Pipeline Value" | t }}</p>
+    <p class="text-2xl font-bold text-ink">${{ analytics.revenue.pipelineValue | formatPrice }}</p>
+    <p class="text-sm text-gray-500">{{ analytics.revenue.activeTransactions }} {{ "active" | t }}</p>
+  </div>
+  <div class="card text-center">
+    <p class="text-xs text-gray-500 uppercase">{{ "Per Transaction" | t }}</p>
+    <p class="text-2xl font-bold text-ink">${{ analytics.revenue.commissionPerTransaction | formatPrice }}</p>
+  </div>
+  <div class="card text-center">
+    <p class="text-xs text-gray-500 uppercase">{{ "Pending Invoices" | t }}</p>
+    <p class="text-2xl font-bold text-ink">{{ analytics.revenue.pendingInvoices }}</p>
+  </div>
+</div>
+
+{# Transaction funnel chart #}
+<div class="card mb-8">
+  <h3 class="font-semibold mb-4">{{ "Transaction Funnel" | t }}</h3>
+  <canvas id="funnelChart" height="200"></canvas>
+  <noscript>
+    <div class="grid grid-cols-5 gap-2 text-center text-sm">
+      {% for stage, count in analytics.funnel | dictsort %}
+      <div>
+        <p class="font-bold">{{ count }}</p>
+        <p class="text-gray-500">{{ stage | replace("_", " ") | capitalize }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </noscript>
+  <script nonce="{{ cspNonce }}">
+    (function() {
+      const ctx = document.getElementById('funnelChart');
+      if (!ctx) return;
+      const data = {{ analytics.funnel | dump | safe }};
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(data).map(s => s.replace(/_/g, ' ')),
+          datasets: [{
+            data: Object.values(data),
+            backgroundColor: ['#3b82f6', '#eab308', '#22c55e', '#8b5cf6', '#6b7280'],
+          }],
+        },
+        options: {
+          indexAxis: 'y',
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+        },
+      });
+    })();
+  </script>
+</div>
+
+{# Time to close + Lead sources (2 col) #}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+  {# Time to close #}
+  <div class="card">
+    <h3 class="font-semibold mb-4">{{ "Time to Close" | t }}</h3>
+    <div class="flex items-baseline gap-2 mb-4">
+      <span class="text-3xl font-bold">{{ analytics.timeToClose.averageDays }}</span>
+      <span class="text-gray-500">{{ "days avg" | t }}</span>
+      <span class="text-sm text-gray-400">({{ analytics.timeToClose.count }} {{ "transactions" | t }})</span>
+    </div>
+    <canvas id="timeToCloseChart" height="150"></canvas>
+    <script nonce="{{ cspNonce }}">
+      (function() {
+        const ctx = document.getElementById('timeToCloseChart');
+        if (!ctx) return;
+        const data = {{ analytics.timeToClose.byFlatType | dump | safe }};
+        const labels = Object.keys(data);
+        const values = labels.map(k => data[k].averageDays);
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{ label: 'Days', data: values, backgroundColor: '#c8553d' }],
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } },
+          },
+        });
+      })();
+    </script>
+  </div>
+
+  {# Lead sources #}
+  <div class="card">
+    <h3 class="font-semibold mb-4">{{ "Lead Sources" | t }}</h3>
+    <canvas id="leadSourceChart" height="150"></canvas>
+    <script nonce="{{ cspNonce }}">
+      (function() {
+        const ctx = document.getElementById('leadSourceChart');
+        if (!ctx) return;
+        const data = {{ analytics.leadSources | dump | safe }};
+        const labels = Object.keys(data);
+        const values = labels.map(k => data[k].total);
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels,
+            datasets: [{ data: values, backgroundColor: ['#c8553d', '#1a1a2e', '#3b82f6', '#22c55e', '#eab308'] }],
+          },
+          options: { plugins: { legend: { position: 'bottom' } } },
+        });
+      })();
+    </script>
+    <table class="w-full text-sm mt-4">
+      <thead class="text-xs text-gray-500 uppercase">
+        <tr><th class="text-left py-1">{{ "Source" | t }}</th><th class="text-right py-1">{{ "Total" | t }}</th><th class="text-right py-1">{{ "Conv. %" | t }}</th></tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for source, data in analytics.leadSources | dictsort %}
+        <tr>
+          <td class="py-1">{{ source }}</td>
+          <td class="py-1 text-right">{{ data.total }}</td>
+          <td class="py-1 text-right">{{ data.conversionRate }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# Viewings analytics #}
+<div class="card mb-8">
+  <h3 class="font-semibold mb-4">{{ "Viewings" | t }}</h3>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="text-center">
+      <p class="text-2xl font-bold">{{ analytics.viewings.totalViewings }}</p>
+      <p class="text-sm text-gray-500">{{ "Total" | t }}</p>
+    </div>
+    <div class="text-center">
+      <p class="text-2xl font-bold text-green-600">{{ analytics.viewings.completed }}</p>
+      <p class="text-sm text-gray-500">{{ "Completed" | t }}</p>
+    </div>
+    <div class="text-center">
+      <p class="text-2xl font-bold text-red-500">{{ analytics.viewings.noShowRate }}%</p>
+      <p class="text-sm text-gray-500">{{ "No-show Rate" | t }}</p>
+    </div>
+    <div class="text-center">
+      <p class="text-2xl font-bold text-yellow-600">{{ analytics.viewings.cancellationRate }}%</p>
+      <p class="text-sm text-gray-500">{{ "Cancellation Rate" | t }}</p>
+    </div>
+  </div>
+</div>
+
+{# Referral funnel #}
+<div class="card">
+  <h3 class="font-semibold mb-4">{{ "Referral Programme" | t }}</h3>
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <div class="text-center">
+      <p class="text-2xl font-bold">{{ analytics.referrals.totalLinks }}</p>
+      <p class="text-xs text-gray-500">{{ "Links" | t }}</p>
+    </div>
+    <div class="text-center">
+      <p class="text-2xl font-bold">{{ analytics.referrals.totalClicks }}</p>
+      <p class="text-xs text-gray-500">{{ "Clicks" | t }}</p>
+    </div>
+    <div class="text-center">
+      <p class="text-2xl font-bold">{{ analytics.referrals.leadsCreated }}</p>
+      <p class="text-xs text-gray-500">{{ "Leads" | t }}</p>
+    </div>
+    <div class="text-center">
+      <p class="text-2xl font-bold">{{ analytics.referrals.transactionsCompleted }}</p>
+      <p class="text-xs text-gray-500">{{ "Completed" | t }}</p>
+    </div>
+    <div class="text-center">
+      <p class="text-2xl font-bold text-accent">{{ analytics.referrals.conversionRate }}%</p>
+      <p class="text-xs text-gray-500">{{ "Conversion" | t }}</p>
+    </div>
+  </div>
+
+  {% if analytics.referrals.topReferrers.length > 0 %}
+  <h4 class="text-sm font-medium text-gray-700 mb-2">{{ "Top Referrers" | t }}</h4>
+  <table class="w-full text-sm">
+    <thead class="text-xs text-gray-500 uppercase">
+      <tr>
+        <th class="text-left py-1">{{ "Name" | t }}</th>
+        <th class="text-right py-1">{{ "Clicks" | t }}</th>
+        <th class="text-right py-1">{{ "Status" | t }}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for referrer in analytics.referrals.topReferrers %}
+      <tr>
+        <td class="py-1">{{ referrer.name }}</td>
+        <td class="py-1 text-right">{{ referrer.clicks }}</td>
+        <td class="py-1 text-right">
+          {% set badgeStatus = referrer.status %}{% include "partials/status-badge.njk" %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>

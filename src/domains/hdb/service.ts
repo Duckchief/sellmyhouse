@@ -22,6 +22,10 @@ export class HdbService {
     return this.repo.getDistinctStoreyRanges();
   }
 
+  async getDistinctStoreyRangesByTownAndFlatType(town: string, flatType: string): Promise<string[]> {
+    return this.repo.getDistinctStoreyRangesByTownAndFlatType(town, flatType);
+  }
+
   async getRecentByTownAndFlatType(town: string, flatType: string, months = 12) {
     return this.repo.findRecentByTownAndFlatType(town, flatType, months);
   }

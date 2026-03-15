@@ -2,30 +2,30 @@
 
 {% block body %}
 <div class="flex min-h-screen">
-  <aside class="w-64 bg-gray-900 text-white p-4 flex-shrink-0">
+  <aside class="w-64 bg-ink text-white p-4 flex-shrink-0">
     <div class="text-lg font-bold mb-6">{{ "Agent Portal" | t }}</div>
     <nav class="space-y-1">
-      <a href="/agent/dashboard" class="block px-3 py-2 rounded hover:bg-gray-800 {% if currentPath == '/agent/dashboard' %}bg-gray-800{% endif %}">
+      <a href="/agent/dashboard" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/dashboard' %}bg-white/10{% endif %}">
         {{ "Dashboard" | t }}
       </a>
-      <a href="/agent/leads" class="block px-3 py-2 rounded hover:bg-gray-800 {% if currentPath == '/agent/leads' %}bg-gray-800{% endif %}">
+      <a href="/agent/leads" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/leads' %}bg-white/10{% endif %}">
         {{ "Leads" | t }}
       </a>
-      <a href="/agent/sellers" class="block px-3 py-2 rounded hover:bg-gray-800 {% if currentPath == '/agent/sellers' %}bg-gray-800{% endif %}">
+      <a href="/agent/sellers" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/sellers' %}bg-white/10{% endif %}">
         {{ "Sellers" | t }}
       </a>
-      <a href="/agent/reviews" class="block px-3 py-2 rounded hover:bg-gray-800 {% if currentPath == '/agent/reviews' %}bg-gray-800{% endif %}">
+      <a href="/agent/reviews" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/reviews' %}bg-white/10{% endif %}">
         {{ "Reviews" | t }}
         {% if pendingReviewCount %}
         <span class="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{{ pendingReviewCount }}</span>
         {% endif %}
       </a>
-      <a href="/agent/settings" class="block px-3 py-2 rounded hover:bg-gray-800 {% if currentPath == '/agent/settings' %}bg-gray-800{% endif %}">
+      <a href="/agent/settings" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/settings' %}bg-white/10{% endif %}">
         {{ "Settings" | t }}
       </a>
     </nav>
   </aside>
-  <main class="flex-1 p-8 bg-gray-50">
+  <main class="flex-1 p-8 bg-bg">
     {% block content %}{% endblock %}
   </main>
 </div>

@@ -5,43 +5,43 @@
   {# Sidebar #}
   <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
     <div class="p-4 border-b border-gray-200">
-      <a href="/seller/dashboard" class="text-lg font-bold text-blue-600">
+      <a href="/seller/dashboard" class="text-lg font-bold text-accent">
         {{ "SellMyHomeNow" | t }}
       </a>
     </div>
     <nav class="flex-1 p-4 space-y-1">
       <a href="/seller/dashboard"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/dashboard' %}bg-blue-50 text-blue-700{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
+         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/dashboard' %}bg-accent/10 text-accent{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
         {{ "Overview" | t }}
       </a>
       <a href="/seller/property"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/property' %}bg-blue-50 text-blue-700{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
+         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/property' %}bg-accent/10 text-accent{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
         {{ "Property" | t }}
       </a>
       <a href="/seller/photos"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/photos' %}bg-blue-50 text-blue-700{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
+         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/photos' %}bg-accent/10 text-accent{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
         {{ "Photos" | t }}
       </a>
       <a href="/seller/viewings"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/viewings' %}bg-blue-50 text-blue-700{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
+         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/viewings' %}bg-accent/10 text-accent{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
         {{ "Viewings" | t }}
       </a>
       <a href="/seller/documents"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/documents' %}bg-blue-50 text-blue-700{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
+         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/documents' %}bg-accent/10 text-accent{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
         {{ "Documents" | t }}
       </a>
       <a href="/seller/financial"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/financial' %}bg-blue-50 text-blue-700{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
+         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/financial' %}bg-accent/10 text-accent{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
         {{ "Financial Report" | t }}
       </a>
       <a href="/seller/tutorials"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/tutorials' %}bg-blue-50 text-blue-700{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
+         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/tutorials' %}bg-accent/10 text-accent{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
         {{ "Video Tutorials" | t }}
       </a>
 
       <div class="pt-4 mt-4 border-t border-gray-200">
         <a href="/seller/notifications"
-           class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/notifications' %}bg-blue-50 text-blue-700{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
+           class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/notifications' %}bg-accent/10 text-accent{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
           {{ "Notifications" | t }}
           {% if unreadCount > 0 %}
           <span class="ml-auto inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
@@ -50,11 +50,11 @@
           {% endif %}
         </a>
         <a href="/seller/settings"
-           class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/settings' %}bg-blue-50 text-blue-700{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
+           class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/settings' %}bg-accent/10 text-accent{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
           {{ "Settings" | t }}
         </a>
         <a href="/seller/my-data"
-           class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/my-data' %}bg-blue-50 text-blue-700{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
+           class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/my-data' %}bg-accent/10 text-accent{% else %}text-gray-700 hover:bg-gray-100{% endif %}">
           {{ "My Data" | t }}
         </a>
       </div>

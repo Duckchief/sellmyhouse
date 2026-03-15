@@ -8,6 +8,7 @@ jest.mock('@/domains/shared/audit.service');
 jest.mock('@/domains/shared/audit.repository');
 jest.mock('@/domains/shared/settings.service');
 jest.mock('@/domains/notification/notification.service');
+jest.mock('@/domains/compliance/compliance.service');
 jest.mock('nodemailer', () => ({
   createTransport: () => ({
     sendMail: jest.fn().mockResolvedValue({ messageId: 'test-msg-id' }),
@@ -19,13 +20,16 @@ import * as auditService from '@/domains/shared/audit.service';
 import * as auditRepo from '@/domains/shared/audit.repository';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
+import * as complianceService from '@/domains/compliance/compliance.service';
 import * as adminService from '../admin.service';
+import { NotFoundError } from '@/domains/shared/errors';
 
 const mockAdminRepo = adminRepo as jest.Mocked<typeof adminRepo>;
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 const mockAuditRepo = auditRepo as jest.Mocked<typeof auditRepo>;
 const mockSettingsService = settingsService as jest.Mocked<typeof settingsService>;
 const mockNotificationService = notificationService as jest.Mocked<typeof notificationService>;
+const mockComplianceService = complianceService as jest.Mocked<typeof complianceService>;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -555,5 +559,135 @@ describe('updateSetting', () => {
         }),
       }),
     );
+  });
+});
+
+// ─── getAdminSellerDetail ────────────────────────────────────
+
+describe('getAdminSellerDetail', () => {
+  const baseSeller = {
+    id: 'seller-1',
+    name: 'Alice Tan',
+    email: 'alice@example.com',
+    phone: '91234567',
+    status: 'lead',
+    notificationPreference: 'whatsapp_and_email',
+    createdAt: new Date('2026-01-01'),
+    agent: { id: 'agent-1', name: 'Bob Agent', ceaRegNo: 'R12345', phone: '98765432' },
+    properties: [
+      {
+        block: '123',
+        street: 'Tampines Ave 1',
+        town: 'TAMPINES',
+        flatType: '4 ROOM',
+        floorAreaSqm: 90,
+        storeyRange: '10 TO 12',
+        askingPrice: { toNumber: () => 500000 },
+      },
+    ],
+    transactions: [
+      {
+        id: 'txn-1',
+        status: 'option_issued',
+        offerId: 'offer-1',
+        agreedPrice: { toNumber: () => 498000 },
+        hdbApplicationStatus: 'not_started',
+        otp: { status: 'prepared' },
+        createdAt: new Date('2026-02-01'),
+      },
+    ],
+    consentRecords: [
+      { id: 'cr-1', consentWithdrawnAt: null, createdAt: new Date() },
+      { id: 'cr-2', consentWithdrawnAt: new Date(), createdAt: new Date() },
+    ],
+  };
+
+  const baseCdd = {
+    id: 'cdd-1',
+    riskLevel: 'standard',
+    identityVerified: true,
+    verifiedAt: new Date('2026-01-15'),
+    createdAt: new Date('2026-01-15'),
+  };
+
+  const baseAudit = [
+    {
+      id: 'log-1',
+      action: 'seller.created',
+      entityType: 'seller',
+      entityId: 'seller-1',
+      details: {},
+      createdAt: new Date(),
+    },
+  ];
+
+  it('throws NotFoundError when seller not found', async () => {
+    mockAdminRepo.findSellerDetailForAdmin.mockResolvedValue(null);
+    mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(null);
+    mockAuditRepo.findByEntity.mockResolvedValue([] as never);
+
+    await expect(adminService.getAdminSellerDetail('unknown-id')).rejects.toThrow(NotFoundError);
+  });
+
+  it('returns full detail when seller exists', async () => {
+    mockAdminRepo.findSellerDetailForAdmin.mockResolvedValue(baseSeller as never);
+    mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(baseCdd as never);
+    mockAuditRepo.findByEntity.mockResolvedValue(baseAudit as never);
+
+    const result = await adminService.getAdminSellerDetail('seller-1');
+
+    expect(result.seller.name).toBe('Alice Tan');
+    expect(result.seller.status).toBe('lead');
+    expect(result.property?.town).toBe('TAMPINES');
+    expect(result.property?.askingPrice).toBe(500000);
+    expect(result.agent?.ceaRegNo).toBe('R12345');
+    expect(result.transaction?.status).toBe('option_issued');
+    expect(result.transaction?.offerId).toBe('offer-1');
+    expect(result.transaction?.agreedPrice).toBe(498000);
+    expect(result.transaction?.otpStatus).toBe('prepared');
+    expect(result.compliance.cdd?.riskLevel).toBe('standard');
+    expect(result.compliance.cdd?.identityVerified).toBe(true);
+    expect(result.compliance.consentCount).toBe(2);
+    expect(result.compliance.hasWithdrawal).toBe(true);
+    expect(result.auditLog).toHaveLength(1);
+    expect(result.auditLog[0].action).toBe('seller.created');
+  });
+
+  it('returns null property, agent and transaction when seller has none', async () => {
+    mockAdminRepo.findSellerDetailForAdmin.mockResolvedValue({
+      ...baseSeller,
+      agent: null,
+      properties: [],
+      transactions: [],
+      consentRecords: [],
+    } as never);
+    mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(null);
+    mockAuditRepo.findByEntity.mockResolvedValue([] as never);
+
+    const result = await adminService.getAdminSellerDetail('seller-2');
+    expect(result.property).toBeNull();
+    expect(result.transaction).toBeNull();
+    expect(result.agent).toBeNull();
+    expect(result.compliance.cdd).toBeNull();
+    expect(result.compliance.consentCount).toBe(0);
+    expect(result.compliance.hasWithdrawal).toBe(false);
+    expect(result.auditLog).toHaveLength(0);
+  });
+
+  it('caps audit log at 20 entries', async () => {
+    const manyLogs = Array.from({ length: 30 }, (_, i) => ({
+      id: `log-${i}`,
+      action: 'seller.updated',
+      entityType: 'seller',
+      entityId: 'seller-1',
+      details: {},
+      createdAt: new Date(),
+    }));
+    mockAdminRepo.findSellerDetailForAdmin.mockResolvedValue(baseSeller as never);
+    mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(baseCdd as never);
+    mockAuditRepo.findByEntity.mockResolvedValue(manyLogs as never);
+
+    const result = await adminService.getAdminSellerDetail('seller-1');
+    expect(result.auditLog).toHaveLength(20);
   });
 });

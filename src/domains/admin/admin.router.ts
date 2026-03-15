@@ -906,10 +906,10 @@ adminRouter.get(
         contentService.getReferralFunnel(),
         contentService.getTopReferrers(),
       ]);
-      if (req.headers['hx-request']) {
-        return res.render('partials/admin/referral-funnel', { funnel, topReferrers });
-      }
       const baseUrl = process.env['SITE_URL'] ?? 'https://www.sellmyhomenow.sg';
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/referral-funnel', { funnel, topReferrers, baseUrl });
+      }
       return res.render('pages/admin/referrals', { records, funnel, topReferrers, baseUrl, currentPath: '/admin/content/referrals' });
     } catch (err) {
       return next(err);

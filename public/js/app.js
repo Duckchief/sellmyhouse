@@ -133,7 +133,7 @@
       var msgRow = document.getElementById(el.dataset.target);
       if (msgRow) {
         var isHidden = msgRow.classList.toggle('hidden');
-        el.textContent = isHidden ? 'View Message' : 'Hide';
+        el.textContent = isHidden ? (el.dataset.labelShow || 'View Message') : (el.dataset.labelHide || 'Hide');
       }
     }
   });

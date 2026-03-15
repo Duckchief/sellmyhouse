@@ -12,9 +12,12 @@ import { ConflictError, NotFoundError, ValidationError } from '@/domains/shared/
 import { SETTING_VALIDATORS } from './admin.validator';
 import type {
   AgentCreateInput,
+  AdminPipelineResult,
+  AdminPipelineStage,
   AnalyticsData,
   AnalyticsFilter,
   HdbDataStatus,
+  LeadListResult,
   SettingGroup,
   SettingWithMeta,
 } from './admin.types';
@@ -237,6 +240,65 @@ export async function reassignSeller(
     entityId: sellerId,
     details: { fromAgentId, toAgentId: newAgentId, reason: 'admin_reassignment' },
   });
+}
+
+// ─── Pipeline ────────────────────────────────────────────────
+
+export async function getAdminPipeline(stage?: string): Promise<AdminPipelineResult> {
+  const sellers = await adminRepo.getPipelineForAdmin(stage);
+
+  const stageMap = new Map<string, AdminPipelineStage>();
+  const stageOrder = ['lead', 'engaged', 'active', 'completed', 'archived'];
+
+  for (const s of sellers) {
+    const key = s.status;
+    if (!stageMap.has(key)) {
+      stageMap.set(key, { status: key, count: 0, sellers: [] });
+    }
+    const stageEntry = stageMap.get(key)!;
+    stageEntry.count++;
+    stageEntry.sellers.push({
+      id: s.id,
+      name: s.name,
+      phone: s.phone,
+      town: s.properties[0]?.town ?? null,
+      agentName: s.agent?.name ?? null,
+      askingPrice: s.properties[0]?.askingPrice ? Number(s.properties[0].askingPrice) : null,
+      status: s.status,
+    });
+  }
+
+  const stages = stageOrder
+    .filter((status) => stageMap.has(status))
+    .map((status) => stageMap.get(status)!);
+
+  return { stages, totalSellers: sellers.length };
+}
+
+// ─── Leads ───────────────────────────────────────────────────
+
+export async function getUnassignedLeads(page?: number): Promise<LeadListResult> {
+  const currentPage = page ?? 1;
+  const limit = 25;
+  const [sellers, total] = await Promise.all([
+    adminRepo.findUnassignedLeads(currentPage, limit),
+    adminRepo.countUnassignedLeads(),
+  ]);
+
+  return {
+    leads: sellers.map((s) => ({
+      id: s.id,
+      name: s.name,
+      phone: s.phone,
+      town: s.properties[0]?.town ?? null,
+      leadSource: s.leadSource,
+      createdAt: s.createdAt,
+    })),
+    total,
+    page: currentPage,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 // ─── Settings ────────────────────────────────────────────────

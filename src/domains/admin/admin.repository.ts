@@ -99,6 +99,50 @@ export async function countActiveSellers(agentId: string): Promise<number> {
   });
 }
 
+// ─── Pipeline Queries ────────────────────────────────────────
+
+export async function getPipelineForAdmin(stage?: string) {
+  const where: Record<string, unknown> = {};
+  if (stage) where.status = stage;
+
+  return prisma.seller.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      status: true,
+      agent: { select: { name: true } },
+      properties: { take: 1, select: { town: true, askingPrice: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+// ─── Lead Queries ────────────────────────────────────────────
+
+export async function findUnassignedLeads(page = 1, limit = 25) {
+  return prisma.seller.findMany({
+    where: { status: 'lead', agentId: null },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      status: true,
+      leadSource: true,
+      createdAt: true,
+      properties: { take: 1, select: { town: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+}
+
+export async function countUnassignedLeads(): Promise<number> {
+  return prisma.seller.count({ where: { status: 'lead', agentId: null } });
+}
+
 // ─── Seller Queries ──────────────────────────────────────────
 
 export async function findAllSellers(filter: {

@@ -349,6 +349,8 @@ model Agent {
   agentSettings             AgentSetting[]
   weeklyUpdatesReviewed      WeeklyUpdate[]           @relation("WeeklyUpdateReviewer")
   documentChecklistsReviewed DocumentChecklist[]      @relation("DocumentChecklistReviewer")
+  hdbSubmissions             Transaction[]            @relation("HdbSubmitter")
+  otpsReviewed               Otp[]                    @relation("OtpReviewer")
 
   @@map("agents")
 }
@@ -628,10 +630,11 @@ model Transaction {
   exerciseDate             DateTime?         @map("exercise_date")
   completionDate           DateTime?         @map("completion_date")
   status                   TransactionStatus @default(option_issued)
-  hdbApplicationStatus       HdbApplicationStatus? @map("hdb_application_status")
+  hdbApplicationStatus       HdbApplicationStatus  @default(not_started) @map("hdb_application_status")
   hdbAppointmentDate         DateTime?             @map("hdb_appointment_date")
   hdbAppSubmittedAt          DateTime?             @map("hdb_app_submitted_at")
   hdbAppSubmittedByAgentId   String?               @map("hdb_app_submitted_by_agent_id")
+  hdbAppSubmittedByAgent     Agent?                @relation("HdbSubmitter", fields: [hdbAppSubmittedByAgentId], references: [id])
   hdbAppApprovedAt           DateTime?             @map("hdb_app_approved_at")
   fallenThroughReason      String?           @map("fallen_through_reason")
   createdAt                DateTime          @default(now()) @map("created_at")
@@ -657,6 +660,8 @@ model Otp {
   scannedCopyPathReturned String?   @map("scanned_copy_path_returned")
   scannedCopyDeletedAt  DateTime? @map("scanned_copy_deleted_at")
   agentReviewedAt       DateTime? @map("agent_reviewed_at")
+  agentReviewedByAgentId String?  @map("agent_reviewed_by_agent_id")
+  agentReviewedByAgent  Agent?    @relation("OtpReviewer", fields: [agentReviewedByAgentId], references: [id])
   agentReviewNotes      String?   @map("agent_review_notes")
   preparedAt            DateTime  @default(now()) @map("prepared_at")
   issuedAt              DateTime? @map("issued_at")

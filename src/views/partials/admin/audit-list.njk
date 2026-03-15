@@ -1,0 +1,57 @@
+{% if result and result.entries.length > 0 %}
+<div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+      <tr>
+        <th class="px-4 py-3 text-left">{{ "Timestamp" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Action" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Entity" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Agent" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "IP" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Details" | t }}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y">
+      {% for entry in result.entries %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ entry.createdAt | date }}</td>
+        <td class="px-4 py-3">
+          <span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs font-mono">{{ entry.action }}</span>
+        </td>
+        <td class="px-4 py-3 text-gray-600">
+          {{ entry.entityType }}
+          <span class="text-xs text-gray-400">{{ entry.entityId | truncate(12) }}</span>
+        </td>
+        <td class="px-4 py-3 text-gray-600">{{ entry.agentId | truncate(12) if entry.agentId else '-' }}</td>
+        <td class="px-4 py-3 text-gray-600 text-xs">{{ entry.ipAddress or '-' }}</td>
+        <td class="px-4 py-3 text-gray-400 text-xs max-w-xs truncate" title="{{ entry.details | dump }}">
+          {{ entry.details | dump | truncate(50) }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if result.totalPages > 1 %}
+<div class="flex justify-between items-center mt-4 px-4">
+  <span class="text-sm text-gray-500">{{ "Page" | t }} {{ result.page }} {{ "of" | t }} {{ result.totalPages }} ({{ result.total }} {{ "total" | t }})</span>
+  <div class="flex gap-2">
+    {% if result.page > 1 %}
+    <a href="/admin/audit?page={{ result.page - 1 }}&action={{ filter.action or '' }}&entityType={{ filter.entityType or '' }}"
+       hx-get="/admin/audit?page={{ result.page - 1 }}&action={{ filter.action or '' }}&entityType={{ filter.entityType or '' }}"
+       hx-target="#audit-list" hx-push-url="true"
+       class="text-sm text-accent hover:underline">&larr; {{ "Previous" | t }}</a>
+    {% endif %}
+    {% if result.page < result.totalPages %}
+    <a href="/admin/audit?page={{ result.page + 1 }}&action={{ filter.action or '' }}&entityType={{ filter.entityType or '' }}"
+       hx-get="/admin/audit?page={{ result.page + 1 }}&action={{ filter.action or '' }}&entityType={{ filter.entityType or '' }}"
+       hx-target="#audit-list" hx-push-url="true"
+       class="text-sm text-accent hover:underline">{{ "Next" | t }} &rarr;</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% else %}
+<p class="text-gray-400 text-sm">{{ "No audit log entries found." | t }}</p>
+{% endif %}

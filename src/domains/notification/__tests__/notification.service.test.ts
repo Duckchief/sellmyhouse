@@ -593,6 +593,7 @@ describe('NotificationService', () => {
         {
           recipientType: 'seller',
           recipientId: 'seller-1',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           templateName: 'cdd_status_update' as any,
           templateData: { status: 'verified' },
         },

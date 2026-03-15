@@ -310,10 +310,9 @@ describe('generateMarketContent', () => {
 
   it('returns null and does not call AI when fewer than 10 transactions exist', async () => {
     mockedRepo.findMarketContentByPeriod.mockResolvedValue(null);
+    const shortTxns = Array.from({ length: 5 }, () => makeTxn());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mockedRepo.findHdbTransactionsForMonths.mockResolvedValue(
-      Array.from({ length: 5 }, () => makeTxn()) as any,
-    );
+    mockedRepo.findHdbTransactionsForMonths.mockResolvedValue(shortTxns as any);
 
     const result = await contentService.generateMarketContent('2026-W11');
 
@@ -323,12 +322,11 @@ describe('generateMarketContent', () => {
 
   it('creates a pending_review record when AI generation succeeds', async () => {
     mockedRepo.findMarketContentByPeriod.mockResolvedValue(null);
-    mockedRepo.findHdbTransactionsForMonths.mockResolvedValue(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Array.from({ length: 12 }, (_, i) =>
-        makeTxn({ town: i < 6 ? 'TAMPINES' : 'BISHAN', resalePrice: 500_000 }),
-      ) as any,
+    const longTxns = Array.from({ length: 12 }, (_, i) =>
+      makeTxn({ town: i < 6 ? 'TAMPINES' : 'BISHAN', resalePrice: 500_000 }),
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockedRepo.findHdbTransactionsForMonths.mockResolvedValue(longTxns as any);
     mockedAi.generateText.mockResolvedValue({
       text: JSON.stringify({
         narrative: 'Test narrative.',

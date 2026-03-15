@@ -1,0 +1,36 @@
+{% if items and items.length > 0 %}
+<div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+      <tr>
+        <th class="px-4 py-3 text-left">{{ "Type" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Seller" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Property" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Submitted" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Actions" | t }}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y">
+      {% for item in items %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">
+          {% if item.type == 'listing' %}
+            <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">{{ "Listing" | t }}</span>
+          {% elif item.type == 'report' %}
+            <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs">{{ "Report" | t }}</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 font-medium">{{ item.sellerName or '-' }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ item.property }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ item.submittedAt | date }}</td>
+        <td class="px-4 py-3">
+          <a href="{{ item.reviewUrl }}" class="text-xs text-accent hover:underline">{{ "Review" | t }}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-gray-400 text-sm">{{ "No items pending review." | t }}</p>
+{% endif %}

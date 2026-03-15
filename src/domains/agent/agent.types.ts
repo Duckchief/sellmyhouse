@@ -1,9 +1,18 @@
 import type { SellerStatus, LeadSource } from '@prisma/client';
 
+export interface PipelineSeller {
+  id: string;
+  name: string;
+  phone: string;
+  askingPrice: number;
+  status: string;
+}
+
 export interface PipelineStage {
   status: SellerStatus;
   count: number;
   totalValue: number; // sum of asking prices (converted from Decimal at repo boundary)
+  sellers: PipelineSeller[];
 }
 
 export interface ActivityItem {
@@ -19,6 +28,7 @@ export interface PipelineOverview {
   stages: PipelineStage[];
   recentActivity: ActivityItem[];
   pendingReviewCount: number;
+  unassignedLeadCount: number;
 }
 
 export interface SellerListFilter {

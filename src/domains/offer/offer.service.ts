@@ -1,7 +1,6 @@
 import { createId } from '@paralleldrive/cuid2';
-import { prisma } from '@/infra/database/prisma';
 import * as offerRepo from './offer.repository';
-import * as propertyRepo from '@/domains/property/property.repository';
+import * as propertyService from '@/domains/property/property.service';
 import * as hdbService from '@/domains/hdb/service';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as settingsService from '@/domains/shared/settings.service';
@@ -23,7 +22,7 @@ async function assertOfferOwnership(
   callerRole: string,
 ): Promise<void> {
   if (callerRole === 'admin') return;
-  const property = await propertyRepo.findByIdWithSeller(propertyId);
+  const property = await propertyService.findPropertyByIdWithSeller(propertyId);
   if (!property) throw new NotFoundError('Property', propertyId);
   const assignedAgentId = property.seller?.agentId;
   if (assignedAgentId !== callerAgentId) {
@@ -65,7 +64,7 @@ function buildOfferAnalysisPrompt(params: {
 }
 
 export async function createOffer(input: CreateOfferServiceInput) {
-  const listing = await propertyRepo.findActiveListingForProperty(input.propertyId);
+  const listing = await propertyService.findActiveListingForProperty(input.propertyId);
   if (!listing) {
     throw new ValidationError('Offers can only be submitted for properties with an active listing');
   }
@@ -192,7 +191,7 @@ export async function counterOffer(input: CounterOfferInput & { role: string }) 
   });
 
   // N2: Notify seller of counter-offer
-  const counterProperty = await propertyRepo.findByIdWithListings(parent.propertyId);
+  const counterProperty = await propertyService.findPropertyByIdWithListings(parent.propertyId);
   if (counterProperty) {
     await notificationService.send(
       {
@@ -223,11 +222,7 @@ export async function acceptOffer(input: { offerId: string; agentId: string; rol
     throw new ValidationError(`Cannot accept an offer with status '${offer.status}'`);
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
-    const accepted = await offerRepo.updateStatusTx(tx, input.offerId, 'accepted');
-    await offerRepo.expirePendingAndCounteredSiblingsTx(tx, offer.propertyId, input.offerId);
-    return accepted;
-  });
+  const updated = await offerRepo.acceptOfferAtomically(input.offerId, offer.propertyId);
 
   await auditService.log({
     agentId: input.agentId,
@@ -238,7 +233,7 @@ export async function acceptOffer(input: { offerId: string; agentId: string; rol
   });
 
   // N2: Notify seller of offer acceptance
-  const acceptProperty = await propertyRepo.findByIdWithListings(offer.propertyId);
+  const acceptProperty = await propertyService.findPropertyByIdWithListings(offer.propertyId);
   if (acceptProperty) {
     await notificationService.send(
       {

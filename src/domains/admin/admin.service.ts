@@ -5,12 +5,24 @@ import nodemailer from 'nodemailer';
 import * as adminRepo from './admin.repository';
 import * as complianceService from '../compliance/compliance.service';
 import * as auditService from '@/domains/shared/audit.service';
-import * as settingsRepo from '@/domains/shared/settings.repository';
-import * as notificationRepo from '@/domains/notification/notification.repository';
+import * as auditRepo from '@/domains/shared/audit.repository';
+import * as settingsService from '@/domains/shared/settings.service';
+import * as notificationService from '@/domains/notification/notification.service';
 import { HdbSyncService } from '@/domains/hdb/sync.service';
 import { ConflictError, NotFoundError, ValidationError } from '@/domains/shared/errors';
 import { SETTING_VALIDATORS } from './admin.validator';
-import type { AgentCreateInput, HdbDataStatus, SettingGroup, SettingWithMeta } from './admin.types';
+import type {
+  AgentCreateInput,
+  AdminPipelineResult,
+  AdminPipelineStage,
+  AnalyticsData,
+  AnalyticsFilter,
+  HdbDataStatus,
+  LeadListResult,
+  ReviewItem,
+  SettingGroup,
+  SettingWithMeta,
+} from './admin.types';
 import type { SettingKey } from '@/domains/shared/settings.types';
 
 // ─── Team Management ─────────────────────────────────────────
@@ -175,10 +187,9 @@ export async function assignSeller(
   await adminRepo.assignSeller(sellerId, newAgentId);
 
   // Notify the new agent (in-app — fire and forget)
-  void notificationRepo.create({
+  void notificationService.createInAppNotification({
     recipientType: 'agent',
     recipientId: newAgentId,
-    channel: 'in_app',
     templateName: 'seller_assigned',
     content: `Seller ${seller.name} has been assigned to you.`,
   });
@@ -209,18 +220,16 @@ export async function reassignSeller(
   await adminRepo.assignSeller(sellerId, newAgentId);
 
   // Notify both agents (in-app — fire and forget)
-  void notificationRepo.create({
+  void notificationService.createInAppNotification({
     recipientType: 'agent',
     recipientId: newAgentId,
-    channel: 'in_app',
     templateName: 'seller_reassigned',
     content: `Seller ${seller.name} has been reassigned to you.`,
   });
   if (fromAgentId) {
-    void notificationRepo.create({
+    void notificationService.createInAppNotification({
       recipientType: 'agent',
       recipientId: fromAgentId,
-      channel: 'in_app',
       templateName: 'seller_reassigned',
       content: `Seller ${seller.name} has been reassigned to another agent.`,
     });
@@ -235,6 +244,123 @@ export async function reassignSeller(
   });
 }
 
+// ─── Pipeline ────────────────────────────────────────────────
+
+export async function getAdminPipeline(stage?: string): Promise<AdminPipelineResult> {
+  const sellers = await adminRepo.getPipelineForAdmin(stage);
+
+  const stageMap = new Map<string, AdminPipelineStage>();
+  const stageOrder = ['lead', 'engaged', 'active', 'completed', 'archived'];
+
+  for (const s of sellers) {
+    const key = s.status;
+    if (!stageMap.has(key)) {
+      stageMap.set(key, { status: key, count: 0, sellers: [] });
+    }
+    const stageEntry = stageMap.get(key)!;
+    stageEntry.count++;
+    stageEntry.sellers.push({
+      id: s.id,
+      name: s.name,
+      phone: s.phone,
+      town: s.properties[0]?.town ?? null,
+      agentName: s.agent?.name ?? null,
+      askingPrice: s.properties[0]?.askingPrice ? Number(s.properties[0].askingPrice) : null,
+      status: s.status,
+    });
+  }
+
+  const stages = stageOrder
+    .filter((status) => stageMap.has(status))
+    .map((status) => stageMap.get(status)!);
+
+  return { stages, totalSellers: sellers.length };
+}
+
+export async function getAdminPipelineCounts(): Promise<Record<string, number>> {
+  const stageOrder = ['lead', 'engaged', 'active', 'completed', 'archived'];
+  const counts = await Promise.all(
+    stageOrder.map((status) => adminRepo.countPipelineStage(status)),
+  );
+  const result: Record<string, number> = {};
+  stageOrder.forEach((status, i) => {
+    result[status] = counts[i];
+  });
+  return result;
+}
+
+// ─── Leads ───────────────────────────────────────────────────
+
+export async function getUnassignedLeads(page?: number): Promise<LeadListResult> {
+  const currentPage = page ?? 1;
+  const limit = 25;
+  const [sellers, total] = await Promise.all([
+    adminRepo.findUnassignedLeads(currentPage, limit),
+    adminRepo.countUnassignedLeads(),
+  ]);
+
+  return {
+    leads: sellers.map((s) => ({
+      id: s.id,
+      name: s.name,
+      phone: s.phone,
+      town: s.properties[0]?.town ?? null,
+      leadSource: s.leadSource,
+      createdAt: s.createdAt,
+    })),
+    total,
+    page: currentPage,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+// ─── Review Queue ────────────────────────────────────────────
+
+export async function getReviewQueue(): Promise<ReviewItem[]> {
+  const { pendingListings, pendingReports } = await adminRepo.getReviewQueue();
+
+  const items: ReviewItem[] = [
+    ...pendingListings.map((p) => ({
+      type: 'listing' as const,
+      sellerId: p.property?.seller?.id,
+      sellerName: p.property?.seller?.name,
+      property: `${p.property?.block} ${p.property?.street}`,
+      submittedAt: p.updatedAt,
+      reviewUrl: `/agent/sellers/${p.property?.seller?.id}`,
+    })),
+    ...pendingReports.map((r) => ({
+      type: 'report' as const,
+      sellerId: r.seller?.id,
+      sellerName: r.seller?.name,
+      property: `${r.property?.block} ${r.property?.street}`,
+      submittedAt: r.generatedAt,
+      reviewUrl: `/agent/sellers/${r.seller?.id}`,
+    })),
+  ];
+
+  return items.sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
+}
+
+// ─── Notifications ───────────────────────────────────────────
+
+export async function getNotifications(filter: {
+  channel?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+}) {
+  return notificationService.getNotifications({
+    channel: filter.channel,
+    status: filter.status,
+    dateFrom: filter.dateFrom ? new Date(filter.dateFrom) : undefined,
+    dateTo: filter.dateTo ? new Date(filter.dateTo) : undefined,
+    page: filter.page,
+    limit: 50,
+  });
+}
+
 // ─── Settings ────────────────────────────────────────────────
 
 export async function updateSetting(key: string, value: string, adminId: string): Promise<void> {
@@ -246,10 +372,10 @@ export async function updateSetting(key: string, value: string, adminId: string)
     throw new ValidationError(`Invalid value for setting: ${key}`);
   }
 
-  const existing = await settingsRepo.findByKey(key);
+  const existing = await settingsService.findByKey(key);
   const oldValue = existing?.value ?? null;
 
-  await settingsRepo.upsert(key, value, `Setting: ${key}`, adminId);
+  await settingsService.upsert(key, value, `Setting: ${key}`, adminId);
 
   await auditService.log({
     agentId: adminId,
@@ -261,7 +387,7 @@ export async function updateSetting(key: string, value: string, adminId: string)
 }
 
 export async function getSettingsGrouped(): Promise<SettingGroup[]> {
-  const all = await settingsRepo.findAll();
+  const all = await settingsService.findAll();
   const map = new Map(all.map((s) => [s.key, s]));
 
   const group = (label: string, keys: string[]): SettingGroup => ({
@@ -343,4 +469,67 @@ export async function approveDeletion(
 
 export async function anonymiseAgentOnDeparture(agentId: string, adminId: string): Promise<void> {
   await complianceService.anonymiseAgent({ agentId, requestedByAgentId: adminId });
+}
+
+// ─── Audit Log ───────────────────────────────────────────────
+
+export async function getAuditLog(filter: {
+  action?: string;
+  entityType?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  page?: number;
+  limit?: number;
+}) {
+  return auditRepo.findMany(filter);
+}
+
+export async function exportAuditLogCsv(
+  filter: { action?: string; entityType?: string; dateFrom?: Date; dateTo?: Date },
+  adminId: string,
+) {
+  const entries = await auditRepo.exportAll(filter);
+
+  await auditService.log({
+    agentId: adminId,
+    action: 'audit_log.exported',
+    entityType: 'AuditLog',
+    entityId: 'bulk',
+    details: { filter, entryCount: entries.length },
+  });
+
+  return entries;
+}
+
+// ─── Analytics ────────────────────────────────────────────────
+
+export async function getAnalytics(filter: AnalyticsFilter): Promise<AnalyticsData> {
+  const now = new Date();
+  const defaultFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const dateFrom = filter.dateFrom ? new Date(filter.dateFrom) : defaultFrom;
+  const dateTo = filter.dateTo ? new Date(filter.dateTo) : now;
+
+  const [revenue, funnel, timeToClose, leadSources, viewings, referrals, commission] =
+    await Promise.all([
+      adminRepo.getRevenueMetrics(dateFrom, dateTo),
+      adminRepo.getTransactionFunnel(dateFrom, dateTo),
+      adminRepo.getTimeToClose(dateFrom, dateTo),
+      adminRepo.getLeadSourceMetrics(dateFrom, dateTo),
+      adminRepo.getViewingMetrics(dateFrom, dateTo),
+      adminRepo.getReferralMetrics(dateFrom, dateTo),
+      settingsService.getNumber('commission_total_with_gst', 1633.91),
+    ]);
+
+  return {
+    revenue: {
+      ...revenue,
+      totalRevenue: Math.round(revenue.completedCount * commission * 100) / 100,
+      commissionPerTransaction: commission,
+    },
+    funnel,
+    timeToClose,
+    leadSources,
+    viewings,
+    referrals,
+  };
 }

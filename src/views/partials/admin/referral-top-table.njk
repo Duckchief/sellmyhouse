@@ -6,15 +6,42 @@
       <th class="pb-2 pr-4">{{ "Code" | t }}</th>
       <th class="pb-2 pr-4">{{ "Clicks" | t }}</th>
       <th class="pb-2 pr-4">{{ "Status" | t }}</th>
+      <th class="pb-2"></th>
     </tr>
   </thead>
   <tbody>
     {% for r in topReferrers %}
-    <tr class="border-b last:border-0 hover:bg-gray-50">
+    <tr class="border-b hover:bg-gray-50">
       <td class="py-2 pr-4">{{ r.referrer.name }}</td>
       <td class="py-2 pr-4 font-mono text-xs">{{ r.referralCode }}</td>
       <td class="py-2 pr-4">{{ r.clickCount }}</td>
       <td class="py-2 pr-4 text-xs text-gray-500">{{ r.status | replace('_', ' ') }}</td>
+      <td class="py-2 text-right">
+        <button
+          data-action="toggle-referral-message"
+          data-target="msg-{{ r.referralCode }}"
+          data-label-show="{{ 'View Message' | t }}"
+          data-label-hide="{{ 'Hide' | t }}"
+          class="text-accent text-xs hover:underline">
+          {{ "View Message" | t }}
+        </button>
+      </td>
+    </tr>
+    <tr id="msg-{{ r.referralCode }}" class="hidden bg-gray-50 border-b">
+      <td colspan="5" class="px-4 py-3">
+        <p class="text-xs text-gray-500 mb-2">{{ "Pre-composed sharing message" | t }}</p>
+        <textarea
+          id="msg-text-{{ r.referralCode }}"
+          readonly
+          rows="3"
+          class="w-full border border-gray-200 rounded px-3 py-2 text-sm text-gray-700 bg-white resize-none font-mono">Hi! I've been using SellMyHomeNow.sg to sell my HDB flat — it's hassle-free with a fixed fee of just $1,499. Sign up with my referral link: {{ baseUrl }}/?ref={{ r.referralCode }}</textarea>
+        <button
+          data-action="copy-value"
+          data-source="msg-text-{{ r.referralCode }}"
+          class="mt-2 bg-accent text-white text-xs px-3 py-1 rounded hover:bg-accent/90">
+          {{ "Copy Message" | t }}
+        </button>
+      </td>
     </tr>
     {% endfor %}
   </tbody>

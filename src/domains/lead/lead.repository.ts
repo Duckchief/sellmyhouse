@@ -67,6 +67,38 @@ export async function createConsentRecord(
   });
 }
 
+export async function submitLeadAtomically(data: {
+  name: string;
+  phone: string;
+  consentService: boolean;
+  consentMarketing: boolean;
+  leadSource: string;
+  retentionExpiresAt?: Date;
+  ipAddress?: string;
+  userAgent?: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const seller = await createSellerLead(tx, {
+      name: data.name,
+      phone: data.phone,
+      consentService: data.consentService,
+      consentMarketing: data.consentMarketing,
+      leadSource: data.leadSource,
+      retentionExpiresAt: data.retentionExpiresAt,
+    });
+
+    await createConsentRecord(tx, {
+      sellerId: seller.id,
+      purposeService: data.consentService,
+      purposeMarketing: data.consentMarketing,
+      ipAddress: data.ipAddress,
+      userAgent: data.userAgent,
+    });
+
+    return seller;
+  });
+}
+
 export async function findAdminAgents() {
   return prisma.agent.findMany({
     where: { role: 'admin', isActive: true },

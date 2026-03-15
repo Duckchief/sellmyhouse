@@ -100,6 +100,40 @@ export async function findAgentNotificationPreference(agentId: string): Promise<
   return agent?.notificationPreference ?? null;
 }
 
+export async function findMany(filter: {
+  channel?: string;
+  status?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  page?: number;
+  limit?: number;
+}) {
+  const page = filter.page ?? 1;
+  const limit = filter.limit ?? 50;
+  const where: Record<string, unknown> = {};
+
+  if (filter.channel) where['channel'] = filter.channel;
+  if (filter.status) where['status'] = filter.status;
+  if (filter.dateFrom || filter.dateTo) {
+    where['createdAt'] = {
+      ...(filter.dateFrom ? { gte: filter.dateFrom } : {}),
+      ...(filter.dateTo ? { lte: filter.dateTo } : {}),
+    };
+  }
+
+  const [notifications, total] = await Promise.all([
+    prisma.notification.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.notification.count({ where }),
+  ]);
+
+  return { notifications, total, page, limit, totalPages: Math.ceil(total / limit) };
+}
+
 export async function findSellerMarketingConsent(sellerId: string): Promise<boolean> {
   const seller = await prisma.seller.findUnique({
     where: { id: sellerId },

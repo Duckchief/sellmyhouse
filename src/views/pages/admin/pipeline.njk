@@ -1,0 +1,47 @@
+{% extends "layouts/admin.njk" %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">{{ "Pipeline" | t }}</h1>
+
+{% set stageList = [
+  { value: 'lead',      label: 'Lead',      color: 'border-blue-500',   tooltip: 'New enquiry received. Not yet contacted or assigned to an agent' },
+  { value: 'engaged',   label: 'Engaged',   color: 'border-yellow-500', tooltip: 'In active consultation. EAA being prepared or signed' },
+  { value: 'active',    label: 'Active',    color: 'border-green-500',  tooltip: 'Property listed and transaction in progress. Viewings, offers, OTP' },
+  { value: 'completed', label: 'Completed', color: 'border-purple-500', tooltip: 'Transaction closed. Commission paid' },
+  { value: 'archived',  label: 'Archived',  color: 'border-gray-400',   tooltip: 'Case closed without a completed transaction, or past retention period' }
+] %}
+
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+  {# All card #}
+  <a href="/admin/pipeline"
+     class="card border-t-4 relative {% if not stage %}border-accent ring-2 ring-accent/20{% else %}border-gray-200 hover:border-gray-300{% endif %}">
+    <div class="absolute top-2 right-2 group">
+      <span class="w-4 h-4 rounded-full bg-gray-100 text-gray-400 text-xs flex items-center justify-center cursor-default select-none">?</span>
+      <div class="absolute bottom-full right-0 mb-2 w-48 bg-gray-900 text-white text-xs rounded px-2 py-1.5 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+        {{ "All sellers currently in your pipeline" | t }}
+        <div class="absolute top-full right-2 border-4 border-transparent border-t-gray-900"></div>
+      </div>
+    </div>
+    <p class="text-xs font-medium text-gray-500 uppercase">{{ "All" | t }}</p>
+    <p class="text-2xl font-bold mt-1">{{ stageCounts.lead + stageCounts.engaged + stageCounts.active + stageCounts.completed + stageCounts.archived }}</p>
+  </a>
+  {% for s in stageList %}
+  <a href="/admin/pipeline?stage={{ s.value }}"
+     class="card border-t-4 relative {% if stage == s.value %}{{ s.color }} ring-2 ring-offset-1{% else %}border-gray-200 hover:{{ s.color }}{% endif %}">
+    <div class="absolute top-2 right-2 group">
+      <span class="w-4 h-4 rounded-full bg-gray-100 text-gray-400 text-xs flex items-center justify-center cursor-default select-none">?</span>
+      <div class="absolute bottom-full right-0 mb-2 w-48 bg-gray-900 text-white text-xs rounded px-2 py-1.5 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+        {{ s.tooltip | t }}
+        <div class="absolute top-full right-2 border-4 border-transparent border-t-gray-900"></div>
+      </div>
+    </div>
+    <p class="text-xs font-medium text-gray-500 uppercase">{{ s.label | t }}</p>
+    <p class="text-2xl font-bold mt-1">{{ stageCounts[s.value] or 0 }}</p>
+  </a>
+  {% endfor %}
+</div>
+
+<div id="pipeline-content">
+  {% include "partials/admin/pipeline-table.njk" %}
+</div>
+{% endblock %}

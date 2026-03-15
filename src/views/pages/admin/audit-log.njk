@@ -1,0 +1,35 @@
+{% extends "layouts/admin.njk" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold">{{ "Audit Log" | t }}</h1>
+  <a href="/admin/audit/export?action={{ filter.action or '' }}&entityType={{ filter.entityType or '' }}&dateFrom={{ filter.dateFrom or '' }}&dateTo={{ filter.dateTo or '' }}"
+     class="bg-gray-100 text-gray-700 px-4 py-2 rounded text-sm hover:bg-gray-200">{{ "Export CSV" | t }}</a>
+</div>
+
+<div class="bg-white rounded-lg shadow-sm border p-4 mb-6">
+  <form hx-get="/admin/audit" hx-target="#audit-list" hx-push-url="true" class="flex flex-wrap gap-4 items-end">
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">{{ "Action" | t }}</label>
+      <input type="text" name="action" value="{{ filter.action or '' }}" placeholder="{{ 'e.g. agent.created' | t }}" class="border rounded px-3 py-1.5 text-sm" />
+    </div>
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">{{ "Entity Type" | t }}</label>
+      <input type="text" name="entityType" value="{{ filter.entityType or '' }}" placeholder="{{ 'e.g. seller' | t }}" class="border rounded px-3 py-1.5 text-sm" />
+    </div>
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">{{ "Date From" | t }}</label>
+      <input type="date" name="dateFrom" value="{{ filter.dateFrom or '' }}" class="border rounded px-3 py-1.5 text-sm" />
+    </div>
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">{{ "Date To" | t }}</label>
+      <input type="date" name="dateTo" value="{{ filter.dateTo or '' }}" class="border rounded px-3 py-1.5 text-sm" />
+    </div>
+    <button type="submit" class="bg-accent text-white px-4 py-1.5 rounded text-sm hover:bg-accent/90">{{ "Filter" | t }}</button>
+  </form>
+</div>
+
+<div id="audit-list">
+  {% include "partials/admin/audit-list.njk" %}
+</div>
+{% endblock %}

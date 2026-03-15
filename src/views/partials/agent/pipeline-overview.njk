@@ -1,0 +1,54 @@
+{# Stage colors for detail tables #}
+{% set stageColors = {
+  'lead': 'border-blue-500',
+  'engaged': 'border-yellow-500',
+  'active': 'border-green-500',
+  'completed': 'border-purple-500',
+  'archived': 'border-gray-400'
+} %}
+{% set stageBgColors = {
+  'lead': 'bg-blue-50',
+  'engaged': 'bg-yellow-50',
+  'active': 'bg-green-50',
+  'completed': 'bg-purple-50',
+  'archived': 'bg-gray-50'
+} %}
+
+{# Detailed tables per stage #}
+{% for stage in overview.stages %}
+{% if (not currentStage or currentStage == stage.status) and stage.sellers.length > 0 %}
+<div class="mb-8">
+  <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+    <span class="w-3 h-3 rounded-full {{ stageBgColors[stage.status] or 'bg-gray-100' }} border-2 {{ stageColors[stage.status] or 'border-gray-300' }}"></span>
+    {{ stage.status | replace("_", " ") | capitalize | t }}
+    <span class="text-sm font-normal text-gray-500">({{ stage.count }})</span>
+  </h3>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+        <tr>
+          <th class="px-4 py-3 text-left">{{ "Name" | t }}</th>
+          <th class="px-4 py-3 text-left">{{ "Phone" | t }}</th>
+          <th class="px-4 py-3 text-right">{{ "Asking Price" | t }}</th>
+          <th class="px-4 py-3 text-right">{{ "Actions" | t }}</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        {% for seller in stage.sellers %}
+        <tr class="hover:bg-bg-alt transition cursor-pointer" data-action="navigate" data-url="/agent/sellers/{{ seller.id }}">
+          <td class="px-4 py-3 font-medium text-gray-900">{{ seller.name }}</td>
+          <td class="px-4 py-3 text-gray-600">{{ seller.phone }}</td>
+          <td class="px-4 py-3 text-right">
+            {% if seller.askingPrice > 0 %}${{ seller.askingPrice | formatPrice }}{% else %}-{% endif %}
+          </td>
+          <td class="px-4 py-3 text-right">
+            <a href="/agent/sellers/{{ seller.id }}" class="text-accent hover:underline">{{ "View" | t }}</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endfor %}

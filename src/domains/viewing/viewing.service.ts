@@ -780,6 +780,12 @@ export async function getViewingByCancelToken(cancelToken: string) {
   return viewingRepo.findViewingByCancelToken(cancelToken);
 }
 
+// ─── Repeat Viewers ─────────────────────────────────────
+
+export async function getRepeatViewers(minProperties: number = 2) {
+  return viewingRepo.findRepeatViewers(minProperties);
+}
+
 // ─── Helpers ─────────────────────────────────────────────
 
 async function verifyPropertyOwnership(propertyId: string, sellerId: string) {

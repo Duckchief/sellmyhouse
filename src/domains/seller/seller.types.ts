@@ -27,6 +27,18 @@ export interface DashboardOverview {
   transactionStatus: string | null;
   unreadNotificationCount: number;
   nextSteps: NextStep[];
+  property: {
+    block: string;
+    street: string;
+    town: string;
+    flatType: string;
+    floorAreaSqm: number;
+    askingPrice: number;
+    status: string;
+  } | null;
+  caseFlags: Array<{ id: string; flagType: string; description: string }>;
+  upcomingViewings: number;
+  totalViewings: number;
 }
 
 export interface NextStep {
@@ -34,6 +46,13 @@ export interface NextStep {
   description: string;
   href: string;
   priority: number;
+  completed: boolean;
+}
+
+export interface DashboardStats {
+  upcomingViewings: number;
+  totalViewings: number;
+  unreadNotificationCount: number;
 }
 
 export interface SellerMyData {

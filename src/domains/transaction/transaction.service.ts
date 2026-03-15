@@ -29,6 +29,20 @@ import type {
 } from './transaction.types';
 import path from 'path';
 
+// ── Cross-domain lookups (used by review.service for compliance gates) ────────
+
+export async function findTransactionById(transactionId: string) {
+  return txRepo.findById(transactionId);
+}
+
+export async function findTransactionBySellerId(sellerId: string) {
+  return txRepo.findTransactionBySellerId(sellerId);
+}
+
+export async function findOtpByTransactionId(transactionId: string) {
+  return txRepo.findOtpByTransactionId(transactionId);
+}
+
 // ── Transaction ────────────────────────────────────────────────────────────────
 
 export async function createTransaction(input: CreateTransactionInput) {
@@ -370,7 +384,7 @@ export async function markOtpReviewed(input: {
     throw new ValidationError('Video call with seller must be confirmed before reviewing OTP');
   }
 
-  const updated = await txRepo.updateOtpReview(otp.id, new Date(), input.notes);
+  const updated = await txRepo.updateOtpReview(otp.id, new Date(), input.agentId, input.notes);
 
   await auditService.log({
     agentId: input.agentId,

@@ -4,7 +4,17 @@ const config: Config = {
   content: ['./src/views/**/*.njk', './src/views/**/*.html'],
   theme: {
     extend: {
-      // Brand colors will be defined in Phase 1
+      colors: {
+        ink: '#1a1a2e',
+        accent: {
+          DEFAULT: '#c8553d',
+          dark: '#a8432f',
+        },
+        bg: {
+          DEFAULT: '#fafaf7',
+          alt: '#f0efe9',
+        },
+      },
     },
   },
   plugins: [],

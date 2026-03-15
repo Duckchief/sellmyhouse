@@ -111,6 +111,31 @@
     if (action === 'navigate') {
       window.location.href = el.dataset.url;
     }
+
+    // Toggle mobile sidebar open/closed
+    if (action === 'toggle-sidebar') {
+      var sidebar = document.getElementById('sidebar');
+      var backdrop = document.getElementById('sidebar-backdrop');
+      if (sidebar && backdrop) {
+        var isOpen = !sidebar.classList.contains('hidden') && window.innerWidth < 768;
+        if (isOpen) {
+          sidebar.classList.add('hidden');
+          backdrop.classList.add('hidden');
+        } else {
+          sidebar.classList.remove('hidden');
+          backdrop.classList.remove('hidden');
+        }
+      }
+    }
+
+    // Referral table: toggle the pre-composed message expansion row
+    if (action === 'toggle-referral-message') {
+      var msgRow = document.getElementById(el.dataset.target);
+      if (msgRow) {
+        var isHidden = msgRow.classList.toggle('hidden');
+        el.textContent = isHidden ? (el.dataset.labelShow || 'View Message') : (el.dataset.labelHide || 'Hide');
+      }
+    }
   });
 
   // ── Months slider (market report date range) ──────────────────
@@ -294,4 +319,16 @@
       }
     }
   })();
+
+  // ── Close sidebar on nav link click (mobile) ───────────────────
+  document.querySelectorAll('#sidebar a').forEach(function (link) {
+    link.addEventListener('click', function () {
+      if (window.innerWidth < 768) {
+        var sidebar = document.getElementById('sidebar');
+        var backdrop = document.getElementById('sidebar-backdrop');
+        if (sidebar) sidebar.classList.add('hidden');
+        if (backdrop) backdrop.classList.add('hidden');
+      }
+    });
+  });
 })();

@@ -5,8 +5,9 @@ import { SETTING_KEYS } from '@/domains/shared/settings.types';
 // ─── Pre-load mocks before importing service ──────────────────
 jest.mock('../admin.repository');
 jest.mock('@/domains/shared/audit.service');
-jest.mock('@/domains/shared/settings.repository');
-jest.mock('@/domains/notification/notification.repository');
+jest.mock('@/domains/shared/audit.repository');
+jest.mock('@/domains/shared/settings.service');
+jest.mock('@/domains/notification/notification.service');
 jest.mock('nodemailer', () => ({
   createTransport: () => ({
     sendMail: jest.fn().mockResolvedValue({ messageId: 'test-msg-id' }),
@@ -15,16 +16,233 @@ jest.mock('nodemailer', () => ({
 
 import * as adminRepo from '../admin.repository';
 import * as auditService from '@/domains/shared/audit.service';
-import * as settingsRepo from '@/domains/shared/settings.repository';
+import * as auditRepo from '@/domains/shared/audit.repository';
+import * as settingsService from '@/domains/shared/settings.service';
+import * as notificationService from '@/domains/notification/notification.service';
 import * as adminService from '../admin.service';
 
 const mockAdminRepo = adminRepo as jest.Mocked<typeof adminRepo>;
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
-const mockSettingsRepo = settingsRepo as jest.Mocked<typeof settingsRepo>;
+const mockAuditRepo = auditRepo as jest.Mocked<typeof auditRepo>;
+const mockSettingsService = settingsService as jest.Mocked<typeof settingsService>;
+const mockNotificationService = notificationService as jest.Mocked<typeof notificationService>;
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockAudit.log.mockResolvedValue(undefined);
+});
+
+// ─── getAdminPipeline ────────────────────────────────────────
+
+describe('getAdminPipeline', () => {
+  it('returns stages grouped by seller status', async () => {
+    mockAdminRepo.getPipelineForAdmin.mockResolvedValue([
+      {
+        id: 's1',
+        name: 'Alice',
+        phone: '91234567',
+        status: 'lead',
+        agent: { name: 'Agent A' },
+        properties: [{ town: 'TAMPINES', askingPrice: { toNumber: () => 500000 } }],
+      },
+      {
+        id: 's2',
+        name: 'Bob',
+        phone: '91234568',
+        status: 'active',
+        agent: null,
+        properties: [],
+      },
+    ] as never);
+
+    const result = await adminService.getAdminPipeline();
+    expect(result.stages).toHaveLength(2);
+    expect(result.stages[0].status).toBe('lead');
+    expect(result.stages[0].sellers[0].agentName).toBe('Agent A');
+    expect(result.stages[0].sellers[0].town).toBe('TAMPINES');
+    expect(result.stages[1].status).toBe('active');
+    expect(result.totalSellers).toBe(2);
+  });
+
+  it('returns empty stages array when no sellers', async () => {
+    mockAdminRepo.getPipelineForAdmin.mockResolvedValue([]);
+
+    const result = await adminService.getAdminPipeline();
+    expect(result.stages).toHaveLength(0);
+    expect(result.totalSellers).toBe(0);
+  });
+});
+
+// ─── getUnassignedLeads ─────────────────────────────────────
+
+describe('getUnassignedLeads', () => {
+  it('returns paginated unassigned leads', async () => {
+    mockAdminRepo.findUnassignedLeads.mockResolvedValue([
+      {
+        id: 's1',
+        name: 'Alice',
+        phone: '91234567',
+        status: 'lead',
+        leadSource: 'website',
+        createdAt: new Date(),
+        properties: [{ town: 'TAMPINES' }],
+      },
+    ] as never);
+    mockAdminRepo.countUnassignedLeads.mockResolvedValue(1);
+
+    const result = await adminService.getUnassignedLeads(1);
+    expect(result.leads).toHaveLength(1);
+    expect(result.leads[0].town).toBe('TAMPINES');
+    expect(result.total).toBe(1);
+    expect(result.totalPages).toBe(1);
+  });
+
+  it('defaults to page 1 when no page provided', async () => {
+    mockAdminRepo.findUnassignedLeads.mockResolvedValue([]);
+    mockAdminRepo.countUnassignedLeads.mockResolvedValue(0);
+
+    const result = await adminService.getUnassignedLeads();
+    expect(result.page).toBe(1);
+    expect(mockAdminRepo.findUnassignedLeads).toHaveBeenCalledWith(1, 25);
+  });
+});
+
+// ─── getReviewQueue ─────────────────────────────────────────
+
+describe('getReviewQueue', () => {
+  it('returns unified review items sorted by date ascending', async () => {
+    const earlyDate = new Date('2026-01-01');
+    const lateDate = new Date('2026-02-01');
+    mockAdminRepo.getReviewQueue.mockResolvedValue({
+      pendingListings: [
+        {
+          id: 'p1',
+          updatedAt: lateDate,
+          property: { block: '123', street: 'Tampines St 11', seller: { id: 's1', name: 'Alice' } },
+        },
+      ],
+      pendingReports: [
+        {
+          id: 'r1',
+          generatedAt: earlyDate,
+          seller: { id: 's2', name: 'Bob' },
+          property: { block: '456', street: 'Bedok St 22' },
+        },
+      ],
+    } as never);
+
+    const result = await adminService.getReviewQueue();
+    expect(result).toHaveLength(2);
+    // Sorted ascending by submittedAt — earlyDate first
+    expect(result[0].type).toBe('report');
+    expect(result[0].sellerName).toBe('Bob');
+    expect(result[1].type).toBe('listing');
+    expect(result[1].sellerName).toBe('Alice');
+  });
+
+  it('returns empty array when no pending items', async () => {
+    mockAdminRepo.getReviewQueue.mockResolvedValue({
+      pendingListings: [],
+      pendingReports: [],
+    } as never);
+
+    const result = await adminService.getReviewQueue();
+    expect(result).toHaveLength(0);
+  });
+});
+
+// ─── getNotifications ────────────────────────────────────────
+
+describe('getNotifications', () => {
+  it('delegates to notificationService with date conversion', async () => {
+    const mockResult = {
+      notifications: [{ id: 'n1', channel: 'email', status: 'sent' }],
+      total: 1,
+      page: 1,
+      limit: 50,
+      totalPages: 1,
+    };
+    mockNotificationService.getNotifications.mockResolvedValue(mockResult as never);
+
+    const result = await adminService.getNotifications({
+      channel: 'email',
+      status: 'sent',
+      dateFrom: '2026-01-01',
+      dateTo: '2026-03-15',
+      page: 1,
+    });
+
+    expect(result).toEqual(mockResult);
+    expect(mockNotificationService.getNotifications).toHaveBeenCalledWith({
+      channel: 'email',
+      status: 'sent',
+      dateFrom: expect.any(Date),
+      dateTo: expect.any(Date),
+      page: 1,
+      limit: 50,
+    });
+  });
+
+  it('handles empty filter', async () => {
+    const mockResult = { notifications: [], total: 0, page: 1, limit: 50, totalPages: 0 };
+    mockNotificationService.getNotifications.mockResolvedValue(mockResult as never);
+
+    const result = await adminService.getNotifications({});
+
+    expect(result).toEqual(mockResult);
+    expect(mockNotificationService.getNotifications).toHaveBeenCalledWith({
+      channel: undefined,
+      status: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
+      page: undefined,
+      limit: 50,
+    });
+  });
+});
+
+// ─── getAuditLog ─────────────────────────────────────────────
+
+describe('getAuditLog', () => {
+  it('delegates to auditRepo.findMany', async () => {
+    const mockResult = {
+      entries: [{ id: 'a1', action: 'agent.created', entityType: 'agent', entityId: 'x' }],
+      total: 1,
+      page: 1,
+      limit: 50,
+      totalPages: 1,
+    };
+    mockAuditRepo.findMany.mockResolvedValue(mockResult as never);
+
+    const result = await adminService.getAuditLog({ action: 'agent.created', page: 1 });
+
+    expect(result).toEqual(mockResult);
+    expect(mockAuditRepo.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'agent.created', page: 1 }),
+    );
+  });
+});
+
+// ─── exportAuditLogCsv ──────────────────────────────────────
+
+describe('exportAuditLogCsv', () => {
+  it('exports entries and logs the export action', async () => {
+    const entries = [
+      { id: 'a1', action: 'test', entityType: 'x', entityId: '1', createdAt: new Date() },
+    ];
+    mockAuditRepo.exportAll.mockResolvedValue(entries as never);
+
+    const result = await adminService.exportAuditLogCsv({}, 'admin-1');
+
+    expect(result).toEqual(entries);
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'audit_log.exported',
+        agentId: 'admin-1',
+        details: expect.objectContaining({ entryCount: 1 }),
+      }),
+    );
+  });
 });
 
 // ─── SETTING_VALIDATORS ───────────────────────────────────────
@@ -300,7 +518,7 @@ describe('updateSetting', () => {
   });
 
   it('saves valid value and audits with old and new values', async () => {
-    mockSettingsRepo.findByKey.mockResolvedValue({
+    mockSettingsService.findByKey.mockResolvedValue({
       id: 'id-1',
       key: 'commission_amount',
       value: '1499',
@@ -309,7 +527,7 @@ describe('updateSetting', () => {
       updatedAt: new Date(),
       createdAt: new Date(),
     });
-    mockSettingsRepo.upsert.mockResolvedValue({
+    mockSettingsService.upsert.mockResolvedValue({
       id: 'id-1',
       key: 'commission_amount',
       value: '1600',
@@ -321,7 +539,7 @@ describe('updateSetting', () => {
 
     await adminService.updateSetting('commission_amount', '1600', 'admin-1');
 
-    expect(mockSettingsRepo.upsert).toHaveBeenCalledWith(
+    expect(mockSettingsService.upsert).toHaveBeenCalledWith(
       'commission_amount',
       '1600',
       expect.any(String),

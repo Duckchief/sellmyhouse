@@ -1,5 +1,5 @@
 import * as agentRepo from './agent.repository';
-import * as viewingRepo from '../viewing/viewing.repository';
+import * as viewingService from '../viewing/viewing.service';
 import * as complianceService from '../compliance/compliance.service';
 import { NotFoundError } from '@/domains/shared/errors';
 import type {
@@ -15,10 +15,11 @@ import type { TimelineMilestone } from '@/domains/seller/seller.types';
 import { getTimelineMilestones } from '@/domains/seller/seller.service';
 
 export async function getPipelineOverview(agentId?: string): Promise<PipelineOverview> {
-  const [stages, recentActivity, pendingReviewCount] = await Promise.all([
-    agentRepo.getPipelineStages(agentId),
+  const [stages, recentActivity, pendingReviewCount, unassignedLeadCount] = await Promise.all([
+    agentRepo.getPipelineStagesWithSellers(agentId),
     agentRepo.getRecentActivity(agentId),
     agentRepo.getPendingReviewCount(agentId),
+    agentRepo.getUnassignedLeadCount(),
   ]);
 
   return {
@@ -32,6 +33,7 @@ export async function getPipelineOverview(agentId?: string): Promise<PipelineOve
       createdAt: a.createdAt,
     })),
     pendingReviewCount,
+    unassignedLeadCount,
   };
 }
 
@@ -143,7 +145,7 @@ export function getTimeline(
 }
 
 export async function getRepeatViewers() {
-  return viewingRepo.findRepeatViewers(2);
+  return viewingService.getRepeatViewers(2);
 }
 
 export async function processCorrectionRequest(input: {

@@ -1,28 +1,29 @@
 import * as sellerService from '../seller.service';
 import * as sellerRepo from '../seller.repository';
 import * as contentService from '../../content/content.service';
-import * as notificationRepo from '../../notification/notification.repository';
 import * as notificationService from '../../notification/notification.service';
 import * as auditService from '../../shared/audit.service';
 import * as settingsService from '../../shared/settings.service';
+import * as viewingService from '../../viewing/viewing.service';
 import { NotFoundError, ValidationError } from '../../shared/errors';
 import { TOTAL_ONBOARDING_STEPS } from '../seller.types';
 import type { Seller } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 
 type SellerWithRelations = Awaited<ReturnType<typeof sellerRepo.getSellerWithRelations>>;
 
 jest.mock('../seller.repository');
 jest.mock('../../content/content.service');
-jest.mock('../../notification/notification.repository');
 jest.mock('../../notification/notification.service');
 jest.mock('../../shared/audit.service');
 jest.mock('../../shared/settings.service');
+jest.mock('../../viewing/viewing.service');
 
 const mockedSellerRepo = jest.mocked(sellerRepo);
-const mockedNotificationRepo = jest.mocked(notificationRepo);
 const mockedNotificationService = jest.mocked(notificationService);
 const mockedAuditService = jest.mocked(auditService);
 const mockedSettings = jest.mocked(settingsService);
+const mockedViewingService = viewingService as jest.Mocked<typeof viewingService>;
 
 describe('seller.service', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -192,7 +193,7 @@ describe('seller.service', () => {
         consentRecords: [],
         caseFlags: [],
       } as unknown as SellerWithRelations);
-      mockedNotificationRepo.countUnreadForRecipient.mockResolvedValue(5);
+      mockedNotificationService.countUnreadNotifications.mockResolvedValue(5);
 
       const result = await sellerService.getDashboardOverview('seller-1');
 
@@ -207,6 +208,95 @@ describe('seller.service', () => {
       mockedSellerRepo.getSellerWithRelations.mockResolvedValue(null);
 
       await expect(sellerService.getDashboardOverview('bad-id')).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe('getDashboardOverview - enhanced', () => {
+    it('returns property details when seller has a property', async () => {
+      mockedSellerRepo.getSellerWithRelations.mockResolvedValue({
+        id: 'seller-1',
+        name: 'Test Seller',
+        email: 'test@test.local',
+        phone: '91234567',
+        status: 'active',
+        onboardingStep: 5,
+        properties: [
+          {
+            id: 'prop-1',
+            block: '123',
+            street: 'Ang Mo Kio Ave 3',
+            town: 'Ang Mo Kio',
+            flatType: '4-room',
+            floorAreaSqm: new Decimal('95.5'),
+            askingPrice: new Decimal('550000'),
+            status: 'listed',
+          },
+        ],
+        transactions: [],
+        consentRecords: [],
+        caseFlags: [
+          { id: 'flag-1', flagType: 'missing_document', description: 'NRIC not uploaded' },
+          { id: 'flag-2', flagType: 'compliance_check', description: 'CDD pending' },
+        ],
+      } as unknown as SellerWithRelations);
+
+      mockedNotificationService.countUnreadNotifications.mockResolvedValue(3);
+      mockedViewingService.getViewingStats.mockResolvedValue({
+        totalViewings: 10,
+        upcomingCount: 2,
+        noShowCount: 1,
+        averageInterestRating: 3.5,
+      });
+
+      const result = await sellerService.getDashboardOverview('seller-1');
+
+      expect(result.property).not.toBeNull();
+      expect(result.property?.block).toBe('123');
+      expect(result.property?.street).toBe('Ang Mo Kio Ave 3');
+      expect(result.property?.town).toBe('Ang Mo Kio');
+      expect(result.property?.flatType).toBe('4-room');
+      expect(result.property?.floorAreaSqm).toBe(95.5);
+      expect(result.property?.askingPrice).toBe(550000);
+
+      expect(result.caseFlags).toHaveLength(2);
+      expect(result.caseFlags[0]).toEqual({
+        id: 'flag-1',
+        flagType: 'missing_document',
+        description: 'NRIC not uploaded',
+      });
+      expect(result.caseFlags[1]).toEqual({
+        id: 'flag-2',
+        flagType: 'compliance_check',
+        description: 'CDD pending',
+      });
+
+      expect(result.upcomingViewings).toBe(2);
+      expect(result.totalViewings).toBe(10);
+      expect(result.unreadNotificationCount).toBe(3);
+    });
+
+    it('returns null property when seller has no properties', async () => {
+      mockedSellerRepo.getSellerWithRelations.mockResolvedValue({
+        id: 'seller-1',
+        name: 'Test Seller',
+        email: 'test@test.local',
+        phone: '91234567',
+        status: 'engaged',
+        onboardingStep: 5,
+        properties: [],
+        transactions: [],
+        consentRecords: [],
+        caseFlags: [],
+      } as unknown as SellerWithRelations);
+
+      mockedNotificationService.countUnreadNotifications.mockResolvedValue(0);
+
+      const result = await sellerService.getDashboardOverview('seller-1');
+
+      expect(result.property).toBeNull();
+      expect(result.caseFlags).toHaveLength(0);
+      expect(result.upcomingViewings).toBe(0);
+      expect(result.totalViewings).toBe(0);
     });
   });
 
@@ -239,6 +329,7 @@ describe('seller.service', () => {
   describe('getTutorialsGrouped', () => {
     it('delegates to contentService', async () => {
       const grouped = { photography: [], process: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest.mocked(contentService).getTutorialsGrouped.mockResolvedValue(grouped as any);
 
       const result = await sellerService.getTutorialsGrouped();

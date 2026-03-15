@@ -1,6 +1,6 @@
 import * as reviewRepo from './review.repository';
 import * as complianceService from '@/domains/compliance/compliance.service';
-import * as txRepo from '@/domains/transaction/transaction.repository';
+import * as transactionService from '@/domains/transaction/transaction.service';
 import * as auditService from '@/domains/shared/audit.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import { HdbApplicationStatus } from '@prisma/client';
@@ -99,7 +99,7 @@ export async function checkComplianceGate(
       return;
     case 'hdb_complete': {
       // entityId = transactionId — check HDB approval_granted status on the transaction
-      const tx = await txRepo.findById(entityId);
+      const tx = await transactionService.findTransactionById(entityId);
       if (!tx) throw new NotFoundError('Transaction not found');
       if (tx.hdbApplicationStatus !== HdbApplicationStatus.approval_granted) {
         throw new ComplianceError(
@@ -110,11 +110,11 @@ export async function checkComplianceGate(
     }
     case 'hdb_submission_review': {
       // entityId = sellerId — OTP must be exercised before HDB resale application
-      const sellerTx = await txRepo.findTransactionBySellerId(entityId);
+      const sellerTx = await transactionService.findTransactionBySellerId(entityId);
       if (!sellerTx) {
         throw new ComplianceError('No active transaction found for this seller');
       }
-      const sellerOtp = await txRepo.findOtpByTransactionId(sellerTx.id);
+      const sellerOtp = await transactionService.findOtpByTransactionId(sellerTx.id);
       if (!sellerOtp || sellerOtp.status !== 'exercised') {
         throw new ComplianceError('OTP must be exercised before HDB application can be submitted');
       }

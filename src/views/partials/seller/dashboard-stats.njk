@@ -1,0 +1,15 @@
+{# Auto-refreshed via hx-get="/seller/dashboard/stats" hx-trigger="load, every 30s" #}
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="card text-center">
+    <p class="text-3xl font-bold text-accent">{{ stats.upcomingViewings }}</p>
+    <p class="text-sm text-gray-500 mt-1">{{ "Upcoming Viewings" | t }}</p>
+  </div>
+  <div class="card text-center">
+    <p class="text-3xl font-bold text-ink">{{ stats.totalViewings }}</p>
+    <p class="text-sm text-gray-500 mt-1">{{ "Total Viewings" | t }}</p>
+  </div>
+  <div class="card text-center">
+    <p class="text-3xl font-bold text-ink">{{ stats.unreadNotificationCount }}</p>
+    <p class="text-sm text-gray-500 mt-1">{{ "Unread Notifications" | t }}</p>
+  </div>
+</div>

@@ -323,6 +323,21 @@ export async function countUnreadNotifications(
   return notificationRepo.countUnreadForRecipient(recipientType, recipientId);
 }
 
+export async function createInAppNotification(data: {
+  recipientType: 'seller' | 'agent' | 'viewer';
+  recipientId: string;
+  templateName: string;
+  content: string;
+}) {
+  return notificationRepo.create({
+    recipientType: data.recipientType,
+    recipientId: data.recipientId,
+    channel: 'in_app',
+    templateName: data.templateName,
+    content: data.content,
+  });
+}
+
 export async function markAsRead(
   notificationId: string,
   recipientId: string,
@@ -359,6 +374,17 @@ export function generateUnsubscribeToken(sellerId: string): string {
   return jwt.sign({ sellerId, purpose: 'marketing_consent_withdrawal' }, process.env.JWT_SECRET!, {
     expiresIn: '30d',
   });
+}
+
+export async function getNotifications(filter: {
+  channel?: string;
+  status?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  page?: number;
+  limit?: number;
+}) {
+  return notificationRepo.findMany(filter);
 }
 
 export async function handleUnsubscribe(sellerId: string): Promise<void> {

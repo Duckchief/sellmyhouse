@@ -1,14 +1,15 @@
 import * as sellerRepo from './seller.repository';
-import * as notificationRepo from '../notification/notification.repository';
 import * as notificationService from '../notification/notification.service';
 import * as auditService from '../shared/audit.service';
 import * as settingsService from '../shared/settings.service';
+import * as viewingService from '../viewing/viewing.service';
 import { NotFoundError, ValidationError } from '../shared/errors';
 import type { Seller, SellerStatus } from '@prisma/client';
 import {
   TOTAL_ONBOARDING_STEPS,
   type OnboardingStatus,
   type DashboardOverview,
+  type DashboardStats,
   type SellerMyData,
   type SellerSettings,
   type UpdateNotificationPreferenceInput,
@@ -60,15 +61,41 @@ export async function getDashboardOverview(sellerId: string): Promise<DashboardO
   const seller = await sellerRepo.getSellerWithRelations(sellerId);
   if (!seller) throw new NotFoundError('Seller', sellerId);
 
-  const unreadNotificationCount = await notificationRepo.countUnreadForRecipient(
+  const unreadNotificationCount = await notificationService.countUnreadNotifications(
     'seller',
     sellerId,
   );
 
   const onboarding = buildOnboardingStatus(seller.onboardingStep);
-  const property = seller.properties?.[0] ?? null;
+  const firstProperty = seller.properties?.[0] ?? null;
   const transaction = seller.transactions?.[0] ?? null;
-  const nextSteps = buildNextSteps(onboarding, property);
+  const nextSteps = buildNextSteps(onboarding, firstProperty);
+
+  const property = firstProperty
+    ? {
+        block: firstProperty.block,
+        street: firstProperty.street,
+        town: firstProperty.town,
+        flatType: firstProperty.flatType,
+        floorAreaSqm: Number(firstProperty.floorAreaSqm),
+        askingPrice: Number(firstProperty.askingPrice),
+        status: firstProperty.status,
+      }
+    : null;
+
+  const caseFlags = (seller.caseFlags ?? []).map((f) => ({
+    id: f.id,
+    flagType: f.flagType as string,
+    description: f.description,
+  }));
+
+  let upcomingViewings = 0;
+  let totalViewings = 0;
+  if (firstProperty) {
+    const stats = await viewingService.getViewingStats(firstProperty.id, sellerId);
+    upcomingViewings = stats.upcomingCount;
+    totalViewings = stats.totalViewings;
+  }
 
   return {
     seller: {
@@ -80,11 +107,36 @@ export async function getDashboardOverview(sellerId: string): Promise<DashboardO
       onboardingStep: seller.onboardingStep,
     },
     onboarding,
-    propertyStatus: property?.status ?? null,
+    propertyStatus: firstProperty?.status ?? null,
     transactionStatus: transaction?.status ?? null,
     unreadNotificationCount,
     nextSteps,
+    property,
+    caseFlags,
+    upcomingViewings,
+    totalViewings,
   };
+}
+
+export async function getDashboardStats(sellerId: string): Promise<DashboardStats> {
+  const seller = await sellerRepo.getSellerWithRelations(sellerId);
+  if (!seller) throw new NotFoundError('Seller', sellerId);
+
+  const firstProperty = seller.properties[0] ?? null;
+  let upcomingViewings = 0;
+  let totalViewings = 0;
+  if (firstProperty) {
+    const stats = await viewingService.getViewingStats(firstProperty.id, sellerId);
+    upcomingViewings = stats.upcomingCount;
+    totalViewings = stats.totalViewings;
+  }
+
+  const unreadNotificationCount = await notificationService.countUnreadNotifications(
+    'seller',
+    sellerId,
+  );
+
+  return { upcomingViewings, totalViewings, unreadNotificationCount };
 }
 
 export async function getMyData(sellerId: string): Promise<SellerMyData> {
@@ -347,6 +399,7 @@ function buildNextSteps(onboarding: OnboardingStatus, property: Property | null)
       description: `Step ${onboarding.currentStep + 1} of ${TOTAL_ONBOARDING_STEPS}`,
       href: '/seller/onboarding',
       priority: 1,
+      completed: false,
     });
     return steps;
   }
@@ -357,6 +410,7 @@ function buildNextSteps(onboarding: OnboardingStatus, property: Property | null)
       description: 'Enter your flat details to get started',
       href: '/seller/property',
       priority: 1,
+      completed: false,
     });
   } else if (property.status === 'draft') {
     steps.push({
@@ -364,6 +418,23 @@ function buildNextSteps(onboarding: OnboardingStatus, property: Property | null)
       description: 'Add photos and submit for review',
       href: '/seller/photos',
       priority: 1,
+      completed: false,
+    });
+  } else {
+    // Property is listed or beyond — onboarding and listing steps are complete
+    steps.push({
+      label: 'Complete Onboarding',
+      description: 'Onboarding complete',
+      href: '/seller/onboarding',
+      priority: 1,
+      completed: true,
+    });
+    steps.push({
+      label: 'Add Property Details',
+      description: 'Property details submitted',
+      href: '/seller/property',
+      priority: 2,
+      completed: true,
     });
   }
 

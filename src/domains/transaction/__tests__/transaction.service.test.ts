@@ -286,7 +286,10 @@ describe('transaction.service', () => {
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
       mockTxRepo.findAcceptedOfferByPropertyId.mockResolvedValue({
-        id: 'offer-1', buyerName: 'Jane Buyer', buyerAgentName: null, buyerAgentCeaReg: null,
+        id: 'offer-1',
+        buyerName: 'Jane Buyer',
+        buyerAgentName: null,
+        buyerAgentCeaReg: null,
       } as never);
       mockTxRepo.findCounterpartyCddByPropertyId.mockResolvedValue(null);
 
@@ -301,7 +304,10 @@ describe('transaction.service', () => {
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
       mockTxRepo.findAcceptedOfferByPropertyId.mockResolvedValue({
-        id: 'offer-1', buyerName: 'Jane Buyer', buyerAgentName: 'John Agent', buyerAgentCeaReg: 'R012345B',
+        id: 'offer-1',
+        buyerName: 'Jane Buyer',
+        buyerAgentName: 'John Agent',
+        buyerAgentCeaReg: 'R012345B',
       } as never);
       mockTxRepo.updateOtpStatus.mockResolvedValue({ ...otp, status: 'issued_to_buyer' } as never);
       mockTxRepo.updateExerciseDeadline.mockResolvedValue(tx as never);
@@ -317,10 +323,15 @@ describe('transaction.service', () => {
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
       mockTxRepo.findAcceptedOfferByPropertyId.mockResolvedValue({
-        id: 'offer-1', buyerName: 'Jane Buyer', buyerAgentName: null, buyerAgentCeaReg: null,
+        id: 'offer-1',
+        buyerName: 'Jane Buyer',
+        buyerAgentName: null,
+        buyerAgentCeaReg: null,
       } as never);
       mockTxRepo.findCounterpartyCddByPropertyId.mockResolvedValue({
-        id: 'cdd-buyer-1', subjectType: 'buyer', identityVerified: true,
+        id: 'cdd-buyer-1',
+        subjectType: 'buyer',
+        identityVerified: true,
       } as never);
       mockTxRepo.updateOtpStatus.mockResolvedValue({ ...otp, status: 'issued_to_buyer' } as never);
       mockTxRepo.updateExerciseDeadline.mockResolvedValue(tx as never);
@@ -459,7 +470,10 @@ describe('transaction.service', () => {
 
       // checkComplianceGate should only be called once (Gate 3), not twice
       expect(mockReviewService.checkComplianceGate).toHaveBeenCalledTimes(1);
-      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith('counterparty_cdd', 'tx-1');
+      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith(
+        'counterparty_cdd',
+        'tx-1',
+      );
     });
 
     it('advances to completed when both Gate 3 and Gate 5 pass', async () => {
@@ -478,7 +492,10 @@ describe('transaction.service', () => {
         agentId: 'agent-1',
       });
 
-      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith('counterparty_cdd', 'tx-1');
+      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith(
+        'counterparty_cdd',
+        'tx-1',
+      );
       expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith('hdb_complete', 'tx-1');
       expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
         'tx-1',

@@ -192,7 +192,9 @@ export class HdbSyncService {
               : 0;
           const exponentialMs = 5000 * Math.pow(2, attempt - 1);
           const waitMs = Math.max(exponentialMs, retryAfterMs);
-          const reason = isRateLimit ? 'rate limited' : `network error (${(err as { code?: string }).code})`;
+          const reason = isRateLimit
+            ? 'rate limited'
+            : `network error (${(err as { code?: string }).code})`;
           logger.warn({ attempt, waitMs }, `data.gov.sg ${reason}, retrying`);
           await delay(waitMs);
           continue;

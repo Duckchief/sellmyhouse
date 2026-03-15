@@ -59,10 +59,7 @@ describe('offer.repository', () => {
       expect(mockPrisma.offer.findMany).toHaveBeenCalledWith({
         where: {
           retentionExpiresAt: { lt: expect.any(Date) },
-          OR: [
-            { buyerName: { not: null } },
-            { buyerPhone: { not: null } },
-          ],
+          OR: [{ buyerName: { not: null } }, { buyerPhone: { not: null } }],
         },
       });
       expect(result).toEqual([expired]);

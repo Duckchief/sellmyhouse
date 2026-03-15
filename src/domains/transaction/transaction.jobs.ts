@@ -140,10 +140,7 @@ export async function sendHdbAppointmentReminders(): Promise<{ reminded: number 
 
   for (const tx of upcoming) {
     const templateName = 'generic' as NotificationTemplateName;
-    const existing = await txRepo.findExistingNotification(
-      'hdb_appointment_reminder',
-      tx.sellerId,
-    );
+    const existing = await txRepo.findExistingNotification('hdb_appointment_reminder', tx.sellerId);
     if (existing) continue;
 
     const appointmentDate = tx.hdbAppointmentDate
@@ -186,7 +183,9 @@ export function registerTransactionJobs(): void {
   registerJob(
     'transaction:hdb-appointment-reminders',
     '0 9 * * *',
-    async () => { await sendHdbAppointmentReminders(); },
+    async () => {
+      await sendHdbAppointmentReminders();
+    },
     'Asia/Singapore',
   );
 }

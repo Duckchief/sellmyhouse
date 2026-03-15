@@ -114,10 +114,7 @@ export async function refreshCddRetentionOnCompletion(
   newExpiry.setFullYear(newExpiry.getFullYear() + 5);
   await prisma.cddRecord.updateMany({
     where: {
-      OR: [
-        { subjectId: transactionId },
-        { subjectType: SubjectType.seller, subjectId: sellerId },
-      ],
+      OR: [{ subjectId: transactionId }, { subjectType: SubjectType.seller, subjectId: sellerId }],
     },
     data: { retentionExpiresAt: newExpiry },
   });

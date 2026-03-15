@@ -82,7 +82,10 @@ export async function generateNarrative(reportId: string) {
   } catch (err) {
     if (err instanceof AIUnavailableError) {
       // Graceful degradation: mark report as needing manual narrative
-      logger.warn({ reportId, err }, 'AI unavailable for financial narrative — agent must write manually');
+      logger.warn(
+        { reportId, err },
+        'AI unavailable for financial narrative — agent must write manually',
+      );
       await financialRepo.updateNarrative(reportId, {
         aiNarrative: '',
         aiProvider: 'unavailable',

@@ -18,10 +18,7 @@ export async function runAnonymiseOffersJob(): Promise<void> {
       });
       count++;
     } catch (err) {
-      logger.error(
-        { err, offerId: offer.id },
-        'Failed to anonymise offer PII',
-      );
+      logger.error({ err, offerId: offer.id }, 'Failed to anonymise offer PII');
     }
   }
   logger.info({ count }, 'Offer PII anonymisation complete');

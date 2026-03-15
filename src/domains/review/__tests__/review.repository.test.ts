@@ -8,7 +8,12 @@ jest.mock('@/infra/database/prisma', () => ({
 }));
 
 import { prisma } from '@/infra/database/prisma';
-import { mapMcsToFrs, buildAddress, buildMarketContentLabel, approveListingDescription } from '../review.repository';
+import {
+  mapMcsToFrs,
+  buildAddress,
+  buildMarketContentLabel,
+  approveListingDescription,
+} from '../review.repository';
 
 const mockPrisma = jest.mocked(prisma);
 

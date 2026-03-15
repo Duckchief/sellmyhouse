@@ -378,7 +378,7 @@ transactionRouter.get(
         agentId: user.id,
         action: 'invoice.file_downloaded',
         entityType: 'commission_invoice',
-        entityId: invoiceRecord?.id ?? req.params['id'] as string,
+        entityId: invoiceRecord?.id ?? (req.params['id'] as string),
         details: { transactionId: req.params['id'] },
       });
 

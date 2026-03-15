@@ -208,9 +208,9 @@ describe('transaction integration', () => {
     });
 
     // Should fail — unrepresented buyer, no CDD record
-    await expect(
-      txService.advanceOtp({ transactionId: tx.id, agentId }),
-    ).rejects.toThrow(ComplianceError);
+    await expect(txService.advanceOtp({ transactionId: tx.id, agentId })).rejects.toThrow(
+      ComplianceError,
+    );
 
     // Create a verified CDD record for the buyer (subjectType=buyer, subjectId=offerId)
     await factory.cddRecord({

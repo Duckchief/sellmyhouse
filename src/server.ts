@@ -61,7 +61,9 @@ registerJob(
 registerJob(
   'seller:inactive-check',
   '0 9 * * 1',
-  async () => { await sellerService.checkInactiveSellers(); },
+  async () => {
+    await sellerService.checkInactiveSellers();
+  },
   'Asia/Singapore',
 );
 

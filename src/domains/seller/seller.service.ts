@@ -298,9 +298,7 @@ export async function checkInactiveSellers() {
   for (const seller of inactive) {
     if (!seller.agentId) continue;
 
-    const daysSince = Math.floor(
-      (Date.now() - seller.updatedAt.getTime()) / (1000 * 60 * 60 * 24),
-    );
+    const daysSince = Math.floor((Date.now() - seller.updatedAt.getTime()) / (1000 * 60 * 60 * 24));
 
     await notificationService.send(
       {

@@ -206,9 +206,7 @@ describe('financial.service', () => {
         },
       } as unknown as FinancialReport;
       mockRepo.findById.mockResolvedValue(report);
-      mockAI.generateText.mockRejectedValue(
-        new AIUnavailableError('All providers failed'),
-      );
+      mockAI.generateText.mockRejectedValue(new AIUnavailableError('All providers failed'));
       mockRepo.updateNarrative.mockResolvedValue({} as unknown as FinancialReport);
 
       // Should NOT throw — graceful degradation

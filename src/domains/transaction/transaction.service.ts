@@ -9,7 +9,12 @@ import * as propertyService from '@/domains/property/property.service';
 import * as viewingService from '@/domains/viewing/viewing.service';
 import { localStorage } from '@/infra/storage/local-storage';
 import { scanBuffer } from '@/infra/security/virus-scanner';
-import { NotFoundError, ValidationError, ConflictError, ComplianceError } from '@/domains/shared/errors';
+import {
+  NotFoundError,
+  ValidationError,
+  ConflictError,
+  ComplianceError,
+} from '@/domains/shared/errors';
 import { OTP_TRANSITIONS, TRANSACTION_STATUS_ORDER } from './transaction.types';
 import * as offerService from '@/domains/offer/offer.service';
 import * as complianceService from '@/domains/compliance/compliance.service';
@@ -374,7 +379,8 @@ export async function markOtpReviewed(input: {
     entityId: otp.id,
     details: {
       // PG 1-2021: Agent must advise seller to seek independent legal advice
-      legalAdviceReminder: 'Agent confirms seller was advised to seek independent legal advice before signing',
+      legalAdviceReminder:
+        'Agent confirms seller was advised to seek independent legal advice before signing',
     },
   });
 

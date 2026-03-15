@@ -116,9 +116,7 @@ export async function checkComplianceGate(
       }
       const sellerOtp = await txRepo.findOtpByTransactionId(sellerTx.id);
       if (!sellerOtp || sellerOtp.status !== 'exercised') {
-        throw new ComplianceError(
-          'OTP must be exercised before HDB application can be submitted',
-        );
+        throw new ComplianceError('OTP must be exercised before HDB application can be submitted');
       }
       return;
     }

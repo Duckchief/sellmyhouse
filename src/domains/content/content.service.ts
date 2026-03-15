@@ -1,10 +1,6 @@
 // src/domains/content/content.service.ts
 import { createId } from '@/infra/database/prisma';
-import {
-  NotFoundError,
-  ConflictError,
-  ValidationError,
-} from '@/domains/shared/errors';
+import { NotFoundError, ConflictError, ValidationError } from '@/domains/shared/errors';
 import { logger } from '@/infra/logger';
 import * as contentRepo from './content.repository';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';

@@ -113,9 +113,13 @@ describe('hardDeleteTransaction', () => {
   it('calls each deleteMany with the correct transactionId filter', async () => {
     await complianceRepo.hardDeleteTransaction(TX_ID);
 
-    expect(mockPrisma.testimonial.deleteMany).toHaveBeenCalledWith({ where: { transactionId: TX_ID } });
+    expect(mockPrisma.testimonial.deleteMany).toHaveBeenCalledWith({
+      where: { transactionId: TX_ID },
+    });
     expect(mockPrisma.otp.deleteMany).toHaveBeenCalledWith({ where: { transactionId: TX_ID } });
-    expect(mockPrisma.commissionInvoice.deleteMany).toHaveBeenCalledWith({ where: { transactionId: TX_ID } });
+    expect(mockPrisma.commissionInvoice.deleteMany).toHaveBeenCalledWith({
+      where: { transactionId: TX_ID },
+    });
     expect(mockPrisma.transaction.delete).toHaveBeenCalledWith({ where: { id: TX_ID } });
   });
 });
@@ -288,10 +292,7 @@ describe('refreshCddRetentionOnCompletion', () => {
     expect(mockPrisma.cddRecord.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          OR: [
-            { subjectId: 'tx-abc' },
-            { subjectType: 'seller', subjectId: 'seller-xyz' },
-          ],
+          OR: [{ subjectId: 'tx-abc' }, { subjectType: 'seller', subjectId: 'seller-xyz' }],
         },
       }),
     );

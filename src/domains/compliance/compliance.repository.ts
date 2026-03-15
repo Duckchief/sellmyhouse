@@ -114,10 +114,7 @@ export async function refreshCddRetentionOnCompletion(
   newExpiry.setFullYear(newExpiry.getFullYear() + 5);
   await prisma.cddRecord.updateMany({
     where: {
-      OR: [
-        { subjectId: transactionId },
-        { subjectType: SubjectType.seller, subjectId: sellerId },
-      ],
+      OR: [{ subjectId: transactionId }, { subjectType: SubjectType.seller, subjectId: sellerId }],
     },
     data: { retentionExpiresAt: newExpiry },
   });
@@ -689,6 +686,14 @@ export async function anonymiseAgentRecord(agentId: string): Promise<void> {
       phone: `anonymised-${agentId}`,
     },
   });
+}
+
+export async function findSensitiveCaseBySellerId(sellerId: string): Promise<boolean> {
+  const cdd = await prisma.cddRecord.findFirst({
+    where: { subjectType: 'seller', subjectId: sellerId, sensitiveCase: true },
+    select: { id: true },
+  });
+  return !!cdd;
 }
 
 export async function findAgentById(

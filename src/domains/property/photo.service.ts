@@ -4,6 +4,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { localStorage } from '../../infra/storage/local-storage';
 import * as propertyRepo from './property.repository';
 import * as auditService from '../shared/audit.service';
+import { scanBuffer } from '@/infra/security/virus-scanner';
 import { NotFoundError, ValidationError, ForbiddenError } from '../shared/errors';
 import type { PhotoRecord } from './property.types';
 import {
@@ -69,6 +70,18 @@ export async function processAndSavePhoto(
   sellerId: string,
   propertyId: string,
 ): Promise<ProcessedPhotoMetadata> {
+  // Virus scan before processing
+  const scanResult = await scanBuffer(buffer, originalFilename);
+  if (!scanResult.isClean) {
+    await auditService.log({
+      action: 'upload.virus_detected',
+      entityType: 'property',
+      entityId: propertyId,
+      details: { filename: originalFilename, viruses: scanResult.viruses },
+    });
+    throw new ValidationError('File rejected: security scan failed');
+  }
+
   const id = createId();
   const filename = `${id}.jpg`;
 
@@ -94,6 +107,14 @@ export async function processAndSavePhoto(
   }
 
   await localStorage.save(optimizedPath, optimizedBuffer);
+
+  // A3: Audit photo upload
+  await auditService.log({
+    action: 'photo.uploaded',
+    entityType: 'property',
+    entityId: propertyId,
+    details: { filename, sellerId },
+  });
 
   return {
     id,

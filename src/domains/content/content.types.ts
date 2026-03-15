@@ -1,4 +1,16 @@
 // src/domains/content/content.types.ts
+//
+// Content domain — market content, testimonials, referrals, video tutorials.
+//
+// REGULATORY NOTE — CEA PG 2/2011 Section 7.3 (Social Network Advertising):
+// Any social media accounts (Facebook, Instagram, TikTok, LinkedIn, etc.) used
+// to post estate agency content must display the estate agent licence number
+// (Huttons: L3008899K) and salesperson registration number in the account profile.
+//
+// The agent is responsible for ensuring their social media profiles comply
+// before manually posting approved MarketContent to those platforms.
+// This applies to ALL accounts used for property marketing, not just the
+// official sellmyhomenow.sg accounts.
 
 // ─── Video Tutorials ─────────────────────────────────────────────────────────
 

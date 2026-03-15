@@ -51,6 +51,36 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     details: { leadSource: input.leadSource, phone: input.phone },
   });
 
+  // A1: Audit consent events from lead capture
+  // The ConsentRecord was created inside the $transaction above — we reference seller.id
+  // since the consent record ID is not returned from the transaction block
+  await auditService.log({
+    action: 'consent.service_given',
+    entityType: 'seller',
+    entityId: seller.id,
+    details: { sellerId: seller.id, purposeService: true },
+  });
+
+  if (input.consentMarketing) {
+    await auditService.log({
+      action: 'consent.marketing_given',
+      entityType: 'seller',
+      entityId: seller.id,
+      details: { sellerId: seller.id },
+    });
+  }
+
+  // N1: Send welcome notification to seller
+  await notificationService.send(
+    {
+      recipientType: 'seller',
+      recipientId: seller.id,
+      templateName: 'welcome_seller',
+      templateData: { name: input.name.trim() },
+    },
+    'system',
+  );
+
   // Notify admin agents via their preferred channel
   const admins = await leadRepo.findAdminAgents();
   if (admins.length === 0) {

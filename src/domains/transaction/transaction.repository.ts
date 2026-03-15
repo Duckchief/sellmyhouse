@@ -204,6 +204,38 @@ export async function findEaaByTransactionId(transactionId: string) {
   });
 }
 
+export async function findTransactionBySellerId(sellerId: string) {
+  return prisma.transaction.findFirst({
+    where: { sellerId, status: { not: 'fallen_through' } },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+// ── Counterparty CDD queries ─────────────────────────────────────────────────
+
+export async function findAcceptedOfferByPropertyId(propertyId: string) {
+  return prisma.offer.findFirst({
+    where: { propertyId, status: 'accepted' },
+    select: { id: true, buyerName: true, buyerAgentName: true, buyerAgentCeaReg: true },
+  });
+}
+
+export async function findCounterpartyCddByPropertyId(propertyId: string) {
+  const acceptedOffer = await prisma.offer.findFirst({
+    where: { propertyId, status: 'accepted' },
+    select: { id: true },
+  });
+  if (!acceptedOffer) return null;
+
+  return prisma.cddRecord.findFirst({
+    where: {
+      subjectType: { in: ['buyer', 'counterparty'] },
+      subjectId: acceptedOffer.id,
+      identityVerified: true,
+    },
+  });
+}
+
 // ── Cron queries ──────────────────────────────────────────────────────────────
 
 /** Returns all OTPs with status issued_to_buyer for reminder checking */
@@ -239,4 +271,17 @@ export async function findTransactionsCompletedDaysAgo(daysAgo: number) {
 /** Deduplication check: returns existing notification or null */
 export async function findExistingNotification(templateName: string, recipientId: string) {
   return prisma.notification.findFirst({ where: { templateName, recipientId } });
+}
+
+/** Returns transactions with HDB appointments within the next N days */
+export async function findUpcomingHdbAppointments(withinDays: number) {
+  const now = new Date();
+  const cutoff = new Date(now.getTime() + withinDays * 86400000);
+  return prisma.transaction.findMany({
+    where: {
+      hdbAppointmentDate: { gte: now, lte: cutoff },
+      status: { in: ['option_exercised', 'completing'] },
+    },
+    select: { id: true, sellerId: true, hdbAppointmentDate: true },
+  });
 }

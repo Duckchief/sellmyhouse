@@ -377,6 +377,15 @@ export const factory = {
     status?: 'option_issued' | 'option_exercised' | 'completing' | 'completed' | 'fallen_through';
     completionDate?: Date;
     exerciseDeadline?: Date;
+    offerId?: string;
+    hdbApplicationStatus?:
+      | 'not_started'
+      | 'application_submitted'
+      | 'approval_in_principle'
+      | 'approval_granted'
+      | 'resale_checklist_submitted'
+      | 'hdb_appointment_booked'
+      | 'completed';
   }) {
     return testPrisma.transaction.create({
       data: {
@@ -387,6 +396,8 @@ export const factory = {
         status: overrides.status ?? 'option_issued',
         completionDate: overrides.completionDate ?? null,
         exerciseDeadline: overrides.exerciseDeadline ?? null,
+        offerId: overrides.offerId ?? null,
+        hdbApplicationStatus: overrides.hdbApplicationStatus ?? null,
       },
     });
   },
@@ -516,6 +527,31 @@ export const factory = {
         agentReviewedAt: overrides.agentReviewedAt ?? null,
         scannedCopyPathSeller: overrides.scannedCopyPathSeller ?? null,
         scannedCopyPathReturned: overrides.scannedCopyPathReturned ?? null,
+      },
+    });
+  },
+
+  async cddRecord(overrides: {
+    subjectType: 'seller' | 'counterparty' | 'buyer';
+    subjectId: string;
+    verifiedByAgentId: string;
+    fullName?: string;
+    nricLast4?: string;
+    identityVerified?: boolean;
+    verifiedAt?: Date | null;
+    retentionExpiresAt?: Date | null;
+  }) {
+    return testPrisma.cddRecord.create({
+      data: {
+        id: createId(),
+        subjectType: overrides.subjectType,
+        subjectId: overrides.subjectId,
+        fullName: overrides.fullName ?? 'Test Person',
+        nricLast4: overrides.nricLast4 ?? '567A',
+        identityVerified: overrides.identityVerified ?? true,
+        verifiedByAgentId: overrides.verifiedByAgentId,
+        verifiedAt: overrides.verifiedAt ?? new Date(),
+        retentionExpiresAt: overrides.retentionExpiresAt ?? null,
       },
     });
   },

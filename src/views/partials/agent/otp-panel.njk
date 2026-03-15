@@ -1,5 +1,20 @@
 {# partials/agent/otp-panel.njk #}
 <div class="otp-panel" data-otp-id="{{ otp.id }}">
-  <p>{{ "OTP Status:" | t }} {{ otp.status }}</p>
+  <p class="font-semibold">{{ "OTP Status:" | t }} <span class="capitalize">{{ otp.status | replace('_', ' ') }}</span></p>
   <p>{{ "Serial:" | t }} {{ otp.hdbSerialNumber }}</p>
+
+  {% if otp.status == 'prepared' or otp.status == 'sent_to_seller' %}
+  <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded text-sm">
+    <p class="font-semibold text-amber-800 mb-2">{{ "OTP Compliance Checklist (PG 1-2021)" | t }}</p>
+    <ul class="space-y-1 text-amber-700">
+      <li>☐ {{ "OTP incorporates Law Society Conditions of Sale 2020 (COS 2020) where applicable" | t }}</li>
+      <li>☐ {{ "Residential Property Act (Cap 274) declarations included if required" | t }}</li>
+      <li>☐ {{ "Option fee amount verified (typically 1% of agreed price)" | t }}</li>
+      <li>☐ {{ "Option exercise period confirmed (default 21 calendar days)" | t }}</li>
+      <li>☐ {{ "All parties' details verified against NRIC/passport" | t }}</li>
+      <li>☐ {{ "Seller advised to seek independent legal advice before signing" | t }}</li>
+      <li>☐ {{ "Video call scheduled to walk seller through OTP clauses" | t }}</li>
+    </ul>
+  </div>
+  {% endif %}
 </div>

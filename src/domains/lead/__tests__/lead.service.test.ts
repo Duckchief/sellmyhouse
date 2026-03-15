@@ -166,8 +166,12 @@ describe('lead.service', () => {
     const result = await submitLead({ ...validInput, phone: '81234567' });
 
     expect(result.sellerId).toBe('seller-2');
-    // Notification should NOT be called when there are no admin agents
-    expect(mockNotification.send).not.toHaveBeenCalled();
+    // Only the welcome_seller notification should be sent — no admin notifications
+    expect(mockNotification.send).toHaveBeenCalledTimes(1);
+    expect(mockNotification.send).toHaveBeenCalledWith(
+      expect.objectContaining({ templateName: 'welcome_seller', recipientType: 'seller' }),
+      'system',
+    );
   });
 
   it('uses email channel when admin notificationPreference is email_only', async () => {

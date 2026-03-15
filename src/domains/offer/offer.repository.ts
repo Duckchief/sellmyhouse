@@ -139,10 +139,7 @@ export async function findOffersForAnonymisation(): Promise<Offer[]> {
   return prisma.offer.findMany({
     where: {
       retentionExpiresAt: { lt: new Date() },
-      OR: [
-        { buyerName: { not: null } },
-        { buyerPhone: { not: null } },
-      ],
+      OR: [{ buyerName: { not: null } }, { buyerPhone: { not: null } }],
     },
   });
 }

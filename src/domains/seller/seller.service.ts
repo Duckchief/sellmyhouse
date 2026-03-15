@@ -1,6 +1,8 @@
 import * as sellerRepo from './seller.repository';
 import * as notificationRepo from '../notification/notification.repository';
+import * as notificationService from '../notification/notification.service';
 import * as auditService from '../shared/audit.service';
+import * as settingsService from '../shared/settings.service';
 import { NotFoundError, ValidationError } from '../shared/errors';
 import type { Seller, SellerStatus } from '@prisma/client';
 import {
@@ -285,6 +287,41 @@ export async function updateSellerStatus(
   });
 
   return updated;
+}
+
+// ─── Cron Jobs ──────────────────────────────────────────
+
+export async function checkInactiveSellers() {
+  const inactiveDays = await settingsService.getNumber('seller_inactive_alert_days', 14);
+  const inactive = await sellerRepo.findInactiveSellers(inactiveDays);
+
+  for (const seller of inactive) {
+    if (!seller.agentId) continue;
+
+    const daysSince = Math.floor((Date.now() - seller.updatedAt.getTime()) / (1000 * 60 * 60 * 24));
+
+    await notificationService.send(
+      {
+        recipientType: 'agent',
+        recipientId: seller.agentId,
+        templateName: 'generic',
+        templateData: {
+          subject: `Inactive seller: ${seller.name}`,
+          message: `${seller.name} (${seller.email}) has had no activity for ${daysSince} days. Status: ${seller.status}. Consider following up.`,
+        },
+      },
+      'system',
+    );
+
+    await auditService.log({
+      action: 'seller.inactive_alert',
+      entityType: 'seller',
+      entityId: seller.id,
+      details: { daysSince, agentId: seller.agentId },
+    });
+  }
+
+  return { checked: inactive.length };
 }
 
 // --- Private helpers ---

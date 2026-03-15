@@ -2,6 +2,7 @@ import * as reviewRepo from './review.repository';
 import * as complianceService from '@/domains/compliance/compliance.service';
 import * as txRepo from '@/domains/transaction/transaction.repository';
 import * as auditService from '@/domains/shared/audit.service';
+import * as notificationService from '@/domains/notification/notification.service';
 import { HdbApplicationStatus } from '@prisma/client';
 import * as portalService from '@/domains/property/portal.service';
 import {
@@ -35,6 +36,15 @@ export function validateTransition(
   }
 }
 
+/**
+ * Checks compliance prerequisites at key workflow transitions.
+ *
+ * Note: Suspicious Transaction Reporting (STR) is handled internally by
+ * Huttons Asia Pte Ltd per their AML/CFT compliance procedures. This platform
+ * does not file STRs. If the agent suspects money laundering or terrorism
+ * financing, they must follow Huttons' internal STR process outside this
+ * platform. See v2-rewrite-design.md "Out of Scope" section.
+ */
 export async function checkComplianceGate(
   gate: ComplianceGate,
   entityId: string, // was: sellerId — renamed for clarity; meaning varies per gate (see comments below)
@@ -47,6 +57,20 @@ export async function checkComplianceGate(
       if (!cdd) {
         throw new ComplianceError('Seller CDD must be verified before this action');
       }
+      // AML/CFT Reg 12D — Enhanced Due Diligence (EDD) triggers:
+      // The agent must set riskLevel to 'enhanced' on the CddRecord when ANY of:
+      //   1. Seller is a Politically Exposed Person (PEP) or family/close associate of PEP
+      //   2. Transaction value is unusually high relative to comparable transactions
+      //   3. Seller's source of funds is unclear or inconsistent with stated occupation
+      //   4. Seller is from a high-risk jurisdiction (FATF grey/black list)
+      //   5. Any other unusual circumstances that raise ML/TF suspicion
+      // When riskLevel is 'enhanced', the agent must document additional verification
+      // steps in the CDD notes field before the gate can pass.
+      if (cdd.riskLevel === 'enhanced' && (!cdd.notes || cdd.notes.trim().length < 20)) {
+        throw new ComplianceError(
+          'Enhanced Due Diligence requires documented verification notes (AML/CFT Reg 12D)',
+        );
+      }
       break;
     }
     case 'eaa_signed': {
@@ -58,7 +82,9 @@ export async function checkComplianceGate(
       break;
     }
     case 'counterparty_cdd': {
-      // entityId = transactionId — counterparty CDD uses transactionId as subjectId
+      // entityId = transactionId — checks generic counterparty CDD for transaction status advances.
+      // Additional buyer-specific enforcement is in transaction.service.advanceOtp() which checks
+      // inline because it needs transaction context (accepted offer, buyer agent status).
       const cddRecord = await complianceService.findCddRecordByTransactionAndSubjectType(
         entityId,
         'counterparty',
@@ -79,6 +105,18 @@ export async function checkComplianceGate(
         throw new ComplianceError(
           'Gate 5: HDB application must be approved (approval_granted) before transaction can be completed',
         );
+      }
+      return;
+    }
+    case 'hdb_submission_review': {
+      // entityId = sellerId — OTP must be exercised before HDB resale application
+      const sellerTx = await txRepo.findTransactionBySellerId(entityId);
+      if (!sellerTx) {
+        throw new ComplianceError('No active transaction found for this seller');
+      }
+      const sellerOtp = await txRepo.findOtpByTransactionId(sellerTx.id);
+      if (!sellerOtp || sellerOtp.status !== 'exercised') {
+        throw new ComplianceError('OTP must be exercised before HDB application can be submitted');
       }
       return;
     }
@@ -157,6 +195,14 @@ export async function approveItem(input: {
       break;
     }
     case 'listing_photos': {
+      // PG 2/2011 s3.2 — Agent must verify before approving:
+      //   1. Photos are of the ACTUAL unit being sold (not a different/similar unit)
+      //   2. Photos have not been altered to misrepresent the property condition
+      //   3. Exterior views are from the viewpoint of the unit's actual floor
+      //      (e.g., low-floor unit must not show the view from the top floor)
+      //   4. If any photos are used for illustration purposes, appropriate
+      //      qualifiers must be appended
+      //   5. No copyrighted images or watermarks from other listings
       await reviewRepo.approveListingPhotos(entityId, agentId);
       const isFullyApprovedPhotos = await reviewRepo.checkListingFullyApproved(entityId);
       if (isFullyApprovedPhotos) {
@@ -183,6 +229,28 @@ export async function approveItem(input: {
     entityId,
     details: { decision: 'approved' },
   });
+}
+
+// N3: Notify assigned agent when a new item enters review queue
+export async function notifyAgentOfPendingReview(
+  entityType: string,
+  entityId: string,
+  sellerId: string,
+): Promise<void> {
+  const seller = await reviewRepo.findSellerById(sellerId);
+  if (seller?.agentId) {
+    await notificationService.send(
+      {
+        recipientType: 'agent',
+        recipientId: seller.agentId,
+        templateName: 'generic',
+        templateData: {
+          message: `New ${entityType.replace(/_/g, ' ')} for ${seller.name ?? 'a seller'} is ready for your review.`,
+        },
+      },
+      'system',
+    );
+  }
 }
 
 export async function rejectItem(input: {

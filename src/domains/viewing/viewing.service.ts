@@ -702,6 +702,47 @@ export async function sendFeedbackPrompts() {
   }
 }
 
+// ─── Viewer Follow-up ───────────────────────────────────
+
+export async function sendViewerFollowups() {
+  const viewings = await viewingRepo.findViewingsNeedingFollowup();
+
+  for (const v of viewings) {
+    const viewing = v as {
+      id: string;
+      verifiedViewer: { id: string; phone: string };
+      viewingSlot: {
+        property: {
+          town: string;
+          street: string;
+          sellerId: string;
+          seller: { agentId: string | null };
+        };
+      };
+    };
+
+    const agentPhone = 'our agent';
+
+    await notificationService.send(
+      {
+        recipientType: 'viewer',
+        recipientId: viewing.verifiedViewer.id,
+        templateName: 'viewing_followup_viewer',
+        templateData: {
+          address: `${viewing.viewingSlot.property.town} ${viewing.viewingSlot.property.street}`,
+          agentPhone,
+        },
+        preferredChannel: 'whatsapp',
+      },
+      'system',
+    );
+
+    await viewingRepo.markFollowupSent(viewing.id);
+  }
+
+  return { sent: viewings.length };
+}
+
 // ─── Stats ───────────────────────────────────────────────
 
 export async function getViewingStats(propertyId: string, sellerId: string) {

@@ -2,8 +2,11 @@
 import axios from 'axios';
 import { createId } from '@/infra/database/prisma';
 import { logger } from '@/infra/logger';
+import * as auditService from '@/domains/shared/audit.service';
 import { HdbRepository } from './repository';
 import type { HdbDataSyncRecord } from './types';
+
+const RETRYABLE_NETWORK_ERRORS = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN'];
 
 const DATASET_ID = 'd_8b84c4ee58e3cfc0ece0d773c8ca6abc';
 const BASE_URL = 'https://data.gov.sg/api/action/datastore_search';
@@ -122,18 +125,34 @@ export class HdbSyncService {
         'HDB data sync completed',
       );
 
+      // A6: Audit sync completion
+      await auditService.log({
+        action: 'hdb.sync_completed',
+        entityType: 'hdb_data_sync',
+        entityId: syncLog.id,
+        details: { recordsAdded, recordsTotal: totalRecords },
+      });
+
       return syncLog;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       logger.error({ error: message }, 'HDB data sync failed');
 
-      await this.repo.createSyncLog({
+      const failedSyncLog = await this.repo.createSyncLog({
         id: createId(),
         recordsAdded,
         recordsTotal: 0,
         source: DATASET_ID,
         status: 'failed',
         error: message,
+      });
+
+      // A6: Audit sync failure
+      await auditService.log({
+        action: 'hdb.sync_failed',
+        entityType: 'hdb_data_sync',
+        entityId: failedSyncLog.id,
+        details: { error: message },
       });
 
       throw error;
@@ -158,12 +177,25 @@ export class HdbSyncService {
           headers,
         });
       } catch (err) {
-        if (axios.isAxiosError(err) && err.response?.status === 429 && attempt < retries) {
-          const retryAfter = err.response.headers['retry-after'];
-          const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 0;
+        // E2: Retry on 429 rate limit and transient network errors
+        const isRateLimit = axios.isAxiosError(err) && err.response?.status === 429;
+        const isNetworkError =
+          axios.isAxiosError(err) &&
+          !err.response &&
+          err.code !== undefined &&
+          RETRYABLE_NETWORK_ERRORS.includes(err.code);
+
+        if ((isRateLimit || isNetworkError) && attempt < retries) {
+          const retryAfterMs =
+            isRateLimit && err.response?.headers['retry-after']
+              ? parseInt(err.response.headers['retry-after'], 10) * 1000
+              : 0;
           const exponentialMs = 5000 * Math.pow(2, attempt - 1);
           const waitMs = Math.max(exponentialMs, retryAfterMs);
-          logger.warn({ attempt, waitMs }, 'data.gov.sg rate limited, retrying');
+          const reason = isRateLimit
+            ? 'rate limited'
+            : `network error (${(err as { code?: string }).code})`;
+          logger.warn({ attempt, waitMs }, `data.gov.sg ${reason}, retrying`);
           await delay(waitMs);
           continue;
         }

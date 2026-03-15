@@ -9,12 +9,8 @@ const hdbService = new HdbService();
 
 publicRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const ref = req.query.ref as string | undefined;
-    if (ref?.trim()) {
-      req.session.referralCode = ref.trim();
-      // fire-and-forget — unknown codes fail silently
-      contentService.trackReferralClick(ref.trim()).catch(() => {});
-    }
+    // Referral tracking (session store + click increment) is handled by
+    // the global referralTrackingMiddleware — no duplicate call here.
     const testimonials = await contentService.getFeaturedTestimonials();
     res.render('pages/public/home', { testimonials });
   } catch (err) {

@@ -18,7 +18,14 @@ async function resolveChannel(
   recipientId: string,
   recipientType: string,
 ): Promise<NotificationChannel> {
-  if (recipientType !== 'seller') return 'whatsapp'; // agents use both by default
+  // N7: Respect agent notificationPreference (not just sellers)
+  if (recipientType === 'agent') {
+    const agentPreference = await notificationRepo.findAgentNotificationPreference(recipientId);
+    if (agentPreference === 'email_only') return 'email';
+    return 'whatsapp';
+  }
+
+  if (recipientType !== 'seller') return 'whatsapp';
 
   const preference = await notificationRepo.findSellerNotificationPreference(recipientId);
 
@@ -42,6 +49,25 @@ export async function checkDnc(_phone: string): Promise<DncCheckResult> {
 export async function send(input: SendNotificationInput, agentId: string): Promise<void> {
   const content = renderTemplate(input.templateName, input.templateData);
   const notificationType = input.notificationType || 'transactional';
+
+  // AML/CFT Reg 12H — Tipping-off prohibition
+  // When a CDD record is flagged as sensitiveCase, suppress all seller-facing
+  // notifications about compliance status to avoid alerting the seller.
+  if (
+    input.recipientType === 'seller' &&
+    (input.templateName.includes('cdd') || input.templateName.includes('compliance'))
+  ) {
+    const sensitive = await complianceService.isSensitiveCaseSeller(input.recipientId);
+    if (sensitive) {
+      await auditService.log({
+        action: 'notification.suppressed',
+        entityType: 'notification',
+        entityId: input.recipientId,
+        details: { reason: 'sensitive_case', templateName: input.templateName },
+      });
+      return; // silently suppress — do not send
+    }
+  }
 
   // Always create in-app notification
   const inAppRecord = await notificationRepo.create({
@@ -68,6 +94,16 @@ export async function send(input: SendNotificationInput, agentId: string): Promi
         },
       });
       return; // Only in-app delivered
+    }
+
+    // N5: Add unsubscribe URL for marketing emails
+    if (input.recipientType === 'seller') {
+      const unsubscribeToken = generateUnsubscribeToken(input.recipientId);
+      const appUrl = process.env.APP_URL || 'https://sellmyhomenow.sg';
+      input.templateData = {
+        ...input.templateData,
+        unsubscribeUrl: `${appUrl}/api/notifications/unsubscribe?token=${unsubscribeToken}`,
+      };
     }
   }
 

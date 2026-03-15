@@ -2,6 +2,7 @@ import * as financialService from '../financial.service';
 import * as financialRepo from '../financial.repository';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
+import { AIUnavailableError } from '@/domains/shared/ai/ai.facade';
 import * as auditService from '@/domains/shared/audit.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import type { FinancialCalculationInput, FinancialReportData } from '../financial.types';
@@ -9,10 +10,20 @@ import type { FinancialReport } from '@prisma/client';
 
 jest.mock('../financial.repository');
 jest.mock('@/domains/shared/settings.service');
-jest.mock('@/domains/shared/ai/ai.facade');
+jest.mock('@/domains/shared/ai/ai.facade', () => {
+  const actual = jest.requireActual('@/domains/shared/ai/ai.facade');
+  return {
+    ...actual,
+    generateText: jest.fn(),
+    getProvider: jest.fn(),
+  };
+});
 jest.mock('@/domains/shared/audit.service');
 jest.mock('@/domains/notification/notification.service');
 jest.mock('@paralleldrive/cuid2', () => ({ createId: () => 'test-report-id' }));
+jest.mock('@/infra/logger', () => ({
+  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+}));
 
 const mockRepo = financialRepo as jest.Mocked<typeof financialRepo>;
 const mockSettings = settingsService as jest.Mocked<typeof settingsService>;
@@ -168,6 +179,82 @@ describe('financial.service', () => {
       await expect(financialService.generateNarrative('nonexistent')).rejects.toThrow(
         'FinancialReport not found',
       );
+    });
+
+    it('handles AI unavailability gracefully — marks report for manual narrative', async () => {
+      const report = {
+        id: 'report-1',
+        reportData: {
+          outputs: {
+            salePrice: 500000,
+            outstandingLoan: 200000,
+            owner1Cpf: {
+              oaUsed: 100000,
+              accruedInterest: 28008,
+              totalRefund: 128008,
+              isEstimated: false,
+            },
+            totalCpfRefund: 128008,
+            resaleLevy: 40000,
+            commission: 1633.91,
+            legalFees: 2500,
+            totalDeductions: 372141.91,
+            netCashProceeds: 127858.09,
+            warnings: [],
+          },
+          metadata: { town: 'TAMPINES', flatType: '4 ROOM' },
+        },
+      } as unknown as FinancialReport;
+      mockRepo.findById.mockResolvedValue(report);
+      mockAI.generateText.mockRejectedValue(new AIUnavailableError('All providers failed'));
+      mockRepo.updateNarrative.mockResolvedValue({} as unknown as FinancialReport);
+
+      // Should NOT throw — graceful degradation
+      await financialService.generateNarrative('report-1');
+
+      expect(mockRepo.updateNarrative).toHaveBeenCalledWith(
+        'report-1',
+        expect.objectContaining({
+          aiNarrative: '',
+          aiProvider: 'unavailable',
+          aiModel: 'none',
+        }),
+      );
+      expect(mockAudit.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'financial.narrative_ai_unavailable',
+        }),
+      );
+    });
+
+    it('rethrows non-AI errors from generateText', async () => {
+      const report = {
+        id: 'report-1',
+        reportData: {
+          outputs: {
+            salePrice: 500000,
+            outstandingLoan: 200000,
+            owner1Cpf: {
+              oaUsed: 100000,
+              accruedInterest: 28008,
+              totalRefund: 128008,
+              isEstimated: false,
+            },
+            totalCpfRefund: 128008,
+            resaleLevy: 40000,
+            commission: 1633.91,
+            legalFees: 2500,
+            totalDeductions: 372141.91,
+            netCashProceeds: 127858.09,
+            warnings: [],
+          },
+          metadata: { town: 'TAMPINES', flatType: '4 ROOM' },
+        },
+      } as unknown as FinancialReport;
+      mockRepo.findById.mockResolvedValue(report);
+      mockAI.generateText.mockRejectedValue(new Error('Network error'));
+
+      await expect(financialService.generateNarrative('report-1')).rejects.toThrow('Network error');
     });
   });
 

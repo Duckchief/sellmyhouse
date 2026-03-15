@@ -14,6 +14,7 @@ import {
 } from './transaction.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import { localStorage } from '@/infra/storage/local-storage';
+import * as auditService from '@/domains/shared/audit.service';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 
 export const transactionRouter = Router();
@@ -369,6 +370,18 @@ transactionRouter.get(
 
       // Files are served through this authenticated route — never directly via nginx
       const buffer = await localStorage.read(invoicePath);
+
+      // A7: Audit invoice file download
+      const user = req.user as AuthenticatedUser;
+      const invoiceRecord = (invoice as { commissionInvoice?: { id?: string } }).commissionInvoice;
+      await auditService.log({
+        agentId: user.id,
+        action: 'invoice.file_downloaded',
+        entityType: 'commission_invoice',
+        entityId: invoiceRecord?.id ?? (req.params['id'] as string),
+        details: { transactionId: req.params['id'] },
+      });
+
       res.set('Content-Type', 'application/pdf');
       res.set('Content-Disposition', `attachment; filename="invoice-${req.params['id']}.pdf"`);
       res.send(buffer);

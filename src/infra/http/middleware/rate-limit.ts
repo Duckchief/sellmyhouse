@@ -21,8 +21,8 @@ export const apiRateLimiter = rateLimit({
 });
 
 export const globalRateLimiter = rateLimit({
-  windowMs: 60 * 1000,      // 1 minute
-  max: 300,                  // 300 requests/min/IP — covers HTMX fragment loads
+  windowMs: 60 * 1000, // 1 minute
+  max: 300, // 300 requests/min/IP — covers HTMX fragment loads
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many requests. Please slow down.',

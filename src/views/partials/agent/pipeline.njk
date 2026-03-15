@@ -18,6 +18,8 @@
 </div>
 {% endif %}
 
+{% include "partials/agent/repeat-viewers.njk" %}
+
 {% if overview.recentActivity.length > 0 %}
 <h2 class="text-lg font-semibold mb-3">{{ "Recent Activity" | t }}</h2>
 <div class="bg-white rounded-lg shadow divide-y">

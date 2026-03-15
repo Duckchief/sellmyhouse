@@ -137,6 +137,15 @@ export async function createOffer(input: CreateOfferServiceInput) {
         aiAnalysisModel: result.model,
         aiAnalysisStatus: AI_ANALYSIS_STATUS.GENERATED,
       });
+
+      // A5: Audit AI analysis generation
+      await auditService.log({
+        agentId: input.agentId,
+        action: 'offer.analysis_generated',
+        entityType: 'offer',
+        entityId: offerId,
+        details: { aiProvider: result.provider, aiModel: result.model },
+      });
     } catch {
       // AI analysis failure is non-fatal — offer is still recorded
     }
@@ -182,6 +191,24 @@ export async function counterOffer(input: CounterOfferInput & { role: string }) 
     details: { parentOfferId: input.parentOfferId, counterAmount: input.counterAmount },
   });
 
+  // N2: Notify seller of counter-offer
+  const counterProperty = await propertyRepo.findByIdWithListings(parent.propertyId);
+  if (counterProperty) {
+    await notificationService.send(
+      {
+        recipientType: 'seller',
+        recipientId: counterProperty.sellerId,
+        templateName: 'offer_countered',
+        templateData: {
+          address: `${counterProperty.block} ${counterProperty.street}, ${counterProperty.town}`,
+          originalAmount: String(parent.offerAmount),
+          counterAmount: String(input.counterAmount),
+        },
+      },
+      input.agentId,
+    );
+  }
+
   return child;
 }
 
@@ -209,6 +236,23 @@ export async function acceptOffer(input: { offerId: string; agentId: string; rol
     entityId: input.offerId,
     details: { propertyId: offer.propertyId },
   });
+
+  // N2: Notify seller of offer acceptance
+  const acceptProperty = await propertyRepo.findByIdWithListings(offer.propertyId);
+  if (acceptProperty) {
+    await notificationService.send(
+      {
+        recipientType: 'seller',
+        recipientId: acceptProperty.sellerId,
+        templateName: 'offer_accepted',
+        templateData: {
+          address: `${acceptProperty.block} ${acceptProperty.street}, ${acceptProperty.town}`,
+          amount: String(offer.offerAmount),
+        },
+      },
+      input.agentId,
+    );
+  }
 
   return updated;
 }

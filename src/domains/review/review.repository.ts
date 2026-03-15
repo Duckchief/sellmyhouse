@@ -414,3 +414,10 @@ export async function findActiveEaa(sellerId: string) {
     where: { sellerId, status: { in: ['signed', 'active'] } },
   });
 }
+
+export async function findSellerById(sellerId: string) {
+  return prisma.seller.findUnique({
+    where: { id: sellerId },
+    select: { id: true, name: true, agentId: true },
+  });
+}

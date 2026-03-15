@@ -130,6 +130,40 @@ export async function sendPostCompletionMessages(): Promise<void> {
   }
 }
 
+/**
+ * N4: HDB appointment reminders — sends reminders for appointments in the next 3 days.
+ * Deduplication via Notification table check.
+ */
+export async function sendHdbAppointmentReminders(): Promise<{ reminded: number }> {
+  const upcoming = await txRepo.findUpcomingHdbAppointments(3);
+  let reminded = 0;
+
+  for (const tx of upcoming) {
+    const templateName = 'generic' as NotificationTemplateName;
+    const existing = await txRepo.findExistingNotification('hdb_appointment_reminder', tx.sellerId);
+    if (existing) continue;
+
+    const appointmentDate = tx.hdbAppointmentDate
+      ? tx.hdbAppointmentDate.toISOString().split('T')[0]
+      : 'upcoming';
+
+    await notificationService.send(
+      {
+        recipientType: 'seller',
+        recipientId: tx.sellerId,
+        templateName,
+        templateData: {
+          message: `Your HDB resale appointment is on ${appointmentDate}. Please ensure all required documents are ready.`,
+        },
+      },
+      'system',
+    );
+    reminded++;
+  }
+
+  return { reminded };
+}
+
 export function registerTransactionJobs(): void {
   registerJob(
     'transaction:otp-exercise-reminders',
@@ -142,6 +176,16 @@ export function registerTransactionJobs(): void {
     'transaction:post-completion-messages',
     '0 9 * * *',
     () => sendPostCompletionMessages(),
+    'Asia/Singapore',
+  );
+
+  // N4: HDB appointment reminders — daily at 9am SGT
+  registerJob(
+    'transaction:hdb-appointment-reminders',
+    '0 9 * * *',
+    async () => {
+      await sendHdbAppointmentReminders();
+    },
     'Asia/Singapore',
   );
 }

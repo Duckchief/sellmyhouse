@@ -8,7 +8,13 @@ import * as portalService from '@/domains/property/portal.service';
 import * as propertyService from '@/domains/property/property.service';
 import * as viewingService from '@/domains/viewing/viewing.service';
 import { localStorage } from '@/infra/storage/local-storage';
-import { NotFoundError, ValidationError, ConflictError } from '@/domains/shared/errors';
+import { scanBuffer } from '@/infra/security/virus-scanner';
+import {
+  NotFoundError,
+  ValidationError,
+  ConflictError,
+  ComplianceError,
+} from '@/domains/shared/errors';
 import { OTP_TRANSITIONS, TRANSACTION_STATUS_ORDER } from './transaction.types';
 import * as offerService from '@/domains/offer/offer.service';
 import * as complianceService from '@/domains/compliance/compliance.service';
@@ -131,6 +137,11 @@ export async function advanceTransactionStatus(input: {
 }
 
 async function handleFallenThrough(propertyId: string, transactionId: string, agentId: string) {
+  // Note: COS 2020 Condition 16 — In the event of a conveyancing dispute
+  // governed by COS 2020, parties should consider settling the dispute
+  // amicably through mediation before commencing legal proceedings.
+  // The agent should inform both parties of this option if a dispute arises.
+
   // 1. Expire active OTP
   const otp = await txRepo.findOtpByTransactionId(transactionId);
   if (otp && otp.status !== 'exercised' && otp.status !== 'expired') {
@@ -222,6 +233,11 @@ export async function updateHdbTracking(input: {
   const tx = await txRepo.findById(input.transactionId);
   if (!tx) throw new NotFoundError('Transaction', input.transactionId);
 
+  // Gate: HDB submission review — verify OTP is exercised before submission
+  if (input.hdbApplicationStatus === 'application_submitted') {
+    await checkComplianceGate('hdb_submission_review', tx.sellerId);
+  }
+
   const updated = await txRepo.updateHdbTracking(input.transactionId, {
     hdbApplicationStatus: input.hdbApplicationStatus,
     hdbAppointmentDate: input.hdbAppointmentDate,
@@ -303,6 +319,19 @@ export async function advanceOtp(input: AdvanceOtpInput) {
     throw new ValidationError('Agent must review OTP before issuing to buyer');
   }
 
+  // Gate: counterparty CDD required for unrepresented buyers (AML/CFT Reg 12B)
+  if (nextStatus === 'issued_to_buyer') {
+    const acceptedOffer = await txRepo.findAcceptedOfferByPropertyId(tx.propertyId);
+    if (acceptedOffer && !acceptedOffer.buyerAgentName) {
+      const buyerCdd = await txRepo.findCounterpartyCddByPropertyId(tx.propertyId);
+      if (!buyerCdd) {
+        throw new ComplianceError(
+          'Counterparty CDD must be completed and verified for unrepresented buyers before OTP can be issued to buyer (AML/CFT Reg 12B)',
+        );
+      }
+    }
+  }
+
   const issuedAt = nextStatus === 'issued_to_buyer' ? (input.issuedAt ?? new Date()) : undefined;
   const exercisedAt = nextStatus === 'exercised' ? new Date() : undefined;
 
@@ -348,7 +377,11 @@ export async function markOtpReviewed(input: {
     action: 'otp.reviewed',
     entityType: 'otp',
     entityId: otp.id,
-    details: {},
+    details: {
+      // PG 1-2021: Agent must advise seller to seek independent legal advice
+      legalAdviceReminder:
+        'Agent confirms seller was advised to seek independent legal advice before signing',
+    },
   });
 
   return updated;
@@ -365,6 +398,18 @@ export async function uploadOtpScan(input: UploadOtpScanInput) {
   }
   if (input.fileBuffer.length > 10 * 1024 * 1024) {
     throw new ValidationError('File must be 10MB or smaller');
+  }
+
+  // Virus scan before saving
+  const scanResult = await scanBuffer(input.fileBuffer, input.originalFilename);
+  if (!scanResult.isClean) {
+    await auditService.log({
+      action: 'upload.virus_detected',
+      entityType: 'otp',
+      entityId: otp.id,
+      details: { filename: input.originalFilename, viruses: scanResult.viruses },
+    });
+    throw new ValidationError('File rejected: security scan failed');
   }
 
   // Use UUID-based filename to prevent path traversal — never use originalFilename as stored name
@@ -401,6 +446,18 @@ export async function uploadInvoice(input: UploadInvoiceInput) {
   if (ext !== '.pdf') throw new ValidationError('Invoice must be a PDF file');
   if (input.fileBuffer.length > 10 * 1024 * 1024)
     throw new ValidationError('File must be 10MB or smaller');
+
+  // Virus scan before saving
+  const invoiceScanResult = await scanBuffer(input.fileBuffer, input.originalFilename);
+  if (!invoiceScanResult.isClean) {
+    await auditService.log({
+      action: 'upload.virus_detected',
+      entityType: 'commission_invoice',
+      entityId: input.transactionId,
+      details: { filename: input.originalFilename, viruses: invoiceScanResult.viruses },
+    });
+    throw new ValidationError('File rejected: security scan failed');
+  }
 
   const storedFilename = `invoice-${createId()}.pdf`;
   const storedPath = await localStorage.save(
@@ -444,12 +501,21 @@ export async function sendInvoice(input: {
   const invoice = await txRepo.findInvoiceByTransactionId(input.transactionId);
   if (!invoice) throw new NotFoundError('CommissionInvoice', input.transactionId);
 
+  // N6: Fetch actual property address instead of using transactionId
+  const invoiceTx = await txRepo.findById(input.transactionId);
+  const invoiceProperty = invoiceTx
+    ? await propertyService.getPropertyById(invoiceTx.propertyId)
+    : null;
+  const invoiceAddress = invoiceProperty
+    ? `${invoiceProperty.block} ${invoiceProperty.street}, ${invoiceProperty.town}`
+    : 'your property';
+
   await notificationService.send(
     {
       recipientType: 'seller',
       recipientId: input.sellerId,
       templateName: 'invoice_uploaded',
-      templateData: { address: input.transactionId },
+      templateData: { address: invoiceAddress },
     },
     input.agentId,
   );

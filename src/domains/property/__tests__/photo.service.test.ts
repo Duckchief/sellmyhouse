@@ -2,6 +2,7 @@ import * as photoService from '../photo.service';
 import * as propertyRepo from '../property.repository';
 import * as auditService from '../../shared/audit.service';
 import { localStorage } from '../../../infra/storage/local-storage';
+import { scanBuffer } from '@/infra/security/virus-scanner';
 import { fromBuffer as fileTypeFromBuffer } from 'file-type';
 import { NotFoundError, ValidationError, ForbiddenError } from '../../shared/errors';
 import type { PhotoRecord } from '../property.types';
@@ -26,6 +27,12 @@ jest.mock('sharp', () => {
   }));
   return mockSharp;
 });
+
+// ─── Mock virus scanner ──────────────────────────────────────────────────────
+
+jest.mock('@/infra/security/virus-scanner', () => ({
+  scanBuffer: jest.fn().mockResolvedValue({ isClean: true, viruses: [] }),
+}));
 
 // ─── Mock dependencies ────────────────────────────────────────────────────────
 
@@ -436,6 +443,32 @@ describe('photo.service', () => {
       await expect(photoService.reorderPhotos('bad-prop', ['photo-1'])).rejects.toThrow(
         NotFoundError,
       );
+    });
+  });
+
+  // ─── processAndSavePhoto — virus scan rejection ──────────────
+
+  describe('processAndSavePhoto — virus scan', () => {
+    it('rejects file when virus is detected', async () => {
+      jest.mocked(scanBuffer).mockResolvedValueOnce({
+        isClean: false,
+        viruses: ['Eicar-Test-Signature'],
+      });
+
+      const buffer = Buffer.from('infected-data');
+      await expect(
+        photoService.processAndSavePhoto(buffer, 'bad.jpg', 'image/jpeg', 'seller-1', 'prop-1'),
+      ).rejects.toThrow(ValidationError);
+
+      expect(mockedAudit.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'upload.virus_detected',
+          entityType: 'property',
+          details: expect.objectContaining({ viruses: ['Eicar-Test-Signature'] }),
+        }),
+      );
+      // File should NOT be saved
+      expect(mockedStorage.save).not.toHaveBeenCalled();
     });
   });
 

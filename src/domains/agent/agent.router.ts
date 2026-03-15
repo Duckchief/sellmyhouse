@@ -34,12 +34,15 @@ agentRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const overview = await agentService.getPipelineOverview(getAgentFilter(user));
+      const [overview, repeatViewers] = await Promise.all([
+        agentService.getPipelineOverview(getAgentFilter(user)),
+        agentService.getRepeatViewers(),
+      ]);
 
       if (req.headers['hx-request']) {
-        return res.render('partials/agent/pipeline', { overview });
+        return res.render('partials/agent/pipeline', { overview, repeatViewers });
       }
-      res.render('pages/agent/dashboard', { overview });
+      res.render('pages/agent/dashboard', { overview, repeatViewers });
     } catch (err) {
       next(err);
     }

@@ -356,6 +356,84 @@ export async function findViewingsNeedingFeedbackPrompt() {
   `;
 }
 
+/**
+ * Find completed viewings from approximately 24 hours ago that haven't
+ * had a follow-up sent yet.
+ */
+export async function findViewingsNeedingFollowup() {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - 25 * 60 * 60 * 1000); // 25 hours ago
+  const windowEnd = new Date(now.getTime() - 23 * 60 * 60 * 1000); // 23 hours ago
+
+  return prisma.viewing.findMany({
+    where: {
+      status: 'completed',
+      followupSentAt: null,
+      completedAt: { gte: windowStart, lte: windowEnd },
+    },
+    include: {
+      verifiedViewer: true,
+      viewingSlot: {
+        include: {
+          property: {
+            select: {
+              town: true,
+              street: true,
+              sellerId: true,
+              seller: { select: { agentId: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function markFollowupSent(viewingId: string) {
+  return prisma.viewing.update({
+    where: { id: viewingId },
+    data: { followupSentAt: new Date() },
+  });
+}
+
+/**
+ * Find VerifiedViewers who have booked viewings for 2+ different properties.
+ * Returns viewer details and the list of properties they've viewed.
+ */
+export async function findRepeatViewers(minProperties: number = 2) {
+  const results = await prisma.$queryRaw<
+    Array<{
+      viewer_id: string;
+      viewer_name: string;
+      viewer_phone: string;
+      property_count: bigint;
+      property_ids: string;
+    }>
+  >`
+    SELECT
+      vv.id AS viewer_id,
+      vv.name AS viewer_name,
+      vv.phone AS viewer_phone,
+      COUNT(DISTINCT vs.property_id) AS property_count,
+      STRING_AGG(DISTINCT vs.property_id, ',') AS property_ids
+    FROM verified_viewers vv
+    JOIN viewings v ON v.verified_viewer_id = vv.id
+    JOIN viewing_slots vs ON v.viewing_slot_id = vs.id
+    WHERE v.status IN ('scheduled', 'completed')
+    GROUP BY vv.id, vv.name, vv.phone
+    HAVING COUNT(DISTINCT vs.property_id) >= ${minProperties}
+    ORDER BY property_count DESC
+  `;
+
+  return results.map((r) => ({
+    viewerId: r.viewer_id,
+    viewerName: r.viewer_name,
+    viewerPhone: r.viewer_phone,
+    propertyCount: Number(r.property_count),
+    propertyIds: r.property_ids.split(','),
+  }));
+}
+
 export async function findPropertyById(id: string) {
   return prisma.property.findUnique({ where: { id } });
 }

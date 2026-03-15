@@ -36,9 +36,21 @@ export async function checkDncAllowed(
     return { allowed: false, reason: 'Seller has not given marketing consent' };
   }
 
-  // TODO: Integrate Singapore DNC Registry API before enabling
-  // outbound marketing at scale. Currently always returns
-  // { blocked: false }. Tracked in [your issue tracker].
+  // DNC Registry Integration (PDPA)
+  // Current approach: consent-based. Sellers explicitly opt in during onboarding,
+  // so service communications are permitted. Marketing communications are gated
+  // by the consentMarketing flag (separate from service consent, never pre-ticked).
+  //
+  // Future enhancement: integrate Singapore DNC Registry API (https://www.dnc.gov.sg)
+  // for outbound marketing to non-clients (e.g., cold outreach campaigns).
+  // This is not needed for current MVP where all communications are to opted-in sellers.
+  //
+  // When implementing:
+  //   1. Register for DNC API access at dnc.gov.sg
+  //   2. Before any marketing WhatsApp/phone call to a NEW number (not an existing seller),
+  //      check the number against the DNC registry
+  //   3. Cache results for 30 days (DNC registry updates monthly)
+  //   4. Log all DNC checks in audit trail
   return { allowed: true };
 }
 
@@ -270,8 +282,16 @@ export async function getMyData(sellerId: string) {
 }
 
 export async function generateDataExport(sellerId: string): Promise<Record<string, unknown>> {
+  // A2: Audit data access request
+  await auditService.log({
+    action: 'data_access.requested',
+    entityType: 'seller',
+    entityId: sellerId,
+    details: { requestedBy: 'seller' },
+  });
+
   const myData = await getMyData(sellerId);
-  return {
+  const exportData = {
     exportedAt: new Date().toISOString(),
     seller: myData.seller,
     properties: myData.properties,
@@ -289,6 +309,16 @@ export async function generateDataExport(sellerId: string): Promise<Record<strin
       processedAt: r.processedAt,
     })),
   };
+
+  // A2: Audit data access fulfilled
+  await auditService.log({
+    action: 'data_access.fulfilled',
+    entityType: 'seller',
+    entityId: sellerId,
+    details: { format: 'json', fieldsIncluded: Object.keys(exportData) },
+  });
+
+  return exportData;
 }
 
 // ─── SP3: Retention Scanning ──────────────────────────────────────────────────
@@ -622,6 +652,27 @@ export async function createCddRecord(
       subjectId: input.subjectId,
     },
   });
+
+  // A4: Audit identity verification and risk assessment if set on creation
+  if (record.identityVerified) {
+    await auditService.log({
+      agentId,
+      action: 'cdd.identity_verified',
+      entityType: 'cdd_record',
+      entityId: record.id,
+      details: { subjectType: input.subjectType, subjectId: input.subjectId },
+    });
+  }
+  if (input.riskLevel) {
+    await auditService.log({
+      agentId,
+      action: 'cdd.risk_assessed',
+      entityType: 'cdd_record',
+      entityId: record.id,
+      details: { riskLevel: input.riskLevel },
+    });
+  }
+
   return record;
 }
 
@@ -676,6 +727,12 @@ export function findCddRecordByTransactionAndSubjectType(
   subjectType: string,
 ) {
   return complianceRepo.findCddRecordByTransactionAndSubjectType(transactionId, subjectType);
+}
+
+// ─── AML/CFT Reg 12H: Tipping-Off Suppression ───────────────────────────────
+
+export async function isSensitiveCaseSeller(sellerId: string): Promise<boolean> {
+  return complianceRepo.findSensitiveCaseBySellerId(sellerId);
 }
 
 // ─── SP3: Agent Anonymisation ─────────────────────────────────────────────────

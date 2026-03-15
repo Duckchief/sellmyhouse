@@ -22,4 +22,13 @@ export function registerViewingJobs() {
     () => viewingService.sendFeedbackPrompts(),
     'Asia/Singapore',
   );
+
+  registerJob(
+    'viewing:followup',
+    '0 */2 * * *', // Every 2 hours
+    async () => {
+      await viewingService.sendViewerFollowups();
+    },
+    'Asia/Singapore',
+  );
 }

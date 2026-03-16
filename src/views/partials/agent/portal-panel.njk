@@ -1,9 +1,9 @@
 {# partials/agent/portal-panel.njk #}
 {% set content = portalListing.portalReadyContent %}
 {% set portalLabels = { propertyguru: "PropertyGuru", ninety_nine_co: "99.co", srx: "SRX" } %}
-<div class="portal-panel border rounded p-4 mb-4" id="portal-{{ portalListing.id }}">
+<div class="portal-panel bg-white rounded-xl border border-slate-200 p-6 mb-4" id="portal-{{ portalListing.id }}">
   <div class="flex items-center justify-between mb-3">
-    <h2 class="font-semibold">{{ portalLabels[portalListing.portalName] or portalListing.portalName }}</h2>
+    <h2 class="text-sm font-semibold text-gray-900">{{ portalLabels[portalListing.portalName] or portalListing.portalName }}</h2>
     <span class="badge badge-{{ portalListing.status }}">{{ portalListing.status | t }}</span>
   </div>
 

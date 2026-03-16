@@ -10,100 +10,106 @@
 <div class="space-y-6">
 
   {# 1. Overview #}
-  <fieldset class="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
-    <legend class="px-2 text-base font-semibold text-gray-900">{{ "Overview" | t }}</legend>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-      <div>
-        <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Seller Info" | t }}</h3>
-        <dl class="space-y-2 text-sm">
-          <div class="flex justify-between"><dt class="text-gray-500">{{ "Status" | t }}</dt><dd>{{ seller.status }}</dd></div>
-          <div class="flex justify-between"><dt class="text-gray-500">{{ "Lead Source" | t }}</dt><dd>{{ seller.leadSource or "—" }}</dd></div>
-          <div class="flex justify-between"><dt class="text-gray-500">{{ "Onboarding" | t }}</dt><dd>{{ "Step" | t }} {{ seller.onboardingStep }} / 5</dd></div>
-          <div class="flex justify-between"><dt class="text-gray-500">{{ "Created" | t }}</dt><dd>{{ seller.createdAt | date('DD/MM/YYYY HH:mm') }}</dd></div>
-        </dl>
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Overview" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Seller Info" | t }}</h3>
+          <dl class="space-y-2 text-sm">
+            <div class="flex justify-between"><dt class="text-gray-500">{{ "Status" | t }}</dt><dd>{{ seller.status }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">{{ "Lead Source" | t }}</dt><dd>{{ seller.leadSource or "—" }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">{{ "Onboarding" | t }}</dt><dd>{{ "Step" | t }} {{ seller.onboardingStep }} / 5</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">{{ "Created" | t }}</dt><dd>{{ seller.createdAt | date('DD/MM/YYYY HH:mm') }}</dd></div>
+          </dl>
+        </div>
+        {% if seller.property %}
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Property" | t }}</h3>
+          <dl class="space-y-2 text-sm">
+            <div class="flex justify-between"><dt class="text-gray-500">{{ "Address" | t }}</dt><dd>{{ seller.property.block }} {{ seller.property.street }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">{{ "Town" | t }}</dt><dd>{{ seller.property.town }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">{{ "Type" | t }}</dt><dd>{{ seller.property.flatType }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">{{ "Floor Area" | t }}</dt><dd>{{ seller.property.floorAreaSqm }} sqm</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">{{ "Asking Price" | t }}</dt><dd>{% if seller.property.askingPrice %}${{ seller.property.askingPrice | formatPrice }}{% else %}{{ "Not set" | t }}{% endif %}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">{{ "Status" | t }}</dt><dd>{{ seller.property.status }}</dd></div>
+          </dl>
+        </div>
+        {% else %}
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Property" | t }}</h3>
+          <p class="text-gray-500 text-sm">{{ "No property added yet" | t }}</p>
+        </div>
+        {% endif %}
       </div>
-      {% if seller.property %}
-      <div>
-        <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Property" | t }}</h3>
-        <dl class="space-y-2 text-sm">
-          <div class="flex justify-between"><dt class="text-gray-500">{{ "Address" | t }}</dt><dd>{{ seller.property.block }} {{ seller.property.street }}</dd></div>
-          <div class="flex justify-between"><dt class="text-gray-500">{{ "Town" | t }}</dt><dd>{{ seller.property.town }}</dd></div>
-          <div class="flex justify-between"><dt class="text-gray-500">{{ "Type" | t }}</dt><dd>{{ seller.property.flatType }}</dd></div>
-          <div class="flex justify-between"><dt class="text-gray-500">{{ "Floor Area" | t }}</dt><dd>{{ seller.property.floorAreaSqm }} sqm</dd></div>
-          <div class="flex justify-between"><dt class="text-gray-500">{{ "Asking Price" | t }}</dt><dd>{% if seller.property.askingPrice %}${{ seller.property.askingPrice | formatPrice }}{% else %}{{ "Not set" | t }}{% endif %}</dd></div>
-          <div class="flex justify-between"><dt class="text-gray-500">{{ "Status" | t }}</dt><dd>{{ seller.property.status }}</dd></div>
-        </dl>
-      </div>
-      {% else %}
-      <div>
-        <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Property" | t }}</h3>
-        <p class="text-gray-500 text-sm">{{ "No property added yet" | t }}</p>
-      </div>
-      {% endif %}
     </div>
-  </fieldset>
+  </section>
 
   {# 2. Transaction Timeline #}
-  <fieldset class="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
-    <legend class="px-2 text-base font-semibold text-gray-900">{{ "Transaction Timeline" | t }}</legend>
-    <div class="space-y-4 mt-2">
-      {% for milestone in milestones %}
-      <div class="flex items-start gap-3">
-        <div class="mt-1 w-3 h-3 rounded-full flex-shrink-0
-          {% if milestone.status == 'completed' %}bg-green-500
-          {% elif milestone.status == 'current' %}bg-blue-500
-          {% else %}bg-gray-300{% endif %}"></div>
-        <div>
-          <div class="text-sm font-medium {% if milestone.status == 'upcoming' %}text-gray-400{% endif %}">{{ milestone.label | t }}</div>
-          <div class="text-xs text-gray-500">{{ milestone.description | t }}</div>
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Transaction Timeline" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
+      <div class="space-y-4">
+        {% for milestone in milestones %}
+        <div class="flex items-start gap-3">
+          <div class="mt-1 w-3 h-3 rounded-full flex-shrink-0
+            {% if milestone.status == 'completed' %}bg-green-500
+            {% elif milestone.status == 'current' %}bg-blue-500
+            {% else %}bg-gray-300{% endif %}"></div>
+          <div>
+            <div class="text-sm font-medium {% if milestone.status == 'upcoming' %}text-gray-400{% endif %}">{{ milestone.label | t }}</div>
+            <div class="text-xs text-gray-500">{{ milestone.description | t }}</div>
+          </div>
         </div>
+        {% endfor %}
       </div>
-      {% endfor %}
     </div>
-  </fieldset>
+  </section>
 
   {# 3. CDD Status #}
-  <fieldset class="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
-    <legend class="px-2 text-base font-semibold text-gray-900">{{ "CDD Status" | t }}</legend>
-    <div class="mt-2">
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "CDD Status" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
       {% include "partials/agent/compliance-cdd-card.njk" %}
     </div>
-  </fieldset>
+  </section>
 
   {# 4. Estate Agency Agreement #}
-  <fieldset class="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
-    <legend class="px-2 text-base font-semibold text-gray-900">{{ "Estate Agency Agreement" | t }}</legend>
-    <div class="mt-2">
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Estate Agency Agreement" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
       {% include "partials/agent/compliance-eaa-card.njk" %}
     </div>
-  </fieldset>
+  </section>
 
   {# 5. Counterparty CDD — only when active transaction exists #}
   {% if compliance.counterpartyCdd %}
-  <fieldset class="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
-    <legend class="px-2 text-base font-semibold text-gray-900">{{ "Counterparty CDD" | t }}</legend>
-    <div class="mt-2">
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Counterparty CDD" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
       {% include "partials/agent/compliance-counterparty-cdd-card.njk" %}
     </div>
-  </fieldset>
+  </section>
   {% endif %}
 
   {# 6. Consent #}
-  <fieldset class="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
-    <legend class="px-2 text-base font-semibold text-gray-900">{{ "Consent" | t }}</legend>
-    <dl class="space-y-2 text-sm mt-2">
-      <div class="flex justify-between"><dt class="text-gray-500">{{ "Service" | t }}</dt><dd>{% if compliance.consent.service %}✓{% else %}✗{% endif %}</dd></div>
-      <div class="flex justify-between"><dt class="text-gray-500">{{ "Marketing" | t }}</dt><dd>{% if compliance.consent.marketing %}✓{% else %}✗{% endif %}</dd></div>
-      {% if compliance.consent.withdrawnAt %}
-      <div class="text-xs text-red-500">{{ "Withdrawn:" | t }} {{ compliance.consent.withdrawnAt | date }}</div>
-      {% endif %}
-    </dl>
-  </fieldset>
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Consent" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
+      <dl class="space-y-2 text-sm">
+        <div class="flex justify-between"><dt class="text-gray-500">{{ "Service" | t }}</dt><dd>{% if compliance.consent.service %}✓{% else %}✗{% endif %}</dd></div>
+        <div class="flex justify-between"><dt class="text-gray-500">{{ "Marketing" | t }}</dt><dd>{% if compliance.consent.marketing %}✓{% else %}✗{% endif %}</dd></div>
+        {% if compliance.consent.withdrawnAt %}
+        <div class="text-xs text-red-500">{{ "Withdrawn:" | t }} {{ compliance.consent.withdrawnAt | date }}</div>
+        {% endif %}
+      </dl>
+    </div>
+  </section>
 
   {# 7. Case Flags #}
-  <fieldset class="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
-    <legend class="px-2 text-base font-semibold text-gray-900">{{ "Case Flags" | t }}</legend>
-    <div class="mt-2">
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Case Flags" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
       {% if compliance.caseFlags.length == 0 %}
       <p class="text-sm text-gray-500">{{ "No active flags" | t }}</p>
       {% else %}
@@ -117,15 +123,17 @@
       </div>
       {% endif %}
     </div>
-  </fieldset>
+  </section>
 
   {# 8. Notifications #}
-  <fieldset id="notifications-fieldset" class="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden">
-    <legend class="px-2 text-base font-semibold text-gray-900 ml-4 mt-2">{{ "Notifications" | t }}</legend>
-    <div id="notifications-section" class="mt-2">
-      {% include "partials/agent/seller-notifications.njk" %}
+  <section id="notifications-fieldset">
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Notifications" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div id="notifications-section">
+        {% include "partials/agent/seller-notifications.njk" %}
+      </div>
     </div>
-  </fieldset>
+  </section>
 
 </div>
 

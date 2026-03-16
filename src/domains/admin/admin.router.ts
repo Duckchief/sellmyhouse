@@ -698,11 +698,15 @@ adminRouter.get(
 adminRouter.get(
   '/admin/tutorials/new',
   ...adminAuth,
-  async (_req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const VALID_CATEGORIES = ['photography', 'forms', 'process', 'financial'];
+      const rawCategory = req.query['category'] as string | undefined;
+      const preselectedCategory = VALID_CATEGORIES.includes(rawCategory ?? '') ? rawCategory : '';
       return res.render('pages/admin/tutorial-form', {
         tutorial: null,
         errors: [],
+        preselectedCategory,
         currentPath: '/admin/tutorials',
       });
     } catch (err) {

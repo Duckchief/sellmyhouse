@@ -654,16 +654,35 @@ adminRouter.post(
   },
 );
 
+const VALID_TUTORIAL_TABS = ['photography', 'forms', 'process', 'financial'] as const;
+type TutorialTab = (typeof VALID_TUTORIAL_TABS)[number];
+
 adminRouter.get(
   '/admin/tutorials',
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const tutorials = await contentService.getTutorialsGrouped();
+      const rawTab = req.query['tab'] as string | undefined;
+      const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab)
+        ? (rawTab as TutorialTab)
+        : 'photography';
+      const tabCounts: Record<TutorialTab, number> = {
+        photography: (tutorials['photography'] ?? []).length,
+        forms: (tutorials['forms'] ?? []).length,
+        process: (tutorials['process'] ?? []).length,
+        financial: (tutorials['financial'] ?? []).length,
+      };
+      const activeItems = tutorials[activeTab] ?? [];
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/tutorial-list', { tutorials });
+        return res.render('partials/admin/tutorial-list', { tutorials: activeItems, activeTab });
       }
-      return res.render('pages/admin/tutorials', { tutorials, currentPath: '/admin/tutorials' });
+      return res.render('pages/admin/tutorials', {
+        tutorials: activeItems,
+        activeTab,
+        tabCounts,
+        currentPath: '/admin/tutorials',
+      });
     } catch (err) {
       return next(err);
     }

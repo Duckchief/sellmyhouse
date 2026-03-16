@@ -435,6 +435,7 @@ export async function findSellerDetailForAdmin(id: string) {
           floorAreaSqm: true,
           storeyRange: true,
           askingPrice: true,
+          status: true,
         },
       },
       transactions: {

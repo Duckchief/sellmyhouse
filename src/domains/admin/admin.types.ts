@@ -1,5 +1,8 @@
 // src/domains/admin/admin.types.ts
 
+import type { TimelineMilestone } from '@/domains/seller/seller.types';
+import type { NotificationHistoryItem } from '@/domains/agent/agent.types';
+
 export interface TeamMember {
   id: string;
   name: string;
@@ -202,4 +205,6 @@ export interface AdminSellerDetail {
     details: unknown;
     createdAt: Date;
   }>;
+  milestones: TimelineMilestone[];
+  notifications: NotificationHistoryItem[];
 }

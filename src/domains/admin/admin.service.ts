@@ -25,6 +25,8 @@ import type {
   SettingWithMeta,
 } from './admin.types';
 import type { SettingKey } from '@/domains/shared/settings.types';
+import { getTimelineMilestones } from '@/domains/seller/seller.service';
+import * as agentService from '@/domains/agent/agent.service';
 
 // ─── Team Management ─────────────────────────────────────────
 
@@ -539,13 +541,18 @@ export async function getAdminSellerDetail(id: string): Promise<AdminSellerDetai
   const raw = await adminRepo.findSellerDetailForAdmin(id);
   if (!raw) throw new NotFoundError('Seller not found');
 
-  const [cdd, auditLog] = await Promise.all([
+  const [cdd, auditLog, notifications] = await Promise.all([
     complianceService.findLatestSellerCddRecord(id),
     auditRepo.findByEntity('seller', id),
+    agentService.getNotificationHistory(id),
   ]);
 
   const property = raw.properties[0] ?? null;
   const transaction = raw.transactions[0] ?? null;
+  const milestones = getTimelineMilestones(
+    property?.status ?? null,
+    transaction?.status ?? null,
+  );
 
   return {
     seller: {
@@ -593,5 +600,7 @@ export async function getAdminSellerDetail(id: string): Promise<AdminSellerDetai
       hasWithdrawal: raw.consentRecords.some((c) => c.consentWithdrawnAt !== null),
     },
     auditLog: auditLog.slice(0, 20),
+    milestones,
+    notifications,
   };
 }

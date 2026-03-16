@@ -9,6 +9,7 @@ jest.mock('@/domains/shared/audit.repository');
 jest.mock('@/domains/shared/settings.service');
 jest.mock('@/domains/notification/notification.service');
 jest.mock('@/domains/compliance/compliance.service');
+jest.mock('@/domains/agent/agent.service');
 jest.mock('nodemailer', () => ({
   createTransport: () => ({
     sendMail: jest.fn().mockResolvedValue({ messageId: 'test-msg-id' }),
@@ -21,6 +22,7 @@ import * as auditRepo from '@/domains/shared/audit.repository';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as complianceService from '@/domains/compliance/compliance.service';
+import * as agentService from '@/domains/agent/agent.service';
 import * as adminService from '../admin.service';
 import { NotFoundError } from '@/domains/shared/errors';
 
@@ -30,6 +32,7 @@ const mockAuditRepo = auditRepo as jest.Mocked<typeof auditRepo>;
 const mockSettingsService = settingsService as jest.Mocked<typeof settingsService>;
 const mockNotificationService = notificationService as jest.Mocked<typeof notificationService>;
 const mockComplianceService = complianceService as jest.Mocked<typeof complianceService>;
+const mockAgentService = agentService as jest.Mocked<typeof agentService>;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -565,6 +568,10 @@ describe('updateSetting', () => {
 // ─── getAdminSellerDetail ────────────────────────────────────
 
 describe('getAdminSellerDetail', () => {
+  beforeEach(() => {
+    mockAgentService.getNotificationHistory.mockResolvedValue([]);
+  });
+
   const baseSeller = {
     id: 'seller-1',
     name: 'Alice Tan',
@@ -583,6 +590,7 @@ describe('getAdminSellerDetail', () => {
         floorAreaSqm: 90,
         storeyRange: '10 TO 12',
         askingPrice: { toNumber: () => 500000 },
+        status: 'listed',
       },
     ],
     transactions: [
@@ -621,6 +629,19 @@ describe('getAdminSellerDetail', () => {
     },
   ];
 
+  const baseNotification = [
+    {
+      id: 'notif-1',
+      channel: 'whatsapp',
+      templateName: 'welcome',
+      content: 'Hello',
+      status: 'delivered',
+      sentAt: new Date('2026-02-01'),
+      deliveredAt: new Date('2026-02-01'),
+      createdAt: new Date('2026-02-01'),
+    },
+  ];
+
   it('throws NotFoundError when seller not found', async () => {
     mockAdminRepo.findSellerDetailForAdmin.mockResolvedValue(null);
     mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(null);
@@ -633,6 +654,7 @@ describe('getAdminSellerDetail', () => {
     mockAdminRepo.findSellerDetailForAdmin.mockResolvedValue(baseSeller as never);
     mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(baseCdd as never);
     mockAuditRepo.findByEntity.mockResolvedValue(baseAudit as never);
+    mockAgentService.getNotificationHistory.mockResolvedValue(baseNotification as never);
 
     const result = await adminService.getAdminSellerDetail('seller-1');
 
@@ -651,6 +673,9 @@ describe('getAdminSellerDetail', () => {
     expect(result.compliance.hasWithdrawal).toBe(true);
     expect(result.auditLog).toHaveLength(1);
     expect(result.auditLog[0].action).toBe('seller.created');
+    expect(result.milestones.length).toBeGreaterThan(0);
+    expect(result.notifications).toHaveLength(1);
+    expect(result.notifications[0].channel).toBe('whatsapp');
   });
 
   it('returns null property, agent and transaction when seller has none', async () => {

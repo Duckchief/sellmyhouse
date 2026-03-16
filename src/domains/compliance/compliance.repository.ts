@@ -341,8 +341,9 @@ export async function createEaa(data: CreateEaaInput): Promise<EaaRecord> {
       commissionAmount: data.commissionAmount ?? 1499,
       commissionGstInclusive: data.commissionGstInclusive ?? false,
       coBrokingAllowed: data.coBrokingAllowed ?? true,
-      coBrokingTerms: data.coBrokingTerms ??
-        'Co-broking welcomed. Commission is not shared. Buyer\'s agent is paid by their own client.',
+      coBrokingTerms:
+        data.coBrokingTerms ??
+        "Co-broking welcomed. Commission is not shared. Buyer's agent is paid by their own client.",
       expiryDate: data.expiryDate ?? null,
       status: 'draft' as never,
     },
@@ -380,9 +381,7 @@ export async function updateEaaSignedCopy(
   }) as unknown as Promise<EaaRecord>;
 }
 
-export async function updateEaaExplanation(
-  input: ConfirmEaaExplanationInput,
-): Promise<EaaRecord> {
+export async function updateEaaExplanation(input: ConfirmEaaExplanationInput): Promise<EaaRecord> {
   return prisma.estateAgencyAgreement.update({
     where: { id: input.eaaId },
     data: {

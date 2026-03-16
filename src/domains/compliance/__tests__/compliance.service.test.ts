@@ -660,17 +660,17 @@ describe('updateEaaStatus', () => {
   it('rejects invalid transition draft → active', async () => {
     mockRepo.findEaaById.mockResolvedValue(baseEaa as never);
 
-    await expect(
-      complianceService.updateEaaStatus('eaa-1', 'active', 'agent-1'),
-    ).rejects.toThrow('Cannot transition');
+    await expect(complianceService.updateEaaStatus('eaa-1', 'active', 'agent-1')).rejects.toThrow(
+      'Cannot transition',
+    );
   });
 
   it('throws NotFoundError for non-existent EAA', async () => {
     mockRepo.findEaaById.mockResolvedValue(null);
 
-    await expect(
-      complianceService.updateEaaStatus('eaa-999', 'signed', 'agent-1'),
-    ).rejects.toThrow('not found');
+    await expect(complianceService.updateEaaStatus('eaa-999', 'signed', 'agent-1')).rejects.toThrow(
+      'not found',
+    );
   });
 });
 
@@ -697,10 +697,7 @@ describe('uploadEaaSignedCopy', () => {
       'agent-1',
     );
 
-    expect(mockStorage.save).toHaveBeenCalledWith(
-      'eaa/seller-1/eaa-1.pdf',
-      expect.any(Buffer),
-    );
+    expect(mockStorage.save).toHaveBeenCalledWith('eaa/seller-1/eaa-1.pdf', expect.any(Buffer));
     expect(result.signedCopyPath).toBe('eaa/seller-1/eaa-1.pdf');
   });
 
@@ -710,7 +707,11 @@ describe('uploadEaaSignedCopy', () => {
     await expect(
       complianceService.uploadEaaSignedCopy(
         'eaa-1',
-        { buffer: Buffer.from('exe'), mimetype: 'application/x-msdownload', originalname: 'virus.exe' },
+        {
+          buffer: Buffer.from('exe'),
+          mimetype: 'application/x-msdownload',
+          originalname: 'virus.exe',
+        },
         'agent-1',
       ),
     ).rejects.toThrow('File type not allowed');
@@ -722,7 +723,11 @@ describe('uploadEaaSignedCopy', () => {
     await expect(
       complianceService.uploadEaaSignedCopy(
         'eaa-1',
-        { buffer: Buffer.alloc(11 * 1024 * 1024), mimetype: 'application/pdf', originalname: 'large.pdf' },
+        {
+          buffer: Buffer.alloc(11 * 1024 * 1024),
+          mimetype: 'application/pdf',
+          originalname: 'large.pdf',
+        },
         'agent-1',
       ),
     ).rejects.toThrow('10MB');

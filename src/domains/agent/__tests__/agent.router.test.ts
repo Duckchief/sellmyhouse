@@ -160,8 +160,22 @@ describe('agent.router', () => {
         property: null,
       } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
       mockService.getComplianceStatus.mockResolvedValue({
-        cdd: { status: 'not_started', verifiedAt: null, riskLevel: null, fullName: null, nricLast4: null },
-        eaa: { id: null, status: 'not_started', signedAt: null, signedCopyPath: null, expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+        cdd: {
+          status: 'not_started',
+          verifiedAt: null,
+          riskLevel: null,
+          fullName: null,
+          nricLast4: null,
+        },
+        eaa: {
+          id: null,
+          status: 'not_started',
+          signedAt: null,
+          signedCopyPath: null,
+          expiryDate: null,
+          explanationConfirmedAt: null,
+          explanationMethod: null,
+        },
         consent: { service: false, marketing: false, withdrawnAt: null },
         caseFlags: [],
         counterpartyCdd: null,
@@ -178,7 +192,10 @@ describe('agent.router', () => {
 
       expect(res.status).toBe(200);
       expect(mockService.getComplianceStatus).toHaveBeenCalledWith('seller-1', 'agent-1');
-      expect(mockService.getNotificationHistory).toHaveBeenCalledWith('seller-1', 'agent-1', { page: 1, limit: 10 });
+      expect(mockService.getNotificationHistory).toHaveBeenCalledWith('seller-1', 'agent-1', {
+        page: 1,
+        limit: 10,
+      });
       expect(mockService.getTimeline).toHaveBeenCalled();
     });
 
@@ -191,8 +208,22 @@ describe('agent.router', () => {
         property: null,
       } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
       mockService.getComplianceStatus.mockResolvedValue({
-        cdd: { status: 'not_started', verifiedAt: null, riskLevel: null, fullName: null, nricLast4: null },
-        eaa: { id: null, status: 'not_started', signedAt: null, signedCopyPath: null, expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+        cdd: {
+          status: 'not_started',
+          verifiedAt: null,
+          riskLevel: null,
+          fullName: null,
+          nricLast4: null,
+        },
+        eaa: {
+          id: null,
+          status: 'not_started',
+          signedAt: null,
+          signedCopyPath: null,
+          expiryDate: null,
+          explanationConfirmedAt: null,
+          explanationMethod: null,
+        },
         consent: { service: false, marketing: false, withdrawnAt: null },
         caseFlags: [],
         counterpartyCdd: null,
@@ -205,9 +236,7 @@ describe('agent.router', () => {
       } as never);
       mockService.getTimeline.mockReturnValue([]);
 
-      const res = await request(app)
-        .get('/agent/sellers/seller-1')
-        .set('HX-Request', 'true');
+      const res = await request(app).get('/agent/sellers/seller-1').set('HX-Request', 'true');
 
       expect(res.status).toBe(200);
       expect(mockService.getSellerDetail).toHaveBeenCalledWith('seller-1', 'agent-1');
@@ -424,7 +453,10 @@ describe('agent.router', () => {
       const res = await request(app).get('/agent/sellers/seller-1/notifications?page=2');
 
       expect(res.status).toBe(200);
-      expect(mockService.getNotificationHistory).toHaveBeenCalledWith('seller-1', 'agent-1', { page: 2, limit: 10 });
+      expect(mockService.getNotificationHistory).toHaveBeenCalledWith('seller-1', 'agent-1', {
+        page: 2,
+        limit: 10,
+      });
     });
 
     it('defaults to page 1 when page param omitted', async () => {
@@ -438,7 +470,10 @@ describe('agent.router', () => {
 
       await request(app).get('/agent/sellers/seller-1/notifications');
 
-      expect(mockService.getNotificationHistory).toHaveBeenCalledWith('seller-1', 'agent-1', { page: 1, limit: 10 });
+      expect(mockService.getNotificationHistory).toHaveBeenCalledWith('seller-1', 'agent-1', {
+        page: 1,
+        limit: 10,
+      });
     });
   });
 

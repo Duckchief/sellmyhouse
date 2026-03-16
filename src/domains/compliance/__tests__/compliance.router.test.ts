@@ -15,8 +15,22 @@ import path from 'path';
 import { complianceRouter } from '../compliance.router';
 
 const mockComplianceStatus = {
-  cdd: { status: 'not_started' as const, verifiedAt: null, riskLevel: null, fullName: null, nricLast4: null },
-  eaa: { id: null, status: 'not_started' as const, signedAt: null, signedCopyPath: null, expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+  cdd: {
+    status: 'not_started' as const,
+    verifiedAt: null,
+    riskLevel: null,
+    fullName: null,
+    nricLast4: null,
+  },
+  eaa: {
+    id: null,
+    status: 'not_started' as const,
+    signedAt: null,
+    signedCopyPath: null,
+    expiryDate: null,
+    explanationConfirmedAt: null,
+    explanationMethod: null,
+  },
   consent: { service: true, marketing: true, withdrawnAt: null },
   caseFlags: [] as { id: string; flagType: string; status: string; description: string }[],
   counterpartyCdd: null,
@@ -34,7 +48,9 @@ function createTestApp(userOverride?: { id: string; role: string }) {
   });
   env.addFilter('t', (str: string) => str);
   env.addFilter('date', (d: unknown) => (d ? String(d) : ''));
-  env.addFilter('replace', (str: string, a: string, b: string) => str.replace(new RegExp(a, 'g'), b));
+  env.addFilter('replace', (str: string, a: string, b: string) =>
+    str.replace(new RegExp(a, 'g'), b),
+  );
   app.set('view engine', 'njk');
 
   if (userOverride) {
@@ -145,7 +161,13 @@ describe('POST /agent/sellers/:sellerId/cdd', () => {
     mockService.createCddRecord.mockResolvedValue({ id: 'cdd-1' } as never);
     const updatedCompliance = {
       ...mockComplianceStatus,
-      cdd: { status: 'verified' as const, verifiedAt: new Date(), riskLevel: 'standard', fullName: 'Test User', nricLast4: '567A' },
+      cdd: {
+        status: 'verified' as const,
+        verifiedAt: new Date(),
+        riskLevel: 'standard',
+        fullName: 'Test User',
+        nricLast4: '567A',
+      },
     };
     mockAgentRepo.getComplianceStatus.mockResolvedValue(updatedCompliance as never);
 
@@ -157,7 +179,11 @@ describe('POST /agent/sellers/:sellerId/cdd', () => {
     expect(res.status).toBe(200);
     expect(res.text).toContain('compliance-cdd-card');
     expect(mockService.createCddRecord).toHaveBeenCalledWith(
-      expect.objectContaining({ subjectType: 'seller', subjectId: 'seller-1', fullName: 'Test User' }),
+      expect.objectContaining({
+        subjectType: 'seller',
+        subjectId: 'seller-1',
+        fullName: 'Test User',
+      }),
       'agent-1',
     );
   });
@@ -181,7 +207,15 @@ describe('POST /agent/sellers/:sellerId/eaa', () => {
     mockService.createEaa.mockResolvedValue({ id: 'eaa-1', status: 'draft' } as never);
     const updatedCompliance = {
       ...mockComplianceStatus,
-      eaa: { id: 'eaa-1', status: 'draft' as const, signedAt: null, signedCopyPath: null, expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+      eaa: {
+        id: 'eaa-1',
+        status: 'draft' as const,
+        signedAt: null,
+        signedCopyPath: null,
+        expiryDate: null,
+        explanationConfirmedAt: null,
+        explanationMethod: null,
+      },
     };
     mockAgentRepo.getComplianceStatus.mockResolvedValue(updatedCompliance as never);
 
@@ -210,10 +244,22 @@ describe('PUT /agent/eaa/:eaaId/status', () => {
   });
 
   it('updates status and returns card partial', async () => {
-    mockService.updateEaaStatus.mockResolvedValue({ id: 'eaa-1', sellerId: 'seller-1', status: 'sent_to_seller' } as never);
+    mockService.updateEaaStatus.mockResolvedValue({
+      id: 'eaa-1',
+      sellerId: 'seller-1',
+      status: 'sent_to_seller',
+    } as never);
     mockAgentRepo.getComplianceStatus.mockResolvedValue({
       ...mockComplianceStatus,
-      eaa: { id: 'eaa-1', status: 'sent_to_seller' as const, signedAt: null, signedCopyPath: null, expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+      eaa: {
+        id: 'eaa-1',
+        status: 'sent_to_seller' as const,
+        signedAt: null,
+        signedCopyPath: null,
+        expiryDate: null,
+        explanationConfirmedAt: null,
+        explanationMethod: null,
+      },
     } as never);
 
     const app = createAgentApp();
@@ -240,10 +286,21 @@ describe('POST /agent/eaa/:eaaId/explanation', () => {
   });
 
   it('confirms explanation and returns card partial', async () => {
-    mockService.confirmEaaExplanation.mockResolvedValue({ id: 'eaa-1', sellerId: 'seller-1' } as never);
+    mockService.confirmEaaExplanation.mockResolvedValue({
+      id: 'eaa-1',
+      sellerId: 'seller-1',
+    } as never);
     mockAgentRepo.getComplianceStatus.mockResolvedValue({
       ...mockComplianceStatus,
-      eaa: { id: 'eaa-1', status: 'signed' as const, signedAt: new Date(), signedCopyPath: null, expiryDate: null, explanationConfirmedAt: new Date(), explanationMethod: 'video_call' },
+      eaa: {
+        id: 'eaa-1',
+        status: 'signed' as const,
+        signedAt: new Date(),
+        signedCopyPath: null,
+        expiryDate: null,
+        explanationConfirmedAt: new Date(),
+        explanationMethod: 'video_call',
+      },
     } as never);
 
     const app = createAgentApp();
@@ -268,7 +325,11 @@ describe('POST /agent/transactions/:txId/counterparty-cdd', () => {
     mockService.getTransactionDocuments.mockResolvedValue({ sellerId: 'seller-1' } as never);
     mockAgentRepo.getComplianceStatus.mockResolvedValue({
       ...mockComplianceStatus,
-      counterpartyCdd: { status: 'verified' as const, verifiedAt: new Date(), transactionId: 'tx-1' },
+      counterpartyCdd: {
+        status: 'verified' as const,
+        verifiedAt: new Date(),
+        transactionId: 'tx-1',
+      },
     } as never);
 
     const app = createAgentApp();

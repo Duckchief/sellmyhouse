@@ -42,11 +42,7 @@ export const createCddValidator = [
     .optional()
     .isIn(['standard', 'enhanced'])
     .withMessage('Risk level must be "standard" or "enhanced"'),
-  body('notes')
-    .optional()
-    .isString()
-    .trim()
-    .isLength({ max: 2000 }),
+  body('notes').optional().isString().trim().isLength({ max: 2000 }),
   body('dateOfBirth').optional().isISO8601().withMessage('Invalid date format'),
   body('nationality').optional().isString().trim().isLength({ max: 100 }),
   body('occupation').optional().isString().trim().isLength({ max: 100 }),

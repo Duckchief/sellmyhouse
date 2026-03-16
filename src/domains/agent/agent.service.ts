@@ -135,7 +135,10 @@ export async function getNotificationHistory(
   const limit = opts?.limit ?? 10;
   const skip = (page - 1) * limit;
 
-  const { items, total } = await agentRepo.getNotificationHistory(sellerId, agentId, { skip, take: limit });
+  const { items, total } = await agentRepo.getNotificationHistory(sellerId, agentId, {
+    skip,
+    take: limit,
+  });
   const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
 
   return {

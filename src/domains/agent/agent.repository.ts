@@ -299,9 +299,8 @@ export async function getComplianceStatus(sellerId: string, agentId?: string) {
   let explanationMethod: string | null = null;
   if (eaa?.videoCallNotes) {
     const colonIndex = eaa.videoCallNotes.indexOf(':');
-    explanationMethod = colonIndex > -1
-      ? eaa.videoCallNotes.substring(0, colonIndex)
-      : eaa.videoCallNotes;
+    explanationMethod =
+      colonIndex > -1 ? eaa.videoCallNotes.substring(0, colonIndex) : eaa.videoCallNotes;
   }
 
   // Check counterparty CDD if there's an active transaction

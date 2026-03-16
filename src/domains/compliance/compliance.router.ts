@@ -533,15 +533,21 @@ complianceRouter.post(
     try {
       const sellerId = req.params['sellerId'] as string;
       const agentId = getAgentId(req);
-      const { agreementType, commissionAmount, commissionGstInclusive, coBrokingAllowed, coBrokingTerms, expiryDate } =
-        req.body as {
-          agreementType?: 'exclusive' | 'non_exclusive';
-          commissionAmount?: number;
-          commissionGstInclusive?: boolean;
-          coBrokingAllowed?: boolean;
-          coBrokingTerms?: string;
-          expiryDate?: string;
-        };
+      const {
+        agreementType,
+        commissionAmount,
+        commissionGstInclusive,
+        coBrokingAllowed,
+        coBrokingTerms,
+        expiryDate,
+      } = req.body as {
+        agreementType?: 'exclusive' | 'non_exclusive';
+        commissionAmount?: number;
+        commissionGstInclusive?: boolean;
+        coBrokingAllowed?: boolean;
+        coBrokingTerms?: string;
+        expiryDate?: string;
+      };
 
       await complianceService.createEaa(
         {
@@ -579,7 +585,10 @@ complianceRouter.put(
 
       const eaa = await complianceService.updateEaaStatus(eaaId, status, agentId);
       const compliance = await agentRepo.getComplianceStatus(eaa.sellerId, agentId);
-      return res.render('partials/agent/compliance-eaa-card', { compliance, sellerId: eaa.sellerId });
+      return res.render('partials/agent/compliance-eaa-card', {
+        compliance,
+        sellerId: eaa.sellerId,
+      });
     } catch (err) {
       return next(err);
     }
@@ -607,7 +616,10 @@ complianceRouter.post(
         agentId,
       );
       const compliance = await agentRepo.getComplianceStatus(eaa.sellerId, agentId);
-      return res.render('partials/agent/compliance-eaa-card', { compliance, sellerId: eaa.sellerId });
+      return res.render('partials/agent/compliance-eaa-card', {
+        compliance,
+        sellerId: eaa.sellerId,
+      });
     } catch (err) {
       return next(err);
     }
@@ -633,7 +645,10 @@ complianceRouter.post(
         agentId,
       });
       const compliance = await agentRepo.getComplianceStatus(eaa.sellerId, agentId);
-      return res.render('partials/agent/compliance-eaa-card', { compliance, sellerId: eaa.sellerId });
+      return res.render('partials/agent/compliance-eaa-card', {
+        compliance,
+        sellerId: eaa.sellerId,
+      });
     } catch (err) {
       return next(err);
     }

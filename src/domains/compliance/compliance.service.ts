@@ -694,10 +694,7 @@ const VALID_EAA_STATUS_TRANSITIONS: Record<string, string[]> = {
   signed: ['active'],
 };
 
-export async function createEaa(
-  input: CreateEaaInput,
-  agentId: string,
-): Promise<EaaRecord> {
+export async function createEaa(input: CreateEaaInput, agentId: string): Promise<EaaRecord> {
   const record = await complianceRepo.createEaa(input);
   await auditService.log({
     agentId,
@@ -722,9 +719,7 @@ export async function updateEaaStatus(
 
   const allowed = VALID_EAA_STATUS_TRANSITIONS[eaa.status];
   if (!allowed || !allowed.includes(status)) {
-    throw new ComplianceError(
-      `Cannot transition EAA from "${eaa.status}" to "${status}"`,
-    );
+    throw new ComplianceError(`Cannot transition EAA from "${eaa.status}" to "${status}"`);
   }
 
   const signedAt = status === 'signed' ? new Date() : undefined;
@@ -773,9 +768,7 @@ export async function uploadEaaSignedCopy(
   return record;
 }
 
-export async function confirmEaaExplanation(
-  input: ConfirmEaaExplanationInput,
-): Promise<EaaRecord> {
+export async function confirmEaaExplanation(input: ConfirmEaaExplanationInput): Promise<EaaRecord> {
   const eaa = await complianceRepo.findEaaById(input.eaaId);
   if (!eaa) throw new NotFoundError('EstateAgencyAgreement', input.eaaId);
 

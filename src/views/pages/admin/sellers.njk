@@ -7,11 +7,11 @@
   <input type="text" name="search" placeholder="{{ 'Search by name, email, phone' | t }}" class="border rounded px-3 py-2 text-sm flex-1" />
   <select name="status" class="border rounded px-3 py-2 text-sm">
     <option value="">{{ "All statuses" | t }}</option>
-    <option value="lead">Lead</option>
-    <option value="engaged">Engaged</option>
-    <option value="active">Active</option>
-    <option value="completed">Completed</option>
-    <option value="archived">Archived</option>
+    <option value="lead">{{ "Lead" | t }}</option>
+    <option value="engaged">{{ "Engaged" | t }}</option>
+    <option value="active">{{ "Active" | t }}</option>
+    <option value="completed">{{ "Completed" | t }}</option>
+    <option value="archived">{{ "Archived" | t }}</option>
   </select>
   <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm">{{ "Filter" | t }}</button>
 </form>

@@ -1,11 +1,12 @@
 {% extends "layouts/admin.njk" %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-2xl font-bold">{{ "Audit Log" | t }}</h1>
-  <a href="/admin/audit/export?action={{ filter.action or '' }}&entityType={{ filter.entityType or '' }}&dateFrom={{ filter.dateFrom or '' }}&dateTo={{ filter.dateTo or '' }}"
-     class="bg-gray-100 text-gray-700 px-4 py-2 rounded text-sm hover:bg-gray-200">{{ "Export CSV" | t }}</a>
-</div>
+{% set pageTitle = "Audit Log" %}
+{% set pageActionsHtml %}
+<a href="/admin/audit/export?action={{ filter.action or '' }}&entityType={{ filter.entityType or '' }}&dateFrom={{ filter.dateFrom or '' }}&dateTo={{ filter.dateTo or '' }}"
+   class="bg-gray-100 text-gray-700 px-4 py-2 rounded text-sm hover:bg-gray-200">{{ "Export CSV" | t }}</a>
+{% endset %}
+{% include "partials/shared/page-header.njk" %}
 
 <div class="bg-white rounded-lg shadow-sm border p-4 mb-6">
   <form hx-get="/admin/audit" hx-target="#audit-list" hx-push-url="true" class="flex flex-wrap gap-4 items-end">

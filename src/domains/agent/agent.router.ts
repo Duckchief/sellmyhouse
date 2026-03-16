@@ -239,7 +239,7 @@ agentRouter.get(
         getAgentFilter(user),
       );
 
-      res.render('partials/agent/seller-compliance', { compliance });
+      res.render('partials/agent/seller-compliance', { compliance, sellerId: req.params['id'] });
     } catch (err) {
       next(err);
     }
@@ -253,12 +253,21 @@ agentRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const notifications = await agentService.getNotificationHistory(
+      const skip = parseInt(req.query.skip as string) || 0;
+      const take = parseInt(req.query.take as string) || 10;
+
+      const result = await agentService.getNotificationHistory(
         req.params['id'] as string,
         getAgentFilter(user),
+        { skip, take },
       );
 
-      res.render('partials/agent/seller-notifications', { notifications });
+      res.render('partials/agent/seller-notifications', {
+        notifications: result.items,
+        total: result.total,
+        skip,
+        take,
+      });
     } catch (err) {
       next(err);
     }

@@ -363,24 +363,36 @@ export async function getComplianceStatus(sellerId: string, agentId?: string) {
   };
 }
 
-export async function getNotificationHistory(sellerId: string, agentId?: string) {
+export async function getNotificationHistory(
+  sellerId: string,
+  agentId?: string,
+  opts?: { skip?: number; take?: number },
+): Promise<{ items: Awaited<ReturnType<typeof prisma.notification.findMany>>; total: number }> {
   // RBAC: verify seller belongs to agent before returning notifications
   if (agentId) {
     const seller = await prisma.seller.findFirst({
       where: { id: sellerId, agentId },
       select: { id: true },
     });
-    if (!seller) return [];
+    if (!seller) return { items: [], total: 0 };
   }
 
-  return prisma.notification.findMany({
-    where: {
-      recipientType: 'seller',
-      recipientId: sellerId,
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-  });
+  const where = {
+    recipientType: 'seller' as const,
+    recipientId: sellerId,
+  };
+
+  const [items, total] = await Promise.all([
+    prisma.notification.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: opts?.skip ?? 0,
+      take: opts?.take ?? 10,
+    }),
+    prisma.notification.count({ where }),
+  ]);
+
+  return { items, total };
 }
 
 export async function getPendingCorrectionRequests() {

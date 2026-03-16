@@ -129,18 +129,25 @@ export async function getComplianceStatus(
 export async function getNotificationHistory(
   sellerId: string,
   agentId?: string,
-): Promise<NotificationHistoryItem[]> {
-  const notifications = await agentRepo.getNotificationHistory(sellerId, agentId);
-  return notifications.map((n) => ({
-    id: n.id,
-    channel: n.channel,
-    templateName: n.templateName,
-    content: n.content,
-    status: n.status,
-    sentAt: n.sentAt,
-    deliveredAt: n.deliveredAt,
-    createdAt: n.createdAt,
-  }));
+  opts?: { skip?: number; take?: number },
+): Promise<{
+  items: NotificationHistoryItem[];
+  total: number;
+}> {
+  const result = await agentRepo.getNotificationHistory(sellerId, agentId, opts);
+  return {
+    items: result.items.map((n) => ({
+      id: n.id,
+      channel: n.channel,
+      templateName: n.templateName,
+      content: n.content,
+      status: n.status,
+      sentAt: n.sentAt,
+      deliveredAt: n.deliveredAt,
+      createdAt: n.createdAt,
+    })),
+    total: result.total,
+  };
 }
 
 export function getTimeline(

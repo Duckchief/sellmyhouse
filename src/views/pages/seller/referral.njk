@@ -4,8 +4,9 @@
 
 {% block content %}
 <div class="max-w-xl">
-  <h1 class="text-2xl font-bold mb-2">{{ "Refer a Friend" | t }}</h1>
-  <p class="text-gray-500 text-sm mb-6">{{ "Share your unique link. When a friend signs up and sells their HDB, you both benefit." | t }}</p>
+  {% set pageTitle = "Refer a Friend" %}
+  {% set pageSubtitle = "Share your unique link. When a friend signs up and sells their HDB, you both benefit." %}
+  {% include "partials/shared/page-header.njk" %}
 
   <div id="referral-content">
     {% include "partials/seller/referral-content.njk" %}

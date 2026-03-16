@@ -1,29 +1,22 @@
 {% extends "layouts/admin.njk" %}
 
 {% block content %}
-<div class="mb-4">
-  <a href="/admin/sellers" class="text-sm text-accent hover:underline">← {{ "Back to Sellers" | t }}</a>
-</div>
-
 {# ── Header ── #}
-<div class="bg-white rounded-lg shadow p-6 mb-6">
-  <div class="flex items-center gap-4">
-    <h1 class="text-2xl font-bold">{{ detail.seller.name }}</h1>
-    <span class="px-2 py-0.5 text-xs rounded-full
-      {% if detail.seller.status == 'lead' %}bg-blue-100 text-blue-800
-      {% elif detail.seller.status == 'engaged' %}bg-yellow-100 text-yellow-800
-      {% elif detail.seller.status == 'active' %}bg-green-100 text-green-800
-      {% elif detail.seller.status == 'completed' %}bg-gray-100 text-gray-800
-      {% elif detail.seller.status == 'archived' %}bg-red-100 text-red-800
-      {% endif %}">{{ detail.seller.status | t }}</span>
-  </div>
-</div>
+{% set pageTitle = detail.seller.name %}
+{% set backUrl = "/admin/sellers" %}
+{% set backLabel = "Back to Sellers" %}
+{% set pageBadge = { text: detail.seller.status,
+  color: {
+    'lead': 'blue', 'engaged': 'yellow', 'active': 'green',
+    'completed': 'gray', 'archived': 'red'
+  }[detail.seller.status] or 'gray' } %}
+{% include "partials/shared/page-header.njk" %}
 
 {# ── 2-column card grid ── #}
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+<div class="info-grid">
 
   {# Left: Seller Info #}
-  <div class="bg-white rounded-lg shadow p-6">
+  <div class="card">
     <h2 class="text-lg font-semibold mb-4">{{ "Seller Information" | t }}</h2>
     <dl class="grid grid-cols-2 gap-4 text-sm">
       <div>
@@ -46,7 +39,7 @@
   </div>
 
   {# Right: Property #}
-  <div class="bg-white rounded-lg shadow p-6">
+  <div class="card">
     <h2 class="text-lg font-semibold mb-4">{{ "Property" | t }}</h2>
     {% if detail.property %}
     <dl class="grid grid-cols-2 gap-4 text-sm">
@@ -77,7 +70,7 @@
   </div>
 
   {# Left: Assigned Agent #}
-  <div class="bg-white rounded-lg shadow p-6">
+  <div class="card">
     <h2 class="text-lg font-semibold mb-4">{{ "Assigned Agent" | t }}</h2>
     {% if detail.agent %}
     <dl class="grid grid-cols-2 gap-4 text-sm">
@@ -103,7 +96,7 @@
   </div>
 
   {# Right: Transaction #}
-  <div class="bg-white rounded-lg shadow p-6">
+  <div class="card">
     <h2 class="text-lg font-semibold mb-4">{{ "Transaction" | t }}</h2>
     {% if detail.transaction %}
     <dl class="grid grid-cols-2 gap-4 text-sm">
@@ -134,7 +127,7 @@
   </div>
 
   {# Left: Compliance #}
-  <div class="bg-white rounded-lg shadow p-6">
+  <div class="card">
     <h2 class="text-lg font-semibold mb-4">{{ "Compliance" | t }}</h2>
     <dl class="grid grid-cols-2 gap-4 text-sm">
       <div>
@@ -167,8 +160,8 @@
     </dl>
   </div>
 
-  {# Right: Status History (audit log) #}
-  <div class="bg-white rounded-lg shadow p-6">
+  {# Right: Status History #}
+  <div class="card">
     <h2 class="text-lg font-semibold mb-4">{{ "Status History" | t }}</h2>
     {% if detail.auditLog.length > 0 %}
     <ol class="relative border-l border-gray-200 ml-3 space-y-4">
@@ -188,17 +181,17 @@
 </div>
 
 {# ── Transaction Timeline (full-width) ── #}
-{# seller-timeline.njk renders its own <h3> heading and card shadow #}
-<div class="mt-6">
+<div class="page-section">
+  <h2 class="page-section-title">{{ "Transaction Timeline" | t }}</h2>
   {% set milestones = detail.milestones %}
   {% include "partials/agent/seller-timeline.njk" %}
 </div>
 
 {# ── Notifications (full-width) ── #}
-{# seller-notifications.njk renders its own bg-white rounded-lg shadow card.
-   Heading sits as a sibling above the partial's card — no double-wrapping. #}
-<h2 class="text-lg font-semibold mt-6 mb-4">{{ "Notifications" | t }}</h2>
-{% set notifications = detail.notifications %}
-{% include "partials/agent/seller-notifications.njk" %}
+<div class="page-section">
+  <h2 class="page-section-title">{{ "Notifications" | t }}</h2>
+  {% set notifications = detail.notifications %}
+  {% include "partials/agent/seller-notifications.njk" %}
+</div>
 
 {% endblock %}

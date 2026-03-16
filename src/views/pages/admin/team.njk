@@ -1,16 +1,17 @@
 {% extends "layouts/admin.njk" %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-2xl font-bold">{{ "Team Management" | t }}</h1>
-  <form hx-post="/admin/team" hx-target="#action-result" class="inline">
-    <input type="text" name="name" placeholder="{{ 'Name' | t }}" required class="border rounded px-2 py-1 text-sm" />
-    <input type="email" name="email" placeholder="{{ 'Email' | t }}" required class="border rounded px-2 py-1 text-sm" />
-    <input type="text" name="phone" placeholder="{{ 'Phone' | t }}" required class="border rounded px-2 py-1 text-sm" />
-    <input type="text" name="ceaRegNo" placeholder="{{ 'CEA Reg No' | t }}" required class="border rounded px-2 py-1 text-sm" />
-    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm">{{ "Add Agent" | t }}</button>
-  </form>
-</div>
+{% set pageTitle = "Team Management" %}
+{% set pageActionsHtml %}
+<form hx-post="/admin/team" hx-target="#action-result" class="inline">
+  <input type="text" name="name" placeholder="{{ 'Name' | t }}" required class="border rounded px-2 py-1 text-sm" />
+  <input type="email" name="email" placeholder="{{ 'Email' | t }}" required class="border rounded px-2 py-1 text-sm" />
+  <input type="text" name="phone" placeholder="{{ 'Phone' | t }}" required class="border rounded px-2 py-1 text-sm" />
+  <input type="text" name="ceaRegNo" placeholder="{{ 'CEA Reg No' | t }}" required class="border rounded px-2 py-1 text-sm" />
+  <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm">{{ "Add Agent" | t }}</button>
+</form>
+{% endset %}
+{% include "partials/shared/page-header.njk" %}
 <div id="action-result" class="mb-4"></div>
 <div id="modal-container"></div>
 {% include "partials/admin/team-list.njk" %}

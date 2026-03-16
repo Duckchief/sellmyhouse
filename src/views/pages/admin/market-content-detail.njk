@@ -4,17 +4,12 @@
 
 {% block content %}
 <div class="max-w-3xl">
-  <div class="flex items-center gap-3 mb-6">
-    <a href="/admin/content/market" class="text-indigo-600 hover:underline text-sm">← {{ "Market Content" | t }}</a>
-    <h1 class="text-2xl font-bold">{{ record.period }}</h1>
-    <span class="px-2 py-0.5 rounded text-xs font-medium
-      {% if record.status == 'approved' %}bg-green-100 text-green-800
-      {% elif record.status == 'pending_review' %}bg-yellow-100 text-yellow-800
-      {% elif record.status == 'rejected' %}bg-red-100 text-red-700
-      {% else %}bg-gray-100 text-gray-700{% endif %}">
-      {{ record.status | replace('_', ' ') }}
-    </span>
-  </div>
+  {% set pageTitle = record.period %}
+  {% set backUrl = "/admin/content/market" %}
+  {% set backLabel = "Market Content" %}
+  {% set _statusText = record.status | replace('_', ' ') %}
+  {% set pageBadge = { text: _statusText, color: { 'approved': 'green', 'pending_review': 'yellow', 'rejected': 'red' }[record.status] or 'gray' } %}
+  {% include "partials/shared/page-header.njk" %}
 
   {% if record.aiNarrative %}
   <div class="mb-6">

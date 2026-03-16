@@ -1,7 +1,8 @@
 {% extends "layouts/agent.njk" %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">{{ "Pipeline Overview" | t }}</h1>
+{% set pageTitle = "Pipeline Overview" %}
+{% include "partials/shared/page-header.njk" %}
 
 {# Pipeline cards auto-refresh #}
 <div id="pipeline-cards"

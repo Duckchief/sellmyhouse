@@ -3,7 +3,8 @@
 {% block title %}{{ "Dashboard" | t }} — SellMyHomeNow.sg{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">{{ "Welcome back, " | t }}{{ overview.seller.name }}</h1>
+{% set pageTitle = ("Welcome back, " | t) + overview.seller.name %}
+{% include "partials/shared/page-header.njk" %}
 
 {# Case flag alert #}
 {% if overview.caseFlags.length > 0 %}

@@ -1,6 +1,7 @@
 {# pages/agent/offers.njk #}
 {% extends "layouts/agent.njk" %}
 {% block content %}
-<h1>{{ "Offers" | t }}</h1>
+{% set pageTitle = "Offers" %}
+{% include "partials/shared/page-header.njk" %}
 {% include "partials/agent/offer-chain.njk" %}
 {% endblock %}

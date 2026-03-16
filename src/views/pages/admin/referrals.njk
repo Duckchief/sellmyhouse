@@ -3,7 +3,8 @@
 {% block title %}{{ "Referral Programme" | t }} — Admin{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">{{ "Referral Programme" | t }}</h1>
+{% set pageTitle = "Referral Programme" %}
+{% include "partials/shared/page-header.njk" %}
 
 <div id="referral-funnel">
   {% include "partials/admin/referral-funnel.njk" %}

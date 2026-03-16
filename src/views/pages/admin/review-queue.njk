@@ -1,7 +1,8 @@
 {% extends "layouts/admin.njk" %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">{{ "Review Queue" | t }}</h1>
+{% set pageTitle = "Review Queue" %}
+{% include "partials/shared/page-header.njk" %}
 <div id="review-list">
   {% include "partials/admin/review-list.njk" %}
 </div>

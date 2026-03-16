@@ -3,7 +3,8 @@
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
-  <h1 class="text-2xl font-bold text-gray-900">{{ "My Data" | t }}</h1>
+  {% set pageTitle = "My Data" %}
+  {% include "partials/shared/page-header.njk" %}
 
   {% if query.consent_withdrawn %}
     <div class="rounded-lg p-4 bg-green-50 border border-green-200">
@@ -18,9 +19,9 @@
   {% endif %}
 
   {# Section 1: Personal Data #}
-  <section>
-    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Personal Information We Hold" | t }}</p>
-    <div class="bg-white rounded-xl border border-slate-200 p-6">
+  <div class="page-section">
+    <h2 class="page-section-title">{{ "Personal Information We Hold" | t }}</h2>
+    <div class="card">
       <dl class="grid grid-cols-2 gap-4 text-sm">
         <div>
           <dt class="text-gray-500">{{ "Name" | t }}</dt>
@@ -56,12 +57,12 @@
         </a>
       </div>
     </div>
-  </section>
+  </div>
 
   {# Section 2: Consent Management #}
-  <section>
-    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Consent Management" | t }}</p>
-    <div class="bg-white rounded-xl border border-slate-200 p-6"
+  <div class="page-section">
+    <h2 class="page-section-title">{{ "Consent Management" | t }}</h2>
+    <div class="card"
          id="consent-panel"
          hx-get="/seller/my-data"
          hx-trigger="consent-updated from:body"
@@ -69,12 +70,12 @@
          hx-swap="outerHTML">
       {% include "partials/compliance/consent-panel.njk" %}
     </div>
-  </section>
+  </div>
 
   {# Section 3: Correction Requests #}
-  <section>
-    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Request a Data Correction" | t }}</p>
-    <div class="bg-white rounded-xl border border-slate-200 p-6">
+  <div class="page-section">
+    <h2 class="page-section-title">{{ "Request a Data Correction" | t }}</h2>
+    <div class="card">
       {% include "partials/compliance/correction-form.njk" %}
       {% if correctionRequests | length > 0 %}
         <div class="mt-6">
@@ -82,12 +83,12 @@
         </div>
       {% endif %}
     </div>
-  </section>
+  </div>
 
   {# Section 4: Account Deletion — red border variant #}
-  <section>
-    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Account Deletion" | t }}</p>
-    <div class="bg-white rounded-xl border border-red-200 p-6">
+  <div class="page-section">
+    <h2 class="page-section-title">{{ "Account Deletion" | t }}</h2>
+    <div class="card border-red-200">
       <p class="text-sm text-gray-600 mb-4">
         {{ "Requesting deletion withdraws your service consent. If you have completed transactions, data is retained for 5 years under financial regulations." | t }}
       </p>
@@ -101,6 +102,6 @@
         {{ "Request Account Deletion" | t }}
       </button>
     </div>
-  </section>
+  </div>
 </div>
 {% endblock %}

@@ -1,9 +1,10 @@
 {% extends "layouts/admin.njk" %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">{{ "Notifications" | t }}</h1>
+{% set pageTitle = "Notifications" %}
+{% include "partials/shared/page-header.njk" %}
 
-<div class="bg-white rounded-lg shadow-sm border p-4 mb-6">
+<div class="card mb-6">
   <form hx-get="/admin/notifications" hx-target="#notification-list" hx-push-url="true" class="flex flex-wrap gap-4 items-end">
     <div>
       <label class="block text-xs text-gray-500 mb-1">{{ "Channel" | t }}</label>

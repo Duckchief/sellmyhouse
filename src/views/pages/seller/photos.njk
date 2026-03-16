@@ -2,8 +2,9 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
-  <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ "Property Photos" | t }}</h1>
-  <p class="text-gray-600 mb-6">{{ "Upload up to 20 high-quality photos of your property. Minimum 800px, JPG or PNG only, max 5MB each." | t }}</p>
+  {% set pageTitle = "Property Photos" %}
+  {% set pageSubtitle = "Upload up to 20 high-quality photos of your property. Minimum 800px, JPG or PNG only, max 5MB each." %}
+  {% include "partials/shared/page-header.njk" %}
 
   <div id="photo-upload-container">
     {% include "partials/seller/photo-upload-area.njk" %}

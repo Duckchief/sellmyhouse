@@ -8,6 +8,7 @@ import {
   validateTutorialUpdate,
 } from '@/domains/content/content.validator';
 import * as contentService from '@/domains/content/content.service';
+import * as reviewService from '@/domains/review/review.service';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import { NotFoundError, ConflictError } from '@/domains/shared/errors';
 import { logger } from '@/infra/logger';
@@ -91,12 +92,13 @@ adminRouter.get(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const items = await adminService.getReviewQueue();
+      const queue = await reviewService.getPendingQueue();
+      const activeTab = (req.query.tab as string) || 'all';
 
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/review-list', { items });
+        return res.render('partials/agent/review-queue', { queue, activeTab });
       }
-      res.render('pages/admin/review-queue', { items, currentPath: '/admin/review' });
+      res.render('pages/admin/review-queue', { queue, activeTab, currentPath: '/admin/review' });
     } catch (err) {
       next(err);
     }

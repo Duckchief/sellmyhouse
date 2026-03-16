@@ -633,6 +633,9 @@ adminRouter.post(
 // IMPORTANT: /reorder must be registered before /:id routes to avoid
 // "reorder" being matched as an id parameter.
 
+const VALID_TUTORIAL_TABS = ['photography', 'forms', 'process', 'financial'] as const;
+type TutorialTab = (typeof VALID_TUTORIAL_TABS)[number];
+
 adminRouter.post(
   '/admin/tutorials/reorder',
   ...adminAuth,
@@ -645,7 +648,13 @@ adminRouter.post(
       }));
       await contentService.reorderTutorials(items);
       if (req.headers['hx-request']) {
-        return res.status(200).send('');
+        const tutorials = await contentService.getTutorialsGrouped();
+        const rawTab = req.query['tab'] as string | undefined;
+        const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab)
+          ? (rawTab as TutorialTab)
+          : 'photography';
+        const activeItems = tutorials[activeTab] ?? [];
+        return res.render('partials/admin/tutorial-list', { tutorials: activeItems, activeTab });
       }
       return res.redirect('/admin/tutorials');
     } catch (err) {
@@ -653,9 +662,6 @@ adminRouter.post(
     }
   },
 );
-
-const VALID_TUTORIAL_TABS = ['photography', 'forms', 'process', 'financial'] as const;
-type TutorialTab = (typeof VALID_TUTORIAL_TABS)[number];
 
 adminRouter.get(
   '/admin/tutorials',

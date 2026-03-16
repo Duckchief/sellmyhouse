@@ -3,14 +3,14 @@
   <td class="py-2 pr-4 font-medium">{{ tutorial.title }}</td>
   <td class="py-2 pr-4 text-gray-500 font-mono text-xs">{{ tutorial.slug }}</td>
   <td class="py-2 text-right space-x-2">
-    <form method="POST" action="/admin/tutorials/reorder" class="inline"
-          hx-post="/admin/tutorials/reorder" hx-target="#tutorial-list" hx-swap="innerHTML">
+    <form method="POST" action="/admin/tutorials/reorder?tab={{ activeTab }}" class="inline"
+          hx-post="/admin/tutorials/reorder?tab={{ activeTab }}" hx-target="#tutorial-list" hx-swap="innerHTML">
       <input type="hidden" name="items[0][id]" value="{{ tutorial.id }}">
       <input type="hidden" name="items[0][orderIndex]" value="{{ tutorial.orderIndex - 1 }}">
       <button type="submit" class="text-gray-400 hover:text-gray-600 px-1" aria-label="{{ 'Move up' | t }}">↑</button>
     </form>
-    <form method="POST" action="/admin/tutorials/reorder" class="inline"
-          hx-post="/admin/tutorials/reorder" hx-target="#tutorial-list" hx-swap="innerHTML">
+    <form method="POST" action="/admin/tutorials/reorder?tab={{ activeTab }}" class="inline"
+          hx-post="/admin/tutorials/reorder?tab={{ activeTab }}" hx-target="#tutorial-list" hx-swap="innerHTML">
       <input type="hidden" name="items[0][id]" value="{{ tutorial.id }}">
       <input type="hidden" name="items[0][orderIndex]" value="{{ tutorial.orderIndex + 1 }}">
       <button type="submit" class="text-gray-400 hover:text-gray-600 px-1" aria-label="{{ 'Move down' | t }}">↓</button>

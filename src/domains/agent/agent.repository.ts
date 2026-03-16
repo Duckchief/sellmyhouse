@@ -199,6 +199,11 @@ export async function getSellerList(filter: SellerListFilter) {
             flatType: true,
             askingPrice: true,
             status: true,
+            transactions: {
+              take: 1,
+              orderBy: { createdAt: 'desc' },
+              select: { status: true },
+            },
           },
         },
       },
@@ -225,6 +230,7 @@ export async function getSellerList(filter: SellerListFilter) {
             flatType: s.properties[0].flatType,
             askingPrice: s.properties[0].askingPrice ? Number(s.properties[0].askingPrice) : null,
             status: s.properties[0].status,
+            transactionStatus: s.properties[0].transactions[0]?.status ?? null,
           }
         : null,
     })),
@@ -257,7 +263,7 @@ export async function getComplianceStatus(sellerId: string, agentId?: string) {
   const sellerWhere: Prisma.SellerWhereInput = { id: sellerId };
   if (agentId) sellerWhere.agentId = agentId;
 
-  const [cddRecords, eaaRecords, seller, caseFlags] = await Promise.all([
+  const [cddRecords, eaaRecords, seller, caseFlags, activeTransaction] = await Promise.all([
     prisma.cddRecord.findMany({
       where: { subjectType: 'seller', subjectId: sellerId },
       orderBy: { createdAt: 'desc' },
@@ -279,10 +285,45 @@ export async function getComplianceStatus(sellerId: string, agentId?: string) {
     prisma.caseFlag.findMany({
       where: { sellerId, status: { not: 'resolved' } },
     }),
+    prisma.transaction.findFirst({
+      where: { sellerId, status: { notIn: ['completed', 'fallen_through'] } },
+      select: { id: true },
+      orderBy: { createdAt: 'desc' },
+    }),
   ]);
 
   const cdd = cddRecords[0];
   const eaa = eaaRecords[0];
+
+  // Parse explanation method from videoCallNotes (format: "method" or "method: notes")
+  let explanationMethod: string | null = null;
+  if (eaa?.videoCallNotes) {
+    const colonIndex = eaa.videoCallNotes.indexOf(':');
+    explanationMethod = colonIndex > -1
+      ? eaa.videoCallNotes.substring(0, colonIndex)
+      : eaa.videoCallNotes;
+  }
+
+  // Check counterparty CDD if there's an active transaction
+  let counterpartyCdd: {
+    status: 'verified' | 'not_started';
+    verifiedAt: Date | null;
+    transactionId: string | null;
+  } | null = null;
+
+  if (activeTransaction) {
+    const counterpartyCddRecord = await prisma.cddRecord.findFirst({
+      where: { subjectType: 'counterparty', subjectId: activeTransaction.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    counterpartyCdd = {
+      status: counterpartyCddRecord?.identityVerified
+        ? ('verified' as const)
+        : ('not_started' as const),
+      verifiedAt: counterpartyCddRecord?.verifiedAt ?? null,
+      transactionId: activeTransaction.id,
+    };
+  }
 
   return {
     cdd: {
@@ -292,16 +333,20 @@ export async function getComplianceStatus(sellerId: string, agentId?: string) {
           : ('pending' as const)
         : ('not_started' as const),
       verifiedAt: cdd?.verifiedAt ?? null,
+      riskLevel: cdd?.riskLevel ?? null,
+      fullName: cdd?.fullName ?? null,
+      nricLast4: cdd?.nricLast4 ?? null,
     },
     eaa: {
+      id: eaa?.id ?? null,
       status: eaa
-        ? eaa.status === 'signed' || eaa.status === 'active'
-          ? ('signed' as const)
-          : eaa.status === 'sent_to_seller'
-            ? ('sent' as const)
-            : ('draft' as const)
+        ? (eaa.status as 'signed' | 'active' | 'sent_to_seller' | 'draft')
         : ('not_started' as const),
       signedAt: eaa?.signedAt ?? null,
+      signedCopyPath: eaa?.signedCopyPath ?? null,
+      expiryDate: eaa?.expiryDate ?? null,
+      explanationConfirmedAt: eaa?.videoCallConfirmedAt ?? null,
+      explanationMethod,
     },
     consent: {
       service: seller?.consentService ?? false,
@@ -314,6 +359,7 @@ export async function getComplianceStatus(sellerId: string, agentId?: string) {
       status: f.status,
       description: f.description,
     })),
+    counterpartyCdd,
   };
 }
 

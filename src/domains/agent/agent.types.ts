@@ -57,6 +57,7 @@ export interface SellerListItem {
     flatType: string;
     askingPrice: number | null;
     status: string;
+    transactionStatus: string | null;
   } | null;
 }
 
@@ -120,10 +121,29 @@ export interface SellerDetail {
 }
 
 export interface ComplianceStatus {
-  cdd: { status: 'verified' | 'pending' | 'not_started'; verifiedAt: Date | null };
-  eaa: { status: 'signed' | 'sent' | 'draft' | 'not_started'; signedAt: Date | null };
+  cdd: {
+    status: 'verified' | 'pending' | 'not_started';
+    verifiedAt: Date | null;
+    riskLevel: string | null;
+    fullName: string | null;
+    nricLast4: string | null;
+  };
+  eaa: {
+    id: string | null;
+    status: 'signed' | 'active' | 'sent_to_seller' | 'draft' | 'not_started';
+    signedAt: Date | null;
+    signedCopyPath: string | null;
+    expiryDate: Date | null;
+    explanationConfirmedAt: Date | null;
+    explanationMethod: string | null;
+  };
   consent: { service: boolean; marketing: boolean; withdrawnAt: Date | null };
   caseFlags: { id: string; flagType: string; status: string; description: string }[];
+  counterpartyCdd: {
+    status: 'verified' | 'not_started';
+    verifiedAt: Date | null;
+    transactionId: string | null;
+  } | null;
 }
 
 export interface NotificationHistoryItem {

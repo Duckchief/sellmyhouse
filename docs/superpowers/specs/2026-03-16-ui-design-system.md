@@ -54,7 +54,7 @@ Renders the top of every page: optional back link, h1 title, optional status bad
 
 ## New CSS Classes
 
-Added to the `@layer components` block in `src/infra/styles/input.css`:
+Added to the `@layer components` block in `src/views/styles/input.css`:
 
 ```css
 .info-grid {

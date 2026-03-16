@@ -189,16 +189,16 @@
 
 {# ── Transaction Timeline (full-width) ── #}
 {# seller-timeline.njk renders its own <h3> heading and card shadow #}
-{% set milestones = detail.milestones %}
-{% include "partials/agent/seller-timeline.njk" %}
+<div class="mt-6">
+  {% set milestones = detail.milestones %}
+  {% include "partials/agent/seller-timeline.njk" %}
+</div>
 
 {# ── Notifications (full-width) ── #}
 {# seller-notifications.njk renders its own bg-white rounded-lg shadow card.
-   Only add a heading above it; do not double-wrap with another card div. #}
-<div class="mt-6">
-  <h2 class="text-lg font-semibold mb-4">{{ "Notifications" | t }}</h2>
-  {% set notifications = detail.notifications %}
-  {% include "partials/agent/seller-notifications.njk" %}
-</div>
+   Heading sits as a sibling above the partial's card — no double-wrapping. #}
+<h2 class="text-lg font-semibold mt-6 mb-4">{{ "Notifications" | t }}</h2>
+{% set notifications = detail.notifications %}
+{% include "partials/agent/seller-notifications.njk" %}
 
 {% endblock %}

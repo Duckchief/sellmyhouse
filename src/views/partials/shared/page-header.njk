@@ -1,0 +1,49 @@
+{#
+  page-header.njk — standardised page header for all portal pages.
+
+  Variables (set before {% include %}):
+    pageTitle       — required. The h1 text.
+    backUrl         — optional. Renders "← Back to [backLabel]" link above title.
+    backLabel       — optional. Defaults to "Back" when backUrl is set.
+    pageBadge       — optional. Object { text, color } where color is one of:
+                       blue | yellow | green | gray | red | purple | orange | indigo
+    pageSubtitle    — optional. Small gray text below the title row.
+    pageActionsHtml — optional. Rendered HTML string injected right of title.
+                      Use {% set pageActionsHtml %}...{% endset %} to capture.
+
+  Example (detail page):
+    {% set pageTitle = seller.name %}
+    {% set backUrl = "/admin/sellers" %}
+    {% set backLabel = "Back to Sellers" %}
+    {% set pageBadge = { text: seller.status, color: "blue" } %}
+    {% include "partials/shared/page-header.njk" %}
+#}
+
+{% if backUrl %}
+<div class="mb-4">
+  <a href="{{ backUrl }}" class="text-sm text-accent hover:underline">← {{ (backLabel or "Back") | t }}</a>
+</div>
+{% endif %}
+
+<div class="flex items-center {% if pageActionsHtml %}justify-between{% else %}gap-4{% endif %} mb-6">
+  <div class="flex items-center gap-4">
+    <h1 class="text-2xl font-bold">{{ pageTitle }}</h1>
+    {% if pageBadge %}
+    <span class="px-2 py-0.5 text-xs rounded-full
+      {% if pageBadge.color == 'blue' %}bg-blue-100 text-blue-800
+      {% elif pageBadge.color == 'yellow' %}bg-yellow-100 text-yellow-800
+      {% elif pageBadge.color == 'green' %}bg-green-100 text-green-800
+      {% elif pageBadge.color == 'gray' %}bg-gray-100 text-gray-800
+      {% elif pageBadge.color == 'red' %}bg-red-100 text-red-800
+      {% elif pageBadge.color == 'purple' %}bg-purple-100 text-purple-800
+      {% elif pageBadge.color == 'orange' %}bg-orange-100 text-orange-800
+      {% elif pageBadge.color == 'indigo' %}bg-indigo-100 text-indigo-800
+      {% endif %}">{{ pageBadge.text | t }}</span>
+    {% endif %}
+  </div>
+  {% if pageActionsHtml %}{{ pageActionsHtml | safe }}{% endif %}
+</div>
+
+{% if pageSubtitle %}
+<p class="text-sm text-gray-500 -mt-3 mb-6">{{ pageSubtitle }}</p>
+{% endif %}

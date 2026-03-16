@@ -73,12 +73,12 @@ agentRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const leads = await agentService.getLeadQueue(getAgentFilter(user));
+      const { unassigned, all } = await agentService.getLeadQueue(getAgentFilter(user));
 
       if (req.headers['hx-request']) {
-        return res.render('partials/agent/lead-queue', { leads });
+        return res.render('partials/agent/lead-queue', { unassigned, all });
       }
-      res.render('pages/agent/leads', { leads });
+      res.render('pages/agent/leads', { unassigned, all });
     } catch (err) {
       next(err);
     }
@@ -201,6 +201,24 @@ agentRouter.get(
         label,
         noteRequired,
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// GET /agent/sellers/:id/overview — HTMX partial
+agentRouter.get(
+  '/agent/sellers/:id/overview',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const seller = await agentService.getSellerDetail(
+        req.params['id'] as string,
+        getAgentFilter(user),
+      );
+      res.render('partials/agent/seller-overview', { seller });
     } catch (err) {
       next(err);
     }

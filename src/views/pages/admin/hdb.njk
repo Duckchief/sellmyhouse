@@ -2,18 +2,31 @@
 
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">{{ "HDB Data Management" | t }}</h1>
-{% include "partials/admin/hdb-status.njk" %}
-<div class="mt-6">
-  <button
-    class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-sm"
-    hx-post="/admin/hdb/sync"
-    hx-target="#sync-result"
-    hx-confirm="{{ 'Trigger a manual HDB data sync? This may take several minutes.' | t }}"
-  >{{ "Trigger Manual Sync" | t }}</button>
-  <div id="sync-result" class="mt-3"></div>
-</div>
-<div class="mt-8">
-  <h2 class="text-lg font-semibold mb-3">{{ "Sync History" | t }}</h2>
-  {% include "partials/admin/hdb-sync-history.njk" %}
+
+<div class="space-y-6">
+
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Manual Sync" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
+      {% include "partials/admin/hdb-status.njk" %}
+      <div class="mt-4">
+        <button
+          class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-sm"
+          hx-post="/admin/hdb/sync"
+          hx-target="#sync-result"
+          hx-confirm="{{ 'Trigger a manual HDB data sync? This may take several minutes.' | t }}"
+        >{{ "Trigger Manual Sync" | t }}</button>
+        <div id="sync-result" class="mt-3"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Sync History" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
+      {% include "partials/admin/hdb-sync-history.njk" %}
+    </div>
+  </section>
+
 </div>
 {% endblock %}

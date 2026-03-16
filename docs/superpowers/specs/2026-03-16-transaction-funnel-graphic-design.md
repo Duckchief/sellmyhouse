@@ -48,8 +48,7 @@ Each tier: `3.5rem` tall, color `#c8553d` at the specified opacity, text centere
 ### Tier Content
 
 Each tier displays:
-- **Stage name** (left-aligned, capitalised, white text)
-- **Count** (right-aligned, bold, white text)
+- **Stage name** and **Count** (both centred together as a flex row — left/right alignment is impractical for the narrowest completed tier which is only ~20% wide at the bottom edge)
 - **Conversion %** from the previous stage (small muted text below tier, right-aligned)
   - Formula: `round(current / previous * 100)`
   - Shows `—` when previous stage count is 0

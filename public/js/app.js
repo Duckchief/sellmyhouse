@@ -71,6 +71,17 @@
       document.getElementById('tab-bulk').classList.toggle('text-gray-500', vTab !== 'bulk');
     }
 
+    // Seller detail page: switch active tab highlight
+    if (action === 'switch-detail-tab') {
+      var tabs = document.querySelectorAll('#seller-tabs .tab-btn');
+      tabs.forEach(function (btn) {
+        btn.classList.remove('border-blue-600', 'text-blue-600');
+        btn.classList.add('border-transparent', 'text-gray-500');
+      });
+      el.classList.add('border-blue-600', 'text-blue-600');
+      el.classList.remove('border-transparent', 'text-gray-500');
+    }
+
     // Remove a named element from the DOM (modal dismiss)
     if (action === 'remove-element') {
       var target = document.getElementById(el.dataset.target);
@@ -227,18 +238,28 @@
 
   // ── HTMX: reset form / remove element after successful request ─
   document.addEventListener('htmx:afterRequest', function (e) {
-    if (!e.detail.successful) return;
     var el = e.detail.elt;
 
-    // data-reset-on-success: reset the form after a successful HTMX POST
-    if (el.matches('[data-reset-on-success]')) {
-      el.reset();
-    }
+    if (e.detail.successful) {
+      // data-reset-on-success: reset the form after a successful HTMX POST
+      if (el.matches('[data-reset-on-success]')) {
+        el.reset();
+      }
 
-    // data-remove-on-success: remove a named element after a successful HTMX request
-    if (el.dataset.removeOnSuccess) {
-      var target = document.getElementById(el.dataset.removeOnSuccess);
-      if (target) target.remove();
+      // data-remove-on-success: remove a named element after a successful HTMX request
+      if (el.dataset.removeOnSuccess) {
+        var target = document.getElementById(el.dataset.removeOnSuccess);
+        if (target) target.remove();
+      }
+    } else if (e.detail.failed) {
+      // data-error-target: show an error message in the named element on failure
+      if (el.dataset.errorTarget) {
+        var errEl = document.getElementById(el.dataset.errorTarget);
+        if (errEl) {
+          errEl.textContent = el.dataset.errorMessage || 'An error occurred. Please try again.';
+          errEl.classList.remove('hidden');
+        }
+      }
     }
   });
 

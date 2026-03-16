@@ -99,6 +99,45 @@ export interface CreateCddRecordInput {
   notes?: string;
 }
 
+export interface CreateEaaInput {
+  sellerId: string;
+  agentId: string;
+  agreementType?: 'exclusive' | 'non_exclusive';
+  commissionAmount?: number;
+  commissionGstInclusive?: boolean;
+  coBrokingAllowed?: boolean;
+  coBrokingTerms?: string;
+  expiryDate?: Date;
+}
+
+export interface ConfirmEaaExplanationInput {
+  eaaId: string;
+  method: 'video_call' | 'in_person';
+  notes?: string;
+  agentId: string;
+}
+
+export interface EaaRecord {
+  id: string;
+  sellerId: string;
+  agentId: string;
+  agreementType: string;
+  formType: string;
+  commissionAmount: number;
+  commissionGstInclusive: boolean;
+  coBrokingAllowed: boolean;
+  coBrokingTerms: string;
+  signedAt: Date | null;
+  signedCopyPath: string | null;
+  signedCopyDeletedAt: Date | null;
+  videoCallConfirmedAt: Date | null;
+  videoCallNotes: string | null;
+  expiryDate: Date | null;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface CddRecord {
   id: string;
   subjectType: string;

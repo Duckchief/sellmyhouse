@@ -45,6 +45,16 @@ function formatDateOnly(d: Date): string {
   return `${day} ${MONTHS[month]} ${year}`;
 }
 
+function formatDdMmYyyy(d: Date): string {
+  const { day, month, year } = parts(d);
+  return `${String(day).padStart(2, '0')}/${String(month + 1).padStart(2, '0')}/${year}`;
+}
+
+function formatDdMmYyyyHhMm(d: Date): string {
+  const { day, month, year, hour, minute } = parts(d);
+  return `${String(day).padStart(2, '0')}/${String(month + 1).padStart(2, '0')}/${year} ${hour}:${minute}`;
+}
+
 function formatShort(d: Date): string {
   const { month, year } = parts(d);
   return `${MONTHS[month]} ${year}`;
@@ -82,6 +92,10 @@ export function dateFilter(value: unknown, format?: string): string {
     case 'D MMM YYYY HH:mm':
     case 'DD MMM YYYY HH:mm':
       return formatDefault(d);
+    case 'DD/MM/YYYY':
+      return formatDdMmYyyy(d);
+    case 'DD/MM/YYYY HH:mm':
+      return formatDdMmYyyyHhMm(d);
     case 'YYYY':
       return formatYear(d);
     case 'short':

@@ -13,6 +13,9 @@ import type {
   ConsentWithdrawalResult,
   CreateCddRecordInput,
   CddRecord,
+  CreateEaaInput,
+  EaaRecord,
+  ConfirmEaaExplanationInput,
 } from './compliance.types';
 
 // ─── DNC Gate ────────────────────────────────────────────────────────────────
@@ -681,6 +684,122 @@ export async function refreshCddRetentionOnCompletion(
   sellerId: string,
 ): Promise<void> {
   await complianceRepo.refreshCddRetentionOnCompletion(transactionId, sellerId);
+}
+
+// ─── EAA Management ──────────────────────────────────────────────────────────
+
+const VALID_EAA_STATUS_TRANSITIONS: Record<string, string[]> = {
+  draft: ['sent_to_seller'],
+  sent_to_seller: ['signed'],
+  signed: ['active'],
+};
+
+export async function createEaa(
+  input: CreateEaaInput,
+  agentId: string,
+): Promise<EaaRecord> {
+  const record = await complianceRepo.createEaa(input);
+  await auditService.log({
+    agentId,
+    action: 'compliance.eaa_created',
+    entityType: 'estate_agency_agreement',
+    entityId: record.id,
+    details: {
+      sellerId: input.sellerId,
+      agreementType: input.agreementType ?? 'non_exclusive',
+    },
+  });
+  return record;
+}
+
+export async function updateEaaStatus(
+  eaaId: string,
+  status: string,
+  agentId: string,
+): Promise<EaaRecord> {
+  const eaa = await complianceRepo.findEaaById(eaaId);
+  if (!eaa) throw new NotFoundError('EstateAgencyAgreement', eaaId);
+
+  const allowed = VALID_EAA_STATUS_TRANSITIONS[eaa.status];
+  if (!allowed || !allowed.includes(status)) {
+    throw new ComplianceError(
+      `Cannot transition EAA from "${eaa.status}" to "${status}"`,
+    );
+  }
+
+  const signedAt = status === 'signed' ? new Date() : undefined;
+  const record = await complianceRepo.updateEaaStatus(eaaId, status, signedAt);
+  await auditService.log({
+    agentId,
+    action: 'compliance.eaa_status_updated',
+    entityType: 'estate_agency_agreement',
+    entityId: eaaId,
+    details: { previousStatus: eaa.status, newStatus: status },
+  });
+  return record;
+}
+
+const ALLOWED_DOC_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+const MAX_DOC_SIZE = 10 * 1024 * 1024; // 10MB
+
+export async function uploadEaaSignedCopy(
+  eaaId: string,
+  file: { buffer: Buffer; mimetype: string; originalname: string },
+  agentId: string,
+): Promise<EaaRecord> {
+  const eaa = await complianceRepo.findEaaById(eaaId);
+  if (!eaa) throw new NotFoundError('EstateAgencyAgreement', eaaId);
+
+  if (!ALLOWED_DOC_TYPES.includes(file.mimetype)) {
+    throw new ComplianceError('File type not allowed. Only PDF, JPG, and PNG are accepted.');
+  }
+  if (file.buffer.length > MAX_DOC_SIZE) {
+    throw new ComplianceError('File size exceeds 10MB limit');
+  }
+
+  const ext = file.originalname.split('.').pop()?.toLowerCase() || 'pdf';
+  const safeName = `${eaa.id}.${ext}`;
+  const storagePath = `eaa/${eaa.sellerId}/${safeName}`;
+  await localStorage.save(storagePath, file.buffer);
+
+  const record = await complianceRepo.updateEaaSignedCopy(eaaId, storagePath);
+  await auditService.log({
+    agentId,
+    action: 'compliance.eaa_signed_copy_uploaded',
+    entityType: 'estate_agency_agreement',
+    entityId: eaaId,
+    details: { storagePath, mimeType: file.mimetype },
+  });
+  return record;
+}
+
+export async function confirmEaaExplanation(
+  input: ConfirmEaaExplanationInput,
+): Promise<EaaRecord> {
+  const eaa = await complianceRepo.findEaaById(input.eaaId);
+  if (!eaa) throw new NotFoundError('EstateAgencyAgreement', input.eaaId);
+
+  if (eaa.videoCallConfirmedAt) {
+    throw new ComplianceError('EAA explanation has already been confirmed');
+  }
+
+  const record = await complianceRepo.updateEaaExplanation(input);
+  await auditService.log({
+    agentId: input.agentId,
+    action: 'compliance.eaa_explanation_confirmed',
+    entityType: 'estate_agency_agreement',
+    entityId: input.eaaId,
+    details: { method: input.method, notes: input.notes },
+  });
+  return record;
+}
+
+export async function findEaaById(eaaId: string): Promise<EaaRecord | null> {
+  return complianceRepo.findEaaById(eaaId);
+}
+
+export async function findEaaBySellerId(sellerId: string): Promise<EaaRecord | null> {
+  return complianceRepo.findEaaBySellerId(sellerId);
 }
 
 // ─── Secure Document Access (service wrappers for router) ─────────────────────

@@ -187,47 +187,43 @@ describe('checkComplianceGate - cdd_complete', () => {
   });
 
   it('throws ComplianceError when CDD is enhanced risk but notes are missing', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockRepo.findVerifiedSellerCdd.mockResolvedValue({
       id: '1',
       identityVerified: true,
       riskLevel: 'enhanced',
       notes: null,
-    } as any);
+    } as never);
     await expect(checkComplianceGate('cdd_complete', 'seller-1')).rejects.toThrow(ComplianceError);
   });
 
   it('throws ComplianceError when CDD is enhanced risk but notes are too short', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockRepo.findVerifiedSellerCdd.mockResolvedValue({
       id: '1',
       identityVerified: true,
       riskLevel: 'enhanced',
       notes: 'ok',
-    } as any);
+    } as never);
     await expect(checkComplianceGate('cdd_complete', 'seller-1')).rejects.toThrow(ComplianceError);
   });
 
   it('passes when CDD is enhanced risk with sufficient notes', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockRepo.findVerifiedSellerCdd.mockResolvedValue({
       id: '1',
       identityVerified: true,
       riskLevel: 'enhanced',
       notes:
         'PEP screening completed. Seller is a former senior civil servant. Source of funds verified via CPF statements and bank records.',
-    } as any);
+    } as never);
     await expect(checkComplianceGate('cdd_complete', 'seller-1')).resolves.toBeUndefined();
   });
 
   it('passes when CDD is standard risk without notes', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockRepo.findVerifiedSellerCdd.mockResolvedValue({
       id: '1',
       identityVerified: true,
       riskLevel: 'standard',
       notes: null,
-    } as any);
+    } as never);
     await expect(checkComplianceGate('cdd_complete', 'seller-1')).resolves.toBeUndefined();
   });
 });

@@ -47,6 +47,12 @@ describe('compliance.repository', () => {
     expect(typeof complianceRepo.findDeletionRequest).toBe('function');
     expect(typeof complianceRepo.updateDeletionRequest).toBe('function');
     expect(typeof complianceRepo.findPendingDeletionRequests).toBe('function');
+    expect(typeof complianceRepo.createEaa).toBe('function');
+    expect(typeof complianceRepo.findEaaBySellerId).toBe('function');
+    expect(typeof complianceRepo.updateEaaStatus).toBe('function');
+    expect(typeof complianceRepo.updateEaaSignedCopy).toBe('function');
+    expect(typeof complianceRepo.updateEaaExplanation).toBe('function');
+    expect(typeof complianceRepo.findEaaById).toBe('function');
   });
 });
 

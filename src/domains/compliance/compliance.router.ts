@@ -7,11 +7,39 @@ import archiver from 'archiver';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import * as complianceService from './compliance.service';
 import * as auditService from '../shared/audit.service';
-import { withdrawConsentValidator, createCorrectionValidator } from './compliance.validator';
+import multer from 'multer';
+import {
+  withdrawConsentValidator,
+  createCorrectionValidator,
+  createCddValidator,
+  createEaaValidator,
+  updateEaaStatusValidator,
+  confirmExplanationValidator,
+} from './compliance.validator';
 import { ValidationError, ForbiddenError, NotFoundError } from '../shared/errors';
+import * as agentRepo from '../agent/agent.repository';
 import { logger } from '@/infra/logger';
 
 const UPLOADS_ROOT = path.resolve(process.env['UPLOADS_DIR'] ?? 'uploads');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+const agentAuth = [requireAuth(), requireRole('agent', 'admin'), requireTwoFactor()];
+
+function extractValidationErrors(req: Request, next: NextFunction): boolean {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const fields = Object.fromEntries(
+      Object.entries(errors.mapped()).map(([k, v]) => [k, v.msg as string]),
+    );
+    next(new ValidationError('Invalid request', fields));
+    return true;
+  }
+  return false;
+}
+
+function getAgentId(req: Request): string {
+  return (req.user as { id: string }).id;
+}
 
 function assertInUploadsRoot(resolvedPath: string): void {
   if (!resolvedPath.startsWith(UPLOADS_ROOT + path.sep)) {
@@ -442,6 +470,303 @@ complianceRouter.post(
       });
 
       archive.finalize();
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// ─── Agent Compliance Gate Management ─────────────────────────────────────────
+
+// POST /agent/sellers/:sellerId/cdd — Create seller CDD record (Gate 1)
+complianceRouter.post(
+  '/agent/sellers/:sellerId/cdd',
+  ...agentAuth,
+  createCddValidator,
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (extractValidationErrors(req, next)) return;
+    try {
+      const sellerId = req.params['sellerId'] as string;
+      const agentId = getAgentId(req);
+      const { fullName, nricLast4, riskLevel, notes, dateOfBirth, nationality, occupation } =
+        req.body as {
+          fullName: string;
+          nricLast4: string;
+          riskLevel?: 'standard' | 'enhanced';
+          notes?: string;
+          dateOfBirth?: string;
+          nationality?: string;
+          occupation?: string;
+        };
+
+      await complianceService.createCddRecord(
+        {
+          subjectType: 'seller',
+          subjectId: sellerId,
+          fullName,
+          nricLast4,
+          verifiedByAgentId: agentId,
+          riskLevel: riskLevel ?? 'standard',
+          notes,
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+          nationality,
+          occupation,
+        },
+        agentId,
+      );
+
+      const compliance = await agentRepo.getComplianceStatus(sellerId, agentId);
+      return res.render('partials/agent/compliance-cdd-card', { compliance, sellerId });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /agent/sellers/:sellerId/eaa — Create EAA (Gate 2)
+complianceRouter.post(
+  '/agent/sellers/:sellerId/eaa',
+  ...agentAuth,
+  createEaaValidator,
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (extractValidationErrors(req, next)) return;
+    try {
+      const sellerId = req.params['sellerId'] as string;
+      const agentId = getAgentId(req);
+      const { agreementType, commissionAmount, commissionGstInclusive, coBrokingAllowed, coBrokingTerms, expiryDate } =
+        req.body as {
+          agreementType?: 'exclusive' | 'non_exclusive';
+          commissionAmount?: number;
+          commissionGstInclusive?: boolean;
+          coBrokingAllowed?: boolean;
+          coBrokingTerms?: string;
+          expiryDate?: string;
+        };
+
+      await complianceService.createEaa(
+        {
+          sellerId,
+          agentId,
+          agreementType,
+          commissionAmount: commissionAmount ? Number(commissionAmount) : undefined,
+          commissionGstInclusive,
+          coBrokingAllowed,
+          coBrokingTerms,
+          expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+        },
+        agentId,
+      );
+
+      const compliance = await agentRepo.getComplianceStatus(sellerId, agentId);
+      return res.render('partials/agent/compliance-eaa-card', { compliance, sellerId });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// PUT /agent/eaa/:eaaId/status — Update EAA status (Gate 2)
+complianceRouter.put(
+  '/agent/eaa/:eaaId/status',
+  ...agentAuth,
+  updateEaaStatusValidator,
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (extractValidationErrors(req, next)) return;
+    try {
+      const eaaId = req.params['eaaId'] as string;
+      const agentId = getAgentId(req);
+      const { status } = req.body as { status: string };
+
+      const eaa = await complianceService.updateEaaStatus(eaaId, status, agentId);
+      const compliance = await agentRepo.getComplianceStatus(eaa.sellerId, agentId);
+      return res.render('partials/agent/compliance-eaa-card', { compliance, sellerId: eaa.sellerId });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /agent/eaa/:eaaId/signed-copy — Upload signed EAA copy (Gate 2)
+complianceRouter.post(
+  '/agent/eaa/:eaaId/signed-copy',
+  ...agentAuth,
+  upload.single('signedCopy'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const eaaId = req.params['eaaId'] as string;
+      const agentId = getAgentId(req);
+      const file = req.file;
+
+      if (!file) {
+        return next(new ValidationError('Signed copy file is required'));
+      }
+
+      const eaa = await complianceService.uploadEaaSignedCopy(
+        eaaId,
+        { buffer: file.buffer, mimetype: file.mimetype, originalname: file.originalname },
+        agentId,
+      );
+      const compliance = await agentRepo.getComplianceStatus(eaa.sellerId, agentId);
+      return res.render('partials/agent/compliance-eaa-card', { compliance, sellerId: eaa.sellerId });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /agent/eaa/:eaaId/explanation — Confirm EAA explanation (Gate 4)
+complianceRouter.post(
+  '/agent/eaa/:eaaId/explanation',
+  ...agentAuth,
+  confirmExplanationValidator,
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (extractValidationErrors(req, next)) return;
+    try {
+      const eaaId = req.params['eaaId'] as string;
+      const agentId = getAgentId(req);
+      const { method, notes } = req.body as { method: 'video_call' | 'in_person'; notes?: string };
+
+      const eaa = await complianceService.confirmEaaExplanation({
+        eaaId,
+        method,
+        notes,
+        agentId,
+      });
+      const compliance = await agentRepo.getComplianceStatus(eaa.sellerId, agentId);
+      return res.render('partials/agent/compliance-eaa-card', { compliance, sellerId: eaa.sellerId });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /agent/transactions/:txId/counterparty-cdd — Create counterparty CDD record (Gate 3)
+complianceRouter.post(
+  '/agent/transactions/:txId/counterparty-cdd',
+  ...agentAuth,
+  createCddValidator,
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (extractValidationErrors(req, next)) return;
+    try {
+      const txId = req.params['txId'] as string;
+      const agentId = getAgentId(req);
+      const { fullName, nricLast4, riskLevel, notes, dateOfBirth, nationality, occupation } =
+        req.body as {
+          fullName: string;
+          nricLast4: string;
+          riskLevel?: 'standard' | 'enhanced';
+          notes?: string;
+          dateOfBirth?: string;
+          nationality?: string;
+          occupation?: string;
+        };
+
+      await complianceService.createCddRecord(
+        {
+          subjectType: 'counterparty',
+          subjectId: txId,
+          fullName,
+          nricLast4,
+          verifiedByAgentId: agentId,
+          riskLevel: riskLevel ?? 'standard',
+          notes,
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+          nationality,
+          occupation,
+        },
+        agentId,
+      );
+
+      // Find the sellerId from the transaction to re-render the card
+      const txDocs = await complianceService.getTransactionDocuments(txId);
+      const sellerId = txDocs?.sellerId ?? '';
+      const compliance = await agentRepo.getComplianceStatus(sellerId, agentId);
+      return res.render('partials/agent/compliance-counterparty-cdd-card', {
+        compliance,
+        sellerId,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// ─── Modal GET Endpoints (load modal content via HTMX) ───────────────────────
+
+// GET /agent/sellers/:sellerId/cdd/modal
+complianceRouter.get(
+  '/agent/sellers/:sellerId/cdd/modal',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const sellerId = req.params['sellerId'] as string;
+      return res.render('partials/agent/cdd-modal', {
+        sellerId,
+        endpoint: `/agent/sellers/${sellerId}/cdd`,
+        target: '#compliance-cdd-card',
+        title: 'Create CDD Record',
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// GET /agent/sellers/:sellerId/eaa/modal
+complianceRouter.get(
+  '/agent/sellers/:sellerId/eaa/modal',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const sellerId = req.params['sellerId'] as string;
+      return res.render('partials/agent/eaa-modal', { sellerId });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// GET /agent/eaa/:eaaId/explanation/modal
+complianceRouter.get(
+  '/agent/eaa/:eaaId/explanation/modal',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const eaaId = req.params['eaaId'] as string;
+      return res.render('partials/agent/eaa-explanation-modal', { eaaId });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// GET /agent/eaa/:eaaId/signed-copy/modal
+complianceRouter.get(
+  '/agent/eaa/:eaaId/signed-copy/modal',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const eaaId = req.params['eaaId'] as string;
+      return res.render('partials/agent/eaa-signed-copy-modal', { eaaId });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// GET /agent/transactions/:txId/counterparty-cdd/modal
+complianceRouter.get(
+  '/agent/transactions/:txId/counterparty-cdd/modal',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const txId = req.params['txId'] as string;
+      return res.render('partials/agent/cdd-modal', {
+        sellerId: txId,
+        endpoint: `/agent/transactions/${txId}/counterparty-cdd`,
+        target: '#compliance-counterparty-cdd-card',
+        title: 'Create Counterparty CDD Record',
+      });
     } catch (err) {
       return next(err);
     }

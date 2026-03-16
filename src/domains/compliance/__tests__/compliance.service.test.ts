@@ -6,7 +6,7 @@ import * as complianceService from '../compliance.service';
 import { localStorage } from '@/infra/storage/local-storage';
 
 jest.mock('@/infra/storage/local-storage', () => ({
-  localStorage: { delete: jest.fn() },
+  localStorage: { delete: jest.fn(), save: jest.fn() },
 }));
 jest.mock('../../shared/settings.service');
 const mockStorage = localStorage as jest.Mocked<typeof localStorage>;
@@ -35,6 +35,12 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   anonymiseVerifiedViewerRecords: jest.Mock;
   findBuyersForRetention: jest.Mock;
   anonymiseBuyerRecords: jest.Mock;
+  createEaa: jest.Mock;
+  findEaaBySellerId: jest.Mock;
+  updateEaaStatus: jest.Mock;
+  updateEaaSignedCopy: jest.Mock;
+  updateEaaExplanation: jest.Mock;
+  findEaaById: jest.Mock;
 };
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 
@@ -601,5 +607,173 @@ describe('anonymiseAgent', () => {
     await expect(
       complianceService.anonymiseAgent({ agentId: 'agent1', requestedByAgentId: 'admin1' }),
     ).rejects.toThrow('active');
+  });
+});
+
+// ─── EAA Management ──────────────────────────────────────────────────────────
+
+describe('createEaa', () => {
+  it('creates EAA and logs audit event', async () => {
+    const mockEaa = {
+      id: 'eaa-1',
+      sellerId: 'seller-1',
+      agentId: 'agent-1',
+      agreementType: 'non_exclusive',
+      status: 'draft',
+    };
+    mockRepo.createEaa.mockResolvedValue(mockEaa as never);
+    mockAudit.log.mockResolvedValue(undefined);
+
+    const result = await complianceService.createEaa(
+      { sellerId: 'seller-1', agentId: 'agent-1' },
+      'agent-1',
+    );
+
+    expect(result.id).toBe('eaa-1');
+    expect(mockRepo.createEaa).toHaveBeenCalledWith(
+      expect.objectContaining({ sellerId: 'seller-1', agentId: 'agent-1' }),
+    );
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'compliance.eaa_created' }),
+    );
+  });
+});
+
+describe('updateEaaStatus', () => {
+  const baseEaa = {
+    id: 'eaa-1',
+    sellerId: 'seller-1',
+    agentId: 'agent-1',
+    status: 'draft',
+    videoCallConfirmedAt: null,
+  };
+
+  it('transitions draft → sent_to_seller', async () => {
+    mockRepo.findEaaById.mockResolvedValue(baseEaa as never);
+    mockRepo.updateEaaStatus.mockResolvedValue({ ...baseEaa, status: 'sent_to_seller' } as never);
+    mockAudit.log.mockResolvedValue(undefined);
+
+    const result = await complianceService.updateEaaStatus('eaa-1', 'sent_to_seller', 'agent-1');
+    expect(result.status).toBe('sent_to_seller');
+  });
+
+  it('rejects invalid transition draft → active', async () => {
+    mockRepo.findEaaById.mockResolvedValue(baseEaa as never);
+
+    await expect(
+      complianceService.updateEaaStatus('eaa-1', 'active', 'agent-1'),
+    ).rejects.toThrow('Cannot transition');
+  });
+
+  it('throws NotFoundError for non-existent EAA', async () => {
+    mockRepo.findEaaById.mockResolvedValue(null);
+
+    await expect(
+      complianceService.updateEaaStatus('eaa-999', 'signed', 'agent-1'),
+    ).rejects.toThrow('not found');
+  });
+});
+
+describe('uploadEaaSignedCopy', () => {
+  const baseEaa = {
+    id: 'eaa-1',
+    sellerId: 'seller-1',
+    agentId: 'agent-1',
+    status: 'draft',
+  };
+
+  it('saves file and updates EAA record', async () => {
+    mockRepo.findEaaById.mockResolvedValue(baseEaa as never);
+    mockStorage.save.mockResolvedValue('eaa/seller-1/eaa-1.pdf');
+    mockRepo.updateEaaSignedCopy.mockResolvedValue({
+      ...baseEaa,
+      signedCopyPath: 'eaa/seller-1/eaa-1.pdf',
+    } as never);
+    mockAudit.log.mockResolvedValue(undefined);
+
+    const result = await complianceService.uploadEaaSignedCopy(
+      'eaa-1',
+      { buffer: Buffer.from('pdf'), mimetype: 'application/pdf', originalname: 'signed.pdf' },
+      'agent-1',
+    );
+
+    expect(mockStorage.save).toHaveBeenCalledWith(
+      'eaa/seller-1/eaa-1.pdf',
+      expect.any(Buffer),
+    );
+    expect(result.signedCopyPath).toBe('eaa/seller-1/eaa-1.pdf');
+  });
+
+  it('rejects non-allowed file types', async () => {
+    mockRepo.findEaaById.mockResolvedValue(baseEaa as never);
+
+    await expect(
+      complianceService.uploadEaaSignedCopy(
+        'eaa-1',
+        { buffer: Buffer.from('exe'), mimetype: 'application/x-msdownload', originalname: 'virus.exe' },
+        'agent-1',
+      ),
+    ).rejects.toThrow('File type not allowed');
+  });
+
+  it('rejects files exceeding 10MB', async () => {
+    mockRepo.findEaaById.mockResolvedValue(baseEaa as never);
+
+    await expect(
+      complianceService.uploadEaaSignedCopy(
+        'eaa-1',
+        { buffer: Buffer.alloc(11 * 1024 * 1024), mimetype: 'application/pdf', originalname: 'large.pdf' },
+        'agent-1',
+      ),
+    ).rejects.toThrow('10MB');
+  });
+});
+
+describe('confirmEaaExplanation', () => {
+  const baseEaa = {
+    id: 'eaa-1',
+    sellerId: 'seller-1',
+    agentId: 'agent-1',
+    status: 'signed',
+    videoCallConfirmedAt: null,
+  };
+
+  it('stores method and sets confirmedAt', async () => {
+    mockRepo.findEaaById.mockResolvedValue(baseEaa as never);
+    mockRepo.updateEaaExplanation.mockResolvedValue({
+      ...baseEaa,
+      videoCallConfirmedAt: new Date(),
+      videoCallNotes: 'video_call: Explained all terms',
+    } as never);
+    mockAudit.log.mockResolvedValue(undefined);
+
+    await complianceService.confirmEaaExplanation({
+      eaaId: 'eaa-1',
+      method: 'video_call',
+      notes: 'Explained all terms',
+      agentId: 'agent-1',
+    });
+
+    expect(mockRepo.updateEaaExplanation).toHaveBeenCalledWith(
+      expect.objectContaining({ eaaId: 'eaa-1', method: 'video_call' }),
+    );
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'compliance.eaa_explanation_confirmed' }),
+    );
+  });
+
+  it('rejects when explanation already confirmed', async () => {
+    mockRepo.findEaaById.mockResolvedValue({
+      ...baseEaa,
+      videoCallConfirmedAt: new Date(),
+    } as never);
+
+    await expect(
+      complianceService.confirmEaaExplanation({
+        eaaId: 'eaa-1',
+        method: 'in_person',
+        agentId: 'agent-1',
+      }),
+    ).rejects.toThrow('already been confirmed');
   });
 });

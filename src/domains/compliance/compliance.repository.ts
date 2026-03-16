@@ -9,6 +9,9 @@ import type {
   CreateCorrectionRequestInput,
   CreateCddRecordInput,
   CddRecord,
+  CreateEaaInput,
+  EaaRecord,
+  ConfirmEaaExplanationInput,
 } from './compliance.types';
 
 export async function createConsentRecord(data: {
@@ -324,6 +327,75 @@ export async function getSellerPersonalData(sellerId: string) {
   });
 
   return { ...seller, cddRecords };
+}
+
+// ─── EAA Management ──────────────────────────────────────────────────────────
+
+export async function createEaa(data: CreateEaaInput): Promise<EaaRecord> {
+  return prisma.estateAgencyAgreement.create({
+    data: {
+      id: createId(),
+      sellerId: data.sellerId,
+      agentId: data.agentId,
+      agreementType: (data.agreementType ?? 'non_exclusive') as never,
+      commissionAmount: data.commissionAmount ?? 1499,
+      commissionGstInclusive: data.commissionGstInclusive ?? false,
+      coBrokingAllowed: data.coBrokingAllowed ?? true,
+      coBrokingTerms: data.coBrokingTerms ??
+        'Co-broking welcomed. Commission is not shared. Buyer\'s agent is paid by their own client.',
+      expiryDate: data.expiryDate ?? null,
+      status: 'draft' as never,
+    },
+  }) as unknown as Promise<EaaRecord>;
+}
+
+export async function findEaaBySellerId(sellerId: string): Promise<EaaRecord | null> {
+  return prisma.estateAgencyAgreement.findFirst({
+    where: { sellerId },
+    orderBy: { createdAt: 'desc' },
+  }) as unknown as Promise<EaaRecord | null>;
+}
+
+export async function updateEaaStatus(
+  eaaId: string,
+  status: string,
+  signedAt?: Date,
+): Promise<EaaRecord> {
+  return prisma.estateAgencyAgreement.update({
+    where: { id: eaaId },
+    data: {
+      status: status as never,
+      ...(signedAt ? { signedAt } : {}),
+    },
+  }) as unknown as Promise<EaaRecord>;
+}
+
+export async function updateEaaSignedCopy(
+  eaaId: string,
+  signedCopyPath: string,
+): Promise<EaaRecord> {
+  return prisma.estateAgencyAgreement.update({
+    where: { id: eaaId },
+    data: { signedCopyPath },
+  }) as unknown as Promise<EaaRecord>;
+}
+
+export async function updateEaaExplanation(
+  input: ConfirmEaaExplanationInput,
+): Promise<EaaRecord> {
+  return prisma.estateAgencyAgreement.update({
+    where: { id: input.eaaId },
+    data: {
+      videoCallConfirmedAt: new Date(),
+      videoCallNotes: `${input.method}${input.notes ? ': ' + input.notes : ''}`,
+    },
+  }) as unknown as Promise<EaaRecord>;
+}
+
+export async function findEaaById(eaaId: string): Promise<EaaRecord | null> {
+  return prisma.estateAgencyAgreement.findUnique({
+    where: { id: eaaId },
+  }) as unknown as Promise<EaaRecord | null>;
 }
 
 // ─── Retention Scanning ───────────────────────────────────────────────────────

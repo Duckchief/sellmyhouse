@@ -1,0 +1,42 @@
+<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" id="eaa-signed-copy-modal">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-96">
+    <h3 class="text-lg font-semibold mb-4">{{ "Upload Signed EAA Copy" | t }}</h3>
+
+    <div id="signed-copy-modal-error" class="hidden mb-3 p-3 bg-red-50 text-red-700 text-sm rounded"></div>
+
+    <form
+      hx-post="/agent/eaa/{{ eaaId }}/signed-copy"
+      hx-target="#compliance-eaa-card"
+      hx-swap="outerHTML"
+      hx-encoding="multipart/form-data"
+      data-remove-on-success="eaa-signed-copy-modal"
+      data-error-target="signed-copy-modal-error"
+      data-error-message="{{ 'An error occurred. Please check the file and try again.' | t }}"
+    >
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">{{ "Signed Copy" | t }} <span class="text-red-500">*</span></label>
+          <input type="file" name="signedCopy" required
+            accept=".pdf,.jpg,.jpeg,.png"
+            class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <p class="text-xs text-gray-500 mt-1">{{ "PDF, JPG, or PNG. Max 10MB." | t }}</p>
+        </div>
+      </div>
+
+      <div class="flex gap-3 justify-end mt-6">
+        <button
+          type="button"
+          data-action="remove-element"
+          data-target="eaa-signed-copy-modal"
+          class="px-4 py-2 text-sm border rounded hover:bg-gray-50">
+          {{ "Cancel" | t }}
+        </button>
+        <button
+          type="submit"
+          class="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
+          {{ "Upload" | t }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

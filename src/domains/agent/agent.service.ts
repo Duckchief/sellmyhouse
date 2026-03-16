@@ -10,7 +10,6 @@ import type {
   SellerListResult,
   SellerDetail,
   ComplianceStatus,
-  NotificationHistoryItem,
   NotificationHistoryResult,
 } from './agent.types';
 import type { TimelineMilestone } from '@/domains/seller/seller.types';

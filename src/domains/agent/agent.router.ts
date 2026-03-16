@@ -128,15 +128,23 @@ agentRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const seller = await agentService.getSellerDetail(
-        req.params['id'] as string,
-        getAgentFilter(user),
-      );
+      const sellerId = req.params['id'] as string;
+      const agentId = getAgentFilter(user);
 
-      if (req.headers['hx-request']) {
-        return res.render('partials/agent/seller-overview', { seller });
-      }
-      res.render('pages/agent/seller-detail', { seller });
+      const [seller, compliance, notifications] = await Promise.all([
+        agentService.getSellerDetail(sellerId, agentId),
+        agentService.getComplianceStatus(sellerId, agentId),
+        agentService.getNotificationHistory(sellerId, agentId, { page: 1, limit: 10 }),
+      ]);
+      const milestones = agentService.getTimeline(seller.property?.status ?? null, null); // synchronous
+
+      res.render('pages/agent/seller-detail', {
+        seller,
+        compliance,
+        notifications,
+        milestones,
+        sellerId: seller.id,
+      });
     } catch (err) {
       next(err);
     }
@@ -207,58 +215,24 @@ agentRouter.get(
   },
 );
 
-// GET /agent/sellers/:id/timeline — HTMX partial
-agentRouter.get(
-  '/agent/sellers/:id/timeline',
-  ...agentAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const user = req.user as AuthenticatedUser;
-      const seller = await agentService.getSellerDetail(
-        req.params['id'] as string,
-        getAgentFilter(user),
-      );
-      const milestones = agentService.getTimeline(seller.property?.status ?? null, null);
-
-      res.render('partials/agent/seller-timeline', { milestones });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
-
-// GET /agent/sellers/:id/compliance — HTMX partial
-agentRouter.get(
-  '/agent/sellers/:id/compliance',
-  ...agentAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const user = req.user as AuthenticatedUser;
-      const compliance = await agentService.getComplianceStatus(
-        req.params['id'] as string,
-        getAgentFilter(user),
-      );
-
-      res.render('partials/agent/seller-compliance', { compliance });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
-
-// GET /agent/sellers/:id/notifications — HTMX partial
+// GET /agent/sellers/:id/notifications — HTMX pagination partial
 agentRouter.get(
   '/agent/sellers/:id/notifications',
   ...agentAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
+      const sellerId = req.params['id'] as string;
+      const rawPage = req.query['page'] ? parseInt(req.query['page'] as string, 10) : 1;
+      const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+
       const notifications = await agentService.getNotificationHistory(
-        req.params['id'] as string,
+        sellerId,
         getAgentFilter(user),
+        { page, limit: 10 },
       );
 
-      res.render('partials/agent/seller-notifications', { notifications });
+      res.render('partials/agent/seller-notifications', { notifications, sellerId });
     } catch (err) {
       next(err);
     }

@@ -561,7 +561,7 @@ export async function getAdminSellerDetail(id: string): Promise<AdminSellerDetai
   const raw = await adminRepo.findSellerDetailForAdmin(id);
   if (!raw) throw new NotFoundError('Seller not found');
 
-  const [cdd, auditLog, notifications] = await Promise.all([
+  const [cdd, auditLog, notificationsResult] = await Promise.all([
     complianceService.findLatestSellerCddRecord(id),
     auditRepo.findByEntity('seller', id),
     agentService.getNotificationHistory(id),
@@ -618,6 +618,6 @@ export async function getAdminSellerDetail(id: string): Promise<AdminSellerDetai
     },
     auditLog: auditLog.slice(0, 20),
     milestones,
-    notifications,
+    notifications: notificationsResult.items,
   };
 }

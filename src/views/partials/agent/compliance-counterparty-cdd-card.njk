@@ -1,0 +1,28 @@
+<div id="compliance-counterparty-cdd-card">
+  <div class="flex items-center justify-between mb-4">
+    <span class="px-2 py-1 text-xs rounded-full
+      {% if compliance.counterpartyCdd.status == 'verified' %}bg-green-100 text-green-800
+      {% else %}bg-gray-100 text-gray-800{% endif %}">{{ compliance.counterpartyCdd.status | t }}</span>
+  </div>
+
+  {% if compliance.counterpartyCdd.status == 'not_started' %}
+    <p class="text-sm text-gray-500 mb-4">{{ "No counterparty CDD record for this transaction." | t }}</p>
+    <button
+      type="button"
+      hx-get="/agent/transactions/{{ compliance.counterpartyCdd.transactionId }}/counterparty-cdd/modal"
+      hx-target="#compliance-modal-container"
+      hx-swap="innerHTML"
+      class="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
+      {{ "Create Counterparty CDD" | t }}
+    </button>
+  {% else %}
+    <dl class="space-y-2 text-sm">
+      {% if compliance.counterpartyCdd.verifiedAt %}
+      <div class="flex justify-between">
+        <dt class="text-gray-500">{{ "Verified" | t }}</dt>
+        <dd>{{ compliance.counterpartyCdd.verifiedAt | date }}</dd>
+      </div>
+      {% endif %}
+    </dl>
+  {% endif %}
+</div>

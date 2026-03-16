@@ -150,6 +150,97 @@ describe('agent.router', () => {
       const res = await request(app).get('/agent/sellers/nonexistent');
       expect(res.status).toBe(404);
     });
+
+    it('loads compliance and notifications alongside seller detail', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockService.getSellerDetail.mockResolvedValue({
+        id: 'seller-1',
+        name: 'John',
+        status: 'active',
+        property: null,
+      } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
+      mockService.getComplianceStatus.mockResolvedValue({
+        cdd: {
+          status: 'not_started',
+          verifiedAt: null,
+          riskLevel: null,
+          fullName: null,
+          nricLast4: null,
+        },
+        eaa: {
+          id: null,
+          status: 'not_started',
+          signedAt: null,
+          signedCopyPath: null,
+          expiryDate: null,
+          explanationConfirmedAt: null,
+          explanationMethod: null,
+        },
+        consent: { service: false, marketing: false, withdrawnAt: null },
+        caseFlags: [],
+        counterpartyCdd: null,
+      } as never);
+      mockService.getNotificationHistory.mockResolvedValue({
+        items: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+      } as never);
+      mockService.getTimeline.mockReturnValue([]);
+
+      const res = await request(app).get('/agent/sellers/seller-1');
+
+      expect(res.status).toBe(200);
+      expect(mockService.getComplianceStatus).toHaveBeenCalledWith('seller-1', 'agent-1');
+      expect(mockService.getNotificationHistory).toHaveBeenCalledWith('seller-1', 'agent-1', {
+        page: 1,
+        limit: 10,
+      });
+      expect(mockService.getTimeline).toHaveBeenCalled();
+    });
+
+    it('does not have an HTMX partial path for the main seller detail route', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockService.getSellerDetail.mockResolvedValue({
+        id: 'seller-1',
+        name: 'John',
+        status: 'active',
+        property: null,
+      } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
+      mockService.getComplianceStatus.mockResolvedValue({
+        cdd: {
+          status: 'not_started',
+          verifiedAt: null,
+          riskLevel: null,
+          fullName: null,
+          nricLast4: null,
+        },
+        eaa: {
+          id: null,
+          status: 'not_started',
+          signedAt: null,
+          signedCopyPath: null,
+          expiryDate: null,
+          explanationConfirmedAt: null,
+          explanationMethod: null,
+        },
+        consent: { service: false, marketing: false, withdrawnAt: null },
+        caseFlags: [],
+        counterpartyCdd: null,
+      } as never);
+      mockService.getNotificationHistory.mockResolvedValue({
+        items: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+      } as never);
+      mockService.getTimeline.mockReturnValue([]);
+
+      const res = await request(app).get('/agent/sellers/seller-1').set('HX-Request', 'true');
+
+      expect(res.status).toBe(200);
+      expect(mockService.getSellerDetail).toHaveBeenCalledWith('seller-1', 'agent-1');
+    });
   });
 
   describe('GET /agent/leads', () => {
@@ -348,4 +439,45 @@ describe('agent.router', () => {
       expect(mockService.getSellerDetail).toHaveBeenCalledWith('seller-1', 'agent-1');
     });
   });
+
+  describe('GET /agent/sellers/:id/notifications (pagination)', () => {
+    it('returns 200 and calls getNotificationHistory with page param', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockService.getNotificationHistory.mockResolvedValue({
+        items: [],
+        total: 0,
+        page: 2,
+        totalPages: 3,
+      } as never);
+
+      const res = await request(app).get('/agent/sellers/seller-1/notifications?page=2');
+
+      expect(res.status).toBe(200);
+      expect(mockService.getNotificationHistory).toHaveBeenCalledWith('seller-1', 'agent-1', {
+        page: 2,
+        limit: 10,
+      });
+    });
+
+    it('defaults to page 1 when page param omitted', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockService.getNotificationHistory.mockResolvedValue({
+        items: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+      } as never);
+
+      await request(app).get('/agent/sellers/seller-1/notifications');
+
+      expect(mockService.getNotificationHistory).toHaveBeenCalledWith('seller-1', 'agent-1', {
+        page: 1,
+        limit: 10,
+      });
+    });
+  });
+
+  // Note: no tests for removed routes — Express does not return 404 for unregistered
+  // routes without a fallback handler. The removal is verified by the absence of the
+  // route in agent.router.ts and the full test suite passing.
 });

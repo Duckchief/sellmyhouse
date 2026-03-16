@@ -2,7 +2,7 @@
 {% extends "layouts/seller.njk" %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 py-8 space-y-8">
+<div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
   <h1 class="text-2xl font-bold text-gray-900">{{ "My Data" | t }}</h1>
 
   {% if query.consent_withdrawn %}
@@ -18,80 +18,89 @@
   {% endif %}
 
   {# Section 1: Personal Data #}
-  <section class="bg-white rounded-lg shadow p-6">
-    <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ "Personal Information We Hold" | t }}</h2>
-    <dl class="grid grid-cols-2 gap-4 text-sm">
-      <div>
-        <dt class="text-gray-500">{{ "Name" | t }}</dt>
-        <dd class="font-medium text-gray-900">{{ seller.name }}</dd>
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Personal Information We Hold" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
+      <dl class="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <dt class="text-gray-500">{{ "Name" | t }}</dt>
+          <dd class="font-medium text-gray-900">{{ seller.name }}</dd>
+        </div>
+        <div>
+          <dt class="text-gray-500">{{ "Email" | t }}</dt>
+          <dd class="font-medium text-gray-900">{{ seller.email or "—" }}</dd>
+        </div>
+        <div>
+          <dt class="text-gray-500">{{ "Phone" | t }}</dt>
+          <dd class="font-medium text-gray-900">{{ seller.phone }}</dd>
+        </div>
+        {% if seller.nricDisplay %}
+        <div>
+          <dt class="text-gray-500">{{ "NRIC (masked)" | t }}</dt>
+          <dd class="font-medium text-gray-900 font-mono">{{ seller.nricDisplay }}</dd>
+        </div>
+        {% endif %}
+        <div>
+          <dt class="text-gray-500">{{ "Account Status" | t }}</dt>
+          <dd class="font-medium text-gray-900">{{ seller.status }}</dd>
+        </div>
+        <div>
+          <dt class="text-gray-500">{{ "Member Since" | t }}</dt>
+          <dd class="font-medium text-gray-900">{{ seller.createdAt | date("DD MMM YYYY") }}</dd>
+        </div>
+      </dl>
+      <div class="mt-4">
+        <a href="/seller/compliance/export"
+           class="text-sm text-blue-600 hover:underline">
+          {{ "Download my data (JSON)" | t }}
+        </a>
       </div>
-      <div>
-        <dt class="text-gray-500">{{ "Email" | t }}</dt>
-        <dd class="font-medium text-gray-900">{{ seller.email or "—" }}</dd>
-      </div>
-      <div>
-        <dt class="text-gray-500">{{ "Phone" | t }}</dt>
-        <dd class="font-medium text-gray-900">{{ seller.phone }}</dd>
-      </div>
-      {% if seller.nricDisplay %}
-      <div>
-        <dt class="text-gray-500">{{ "NRIC (masked)" | t }}</dt>
-        <dd class="font-medium text-gray-900 font-mono">{{ seller.nricDisplay }}</dd>
-      </div>
-      {% endif %}
-      <div>
-        <dt class="text-gray-500">{{ "Account Status" | t }}</dt>
-        <dd class="font-medium text-gray-900">{{ seller.status }}</dd>
-      </div>
-      <div>
-        <dt class="text-gray-500">{{ "Member Since" | t }}</dt>
-        <dd class="font-medium text-gray-900">{{ seller.createdAt | date("DD MMM YYYY") }}</dd>
-      </div>
-    </dl>
-    <div class="mt-4">
-      <a href="/seller/compliance/export"
-         class="text-sm text-blue-600 hover:underline">
-        {{ "Download my data (JSON)" | t }}
-      </a>
     </div>
   </section>
 
   {# Section 2: Consent Management #}
-  <section class="bg-white rounded-lg shadow p-6"
-           id="consent-panel"
-           hx-get="/seller/my-data"
-           hx-trigger="consent-updated from:body"
-           hx-select="#consent-panel"
-           hx-swap="outerHTML">
-    {% include "partials/compliance/consent-panel.njk" %}
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Consent Management" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 p-6"
+         id="consent-panel"
+         hx-get="/seller/my-data"
+         hx-trigger="consent-updated from:body"
+         hx-select="#consent-panel"
+         hx-swap="outerHTML">
+      {% include "partials/compliance/consent-panel.njk" %}
+    </div>
   </section>
 
   {# Section 3: Correction Requests #}
-  <section class="bg-white rounded-lg shadow p-6">
-    <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ "Request a Data Correction" | t }}</h2>
-    {% include "partials/compliance/correction-form.njk" %}
-    {% if correctionRequests | length > 0 %}
-      <div class="mt-6">
-        {% include "partials/compliance/correction-history.njk" %}
-      </div>
-    {% endif %}
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Request a Data Correction" | t }}</p>
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
+      {% include "partials/compliance/correction-form.njk" %}
+      {% if correctionRequests | length > 0 %}
+        <div class="mt-6">
+          {% include "partials/compliance/correction-history.njk" %}
+        </div>
+      {% endif %}
+    </div>
   </section>
 
-  {# Section 4: Account Deletion #}
-  <section class="bg-white rounded-lg shadow p-6 border border-red-100">
-    <h2 class="text-lg font-semibold text-gray-800 mb-2">{{ "Account Deletion" | t }}</h2>
-    <p class="text-sm text-gray-600 mb-4">
-      {{ "Requesting deletion withdraws your service consent. If you have completed transactions, data is retained for 5 years under financial regulations." | t }}
-    </p>
-    <button
-      hx-post="/seller/compliance/consent/withdraw"
-      hx-vals='{"type": "service", "channel": "web"}'
-      hx-confirm="{{ 'Are you sure you want to request account deletion? This action cannot be undone.' | t }}"
-      hx-target="#consent-panel"
-      hx-swap="outerHTML"
-      class="px-4 py-2 text-sm font-medium text-red-700 border border-red-300 rounded-lg hover:bg-red-50">
-      {{ "Request Account Deletion" | t }}
-    </button>
+  {# Section 4: Account Deletion — red border variant #}
+  <section>
+    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ "Account Deletion" | t }}</p>
+    <div class="bg-white rounded-xl border border-red-200 p-6">
+      <p class="text-sm text-gray-600 mb-4">
+        {{ "Requesting deletion withdraws your service consent. If you have completed transactions, data is retained for 5 years under financial regulations." | t }}
+      </p>
+      <button
+        hx-post="/seller/compliance/consent/withdraw"
+        hx-vals='{"type": "service", "channel": "web"}'
+        hx-confirm="{{ 'Are you sure you want to request account deletion? This action cannot be undone.' | t }}"
+        hx-target="#consent-panel"
+        hx-swap="outerHTML"
+        class="px-4 py-2 text-sm font-medium text-red-700 border border-red-300 rounded-lg hover:bg-red-50">
+        {{ "Request Account Deletion" | t }}
+      </button>
+    </div>
   </section>
 </div>
 {% endblock %}

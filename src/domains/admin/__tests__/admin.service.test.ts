@@ -627,7 +627,12 @@ describe('updateSetting', () => {
 
 describe('getAdminSellerDetail', () => {
   beforeEach(() => {
-    mockAgentService.getNotificationHistory.mockResolvedValue([]);
+    mockAgentService.getNotificationHistory.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      totalPages: 0,
+    });
   });
 
   const baseSeller = {
@@ -712,7 +717,12 @@ describe('getAdminSellerDetail', () => {
     mockAdminRepo.findSellerDetailForAdmin.mockResolvedValue(baseSeller as never);
     mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(baseCdd as never);
     mockAuditRepo.findByEntity.mockResolvedValue(baseAudit as never);
-    mockAgentService.getNotificationHistory.mockResolvedValue(baseNotification as never);
+    mockAgentService.getNotificationHistory.mockResolvedValue({
+      items: baseNotification,
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    } as never);
 
     const result = await adminService.getAdminSellerDetail('seller-1');
 

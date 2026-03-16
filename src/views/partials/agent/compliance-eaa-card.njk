@@ -1,0 +1,120 @@
+<div id="compliance-eaa-card">
+  <div class="flex items-center justify-between mb-4">
+    <span class="px-2 py-1 text-xs rounded-full
+      {% if compliance.eaa.status == 'signed' or compliance.eaa.status == 'active' %}bg-green-100 text-green-800
+      {% elif compliance.eaa.status == 'sent_to_seller' %}bg-yellow-100 text-yellow-800
+      {% elif compliance.eaa.status == 'draft' %}bg-blue-100 text-blue-800
+      {% else %}bg-gray-100 text-gray-800{% endif %}">{{ compliance.eaa.status | t }}</span>
+  </div>
+
+  {% if compliance.eaa.status == 'not_started' %}
+    <p class="text-sm text-gray-500 mb-4">{{ "No EAA has been created for this seller." | t }}</p>
+    <button
+      type="button"
+      hx-get="/agent/sellers/{{ sellerId }}/eaa/modal"
+      hx-target="#compliance-modal-container"
+      hx-swap="innerHTML"
+      class="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
+      {{ "Create EAA" | t }}
+    </button>
+  {% else %}
+    <dl class="space-y-2 text-sm">
+      {% if compliance.eaa.signedAt %}
+      <div class="flex justify-between">
+        <dt class="text-gray-500">{{ "Signed" | t }}</dt>
+        <dd>{{ compliance.eaa.signedAt | date }}</dd>
+      </div>
+      {% endif %}
+      {% if compliance.eaa.expiryDate %}
+      <div class="flex justify-between">
+        <dt class="text-gray-500">{{ "Expires" | t }}</dt>
+        <dd>{{ compliance.eaa.expiryDate | date }}</dd>
+      </div>
+      {% endif %}
+      {% if compliance.eaa.signedCopyPath %}
+      <div class="flex justify-between">
+        <dt class="text-gray-500">{{ "Signed Copy" | t }}</dt>
+        <dd class="text-green-600">{{ "Uploaded" | t }}</dd>
+      </div>
+      {% endif %}
+    </dl>
+
+    {# Action buttons based on current status #}
+    <div class="mt-4 flex flex-wrap gap-2">
+      {% if compliance.eaa.status == 'draft' or compliance.eaa.status == 'sent_to_seller' %}
+        <button
+          type="button"
+          hx-get="/agent/eaa/{{ compliance.eaa.id }}/signed-copy/modal"
+          hx-target="#compliance-modal-container"
+          hx-swap="innerHTML"
+          class="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50">
+          {{ "Upload Signed Copy" | t }}
+        </button>
+      {% endif %}
+
+      {% if compliance.eaa.status == 'draft' %}
+        <form hx-put="/agent/eaa/{{ compliance.eaa.id }}/status"
+              hx-target="#compliance-eaa-card"
+              hx-swap="outerHTML"
+              class="inline">
+          <input type="hidden" name="status" value="sent_to_seller">
+          <button type="submit"
+            class="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50">
+            {{ "Mark as Sent to Seller" | t }}
+          </button>
+        </form>
+      {% elif compliance.eaa.status == 'sent_to_seller' %}
+        <form hx-put="/agent/eaa/{{ compliance.eaa.id }}/status"
+              hx-target="#compliance-eaa-card"
+              hx-swap="outerHTML"
+              class="inline">
+          <input type="hidden" name="status" value="signed">
+          <button type="submit"
+            class="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50">
+            {{ "Mark as Signed" | t }}
+          </button>
+        </form>
+      {% elif compliance.eaa.status == 'signed' %}
+        <form hx-put="/agent/eaa/{{ compliance.eaa.id }}/status"
+              hx-target="#compliance-eaa-card"
+              hx-swap="outerHTML"
+              class="inline">
+          <input type="hidden" name="status" value="active">
+          <button type="submit"
+            class="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50">
+            {{ "Activate" | t }}
+          </button>
+        </form>
+      {% endif %}
+    </div>
+
+    {# EAA Explanation Section (Gate 4) #}
+    <div class="mt-6 pt-4 border-t">
+      <h4 class="text-sm font-semibold mb-2">{{ "EAA Explanation" | t }}</h4>
+      {% if compliance.eaa.explanationConfirmedAt %}
+        <dl class="space-y-1 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-gray-500">{{ "Confirmed" | t }}</dt>
+            <dd>{{ compliance.eaa.explanationConfirmedAt | date }}</dd>
+          </div>
+          {% if compliance.eaa.explanationMethod %}
+          <div class="flex justify-between">
+            <dt class="text-gray-500">{{ "Method" | t }}</dt>
+            <dd>{{ compliance.eaa.explanationMethod | replace("_", " ") }}</dd>
+          </div>
+          {% endif %}
+        </dl>
+      {% else %}
+        <p class="text-sm text-gray-500 mb-2">{{ "Terms have not been explained to the seller yet." | t }}</p>
+        <button
+          type="button"
+          hx-get="/agent/eaa/{{ compliance.eaa.id }}/explanation/modal"
+          hx-target="#compliance-modal-container"
+          hx-swap="innerHTML"
+          class="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700">
+          {{ "Confirm Explanation" | t }}
+        </button>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>

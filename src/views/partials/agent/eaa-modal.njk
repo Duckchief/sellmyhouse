@@ -1,0 +1,74 @@
+<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" id="eaa-modal">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <h3 class="text-lg font-semibold mb-4">{{ "Create Estate Agency Agreement" | t }}</h3>
+
+    <div id="eaa-modal-error" class="hidden mb-3 p-3 bg-red-50 text-red-700 text-sm rounded"></div>
+
+    <form
+      hx-post="/agent/sellers/{{ sellerId }}/eaa"
+      hx-target="#compliance-eaa-card"
+      hx-swap="outerHTML"
+      data-remove-on-success="eaa-modal"
+      data-error-target="eaa-modal-error"
+      data-error-message="{{ 'An error occurred. Please check the form and try again.' | t }}"
+    >
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">{{ "Agreement Type" | t }}</label>
+          <div class="flex gap-4">
+            <label class="inline-flex items-center">
+              <input type="radio" name="agreementType" value="non_exclusive" checked class="mr-2">
+              <span class="text-sm">{{ "Non-Exclusive" | t }}</span>
+            </label>
+            <label class="inline-flex items-center">
+              <input type="radio" name="agreementType" value="exclusive" class="mr-2">
+              <span class="text-sm">{{ "Exclusive" | t }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">{{ "Commission Amount (SGD)" | t }}</label>
+          <input type="number" name="commissionAmount" value="1499" step="0.01" min="0"
+            class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <p class="text-xs text-gray-500 mt-1">{{ "Fixed fee: $1,499 + GST ($1,633.91 total)" | t }}</p>
+        </div>
+
+        <div>
+          <label class="inline-flex items-center">
+            <input type="checkbox" name="coBrokingAllowed" value="true" checked class="mr-2">
+            <span class="text-sm">{{ "Co-broking Allowed" | t }}</span>
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">{{ "Co-Broking Terms" | t }}</label>
+          <textarea name="coBrokingTerms" rows="2"
+            class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="{{ 'Co-broking welcomed. Commission is not shared.' | t }}"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">{{ "Expiry Date" | t }}</label>
+          <input type="date" name="expiryDate"
+            class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+
+      <div class="flex gap-3 justify-end mt-6">
+        <button
+          type="button"
+          data-action="remove-element"
+          data-target="eaa-modal"
+          class="px-4 py-2 text-sm border rounded hover:bg-gray-50">
+          {{ "Cancel" | t }}
+        </button>
+        <button
+          type="submit"
+          class="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
+          {{ "Create EAA" | t }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

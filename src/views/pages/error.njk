@@ -7,14 +7,215 @@
   <div class="max-w-md w-full text-center">
 
     {% if statusCode == 401 %}
-      <div class="text-6xl mb-4">🚪</div>
-      <p class="text-sm text-gray-400 mb-1">{{ "Error" | t }} {{ statusCode }}</p>
-      <h1 class="text-2xl font-bold text-gray-900 mb-3">{{ "Looks like you wandered off!" | t }}</h1>
-      <p class="text-gray-500 mb-8">{{ "You've been away a while and your session expired. Totally normal — it happens to the best of us." | t }}</p>
-      <a href="/auth/login"
-        class="inline-block px-6 py-3 rounded-md text-white font-medium bg-[#c8553d] hover:bg-[#b04a34] transition-colors">
-        {{ "Log back in" | t }}
-      </a>
+  <style>
+    .inv-body {
+      background: #0a0a0a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      overflow: hidden;
+      position: relative;
+      font-family: 'Courier New', monospace;
+    }
+    .inv-stars {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .inv-star {
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+      opacity: 0;
+      animation: inv-twinkle linear infinite;
+    }
+    @keyframes inv-twinkle {
+      0%   { opacity: 0; }
+      50%  { opacity: 0.8; }
+      100% { opacity: 0; }
+    }
+    .inv-scanline {
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 3px,
+        rgba(0,0,0,0.12) 3px, rgba(0,0,0,0.12) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+    .inv-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .inv-code {
+      font-size: 80px;
+      font-weight: 900;
+      color: #33ff55;
+      letter-spacing: 12px;
+      text-shadow: 0 0 10px #33ff55, 0 0 30px #33ff55, 0 0 60px rgba(51,255,85,0.5);
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .inv-subtitle {
+      font-size: 12px;
+      color: #33ff55;
+      opacity: 0.6;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+    #inv-canvas {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      filter: drop-shadow(0 0 16px rgba(255,102,204,0.7)) drop-shadow(0 0 40px rgba(255,102,204,0.3));
+    }
+    .inv-message {
+      margin-top: 40px;
+      text-align: center;
+    }
+    .inv-message h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #e0e0e0;
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .inv-message p {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 32px;
+      max-width: 380px;
+      line-height: 1.7;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .inv-btn {
+      display: inline-block;
+      padding: 14px 36px;
+      background: transparent;
+      color: #33ff55;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-decoration: none;
+      border: 2px solid #33ff55;
+      text-transform: uppercase;
+      box-shadow: 0 0 10px rgba(51,255,85,0.3);
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .inv-btn:hover {
+      background: rgba(51,255,85,0.12);
+      box-shadow: 0 0 20px rgba(51,255,85,0.6);
+    }
+  </style>
+
+  {# Override the outer wrapper from error.njk so we get a full dark background #}
+  <div class="inv-body" style="position:fixed;inset:0;overflow-y:auto;">
+    <div class="inv-stars" id="inv-stars"></div>
+    <div class="inv-scanline"></div>
+
+    <div class="inv-content">
+      <div class="inv-code">401</div>
+      <div class="inv-subtitle">{{ "Session Expired" | t }}</div>
+
+      <canvas id="inv-canvas"></canvas>
+
+      <div class="inv-message">
+        <h1>{{ "Looks like you wandered off!" | t }}</h1>
+        <p>{{ "You've been away a while and your session expired. Totally normal — it happens to the best of us." | t }}</p>
+        <a href="/auth/login" class="inv-btn">{{ "[ Log back in ]" | t }}</a>
+      </div>
+    </div>
+  </div>
+
+  <script nonce="{{ cspNonce }}">
+  (function () {
+    var X = true, _ = false;
+    var FRAME_1 = [
+      [_,_,_,X,_,_,_,_,_,X,_,_,_],
+      [_,_,_,_,X,_,_,_,X,_,_,_,_],
+      [_,_,X,X,X,X,X,X,X,X,X,_,_],
+      [_,X,X,_,X,X,X,X,X,_,X,X,_],
+      [X,X,X,X,X,X,X,X,X,X,X,X,X],
+      [X,_,X,X,X,X,X,X,X,X,X,_,X],
+      [X,_,X,_,_,_,_,_,_,_,X,_,X],
+      [_,_,_,X,X,_,_,_,X,X,_,_,_],
+      [_,_,X,X,_,_,_,_,_,X,X,_,_],
+      [_,_,_,_,_,_,_,_,_,_,_,_,_]
+    ];
+    var FRAME_2 = [
+      [_,_,_,X,_,_,_,_,_,X,_,_,_],
+      [_,_,_,_,X,_,_,_,X,_,_,_,_],
+      [_,_,X,X,X,X,X,X,X,X,X,_,_],
+      [_,X,X,_,X,X,X,X,X,_,X,X,_],
+      [X,X,X,X,X,X,X,X,X,X,X,X,X],
+      [X,_,X,X,X,X,X,X,X,X,X,_,X],
+      [X,_,X,_,_,_,_,_,_,_,X,_,X],
+      [_,_,X,X,_,_,_,_,_,X,X,_,_],
+      [_,_,_,X,X,_,_,_,X,X,_,_,_],
+      [_,_,_,_,_,_,_,_,_,_,_,_,_]
+    ];
+    var FRAMES = [FRAME_1, FRAME_2];
+    var COLOR = '#ff66cc';
+    var PX = 18;
+    var COLS = 13, ROWS = 10;
+
+    var canvas = document.getElementById('inv-canvas');
+    canvas.width  = COLS * PX;
+    canvas.height = ROWS * PX;
+    var ctx = canvas.getContext('2d');
+
+    var frame = 0;
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      var grid = FRAMES[frame];
+      for (var y = 0; y < ROWS; y++) {
+        for (var x = 0; x < COLS; x++) {
+          if (grid[y][x]) {
+            ctx.fillStyle = COLOR;
+            ctx.fillRect(x * PX, y * PX, PX, PX);
+          }
+        }
+      }
+    }
+    draw();
+    setInterval(function () { frame = 1 - frame; draw(); }, 600);
+
+    var t = 0;
+    (function float() {
+      canvas.style.transform = 'translateY(' + Math.round(Math.sin(t) * 8) + 'px)';
+      t += 0.04;
+      requestAnimationFrame(float);
+    })();
+
+    var starsEl = document.getElementById('inv-stars');
+    for (var i = 0; i < 80; i++) {
+      var s = document.createElement('div');
+      s.className = 'inv-star';
+      var size = (Math.random() * 2 + 1).toFixed(1);
+      s.style.cssText = 'width:' + size + 'px;height:' + size + 'px;' +
+        'top:' + (Math.random() * 100).toFixed(1) + '%;' +
+        'left:' + (Math.random() * 100).toFixed(1) + '%;' +
+        'animation-duration:' + (2 + Math.random() * 4).toFixed(1) + 's;' +
+        'animation-delay:' + (Math.random() * 4).toFixed(1) + 's;';
+      starsEl.appendChild(s);
+    }
+  })();
+  </script>
 
     {% elif statusCode == 403 %}
       <div class="text-6xl mb-4">🔒</div>

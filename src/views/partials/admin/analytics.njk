@@ -43,39 +43,7 @@
 {# Transaction funnel chart #}
 <div class="card mb-8">
   <h3 class="font-semibold mb-4">{{ "Transaction Funnel" | t }}</h3>
-  <canvas id="funnelChart" height="200"></canvas>
-  <noscript>
-    <div class="grid grid-cols-5 gap-2 text-center text-sm">
-      {% for stage, count in analytics.funnel | dictsort %}
-      <div>
-        <p class="font-bold">{{ count }}</p>
-        <p class="text-gray-500">{{ stage | replace("_", " ") | capitalize }}</p>
-      </div>
-      {% endfor %}
-    </div>
-  </noscript>
-  <script nonce="{{ cspNonce }}">
-    (function() {
-      const ctx = document.getElementById('funnelChart');
-      if (!ctx) return;
-      const data = {{ analytics.funnel | dump | safe }};
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: Object.keys(data).map(s => s.replace(/_/g, ' ')),
-          datasets: [{
-            data: Object.values(data),
-            backgroundColor: ['#3b82f6', '#eab308', '#22c55e', '#8b5cf6', '#6b7280'],
-          }],
-        },
-        options: {
-          indexAxis: 'y',
-          plugins: { legend: { display: false } },
-          scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
-        },
-      });
-    })();
-  </script>
+  {# TODO: funnel HTML goes here #}
 </div>
 
 {# Time to close + Lead sources (2 col) #}

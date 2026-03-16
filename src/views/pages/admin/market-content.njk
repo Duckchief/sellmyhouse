@@ -3,15 +3,16 @@
 {% block title %}{{ "Market Content" | t }} — Admin{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-2xl font-bold">{{ "Market Content" | t }}</h1>
-  <form method="POST" action="/admin/content/market/run">
-    <button type="submit"
-      class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700">
-      {{ "Run Now" | t }}
-    </button>
-  </form>
-</div>
+{% set pageTitle = "Market Content" %}
+{% set pageActionsHtml %}
+<form method="POST" action="/admin/content/market/run">
+  <button type="submit"
+    class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700">
+    {{ "Run Now" | t }}
+  </button>
+</form>
+{% endset %}
+{% include "partials/shared/page-header.njk" %}
 
 {% if error %}
 <div class="bg-red-50 border border-red-200 rounded p-3 mb-4">

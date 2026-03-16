@@ -1,7 +1,8 @@
 {% extends "layouts/admin.njk" %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">{{ "All Sellers" | t }}</h1>
+{% set pageTitle = "All Sellers" %}
+{% include "partials/shared/page-header.njk" %}
 <form class="flex gap-3 mb-6" hx-get="/admin/sellers" hx-target="#seller-list" hx-trigger="submit">
   <input type="text" name="search" placeholder="{{ 'Search by name, email, phone' | t }}" class="border rounded px-3 py-2 text-sm flex-1" />
   <select name="status" class="border rounded px-3 py-2 text-sm">

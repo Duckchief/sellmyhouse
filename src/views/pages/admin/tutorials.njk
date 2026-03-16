@@ -3,12 +3,13 @@
 {% block title %}{{ "Video Tutorials" | t }} — Admin{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-2xl font-bold">{{ "Video Tutorials" | t }}</h1>
-  <a href="/admin/tutorials/new" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700">
-    {{ "+ Add Tutorial" | t }}
-  </a>
-</div>
+{% set pageTitle = "Video Tutorials" %}
+{% set pageActionsHtml %}
+<a href="/admin/tutorials/new" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700">
+  {{ "+ Add Tutorial" | t }}
+</a>
+{% endset %}
+{% include "partials/shared/page-header.njk" %}
 
 <div id="tutorial-list">
   {% include "partials/admin/tutorial-list.njk" %}

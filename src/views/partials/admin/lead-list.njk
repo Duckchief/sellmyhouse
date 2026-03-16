@@ -1,4 +1,4 @@
-{% if result and result.leads.length > 0 %}
+{% macro leadTable(leads) %}
 <div class="overflow-x-auto">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
@@ -12,7 +12,7 @@
       </tr>
     </thead>
     <tbody class="divide-y">
-      {% for lead in result.leads %}
+      {% for lead in leads %}
       <tr class="hover:bg-gray-50">
         <td class="px-4 py-3 font-medium">
           <a href="/admin/sellers/{{ lead.id }}" class="text-accent hover:underline">{{ lead.name }}</a>
@@ -32,24 +32,41 @@
       {% endfor %}
     </tbody>
   </table>
-  {% if result.totalPages > 1 %}
+</div>
+{% endmacro %}
+
+{% if unassigned.leads.length > 0 %}
+<div class="mb-6">
+  <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">{{ "Unassigned Leads" | t }}</h2>
+  {{ leadTable(unassigned.leads) }}
+  {% if unassigned.totalPages > 1 %}
   <div class="flex justify-between items-center mt-4 px-4">
-    <span class="text-xs text-gray-500">{{ "Page" | t }} {{ result.page }} {{ "of" | t }} {{ result.totalPages }} ({{ result.total }} {{ "total" | t }})</span>
+    <span class="text-xs text-gray-500">{{ "Page" | t }} {{ unassigned.page }} {{ "of" | t }} {{ unassigned.totalPages }} ({{ unassigned.total }} {{ "total" | t }})</span>
     <div class="flex gap-2">
-      {% if result.page > 1 %}
-      <a href="/admin/leads?page={{ result.page - 1 }}" hx-get="/admin/leads?page={{ result.page - 1 }}" hx-target="#lead-list" class="text-xs text-accent hover:underline">{{ "Previous" | t }}</a>
+      {% if unassigned.page > 1 %}
+      <a href="/admin/leads?page={{ unassigned.page - 1 }}" hx-get="/admin/leads?page={{ unassigned.page - 1 }}" hx-target="#lead-list" class="text-xs text-accent hover:underline">{{ "Previous" | t }}</a>
       {% endif %}
-      {% if result.page < result.totalPages %}
-      <a href="/admin/leads?page={{ result.page + 1 }}" hx-get="/admin/leads?page={{ result.page + 1 }}" hx-target="#lead-list" class="text-xs text-accent hover:underline">{{ "Next" | t }}</a>
+      {% if unassigned.page < unassigned.totalPages %}
+      <a href="/admin/leads?page={{ unassigned.page + 1 }}" hx-get="/admin/leads?page={{ unassigned.page + 1 }}" hx-target="#lead-list" class="text-xs text-accent hover:underline">{{ "Next" | t }}</a>
       {% endif %}
     </div>
   </div>
   {% else %}
   <div class="mt-3 text-xs text-gray-500 px-4">
-    {{ "Showing" | t }} {{ result.leads.length }} {{ "of" | t }} {{ result.total }}
+    {{ "Showing" | t }} {{ unassigned.leads.length }} {{ "of" | t }} {{ unassigned.total }}
   </div>
   {% endif %}
 </div>
+{% endif %}
+
+{% if all.length > 0 %}
+<div>
+  <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">{{ "All Leads" | t }}</h2>
+  {{ leadTable(all) }}
+  <div class="mt-3 text-xs text-gray-500 px-4">
+    {{ "Showing" | t }} {{ all.length }} {{ "leads" | t }}
+  </div>
+</div>
 {% else %}
-<p class="text-gray-400 text-sm">{{ "No unassigned leads." | t }}</p>
+<p class="text-gray-400 text-sm">{{ "No leads." | t }}</p>
 {% endif %}

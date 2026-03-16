@@ -73,12 +73,12 @@ adminRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const page = req.query['page'] ? parseInt(req.query['page'] as string, 10) : undefined;
-      const result = await adminService.getUnassignedLeads(page);
+      const { unassigned, all } = await adminService.getAdminLeadQueue(page);
 
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/lead-list', { result });
+        return res.render('partials/admin/lead-list', { unassigned, all });
       }
-      res.render('pages/admin/leads', { result, currentPath: '/admin/leads' });
+      res.render('pages/admin/leads', { unassigned, all, currentPath: '/admin/leads' });
     } catch (err) {
       next(err);
     }

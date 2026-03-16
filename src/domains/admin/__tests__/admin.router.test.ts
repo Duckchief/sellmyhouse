@@ -8,11 +8,32 @@ jest.mock('../../content/content.service');
 
 const mockTutorials = {
   photography: [
-    { id: '1', title: 'Photo A', slug: 'photo-a', orderIndex: 1, category: 'photography', youtubeUrl: 'https://youtube.com/1' },
-    { id: '2', title: 'Photo B', slug: 'photo-b', orderIndex: 2, category: 'photography', youtubeUrl: 'https://youtube.com/2' },
+    {
+      id: '1',
+      title: 'Photo A',
+      slug: 'photo-a',
+      orderIndex: 1,
+      category: 'photography',
+      youtubeUrl: 'https://youtube.com/1',
+    },
+    {
+      id: '2',
+      title: 'Photo B',
+      slug: 'photo-b',
+      orderIndex: 2,
+      category: 'photography',
+      youtubeUrl: 'https://youtube.com/2',
+    },
   ],
   forms: [
-    { id: '3', title: 'Form A', slug: 'form-a', orderIndex: 1, category: 'forms', youtubeUrl: 'https://youtube.com/3' },
+    {
+      id: '3',
+      title: 'Form A',
+      slug: 'form-a',
+      orderIndex: 1,
+      category: 'forms',
+      youtubeUrl: 'https://youtube.com/3',
+    },
   ],
   process: [],
   financial: [],
@@ -42,9 +63,11 @@ function makeApp() {
   app.use(adminRouter);
 
   // Error handler
-  app.use((err: Error & { statusCode?: number }, _req: Request, res: Response, _next: NextFunction) => {
-    res.status(err.statusCode || 500).json({ error: err.message });
-  });
+  app.use(
+    (err: Error & { statusCode?: number }, _req: Request, res: Response, _next: NextFunction) => {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    },
+  );
 
   return app;
 }
@@ -74,9 +97,7 @@ describe('GET /admin/tutorials — tab param', () => {
 
   it('returns partial for HTMX request', async () => {
     const app = makeApp();
-    const res = await request(app)
-      .get('/admin/tutorials?tab=forms')
-      .set('HX-Request', 'true');
+    const res = await request(app).get('/admin/tutorials?tab=forms').set('HX-Request', 'true');
     expect(res.status).toBe(200);
   });
 });

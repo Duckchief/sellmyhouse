@@ -128,15 +128,23 @@ agentRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const seller = await agentService.getSellerDetail(
-        req.params['id'] as string,
-        getAgentFilter(user),
-      );
+      const sellerId = req.params['id'] as string;
+      const agentId = getAgentFilter(user);
 
-      if (req.headers['hx-request']) {
-        return res.render('partials/agent/seller-overview', { seller });
-      }
-      res.render('pages/agent/seller-detail', { seller });
+      const [seller, compliance, notifications] = await Promise.all([
+        agentService.getSellerDetail(sellerId, agentId),
+        agentService.getComplianceStatus(sellerId, agentId),
+        agentService.getNotificationHistory(sellerId, agentId, { page: 1, limit: 10 }),
+      ]);
+      const milestones = agentService.getTimeline(seller.property?.status ?? null, null); // synchronous
+
+      res.render('pages/agent/seller-detail', {
+        seller,
+        compliance,
+        notifications,
+        milestones,
+        sellerId: seller.id,
+      });
     } catch (err) {
       next(err);
     }

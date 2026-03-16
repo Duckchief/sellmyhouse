@@ -11,6 +11,7 @@ import type {
   SellerDetail,
   ComplianceStatus,
   NotificationHistoryItem,
+  NotificationHistoryResult,
 } from './agent.types';
 import type { TimelineMilestone } from '@/domains/seller/seller.types';
 import { getTimelineMilestones } from '@/domains/seller/seller.service';
@@ -129,14 +130,17 @@ export async function getComplianceStatus(
 export async function getNotificationHistory(
   sellerId: string,
   agentId?: string,
-  opts?: { skip?: number; take?: number },
-): Promise<{
-  items: NotificationHistoryItem[];
-  total: number;
-}> {
-  const result = await agentRepo.getNotificationHistory(sellerId, agentId, opts);
+  opts?: { page?: number; limit?: number },
+): Promise<NotificationHistoryResult> {
+  const page = opts?.page ?? 1;
+  const limit = opts?.limit ?? 10;
+  const skip = (page - 1) * limit;
+
+  const { items, total } = await agentRepo.getNotificationHistory(sellerId, agentId, { skip, take: limit });
+  const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+
   return {
-    items: result.items.map((n) => ({
+    items: items.map((n) => ({
       id: n.id,
       channel: n.channel,
       templateName: n.templateName,
@@ -146,7 +150,9 @@ export async function getNotificationHistory(
       deliveredAt: n.deliveredAt,
       createdAt: n.createdAt,
     })),
-    total: result.total,
+    total,
+    page,
+    totalPages,
   };
 }
 

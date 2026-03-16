@@ -253,20 +253,21 @@ agentRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const skip = parseInt(req.query.skip as string) || 0;
-      const take = parseInt(req.query.take as string) || 10;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
 
       const result = await agentService.getNotificationHistory(
         req.params['id'] as string,
         getAgentFilter(user),
-        { skip, take },
+        { page, limit },
       );
 
       res.render('partials/agent/seller-notifications', {
         notifications: result.items,
         total: result.total,
-        skip,
-        take,
+        page: result.page,
+        totalPages: result.totalPages,
+        limit,
       });
     } catch (err) {
       next(err);

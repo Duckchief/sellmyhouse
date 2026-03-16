@@ -213,16 +213,60 @@ describe('agent.service', () => {
   describe('getComplianceStatus', () => {
     it('returns compliance status for a seller', async () => {
       mockRepo.getComplianceStatus.mockResolvedValue({
-        cdd: { status: 'verified', verifiedAt: new Date() },
-        eaa: { status: 'not_started', signedAt: null },
+        cdd: { status: 'verified', verifiedAt: new Date(), riskLevel: 'standard', fullName: 'Test', nricLast4: '567A' },
+        eaa: { id: null, status: 'not_started', signedAt: null, signedCopyPath: null, expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
         consent: { service: true, marketing: false, withdrawnAt: null },
         caseFlags: [],
-      });
+        counterpartyCdd: null,
+      } as never);
 
       const result = await agentService.getComplianceStatus('seller-1');
 
       expect(result.cdd.status).toBe('verified');
       expect(result.eaa.status).toBe('not_started');
+    });
+  });
+
+  describe('getNotificationHistory', () => {
+    it('returns paginated result with items, total, page, totalPages', async () => {
+      const item = {
+        id: 'n1',
+        channel: 'email',
+        templateName: 'welcome',
+        content: 'Hello',
+        status: 'sent',
+        sentAt: new Date('2026-01-01'),
+        deliveredAt: null,
+        createdAt: new Date('2026-01-01'),
+      };
+      mockRepo.getNotificationHistory.mockResolvedValue({ items: [item] as never, total: 25 });
+
+      const result = await agentService.getNotificationHistory('seller-1', 'agent-1', { page: 2, limit: 10 });
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].id).toBe('n1');
+      expect(result.total).toBe(25);
+      expect(result.page).toBe(2);
+      expect(result.totalPages).toBe(3);
+      expect(mockRepo.getNotificationHistory).toHaveBeenCalledWith('seller-1', 'agent-1', { skip: 10, take: 10 });
+    });
+
+    it('defaults to page 1 with limit 10 when opts omitted', async () => {
+      mockRepo.getNotificationHistory.mockResolvedValue({ items: [], total: 0 });
+
+      const result = await agentService.getNotificationHistory('seller-1');
+
+      expect(result.page).toBe(1);
+      expect(result.totalPages).toBe(0);
+      expect(mockRepo.getNotificationHistory).toHaveBeenCalledWith('seller-1', undefined, { skip: 0, take: 10 });
+    });
+
+    it('returns totalPages 1 when total equals limit', async () => {
+      mockRepo.getNotificationHistory.mockResolvedValue({ items: [], total: 10 });
+
+      const result = await agentService.getNotificationHistory('seller-1', undefined, { page: 1, limit: 10 });
+
+      expect(result.totalPages).toBe(1);
     });
   });
 });

@@ -155,7 +155,7 @@ describe('POST /agent/sellers/:sellerId/cdd', () => {
       .send({ fullName: 'Test User', nricLast4: '567A', riskLevel: 'standard' });
 
     expect(res.status).toBe(200);
-    expect(res.text).toContain('CDD Status');
+    expect(res.text).toContain('compliance-cdd-card');
     expect(mockService.createCddRecord).toHaveBeenCalledWith(
       expect.objectContaining({ subjectType: 'seller', subjectId: 'seller-1', fullName: 'Test User' }),
       'agent-1',
@@ -191,7 +191,7 @@ describe('POST /agent/sellers/:sellerId/eaa', () => {
       .send({ agreementType: 'non_exclusive' });
 
     expect(res.status).toBe(200);
-    expect(res.text).toContain('Estate Agency Agreement');
+    expect(res.text).toContain('compliance-eaa-card');
     expect(mockService.createEaa).toHaveBeenCalled();
   });
 });

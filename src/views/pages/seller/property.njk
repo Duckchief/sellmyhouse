@@ -2,7 +2,8 @@
 
 {% block content %}
 <div class="max-w-3xl mx-auto">
-  <h1 class="text-2xl font-bold text-gray-900 mb-6">{{ "Your Property Details" | t }}</h1>
+  {% set pageTitle = "Your Property Details" %}
+  {% include "partials/shared/page-header.njk" %}
 
   <div id="property-form-container">
     {% include "partials/seller/property-form.njk" %}

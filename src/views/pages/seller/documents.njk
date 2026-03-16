@@ -3,9 +3,10 @@
 {% block title %}{{ "Documents" | t }} — SellMyHomeNow.sg{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">{{ "Document Checklist" | t }}</h1>
+{% set pageTitle = "Document Checklist" %}
+{% include "partials/shared/page-header.njk" %}
 
-<div class="bg-white rounded-lg shadow">
+<div class="card">
   {% include "partials/seller/document-checklist.njk" %}
 </div>
 {% endblock %}

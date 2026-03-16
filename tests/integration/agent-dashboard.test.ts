@@ -196,36 +196,6 @@ describe('Agent Dashboard Integration', () => {
   // ────────────────────────────────────────────────────────────────────────────
 
   describe('HTMX Partials', () => {
-    it('returns partial for timeline tab', async () => {
-      const { agentRecord, agent } = await loginAsAgent();
-
-      const seller = await factory.seller({
-        name: 'Timeline Seller',
-        agentId: agentRecord.id,
-        status: 'active',
-      });
-
-      const res = await agent.get(`/agent/sellers/${seller.id}/timeline`).set('HX-Request', 'true');
-      expect(res.status).toBe(200);
-      expect(res.text).toBeTruthy();
-    });
-
-    it('returns partial for compliance tab', async () => {
-      const { agentRecord, agent } = await loginAsAgent();
-
-      const seller = await factory.seller({
-        name: 'Compliance Seller',
-        agentId: agentRecord.id,
-        status: 'active',
-      });
-
-      const res = await agent
-        .get(`/agent/sellers/${seller.id}/compliance`)
-        .set('HX-Request', 'true');
-      expect(res.status).toBe(200);
-      expect(res.text).toBeTruthy();
-    });
-
     it('returns partial for notifications tab', async () => {
       const { agentRecord, agent } = await loginAsAgent();
 

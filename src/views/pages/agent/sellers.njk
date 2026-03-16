@@ -1,7 +1,8 @@
 {% extends "layouts/agent.njk" %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">{{ "Sellers" | t }}</h1>
+{% set pageTitle = "Sellers" %}
+{% include "partials/shared/page-header.njk" %}
 
 <form hx-get="/agent/sellers" hx-target="#seller-list" hx-trigger="change, keyup changed delay:300ms from:find input[name=search]" class="flex gap-3 mb-6 flex-wrap">
   <select name="status" class="border rounded px-3 py-2 text-sm">

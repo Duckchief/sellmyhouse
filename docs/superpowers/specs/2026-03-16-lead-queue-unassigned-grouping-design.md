@@ -28,31 +28,34 @@ agentId: string | null;
 
 ### `getLeadQueue` service (agent.service.ts)
 
-Change return type from `LeadQueueItem[]` to:
+Change return type from `LeadQueueItem[]` to a `LeadQueueResult` interface:
 
 ```typescript
-{ unassigned: LeadQueueItem[]; assigned: LeadQueueItem[] }
+interface LeadQueueResult {
+  unassigned: LeadQueueItem[]; // sellers with agentId === null
+  all: LeadQueueItem[];        // all leads in createdAt ASC order
+}
 ```
 
 The repository already selects `agentId`. The service partitions the mapped array:
 
 - `unassigned`: items where `agentId === null`
-- `assigned`: all remaining items
+- `all`: the full mapped array (both unassigned and assigned), preserving repo order
 
-Both arrays are ordered by `createdAt ASC` (repo ordering preserved).
+`all` is used for the "All Leads" section, which shows every lead regardless of assignment.
 
 ### Router (agent.router.ts)
 
 Pass both arrays to the template:
 
 ```typescript
-res.render('pages/agent/leads', { unassigned, assigned });
+res.render('pages/agent/leads', { unassigned, all });
 ```
 
 Or for the HTMX partial:
 
 ```typescript
-res.render('partials/agent/lead-queue', { unassigned, assigned });
+res.render('partials/agent/lead-queue', { unassigned, all });
 ```
 
 ## Template Layer (`lead-queue.njk`)

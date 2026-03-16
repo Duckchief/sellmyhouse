@@ -1,12 +1,13 @@
 {% extends "layouts/admin.njk" %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">{{ "System Settings" | t }}</h1>
+{% set pageTitle = "System Settings" %}
+{% include "partials/shared/page-header.njk" %}
 <div class="space-y-6">
 {% for group in groups %}
-  <section>
-    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 px-1">{{ group.label | t }}</p>
-    <div class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
+  <div class="page-section">
+    <h2 class="page-section-title">{{ group.label | t }}</h2>
+    <div class="card divide-y divide-gray-100" style="padding:0;">
       {% for setting in group.settings %}
       <div class="flex items-start gap-4 px-6 py-4">
         <div class="flex-1">
@@ -21,7 +22,7 @@
       </div>
       {% endfor %}
     </div>
-  </section>
+  </div>
 {% endfor %}
 </div>
 {% endblock %}

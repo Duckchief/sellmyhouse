@@ -23,6 +23,7 @@
     {% endfor %}
   </tbody>
 </table>
+<p class="mt-2 text-xs text-gray-500 px-4">{{ status.recentSyncs.length }} {{ "records" | t }}</p>
 {% else %}
 <p class="text-gray-400 text-sm">{{ "No sync history." | t }}</p>
 {% endif %}

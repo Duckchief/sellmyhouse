@@ -135,65 +135,78 @@ describe('POST /seller/compliance/consent/withdraw', () => {
 
 // ─── Agent Compliance Gate Endpoints ─────────────────────────────────────────
 
-describe('POST /agent/sellers/:sellerId/cdd', () => {
+describe('PATCH /agent/sellers/:sellerId/cdd/status', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockAgentRepo.getComplianceStatus.mockResolvedValue(mockComplianceStatus as never);
   });
 
-  it('returns 401 when not authenticated', async () => {
+  it('returns 401 for unauthenticated requests', async () => {
     const app = createTestApp();
     const res = await request(app)
-      .post('/agent/sellers/seller-1/cdd')
-      .send({ fullName: 'Test', nricLast4: '567A' });
+      .patch('/agent/sellers/seller-1/cdd/status')
+      .send({ status: 'verified' });
     expect(res.status).toBe(401);
   });
 
-  it('returns 403 when authenticated as seller (not agent)', async () => {
+  it('returns 403 for seller role', async () => {
     const app = createSellerApp();
     const res = await request(app)
-      .post('/agent/sellers/seller-1/cdd')
-      .send({ fullName: 'Test', nricLast4: '567A' });
+      .patch('/agent/sellers/seller-1/cdd/status')
+      .send({ status: 'verified' });
     expect(res.status).toBe(403);
   });
 
-  it('creates CDD record and returns card partial on success', async () => {
-    mockService.createCddRecord.mockResolvedValue({ id: 'cdd-1' } as never);
-    const updatedCompliance = {
+  it('returns 400 for invalid status value', async () => {
+    const app = createAgentApp();
+    const res = await request(app)
+      .patch('/agent/sellers/seller-1/cdd/status')
+      .send({ status: 'invalid' });
+    expect(res.status).toBe(400);
+  });
+
+  it('calls updateCddStatus and re-renders cdd card on success', async () => {
+    mockService.updateCddStatus.mockResolvedValue(undefined);
+    mockAgentRepo.getComplianceStatus.mockResolvedValue({
       ...mockComplianceStatus,
       cdd: {
         status: 'verified' as const,
         verifiedAt: new Date(),
-        riskLevel: 'standard',
-        fullName: 'Test User',
-        nricLast4: '567A',
+        riskLevel: null,
+        fullName: null,
+        nricLast4: null,
       },
-    };
-    mockAgentRepo.getComplianceStatus.mockResolvedValue(updatedCompliance as never);
+    } as never);
 
     const app = createAgentApp();
     const res = await request(app)
-      .post('/agent/sellers/seller-1/cdd')
-      .send({ fullName: 'Test User', nricLast4: '567A', riskLevel: 'standard' });
+      .patch('/agent/sellers/seller-1/cdd/status')
+      .send({ status: 'verified' });
 
     expect(res.status).toBe(200);
     expect(res.text).toContain('compliance-cdd-card');
-    expect(mockService.createCddRecord).toHaveBeenCalledWith(
-      expect.objectContaining({
-        subjectType: 'seller',
-        subjectId: 'seller-1',
-        fullName: 'Test User',
-      }),
-      'agent-1',
-    );
+    expect(mockService.updateCddStatus).toHaveBeenCalledWith('seller-1', 'verified', 'agent-1');
   });
 
-  it('returns 400 when nricLast4 is missing', async () => {
+  it('calls updateCddStatus with not_started to delete the record', async () => {
+    mockService.updateCddStatus.mockResolvedValue(undefined);
+    mockAgentRepo.getComplianceStatus.mockResolvedValue({
+      ...mockComplianceStatus,
+      cdd: {
+        status: 'not_started' as const,
+        verifiedAt: null,
+        riskLevel: null,
+        fullName: null,
+        nricLast4: null,
+      },
+    } as never);
+
     const app = createAgentApp();
     const res = await request(app)
-      .post('/agent/sellers/seller-1/cdd')
-      .send({ fullName: 'Test User' });
-    expect(res.status).toBe(400);
+      .patch('/agent/sellers/seller-1/cdd/status')
+      .send({ status: 'not_started' });
+
+    expect(res.status).toBe(200);
+    expect(mockService.updateCddStatus).toHaveBeenCalledWith('seller-1', 'not_started', 'agent-1');
   });
 });
 
@@ -346,16 +359,6 @@ describe('POST /agent/transactions/:txId/counterparty-cdd', () => {
 });
 
 // ─── Modal GET Endpoints ─────────────────────────────────────────────────────
-
-describe('GET /agent/sellers/:sellerId/cdd/modal', () => {
-  it('returns CDD modal HTML', async () => {
-    const app = createAgentApp();
-    const res = await request(app).get('/agent/sellers/seller-1/cdd/modal');
-    expect(res.status).toBe(200);
-    expect(res.text).toContain('Create CDD Record');
-    expect(res.text).toContain('fullName');
-  });
-});
 
 describe('GET /agent/sellers/:sellerId/eaa/modal', () => {
   it('returns EAA modal HTML', async () => {

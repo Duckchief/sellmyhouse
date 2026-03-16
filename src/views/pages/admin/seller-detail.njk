@@ -178,13 +178,14 @@
     {% endif %}
   </div>
 
-</div>
 
-{# ── Transaction Timeline (full-width) ── #}
-<div class="page-section">
-  <h2 class="page-section-title">{{ "Transaction Timeline" | t }}</h2>
-  {% set milestones = detail.milestones %}
-  {% include "partials/agent/seller-timeline.njk" %}
+  {# Transaction Timeline #}
+  <div class="card">
+    <h2 class="page-section-title">{{ "Transaction Timeline" | t }}</h2>
+    {% set milestones = detail.milestones %}
+    {% include "partials/agent/seller-timeline.njk" %}
+  </div>
+
 </div>
 
 {# ── Notifications (full-width) ── #}

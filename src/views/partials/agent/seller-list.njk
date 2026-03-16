@@ -62,6 +62,7 @@
       {% endfor %}
     </tbody>
   </table>
+  <div class="px-4 py-2 text-xs text-gray-500">{{ "Showing" | t }} {{ result.sellers.length }} {{ "of" | t }} {{ result.total }} {{ "sellers" | t }}</div>
 </div>
 
 {% if result.totalPages > 1 %}

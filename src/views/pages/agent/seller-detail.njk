@@ -13,130 +13,114 @@
 {% set pageActionsHtml %}{% include "partials/agent/seller-status-buttons.njk" %}{% endset %}
 {% include "partials/shared/page-header.njk" %}
 
-<div class="space-y-6">
+<div class="info-grid">
 
-  {# 1. Overview #}
-  <div class="page-section">
+  {# 1. Overview — full-width #}
+  <div class="card md:col-span-2">
     <h2 class="page-section-title">{{ "Overview" | t }}</h2>
-    <div class="card">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Seller Info" | t }}</h3>
-          <dl class="space-y-2 text-sm">
-            <div class="flex justify-between"><dt class="text-gray-500">{{ "Status" | t }}</dt><dd>{{ seller.status }}</dd></div>
-            <div class="flex justify-between"><dt class="text-gray-500">{{ "Lead Source" | t }}</dt><dd>{{ seller.leadSource or "—" }}</dd></div>
-            <div class="flex justify-between"><dt class="text-gray-500">{{ "Onboarding" | t }}</dt><dd>{{ "Step" | t }} {{ seller.onboardingStep }} / 5</dd></div>
-            <div class="flex justify-between"><dt class="text-gray-500">{{ "Created" | t }}</dt><dd>{{ seller.createdAt | date('DD/MM/YYYY HH:mm') }}</dd></div>
-          </dl>
-        </div>
-        {% if seller.property %}
-        <div>
-          <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Property" | t }}</h3>
-          <dl class="space-y-2 text-sm">
-            <div class="flex justify-between"><dt class="text-gray-500">{{ "Address" | t }}</dt><dd>{{ seller.property.block }} {{ seller.property.street }}</dd></div>
-            <div class="flex justify-between"><dt class="text-gray-500">{{ "Town" | t }}</dt><dd>{{ seller.property.town }}</dd></div>
-            <div class="flex justify-between"><dt class="text-gray-500">{{ "Type" | t }}</dt><dd>{{ seller.property.flatType }}</dd></div>
-            <div class="flex justify-between"><dt class="text-gray-500">{{ "Floor Area" | t }}</dt><dd>{{ seller.property.floorAreaSqm }} sqm</dd></div>
-            <div class="flex justify-between"><dt class="text-gray-500">{{ "Asking Price" | t }}</dt><dd>{% if seller.property.askingPrice %}${{ seller.property.askingPrice | formatPrice }}{% else %}{{ "Not set" | t }}{% endif %}</dd></div>
-            <div class="flex justify-between"><dt class="text-gray-500">{{ "Status" | t }}</dt><dd>{{ seller.property.status }}</dd></div>
-          </dl>
-        </div>
-        {% else %}
-        <div>
-          <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Property" | t }}</h3>
-          <p class="text-gray-500 text-sm">{{ "No property added yet" | t }}</p>
-        </div>
-        {% endif %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Seller Info" | t }}</h3>
+        <dl class="space-y-2 text-sm">
+          <div class="flex justify-between"><dt class="text-gray-500">{{ "Status" | t }}</dt><dd>{{ seller.status }}</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">{{ "Lead Source" | t }}</dt><dd>{{ seller.leadSource or "—" }}</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">{{ "Onboarding" | t }}</dt><dd>{{ "Step" | t }} {{ seller.onboardingStep }} / 5</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">{{ "Created" | t }}</dt><dd>{{ seller.createdAt | date('DD/MM/YYYY HH:mm') }}</dd></div>
+        </dl>
       </div>
-    </div>
-  </div>
-
-  {# 2. Transaction Timeline #}
-  <div class="page-section">
-    <h2 class="page-section-title">{{ "Transaction Timeline" | t }}</h2>
-    <div class="card">
-      <div class="space-y-4">
-        {% for milestone in milestones %}
-        <div class="flex items-start gap-3">
-          <div class="mt-1 w-3 h-3 rounded-full flex-shrink-0
-            {% if milestone.status == 'completed' %}bg-green-500
-            {% elif milestone.status == 'current' %}bg-blue-500
-            {% else %}bg-gray-300{% endif %}"></div>
-          <div>
-            <div class="text-sm font-medium {% if milestone.status == 'upcoming' %}text-gray-400{% endif %}">{{ milestone.label | t }}</div>
-            <div class="text-xs text-gray-500">{{ milestone.description | t }}</div>
-          </div>
-        </div>
-        {% endfor %}
+      {% if seller.property %}
+      <div>
+        <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Property" | t }}</h3>
+        <dl class="space-y-2 text-sm">
+          <div class="flex justify-between"><dt class="text-gray-500">{{ "Address" | t }}</dt><dd>{{ seller.property.block }} {{ seller.property.street }}</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">{{ "Town" | t }}</dt><dd>{{ seller.property.town }}</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">{{ "Type" | t }}</dt><dd>{{ seller.property.flatType }}</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">{{ "Floor Area" | t }}</dt><dd>{{ seller.property.floorAreaSqm }} sqm</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">{{ "Asking Price" | t }}</dt><dd>{% if seller.property.askingPrice %}${{ seller.property.askingPrice | formatPrice }}{% else %}{{ "Not set" | t }}{% endif %}</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">{{ "Status" | t }}</dt><dd>{{ seller.property.status }}</dd></div>
+        </dl>
       </div>
-    </div>
-  </div>
-
-  {# 3. CDD Status #}
-  <div class="page-section">
-    <h2 class="page-section-title">{{ "CDD Status" | t }}</h2>
-    <div class="card">
-      {% include "partials/agent/compliance-cdd-card.njk" %}
-    </div>
-  </div>
-
-  {# 4. Estate Agency Agreement #}
-  <div class="page-section">
-    <h2 class="page-section-title">{{ "Estate Agency Agreement" | t }}</h2>
-    <div class="card">
-      {% include "partials/agent/compliance-eaa-card.njk" %}
-    </div>
-  </div>
-
-  {# 5. Counterparty CDD — only when active transaction exists #}
-  {% if compliance.counterpartyCdd %}
-  <div class="page-section">
-    <h2 class="page-section-title">{{ "Counterparty CDD" | t }}</h2>
-    <div class="card">
-      {% include "partials/agent/compliance-counterparty-cdd-card.njk" %}
-    </div>
-  </div>
-  {% endif %}
-
-  {# 6. Consent #}
-  <div class="page-section">
-    <h2 class="page-section-title">{{ "Consent" | t }}</h2>
-    <div class="card">
-      <dl class="space-y-2 text-sm">
-        <div class="flex justify-between"><dt class="text-gray-500">{{ "Service" | t }}</dt><dd>{% if compliance.consent.service %}✓{% else %}✗{% endif %}</dd></div>
-        <div class="flex justify-between"><dt class="text-gray-500">{{ "Marketing" | t }}</dt><dd>{% if compliance.consent.marketing %}✓{% else %}✗{% endif %}</dd></div>
-        {% if compliance.consent.withdrawnAt %}
-        <div class="text-xs text-red-500">{{ "Withdrawn:" | t }} {{ compliance.consent.withdrawnAt | date }}</div>
-        {% endif %}
-      </dl>
-    </div>
-  </div>
-
-  {# 7. Case Flags #}
-  <div class="page-section">
-    <h2 class="page-section-title">{{ "Case Flags" | t }}</h2>
-    <div class="card">
-      {% if compliance.caseFlags.length == 0 %}
-      <p class="text-sm text-gray-500">{{ "No active flags" | t }}</p>
       {% else %}
-      <div class="space-y-2">
-        {% for flag in compliance.caseFlags %}
-        <div class="text-sm border-l-2 border-yellow-500 pl-3">
-          <div class="font-medium">{{ flag.flagType }}</div>
-          <div class="text-gray-500">{{ flag.description }}</div>
-        </div>
-        {% endfor %}
+      <div>
+        <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Property" | t }}</h3>
+        <p class="text-gray-500 text-sm">{{ "No property added yet" | t }}</p>
       </div>
       {% endif %}
     </div>
   </div>
 
-  {# 8. Notifications #}
-  <div class="page-section" id="notifications-fieldset">
-    <h2 class="page-section-title">{{ "Notifications" | t }}</h2>
-    <div class="card" id="notifications-section">
-      {% include "partials/agent/seller-notifications.njk" %}
+  {# 2. Transaction Timeline #}
+  <div class="card">
+    <h2 class="page-section-title">{{ "Transaction Timeline" | t }}</h2>
+    <div class="space-y-4">
+      {% for milestone in milestones %}
+      <div class="flex items-start gap-3">
+        <div class="mt-1 w-3 h-3 rounded-full flex-shrink-0
+          {% if milestone.status == 'completed' %}bg-green-500
+          {% elif milestone.status == 'current' %}bg-blue-500
+          {% else %}bg-gray-300{% endif %}"></div>
+        <div>
+          <div class="text-sm font-medium {% if milestone.status == 'upcoming' %}text-gray-400{% endif %}">{{ milestone.label | t }}</div>
+          <div class="text-xs text-gray-500">{{ milestone.description | t }}</div>
+        </div>
+      </div>
+      {% endfor %}
     </div>
+  </div>
+
+  {# 3. CDD Status #}
+  <div class="card">
+    <h2 class="page-section-title">{{ "CDD Status" | t }}</h2>
+    {% include "partials/agent/compliance-cdd-card.njk" %}
+  </div>
+
+  {# 4. Estate Agency Agreement #}
+  <div class="card">
+    <h2 class="page-section-title">{{ "Estate Agency Agreement" | t }}</h2>
+    {% include "partials/agent/compliance-eaa-card.njk" %}
+  </div>
+
+  {# 5. Counterparty CDD — only when active transaction exists, full-width #}
+  {% if compliance.counterpartyCdd %}
+  <div class="card md:col-span-2">
+    <h2 class="page-section-title">{{ "Counterparty CDD" | t }}</h2>
+    {% include "partials/agent/compliance-counterparty-cdd-card.njk" %}
+  </div>
+  {% endif %}
+
+  {# 6. Consent #}
+  <div class="card">
+    <h2 class="page-section-title">{{ "Consent" | t }}</h2>
+    <dl class="space-y-2 text-sm">
+      <div class="flex justify-between"><dt class="text-gray-500">{{ "Service" | t }}</dt><dd>{% if compliance.consent.service %}✓{% else %}✗{% endif %}</dd></div>
+      <div class="flex justify-between"><dt class="text-gray-500">{{ "Marketing" | t }}</dt><dd>{% if compliance.consent.marketing %}✓{% else %}✗{% endif %}</dd></div>
+      {% if compliance.consent.withdrawnAt %}
+      <div class="text-xs text-red-500">{{ "Withdrawn:" | t }} {{ compliance.consent.withdrawnAt | date }}</div>
+      {% endif %}
+    </dl>
+  </div>
+
+  {# 7. Case Flags #}
+  <div class="card">
+    <h2 class="page-section-title">{{ "Case Flags" | t }}</h2>
+    {% if compliance.caseFlags.length == 0 %}
+    <p class="text-sm text-gray-500">{{ "No active flags" | t }}</p>
+    {% else %}
+    <div class="space-y-2">
+      {% for flag in compliance.caseFlags %}
+      <div class="text-sm border-l-2 border-yellow-500 pl-3">
+        <div class="font-medium">{{ flag.flagType }}</div>
+        <div class="text-gray-500">{{ flag.description }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {# 8. Notifications — full-width #}
+  <div class="card md:col-span-2" id="notifications-section">
+    <h2 class="page-section-title">{{ "Notifications" | t }}</h2>
+    {% include "partials/agent/seller-notifications.njk" %}
   </div>
 
 </div>

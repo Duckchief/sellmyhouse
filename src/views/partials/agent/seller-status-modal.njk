@@ -6,8 +6,8 @@
 
     <form
       hx-put="/agent/sellers/{{ seller.id }}/status"
-      hx-target="#seller-header"
-      hx-swap="outerHTML"
+      hx-target="#modal-container"
+      hx-swap="innerHTML"
       hx-on::response-error="
         const el = document.getElementById('modal-error');
         el.textContent = 'An error occurred. Please try again.';

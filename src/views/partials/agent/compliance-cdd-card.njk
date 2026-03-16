@@ -1,51 +1,38 @@
 <div id="compliance-cdd-card">
-  <div class="flex items-center justify-between mb-4">
-    <span class="px-2 py-1 text-xs rounded-full
-      {% if compliance.cdd.status == 'verified' %}bg-green-100 text-green-800
-      {% elif compliance.cdd.status == 'pending' %}bg-yellow-100 text-yellow-800
-      {% else %}bg-gray-100 text-gray-800{% endif %}">{{ compliance.cdd.status | t }}</span>
+  <div class="flex items-center gap-3">
+    <label class="text-sm font-medium text-gray-700" for="cdd-status-select">{{ "Status" | t }}</label>
+    <div class="relative">
+      <select
+        id="cdd-status-select"
+        name="status"
+        hx-patch="/agent/sellers/{{ sellerId }}/cdd/status"
+        hx-trigger="change"
+        hx-target="#compliance-cdd-card"
+        hx-swap="outerHTML"
+        hx-include="this"
+        hx-indicator="#cdd-status-indicator"
+        class="border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-8">
+        <option value="not_started" {% if compliance.cdd.status == 'not_started' %}selected{% endif %}>{{ "Not Started" | t }}</option>
+        <option value="pending" {% if compliance.cdd.status == 'pending' %}selected{% endif %}>{{ "Pending" | t }}</option>
+        <option value="verified" {% if compliance.cdd.status == 'verified' %}selected{% endif %}>{{ "Verified" | t }}</option>
+      </select>
+      <span id="cdd-status-indicator" class="htmx-indicator absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">↻</span>
+    </div>
+
+    {% if compliance.cdd.status == 'verified' %}
+    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">{{ "Verified" | t }}</span>
+    {% elif compliance.cdd.status == 'pending' %}
+    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">{{ "Pending" | t }}</span>
+    {% endif %}
   </div>
 
-  {% if compliance.cdd.status == 'not_started' %}
-    <p class="text-sm text-gray-500 mb-4">{{ "No CDD record exists for this seller." | t }}</p>
-    <button
-      type="button"
-      hx-get="/agent/sellers/{{ sellerId }}/cdd/modal"
-      hx-target="#compliance-modal-container"
-      hx-swap="innerHTML"
-      class="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
-      {{ "Create CDD Record" | t }}
-    </button>
-  {% else %}
-    <dl class="space-y-2 text-sm">
-      {% if compliance.cdd.fullName %}
-      <div class="flex justify-between">
-        <dt class="text-gray-500">{{ "Name" | t }}</dt>
-        <dd>{{ compliance.cdd.fullName }}</dd>
-      </div>
-      {% endif %}
-      {% if compliance.cdd.nricLast4 %}
-      <div class="flex justify-between">
-        <dt class="text-gray-500">{{ "NRIC" | t }}</dt>
-        <dd>SXXXX{{ compliance.cdd.nricLast4.substring(0, 3) }}{{ compliance.cdd.nricLast4.substring(3) }}</dd>
-      </div>
-      {% endif %}
-      {% if compliance.cdd.riskLevel %}
-      <div class="flex justify-between">
-        <dt class="text-gray-500">{{ "Risk Level" | t }}</dt>
-        <dd>
-          <span class="px-2 py-0.5 text-xs rounded-full
-            {% if compliance.cdd.riskLevel == 'enhanced' %}bg-orange-100 text-orange-800
-            {% else %}bg-green-100 text-green-800{% endif %}">{{ compliance.cdd.riskLevel }}</span>
-        </dd>
-      </div>
-      {% endif %}
-      {% if compliance.cdd.verifiedAt %}
-      <div class="flex justify-between">
-        <dt class="text-gray-500">{{ "Verified" | t }}</dt>
-        <dd>{{ compliance.cdd.verifiedAt | date }}</dd>
-      </div>
-      {% endif %}
-    </dl>
+  {% if compliance.cdd.status == 'pending' %}
+  <p class="text-xs text-yellow-700 mt-2">
+    {{ "CDD must be marked Verified in Huttons' system before you can proceed to the Estate Agency Agreement." | t }}
+  </p>
+  {% endif %}
+
+  {% if compliance.cdd.status == 'verified' and compliance.cdd.verifiedAt %}
+  <p class="text-xs text-gray-500 mt-2">{{ "Verified" | t }}: {{ compliance.cdd.verifiedAt | date('DD/MM/YYYY') }}</p>
   {% endif %}
 </div>

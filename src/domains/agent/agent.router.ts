@@ -342,8 +342,8 @@ agentRouter.put(
       await sellerService.updateSellerStatus(sellerId, status, user.id, note);
 
       if (req.headers['hx-request']) {
-        const seller = await agentService.getSellerDetail(sellerId, getAgentFilter(user));
-        return res.render('partials/agent/seller-header', { seller });
+        res.set('HX-Refresh', 'true');
+        return res.status(200).send('');
       }
 
       return res.status(200).json({ seller: { id: sellerId, status } });

@@ -12,6 +12,7 @@ import {
   withdrawConsentValidator,
   createCorrectionValidator,
   createCddValidator,
+  updateCddStatusValidator,
   createEaaValidator,
   updateEaaStatusValidator,
   confirmExplanationValidator,
@@ -478,42 +479,19 @@ complianceRouter.post(
 
 // ─── Agent Compliance Gate Management ─────────────────────────────────────────
 
-// POST /agent/sellers/:sellerId/cdd — Create seller CDD record (Gate 1)
-complianceRouter.post(
-  '/agent/sellers/:sellerId/cdd',
+// PATCH /agent/sellers/:sellerId/cdd/status — Update seller CDD status (Gate 1)
+complianceRouter.patch(
+  '/agent/sellers/:sellerId/cdd/status',
   ...agentAuth,
-  createCddValidator,
+  updateCddStatusValidator,
   async (req: Request, res: Response, next: NextFunction) => {
     if (extractValidationErrors(req, next)) return;
     try {
       const sellerId = req.params['sellerId'] as string;
       const agentId = getAgentId(req);
-      const { fullName, nricLast4, riskLevel, notes, dateOfBirth, nationality, occupation } =
-        req.body as {
-          fullName: string;
-          nricLast4: string;
-          riskLevel?: 'standard' | 'enhanced';
-          notes?: string;
-          dateOfBirth?: string;
-          nationality?: string;
-          occupation?: string;
-        };
+      const { status } = req.body as { status: 'not_started' | 'pending' | 'verified' };
 
-      await complianceService.createCddRecord(
-        {
-          subjectType: 'seller',
-          subjectId: sellerId,
-          fullName,
-          nricLast4,
-          verifiedByAgentId: agentId,
-          riskLevel: riskLevel ?? 'standard',
-          notes,
-          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-          nationality,
-          occupation,
-        },
-        agentId,
-      );
+      await complianceService.updateCddStatus(sellerId, status, agentId);
 
       const compliance = await agentRepo.getComplianceStatus(sellerId, agentId);
       return res.render('partials/agent/compliance-cdd-card', { compliance, sellerId });
@@ -707,25 +685,6 @@ complianceRouter.post(
 );
 
 // ─── Modal GET Endpoints (load modal content via HTMX) ───────────────────────
-
-// GET /agent/sellers/:sellerId/cdd/modal
-complianceRouter.get(
-  '/agent/sellers/:sellerId/cdd/modal',
-  ...agentAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const sellerId = req.params['sellerId'] as string;
-      return res.render('partials/agent/cdd-modal', {
-        sellerId,
-        endpoint: `/agent/sellers/${sellerId}/cdd`,
-        target: '#compliance-cdd-card',
-        title: 'Create CDD Record',
-      });
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
 
 // GET /agent/sellers/:sellerId/eaa/modal
 complianceRouter.get(

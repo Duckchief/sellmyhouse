@@ -13,9 +13,9 @@
 <tr id="review-row-{{ item.id }}"
     class="hover:bg-blue-50 cursor-pointer transition-colors"
     hx-get="/agent/reviews/{{ item.entityType }}/{{ item.entityId }}/detail"
-    hx-target="#review-detail-panel"
+    hx-target="#review-detail-content"
     hx-swap="innerHTML"
-    _="on htmx:afterRequest remove .hidden from #review-detail-panel">
+>
   <td class="px-4 py-3 font-medium text-gray-900">{{ item.sellerName }}</td>
   <td class="px-4 py-3">
     <span class="text-xs px-2 py-1 rounded-full {{ badge.class }}">{{ badge.label | t }}</span>

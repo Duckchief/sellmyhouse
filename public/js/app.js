@@ -139,6 +139,15 @@
       }
     }
 
+    // Review detail panel: close and slide out to the right
+    if (action === 'close-review-panel') {
+      var reviewPanel = document.getElementById('review-detail-panel');
+      if (reviewPanel) {
+        reviewPanel.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
+        reviewPanel.setAttribute('aria-hidden', 'true');
+      }
+    }
+
     // Referral table: toggle the pre-composed message expansion row
     if (action === 'toggle-referral-message') {
       var msgRow = document.getElementById(el.dataset.target);
@@ -232,6 +241,23 @@
     if (action === 'confirm-submit') {
       if (!confirm(form.dataset.message || 'Are you sure?')) {
         e.preventDefault();
+      }
+    }
+  });
+
+  // ── HTMX: review panel show/hide ──────────────────────────────
+  document.addEventListener('htmx:afterRequest', function (e) {
+    var panel = document.getElementById('review-detail-panel');
+    if (panel) {
+      // Show panel when detail content loads into it
+      if (e.detail.target && e.detail.target.id === 'review-detail-content' && e.detail.successful) {
+        panel.classList.remove('translate-x-full', 'opacity-0', 'pointer-events-none');
+        panel.removeAttribute('aria-hidden');
+      }
+      // Hide panel after approve/reject (form inside the panel fires the request)
+      if (e.detail.elt && e.detail.elt.closest && e.detail.elt.closest('#review-detail-panel') && e.detail.successful) {
+        panel.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
+        panel.setAttribute('aria-hidden', 'true');
       }
     }
   });

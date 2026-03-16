@@ -104,7 +104,10 @@ describe('agent.service', () => {
         } as unknown as Awaited<ReturnType<typeof agentRepo.getLeadQueue>>[0],
       ]);
       mockRepo.getWelcomeNotificationStatus.mockResolvedValue(
-        new Map([['seller-1', true], ['seller-2', false]]),
+        new Map([
+          ['seller-1', true],
+          ['seller-2', false],
+        ]),
       );
 
       const result = await agentService.getLeadQueue('agent-1');

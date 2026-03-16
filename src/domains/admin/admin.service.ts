@@ -569,10 +569,7 @@ export async function getAdminSellerDetail(id: string): Promise<AdminSellerDetai
 
   const property = raw.properties[0] ?? null;
   const transaction = raw.transactions[0] ?? null;
-  const milestones = getTimelineMilestones(
-    property?.status ?? null,
-    transaction?.status ?? null,
-  );
+  const milestones = getTimelineMilestones(property?.status ?? null, transaction?.status ?? null);
 
   return {
     seller: {

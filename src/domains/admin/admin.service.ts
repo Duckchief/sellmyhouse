@@ -12,6 +12,7 @@ import { HdbSyncService } from '@/domains/hdb/sync.service';
 import { ConflictError, NotFoundError, ValidationError } from '@/domains/shared/errors';
 import { SETTING_VALIDATORS } from './admin.validator';
 import type {
+  AdminLeadQueueResult,
   AdminSellerDetail,
   AgentCreateInput,
   AdminPipelineResult,
@@ -315,6 +316,25 @@ export async function getUnassignedLeads(page?: number): Promise<LeadListResult>
     page: currentPage,
     limit,
     totalPages: Math.ceil(total / limit),
+  };
+}
+
+export async function getAdminLeadQueue(page?: number): Promise<AdminLeadQueueResult> {
+  const [unassigned, allRaw] = await Promise.all([
+    getUnassignedLeads(page),
+    adminRepo.findAllLeads(),
+  ]);
+
+  return {
+    unassigned,
+    all: allRaw.map((s) => ({
+      id: s.id,
+      name: s.name,
+      phone: s.phone,
+      town: s.properties[0]?.town ?? null,
+      leadSource: s.leadSource,
+      createdAt: s.createdAt,
+    })),
   };
 }
 

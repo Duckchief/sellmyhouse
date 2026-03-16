@@ -114,6 +114,64 @@ describe('getUnassignedLeads', () => {
   });
 });
 
+// ─── getAdminLeadQueue ──────────────────────────────────────
+
+describe('getAdminLeadQueue', () => {
+  const unassignedSeller = {
+    id: 's1',
+    name: 'Alice',
+    phone: '91234567',
+    leadSource: 'website',
+    createdAt: new Date('2026-01-01'),
+    properties: [{ town: 'TAMPINES' }],
+  };
+
+  const assignedSeller = {
+    id: 's2',
+    name: 'Bob',
+    phone: '91234568',
+    leadSource: null,
+    createdAt: new Date('2026-01-02'),
+    properties: [],
+  };
+
+  it('returns unassigned and all leads', async () => {
+    mockAdminRepo.findUnassignedLeads.mockResolvedValue([unassignedSeller] as never);
+    mockAdminRepo.countUnassignedLeads.mockResolvedValue(1);
+    mockAdminRepo.findAllLeads.mockResolvedValue([assignedSeller, unassignedSeller] as never);
+
+    const result = await adminService.getAdminLeadQueue();
+
+    expect(result.unassigned.leads).toHaveLength(1);
+    expect(result.unassigned.leads[0].name).toBe('Alice');
+    expect(result.all).toHaveLength(2);
+    expect(result.all[0].name).toBe('Bob');
+    expect(result.all[0].town).toBeNull();
+    expect(result.all[1].town).toBe('TAMPINES');
+  });
+
+  it('returns empty arrays when no leads exist', async () => {
+    mockAdminRepo.findUnassignedLeads.mockResolvedValue([]);
+    mockAdminRepo.countUnassignedLeads.mockResolvedValue(0);
+    mockAdminRepo.findAllLeads.mockResolvedValue([]);
+
+    const result = await adminService.getAdminLeadQueue();
+
+    expect(result.unassigned.leads).toHaveLength(0);
+    expect(result.all).toHaveLength(0);
+  });
+
+  it('passes page to getUnassignedLeads', async () => {
+    mockAdminRepo.findUnassignedLeads.mockResolvedValue([]);
+    mockAdminRepo.countUnassignedLeads.mockResolvedValue(0);
+    mockAdminRepo.findAllLeads.mockResolvedValue([]);
+
+    await adminService.getAdminLeadQueue(3);
+
+    expect(mockAdminRepo.findUnassignedLeads).toHaveBeenCalledWith(3, 25);
+  });
+});
+
 // ─── getReviewQueue ─────────────────────────────────────────
 
 describe('getReviewQueue', () => {

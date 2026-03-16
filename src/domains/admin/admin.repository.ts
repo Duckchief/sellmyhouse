@@ -148,6 +148,22 @@ export async function countUnassignedLeads(): Promise<number> {
   return prisma.seller.count({ where: { status: 'lead', agentId: null } });
 }
 
+export async function findAllLeads(limit = 50) {
+  return prisma.seller.findMany({
+    where: { status: 'lead' },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      leadSource: true,
+      createdAt: true,
+      properties: { take: 1, select: { town: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+}
+
 // ─── Seller Queries ──────────────────────────────────────────
 
 export async function findAllSellers(filter: {

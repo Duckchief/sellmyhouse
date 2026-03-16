@@ -132,6 +132,18 @@ export interface LeadListResult {
   totalPages: number;
 }
 
+export interface AdminLeadQueueResult {
+  unassigned: LeadListResult;
+  all: Array<{
+    id: string;
+    name: string;
+    phone: string | null;
+    town: string | null;
+    leadSource: string | null;
+    createdAt: Date;
+  }>;
+}
+
 export interface AdminPipelineSeller {
   id: string;
   name: string;

@@ -18,7 +18,7 @@
   { key: 'financial',   label: 'Financial' }
 ] %}
 
-<div class="flex border-b border-gray-200 mb-4 text-sm overflow-x-auto">
+<div class="flex border-b border-gray-200 mb-4 text-sm">
   {% for tab in tabs %}
   <a href="/admin/tutorials?tab={{ tab.key }}"
      hx-get="/admin/tutorials?tab={{ tab.key }}"

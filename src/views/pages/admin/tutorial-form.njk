@@ -48,7 +48,7 @@
     <div class="mb-4">
       <label class="block text-sm font-medium mb-1">{{ "Category" | t }} *</label>
       <select name="category" required class="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-        {% set currentCategory = values.category if values.category else (tutorial.category if tutorial else '') %}
+        {% set currentCategory = values.category if values.category else (tutorial.category if tutorial else preselectedCategory) %}
         <option value="">{{ "Select category..." | t }}</option>
         <option value="photography" {% if currentCategory == 'photography' %}selected{% endif %}>{{ "Photography" | t }}</option>
         <option value="forms" {% if currentCategory == 'forms' %}selected{% endif %}>{{ "Forms" | t }}</option>

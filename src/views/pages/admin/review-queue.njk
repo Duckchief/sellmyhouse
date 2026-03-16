@@ -1,9 +1,52 @@
 {% extends "layouts/admin.njk" %}
 
 {% block content %}
-{% set pageTitle = "Review Queue" %}
-{% include "partials/shared/page-header.njk" %}
-<div id="review-list">
-  {% include "partials/admin/review-list.njk" %}
+<div class="flex h-full gap-6">
+  <div class="flex-1 min-w-0">
+    {% set pageTitle = "Review Queue" %}
+    {% set pageActionsHtml %}<span class="text-sm text-gray-500">{{ queue.totalCount }} {{ "pending" | t }}</span>{% endset %}
+    {% include "partials/shared/page-header.njk" %}
+
+    {# Tabs #}
+    <div class="flex border-b border-gray-200 mb-4 text-sm overflow-x-auto">
+      {% set tabs = [
+        { key: 'all', label: 'All', count: queue.totalCount },
+        { key: 'financial_report', label: 'Financial Reports', count: queue.countByType.financial_report },
+        { key: 'listing_description', label: 'Descriptions', count: queue.countByType.listing_description },
+        { key: 'listing_photos', label: 'Photos', count: queue.countByType.listing_photos },
+        { key: 'market_content', label: 'Market Content', count: queue.countByType.market_content },
+        { key: 'weekly_update', label: 'Weekly Updates', count: queue.countByType.weekly_update },
+        { key: 'document_checklist', label: 'Doc Checklists', count: queue.countByType.document_checklist }
+      ] %}
+      {% for tab in tabs %}
+      <a href="/admin/review?tab={{ tab.key }}"
+         hx-get="/admin/review?tab={{ tab.key }}"
+         hx-target="#review-queue-body"
+         hx-push-url="true"
+         class="px-4 py-2 whitespace-nowrap border-b-2 transition-colors
+           {% if activeTab == tab.key %}border-blue-600 text-blue-600 font-medium{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
+        {{ tab.label | t }}
+        {% if tab.count > 0 %}
+        <span class="ml-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{{ tab.count }}</span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+
+    {# Queue body #}
+    <div id="review-queue-body">
+      {% include "partials/agent/review-queue.njk" %}
+    </div>
+  </div>
+
+  {# Right: slide-out detail panel #}
+  <div id="review-detail-panel" class="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-40 translate-x-full opacity-0 pointer-events-none transition-all duration-300 ease-out overflow-y-auto" aria-hidden="true">
+    <button data-action="close-review-panel" aria-label="{{ 'Close' | t }}" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 p-1 rounded z-10">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+      </svg>
+    </button>
+    <div id="review-detail-content">{# Populated via HTMX on row click #}</div>
+  </div>
 </div>
 {% endblock %}

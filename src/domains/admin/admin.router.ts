@@ -8,6 +8,7 @@ import {
   validateTutorialUpdate,
 } from '@/domains/content/content.validator';
 import * as contentService from '@/domains/content/content.service';
+import * as reviewService from '@/domains/review/review.service';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import { NotFoundError, ConflictError } from '@/domains/shared/errors';
 import { logger } from '@/infra/logger';
@@ -91,12 +92,13 @@ adminRouter.get(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const items = await adminService.getReviewQueue();
+      const queue = await reviewService.getPendingQueue();
+      const activeTab = (req.query.tab as string) || 'all';
 
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/review-list', { items });
+        return res.render('partials/agent/review-queue', { queue, activeTab });
       }
-      res.render('pages/admin/review-queue', { items, currentPath: '/admin/review' });
+      res.render('pages/admin/review-queue', { queue, activeTab, currentPath: '/admin/review' });
     } catch (err) {
       next(err);
     }
@@ -633,6 +635,9 @@ adminRouter.post(
 // IMPORTANT: /reorder must be registered before /:id routes to avoid
 // "reorder" being matched as an id parameter.
 
+const VALID_TUTORIAL_TABS = ['photography', 'forms', 'process', 'financial'] as const;
+type TutorialTab = (typeof VALID_TUTORIAL_TABS)[number];
+
 adminRouter.post(
   '/admin/tutorials/reorder',
   ...adminAuth,
@@ -645,7 +650,13 @@ adminRouter.post(
       }));
       await contentService.reorderTutorials(items);
       if (req.headers['hx-request']) {
-        return res.status(200).send('');
+        const tutorials = await contentService.getTutorialsGrouped();
+        const rawTab = req.query['tab'] as string | undefined;
+        const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab)
+          ? (rawTab as TutorialTab)
+          : 'photography';
+        const activeItems = tutorials[activeTab] ?? [];
+        return res.render('partials/admin/tutorial-list', { tutorials: activeItems, activeTab });
       }
       return res.redirect('/admin/tutorials');
     } catch (err) {
@@ -660,10 +671,26 @@ adminRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const tutorials = await contentService.getTutorialsGrouped();
+      const rawTab = req.query['tab'] as string | undefined;
+      const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab)
+        ? (rawTab as TutorialTab)
+        : 'photography';
+      const tabCounts: Record<TutorialTab, number> = {
+        photography: (tutorials['photography'] ?? []).length,
+        forms: (tutorials['forms'] ?? []).length,
+        process: (tutorials['process'] ?? []).length,
+        financial: (tutorials['financial'] ?? []).length,
+      };
+      const activeItems = tutorials[activeTab] ?? [];
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/tutorial-list', { tutorials });
+        return res.render('partials/admin/tutorial-list', { tutorials: activeItems, activeTab });
       }
-      return res.render('pages/admin/tutorials', { tutorials, currentPath: '/admin/tutorials' });
+      return res.render('pages/admin/tutorials', {
+        tutorials: activeItems,
+        activeTab,
+        tabCounts,
+        currentPath: '/admin/tutorials',
+      });
     } catch (err) {
       return next(err);
     }
@@ -673,11 +700,15 @@ adminRouter.get(
 adminRouter.get(
   '/admin/tutorials/new',
   ...adminAuth,
-  async (_req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const VALID_CATEGORIES = ['photography', 'forms', 'process', 'financial'];
+      const rawCategory = req.query['category'] as string | undefined;
+      const preselectedCategory = VALID_CATEGORIES.includes(rawCategory ?? '') ? rawCategory : '';
       return res.render('pages/admin/tutorial-form', {
         tutorial: null,
         errors: [],
+        preselectedCategory,
         currentPath: '/admin/tutorials',
       });
     } catch (err) {

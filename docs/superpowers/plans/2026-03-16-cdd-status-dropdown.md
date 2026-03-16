@@ -78,9 +78,23 @@ git commit -m "feat: add UpdateCddStatusInput type and updateCddStatusValidator"
 **Files:**
 - Modify: `src/domains/compliance/__tests__/compliance.repository.test.ts`
 
-- [ ] **Step 1: Write failing tests for `upsertCddStatus` and `deleteCddRecord`**
+- [ ] **Step 1: Extend the Prisma mock to include new methods**
 
-Open `src/domains/compliance/__tests__/compliance.repository.test.ts`. Add a new describe block after the existing `createCddRecord` describe block:
+Open `src/domains/compliance/__tests__/compliance.repository.test.ts`. Find the `mockPrisma` definition near the top (where `cddRecord` is defined) and add `findFirst`, `update`, and `delete` to it:
+
+```typescript
+cddRecord: {
+  create: jest.fn(),
+  updateMany: jest.fn(),
+  findFirst: jest.fn(),  // add
+  update: jest.fn(),     // add
+  delete: jest.fn(),     // add
+},
+```
+
+- [ ] **Step 2: Write failing tests for `upsertCddStatus` and `deleteCddRecord`**
+
+In the same file, add a new describe block after the existing `createCddRecord` describe block:
 
 ```typescript
 // ─── upsertCddStatus ───────────────────────────────────────────────────────────

@@ -215,68 +215,23 @@ agentRouter.get(
   },
 );
 
-// GET /agent/sellers/:id/timeline — HTMX partial
-agentRouter.get(
-  '/agent/sellers/:id/timeline',
-  ...agentAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const user = req.user as AuthenticatedUser;
-      const seller = await agentService.getSellerDetail(
-        req.params['id'] as string,
-        getAgentFilter(user),
-      );
-      const milestones = agentService.getTimeline(seller.property?.status ?? null, null);
-
-      res.render('partials/agent/seller-timeline', { milestones });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
-
-// GET /agent/sellers/:id/compliance — HTMX partial
-agentRouter.get(
-  '/agent/sellers/:id/compliance',
-  ...agentAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const user = req.user as AuthenticatedUser;
-      const compliance = await agentService.getComplianceStatus(
-        req.params['id'] as string,
-        getAgentFilter(user),
-      );
-
-      res.render('partials/agent/seller-compliance', { compliance, sellerId: req.params['id'] });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
-
-// GET /agent/sellers/:id/notifications — HTMX partial
+// GET /agent/sellers/:id/notifications — HTMX pagination partial
 agentRouter.get(
   '/agent/sellers/:id/notifications',
   ...agentAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const sellerId = req.params['id'] as string;
+      const page = req.query['page'] ? parseInt(req.query['page'] as string, 10) : 1;
 
-      const result = await agentService.getNotificationHistory(
-        req.params['id'] as string,
+      const notifications = await agentService.getNotificationHistory(
+        sellerId,
         getAgentFilter(user),
-        { page, limit },
+        { page, limit: 10 },
       );
 
-      res.render('partials/agent/seller-notifications', {
-        notifications: result.items,
-        total: result.total,
-        page: result.page,
-        totalPages: result.totalPages,
-        limit,
-      });
+      res.render('partials/agent/seller-notifications', { notifications, sellerId });
     } catch (err) {
       next(err);
     }

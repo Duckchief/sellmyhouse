@@ -29,6 +29,7 @@ import { portalRouter } from '../../domains/property/portal.router';
 import { transactionRouter } from '../../domains/transaction/transaction.router';
 import { testimonialRouter } from '../../domains/content/testimonial.router';
 import { referralTrackingMiddleware } from './middleware/referral-tracking';
+import { dateFilter } from './filters/date.filter';
 
 function validateEnv() {
   const required = [
@@ -61,11 +62,8 @@ export function createApp() {
   // Add i18n filter stub (English passthrough for now)
   env.addFilter('t', (str: string) => str);
 
-  // Add date filter for templates
-  env.addFilter('date', (str: string, _format: string) => {
-    if (str === 'now') return new Date().getFullYear().toString();
-    return str;
-  });
+  // Add date filter for templates (SGT, native Intl.DateTimeFormat)
+  env.addFilter('date', dateFilter);
 
   // Add month formatting filter (e.g., "2024-03" → "Mar 2024")
   env.addFilter('formatMonth', (str: string) => {

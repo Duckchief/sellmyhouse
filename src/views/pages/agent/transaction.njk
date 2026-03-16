@@ -1,6 +1,10 @@
 {# pages/agent/transaction.njk #}
 {% extends "layouts/agent.njk" %}
 {% block content %}
-<h1>{{ "Transaction" | t }}</h1>
+{% set pageTitle = "Transaction" %}
+{% set backUrl = "/agent/sellers" %}
+{% set backLabel = "Back to Sellers" %}
+{% include "partials/shared/page-header.njk" %}
+
 {% include "partials/agent/transaction-detail.njk" %}
 {% endblock %}

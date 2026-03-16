@@ -43,39 +43,81 @@
 {# Transaction funnel chart #}
 <div class="card mb-8">
   <h3 class="font-semibold mb-4">{{ "Transaction Funnel" | t }}</h3>
-  <canvas id="funnelChart" height="200"></canvas>
-  <noscript>
-    <div class="grid grid-cols-5 gap-2 text-center text-sm">
-      {% for stage, count in analytics.funnel | dictsort %}
-      <div>
-        <p class="font-bold">{{ count }}</p>
-        <p class="text-gray-500">{{ stage | replace("_", " ") | capitalize }}</p>
+  {% set leadCount = analytics.funnel.lead or 0 %}
+  {% set engagedCount = analytics.funnel.engaged or 0 %}
+  {% set activeCount = analytics.funnel.active or 0 %}
+  {% set completedCount = analytics.funnel.completed or 0 %}
+  {% set archivedCount = analytics.funnel.archived or 0 %}
+
+  {# Conversion % as string sentinels — "—" when upstream stage is zero #}
+  {% set engagedPct = ((engagedCount / leadCount * 100) | round) ~ "%" if leadCount else "—" %}
+  {% set activePct = ((activeCount / engagedCount * 100) | round) ~ "%" if engagedCount else "—" %}
+  {% set completedPct = ((completedCount / activeCount * 100) | round) ~ "%" if activeCount else "—" %}
+
+  {# Guard against rounding to "0%" when conversion is non-zero but < 0.5% #}
+  {% if leadCount and engagedCount and engagedPct == "0%" %}{% set engagedPct = "<1%" %}{% endif %}
+  {% if engagedCount and activeCount and activePct == "0%" %}{% set activePct = "<1%" %}{% endif %}
+  {% if activeCount and completedCount and completedPct == "0%" %}{% set completedPct = "<1%" %}{% endif %}
+
+  {# Funnel tiers #}
+  <div>
+
+    {# Lead #}
+    <div class="relative h-14 flex items-center justify-center">
+      <div class="absolute inset-0" style="clip-path: polygon(5% 0%, 95% 0%, 88% 100%, 12% 100%); background-color: #3b82f6;"></div>
+      <div class="relative z-10 flex items-center gap-3 text-white">
+        <span class="text-sm font-medium uppercase tracking-wide">{{ "Lead" | t }}</span>
+        <span class="text-xl font-bold">{{ leadCount }}</span>
       </div>
-      {% endfor %}
     </div>
-  </noscript>
-  <script nonce="{{ cspNonce }}">
-    (function() {
-      const ctx = document.getElementById('funnelChart');
-      if (!ctx) return;
-      const data = {{ analytics.funnel | dump | safe }};
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: Object.keys(data).map(s => s.replace(/_/g, ' ')),
-          datasets: [{
-            data: Object.values(data),
-            backgroundColor: ['#3b82f6', '#eab308', '#22c55e', '#8b5cf6', '#6b7280'],
-          }],
-        },
-        options: {
-          indexAxis: 'y',
-          plugins: { legend: { display: false } },
-          scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
-        },
-      });
-    })();
-  </script>
+
+    {# Lead → Engaged conversion #}
+    <div class="text-right pr-2 py-0.5">
+      <span class="text-xs text-gray-400">↓ {{ engagedPct }}</span>
+    </div>
+
+    {# Engaged #}
+    <div class="relative h-14 flex items-center justify-center">
+      <div class="absolute inset-0" style="clip-path: polygon(12% 0%, 88% 0%, 81% 100%, 19% 100%); background-color: #8b5cf6;"></div>
+      <div class="relative z-10 flex items-center gap-3 text-white">
+        <span class="text-sm font-medium uppercase tracking-wide">{{ "Engaged" | t }}</span>
+        <span class="text-xl font-bold">{{ engagedCount }}</span>
+      </div>
+    </div>
+
+    {# Engaged → Active conversion #}
+    <div class="text-right pr-2 py-0.5">
+      <span class="text-xs text-gray-400">↓ {{ activePct }}</span>
+    </div>
+
+    {# Active #}
+    <div class="relative h-14 flex items-center justify-center">
+      <div class="absolute inset-0" style="clip-path: polygon(19% 0%, 81% 0%, 74% 100%, 26% 100%); background-color: #c8553d;"></div>
+      <div class="relative z-10 flex items-center gap-3 text-white">
+        <span class="text-sm font-medium uppercase tracking-wide">{{ "Active" | t }}</span>
+        <span class="text-xl font-bold">{{ activeCount }}</span>
+      </div>
+    </div>
+
+    {# Active → Completed conversion #}
+    <div class="text-right pr-2 py-0.5">
+      <span class="text-xs text-gray-400">↓ {{ completedPct }}</span>
+    </div>
+
+    {# Completed #}
+    <div class="relative h-14 flex items-center justify-center">
+      <div class="absolute inset-0" style="clip-path: polygon(26% 0%, 74% 0%, 67% 100%, 33% 100%); background-color: #22c55e;"></div>
+      <div class="relative z-10 flex items-center gap-3 text-white">
+        <span class="text-sm font-medium uppercase tracking-wide">{{ "Completed" | t }}</span>
+        <span class="text-xl font-bold">{{ completedCount }}</span>
+      </div>
+    </div>
+
+  </div>{# end funnel tiers #}
+
+  <div class="mt-3 text-center">
+    <span class="text-xs text-gray-400">→ {{ archivedCount }} {{ "archived" | t }}</span>
+  </div>
 </div>
 
 {# Time to close + Lead sources (2 col) #}

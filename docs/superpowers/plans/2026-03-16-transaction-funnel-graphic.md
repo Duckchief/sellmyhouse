@@ -75,10 +75,10 @@
 
 | Stage | clip-path |
 |-------|-----------|
-| lead | `polygon(5% 0%, 95% 0%, 12% 100%, 88% 100%)` |
-| engaged | `polygon(12% 0%, 88% 0%, 22% 100%, 78% 100%)` |
-| active | `polygon(22% 0%, 78% 0%, 35% 100%, 65% 100%)` |
-| completed | `polygon(35% 0%, 65% 0%, 45% 100%, 55% 100%)` |
+| lead | `polygon(5% 0%, 95% 0%, 88% 100%, 12% 100%)` |
+| engaged | `polygon(12% 0%, 88% 0%, 78% 100%, 22% 100%)` |
+| active | `polygon(22% 0%, 78% 0%, 65% 100%, 35% 100%)` |
+| completed | `polygon(35% 0%, 65% 0%, 55% 100%, 45% 100%)` |
 
 **Colors** (brand accent `#c8553d` at descending opacity):
 
@@ -121,7 +121,7 @@
 
     {# Lead #}
     <div class="relative h-14 flex items-center justify-center">
-      <div class="absolute inset-0" style="clip-path: polygon(5% 0%, 95% 0%, 12% 100%, 88% 100%); background-color: rgba(200,85,61,1);"></div>
+      <div class="absolute inset-0" style="clip-path: polygon(5% 0%, 95% 0%, 88% 100%, 12% 100%); background-color: rgba(200,85,61,1);"></div>
       <div class="relative z-10 flex items-center gap-3 text-white">
         <span class="text-sm font-medium uppercase tracking-wide">{{ "Lead" | t }}</span>
         <span class="text-xl font-bold">{{ leadCount }}</span>
@@ -139,7 +139,7 @@
 
     {# Engaged #}
     <div class="relative h-14 flex items-center justify-center">
-      <div class="absolute inset-0" style="clip-path: polygon(12% 0%, 88% 0%, 22% 100%, 78% 100%); background-color: rgba(200,85,61,0.8);"></div>
+      <div class="absolute inset-0" style="clip-path: polygon(12% 0%, 88% 0%, 78% 100%, 22% 100%); background-color: rgba(200,85,61,0.8);"></div>
       <div class="relative z-10 flex items-center gap-3 text-white">
         <span class="text-sm font-medium uppercase tracking-wide">{{ "Engaged" | t }}</span>
         <span class="text-xl font-bold">{{ engagedCount }}</span>
@@ -157,7 +157,7 @@
 
     {# Active #}
     <div class="relative h-14 flex items-center justify-center">
-      <div class="absolute inset-0" style="clip-path: polygon(22% 0%, 78% 0%, 35% 100%, 65% 100%); background-color: rgba(200,85,61,0.6);"></div>
+      <div class="absolute inset-0" style="clip-path: polygon(22% 0%, 78% 0%, 65% 100%, 35% 100%); background-color: rgba(200,85,61,0.6);"></div>
       <div class="relative z-10 flex items-center gap-3 text-white">
         <span class="text-sm font-medium uppercase tracking-wide">{{ "Active" | t }}</span>
         <span class="text-xl font-bold">{{ activeCount }}</span>
@@ -175,7 +175,7 @@
 
     {# Completed #}
     <div class="relative h-14 flex items-center justify-center">
-      <div class="absolute inset-0" style="clip-path: polygon(35% 0%, 65% 0%, 45% 100%, 55% 100%); background-color: rgba(200,85,61,0.4);"></div>
+      <div class="absolute inset-0" style="clip-path: polygon(35% 0%, 65% 0%, 55% 100%, 45% 100%); background-color: rgba(200,85,61,0.4);"></div>
       <div class="relative z-10 flex items-center gap-3 text-white">
         <span class="text-sm font-medium uppercase tracking-wide">{{ "Completed" | t }}</span>
         <span class="text-xl font-bold">{{ completedCount }}</span>

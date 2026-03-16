@@ -5,6 +5,7 @@ import { NotFoundError } from '@/domains/shared/errors';
 import type {
   PipelineOverview,
   LeadQueueItem,
+  LeadQueueResult,
   SellerListFilter,
   SellerListResult,
   SellerDetail,
@@ -37,13 +38,13 @@ export async function getPipelineOverview(agentId?: string): Promise<PipelineOve
   };
 }
 
-export async function getLeadQueue(agentId?: string): Promise<LeadQueueItem[]> {
+export async function getLeadQueue(agentId?: string): Promise<LeadQueueResult> {
   const leads = await agentRepo.getLeadQueue(agentId);
   const sellerIds = leads.map((l) => l.id);
   const notificationMap = await agentRepo.getWelcomeNotificationStatus(sellerIds);
 
   const now = Date.now();
-  return leads.map((lead) => ({
+  const all: LeadQueueItem[] = leads.map((lead) => ({
     id: lead.id,
     name: lead.name,
     phone: lead.phone,
@@ -51,7 +52,12 @@ export async function getLeadQueue(agentId?: string): Promise<LeadQueueItem[]> {
     createdAt: lead.createdAt,
     timeSinceCreation: now - lead.createdAt.getTime(),
     welcomeNotificationSent: notificationMap.get(lead.id) ?? false,
+    agentId: lead.agentId,
   }));
+
+  const unassigned = all.filter((l) => l.agentId === null);
+
+  return { unassigned, all };
 }
 
 export async function getSellerList(

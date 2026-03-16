@@ -14,13 +14,14 @@
             <th class="px-4 py-3 text-left">{{ "Town" | t }}</th>
             <th class="px-4 py-3 text-left">{{ "Agent" | t }}</th>
             <th class="px-4 py-3 text-left">{{ "Asking Price" | t }}</th>
-            <th class="px-4 py-3 text-left">{{ "Actions" | t }}</th>
           </tr>
         </thead>
         <tbody class="divide-y">
           {% for seller in stageData.sellers %}
           <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium">{{ seller.name }}</td>
+            <td class="px-4 py-3 font-medium">
+              <a href="/admin/sellers/{{ seller.id }}" class="text-accent hover:underline">{{ seller.name }}</a>
+            </td>
             <td class="px-4 py-3 text-gray-600">{{ seller.phone or '-' }}</td>
             <td class="px-4 py-3 text-gray-600">{{ seller.town or '-' }}</td>
             <td class="px-4 py-3 text-gray-600">
@@ -28,9 +29,6 @@
             </td>
             <td class="px-4 py-3 text-gray-600">
               {% if seller.askingPrice %}${{ seller.askingPrice | formatPrice }}{% else %}-{% endif %}
-            </td>
-            <td class="px-4 py-3">
-              <a href="/admin/sellers" class="text-xs text-accent hover:underline">{{ "View" | t }}</a>
             </td>
           </tr>
           {% endfor %}

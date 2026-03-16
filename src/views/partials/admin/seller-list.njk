@@ -13,7 +13,7 @@
       {% for seller in result.sellers %}
       <tr class="hover:bg-gray-50">
         <td class="px-4 py-3">
-          <div class="font-medium">{{ seller.name }}</div>
+          <a href="/admin/sellers/{{ seller.id }}" class="font-medium text-accent hover:underline">{{ seller.name }}</a>
           <div class="text-xs text-gray-500">{{ seller.email }}</div>
         </td>
         <td class="px-4 py-3 text-gray-600">

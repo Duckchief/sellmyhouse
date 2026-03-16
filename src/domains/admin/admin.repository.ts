@@ -148,6 +148,22 @@ export async function countUnassignedLeads(): Promise<number> {
   return prisma.seller.count({ where: { status: 'lead', agentId: null } });
 }
 
+export async function findAllLeads(limit = 50) {
+  return prisma.seller.findMany({
+    where: { status: 'lead' },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      leadSource: true,
+      createdAt: true,
+      properties: { take: 1, select: { town: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+}
+
 // ─── Seller Queries ──────────────────────────────────────────
 
 export async function findAllSellers(filter: {
@@ -415,4 +431,45 @@ export async function getHdbStatus(): Promise<HdbDataStatus> {
     lastSync: syncs[0] ?? null,
     recentSyncs: syncs,
   };
+}
+
+export async function findSellerDetailForAdmin(id: string) {
+  return prisma.seller.findUnique({
+    where: { id },
+    include: {
+      agent: {
+        select: { id: true, name: true, ceaRegNo: true, phone: true },
+      },
+      properties: {
+        take: 1,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          block: true,
+          street: true,
+          town: true,
+          flatType: true,
+          floorAreaSqm: true,
+          storeyRange: true,
+          askingPrice: true,
+          status: true,
+        },
+      },
+      transactions: {
+        take: 1,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          status: true,
+          offerId: true,
+          agreedPrice: true,
+          hdbApplicationStatus: true,
+          otp: { select: { status: true } },
+          createdAt: true,
+        },
+      },
+      consentRecords: {
+        select: { id: true, consentWithdrawnAt: true, createdAt: true },
+      },
+    },
+  });
 }

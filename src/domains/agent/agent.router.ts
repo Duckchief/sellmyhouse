@@ -73,12 +73,12 @@ agentRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const leads = await agentService.getLeadQueue(getAgentFilter(user));
+      const { unassigned, all } = await agentService.getLeadQueue(getAgentFilter(user));
 
       if (req.headers['hx-request']) {
-        return res.render('partials/agent/lead-queue', { leads });
+        return res.render('partials/agent/lead-queue', { unassigned, all });
       }
-      res.render('pages/agent/leads', { leads });
+      res.render('pages/agent/leads', { unassigned, all });
     } catch (err) {
       next(err);
     }

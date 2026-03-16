@@ -76,6 +76,12 @@ export interface LeadQueueItem {
   createdAt: Date;
   timeSinceCreation: number; // milliseconds
   welcomeNotificationSent: boolean;
+  agentId: string | null;
+}
+
+export interface LeadQueueResult {
+  unassigned: LeadQueueItem[];
+  all: LeadQueueItem[];
 }
 
 export interface SellerDetail {

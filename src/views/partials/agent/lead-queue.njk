@@ -1,6 +1,4 @@
-{% if leads.length == 0 %}
-<div class="text-gray-500 py-8 text-center">{{ "No new leads" | t }}</div>
-{% else %}
+{% macro leadTable(leads) %}
 <div class="bg-white rounded-lg shadow overflow-hidden">
   <table class="min-w-full divide-y divide-gray-200">
     <thead class="bg-gray-50">
@@ -18,7 +16,7 @@
         <td class="px-4 py-3 text-sm font-medium">{{ lead.name }}</td>
         <td class="px-4 py-3 text-sm text-gray-500">{{ lead.phone }}</td>
         <td class="px-4 py-3 text-sm text-gray-500">{{ lead.leadSource or "—" }}</td>
-        <td class="px-4 py-3 text-sm text-gray-500">{{ lead.createdAt }}</td>
+        <td class="px-4 py-3 text-sm text-gray-500">{{ lead.createdAt | date("relative") }}</td>
         <td class="px-4 py-3 text-sm">
           {% if lead.welcomeNotificationSent %}
           <span class="text-green-600">✓</span>
@@ -31,4 +29,23 @@
     </tbody>
   </table>
 </div>
+{% endmacro %}
+
+{% if all.length == 0 %}
+<div class="text-gray-500 py-8 text-center">{{ "No new leads" | t }}</div>
+
+{% elif unassigned.length > 0 %}
+<div class="space-y-6">
+  <div>
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">{{ "Unassigned Leads" | t }}</h2>
+    {{ leadTable(unassigned) }}
+  </div>
+  <div>
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">{{ "All Leads" | t }}</h2>
+    {{ leadTable(all) }}
+  </div>
+</div>
+
+{% else %}
+{{ leadTable(all) }}
 {% endif %}

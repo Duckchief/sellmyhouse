@@ -223,7 +223,8 @@ agentRouter.get(
     try {
       const user = req.user as AuthenticatedUser;
       const sellerId = req.params['id'] as string;
-      const page = req.query['page'] ? parseInt(req.query['page'] as string, 10) : 1;
+      const rawPage = req.query['page'] ? parseInt(req.query['page'] as string, 10) : 1;
+      const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
 
       const notifications = await agentService.getNotificationHistory(
         sellerId,

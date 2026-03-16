@@ -207,24 +207,6 @@ agentRouter.get(
   },
 );
 
-// GET /agent/sellers/:id/overview — HTMX partial
-agentRouter.get(
-  '/agent/sellers/:id/overview',
-  ...agentAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const user = req.user as AuthenticatedUser;
-      const seller = await agentService.getSellerDetail(
-        req.params['id'] as string,
-        getAgentFilter(user),
-      );
-      res.render('partials/agent/seller-overview', { seller });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
-
 // GET /agent/sellers/:id/timeline — HTMX partial
 agentRouter.get(
   '/agent/sellers/:id/timeline',

@@ -15,3 +15,4 @@ tests/**/*.js.map
 tests/**/*.d.ts
 tests/**/*.d.ts.map
 public/js/app.js.map
+.superpowers/

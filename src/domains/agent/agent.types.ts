@@ -156,3 +156,10 @@ export interface NotificationHistoryItem {
   deliveredAt: Date | null;
   createdAt: Date;
 }
+
+export interface NotificationHistoryResult {
+  items: NotificationHistoryItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+}

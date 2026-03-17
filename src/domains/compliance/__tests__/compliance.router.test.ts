@@ -69,6 +69,18 @@ function createTestApp(userOverride?: { id: string; role: string }) {
   }
 
   app.use(complianceRouter);
+
+  // Error handler — converts typed errors to HTTP status codes
+  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    const status =
+      err.name === 'ValidationError' ? 400 :
+      err.name === 'UnauthorizedError' ? 401 :
+      err.name === 'ForbiddenError' ? 403 :
+      err.name === 'NotFoundError' ? 404 :
+      err.name === 'ConflictError' ? 409 : 500;
+    res.status(status).json({ error: err.message });
+  });
+
   return app;
 }
 
@@ -79,6 +91,19 @@ function createSellerApp() {
 function createAgentApp() {
   return createTestApp({ id: 'agent-1', role: 'agent' });
 }
+
+function createAdminApp() {
+  return createTestApp({ id: 'admin-1', role: 'admin' });
+}
+
+const mockVerifiedComplianceStatus = {
+  ...mockComplianceStatus,
+  cdd: {
+    ...mockComplianceStatus.cdd,
+    status: 'verified' as const,
+    verifiedAt: new Date('2026-03-17'),
+  },
+} as unknown as Awaited<ReturnType<typeof agentRepo.getComplianceStatus>>;
 
 describe('POST /seller/compliance/consent/withdraw', () => {
   beforeEach(() => {
@@ -184,7 +209,7 @@ describe('PATCH /agent/sellers/:sellerId/cdd/status', () => {
 
     expect(res.status).toBe(200);
     expect(res.text).toContain('compliance-cdd-card');
-    expect(mockService.updateCddStatus).toHaveBeenCalledWith('seller-1', 'verified', 'agent-1');
+    expect(mockService.updateCddStatus).toHaveBeenCalledWith('seller-1', 'verified', 'agent-1', false);
   });
 
   it('calls updateCddStatus with not_started to delete the record', async () => {
@@ -206,7 +231,7 @@ describe('PATCH /agent/sellers/:sellerId/cdd/status', () => {
       .send({ status: 'not_started' });
 
     expect(res.status).toBe(200);
-    expect(mockService.updateCddStatus).toHaveBeenCalledWith('seller-1', 'not_started', 'agent-1');
+    expect(mockService.updateCddStatus).toHaveBeenCalledWith('seller-1', 'not_started', 'agent-1', false);
   });
 });
 
@@ -384,5 +409,110 @@ describe('GET /agent/eaa/:eaaId/signed-copy/modal', () => {
     const res = await request(app).get('/agent/eaa/eaa-1/signed-copy/modal');
     expect(res.status).toBe(200);
     expect(res.text).toContain('Upload Signed EAA Copy');
+  });
+});
+
+describe('GET /agent/sellers/:sellerId/cdd/verify-modal', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns 401 when unauthenticated', async () => {
+    const app = createTestApp();
+    const res = await request(app).get('/agent/sellers/seller-1/cdd/verify-modal');
+    expect(res.status).toBe(401);
+  });
+
+  // NOTE: This test will pass once the template partials/agent/cdd-verify-modal.njk is created (Task 5).
+  // Until then, Nunjucks will throw a 500 because the template does not exist.
+  it('returns 200 with modal HTML when authenticated as agent', async () => {
+    const app = createAgentApp();
+    const res = await request(app).get('/agent/sellers/seller-1/cdd/verify-modal');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('I confirm');
+  });
+});
+
+describe('POST /agent/sellers/:sellerId/cdd/verify', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns 400 when phrase is wrong', async () => {
+    mockService.verifyCdd = jest.fn().mockRejectedValue(
+      Object.assign(new Error('Invalid confirmation phrase'), {
+        name: 'ValidationError',
+        statusCode: 400,
+      }),
+    );
+    const app = createAgentApp();
+    const res = await request(app)
+      .post('/agent/sellers/seller-1/cdd/verify')
+      .send({ phrase: 'wrong' });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 409 when already verified', async () => {
+    mockService.verifyCdd = jest.fn().mockRejectedValue(
+      Object.assign(new Error('CDD is already verified and locked'), {
+        name: 'ConflictError',
+        statusCode: 409,
+      }),
+    );
+    const app = createAgentApp();
+    const res = await request(app)
+      .post('/agent/sellers/seller-1/cdd/verify')
+      .send({ phrase: 'I confirm' });
+    expect(res.status).toBe(409);
+  });
+
+  it('returns 200 with refreshed locked CDD card on correct phrase', async () => {
+    mockService.verifyCdd = jest.fn().mockResolvedValue(undefined);
+    mockAgentRepo.getComplianceStatus.mockResolvedValue(mockVerifiedComplianceStatus);
+    const app = createAgentApp();
+    const res = await request(app)
+      .post('/agent/sellers/seller-1/cdd/verify')
+      .send({ phrase: 'I confirm' });
+    expect(res.status).toBe(200);
+    expect(mockService.verifyCdd).toHaveBeenCalledWith('seller-1', 'agent-1', 'I confirm');
+    expect(res.text).toContain('Locked');
+  });
+});
+
+describe('PATCH /agent/sellers/:sellerId/cdd/status — lock guards', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns 403 when agent tries to set status=verified', async () => {
+    mockService.updateCddStatus = jest.fn().mockRejectedValue(
+      Object.assign(new Error('Agents must use the verification modal'), {
+        name: 'ForbiddenError',
+        statusCode: 403,
+      }),
+    );
+    const app = createAgentApp();
+    const res = await request(app)
+      .patch('/agent/sellers/seller-1/cdd/status')
+      .send({ status: 'verified' });
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 403 when agent tries to change a locked record', async () => {
+    mockService.updateCddStatus = jest.fn().mockRejectedValue(
+      Object.assign(new Error('CDD is locked'), { name: 'ForbiddenError', statusCode: 403 }),
+    );
+    const app = createAgentApp();
+    const res = await request(app)
+      .patch('/agent/sellers/seller-1/cdd/status')
+      .send({ status: 'not_started' });
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 200 and calls updateCddStatus with isAdmin=true when admin patches', async () => {
+    mockService.updateCddStatus = jest.fn().mockResolvedValue(undefined);
+    mockAgentRepo.getComplianceStatus.mockResolvedValue(mockComplianceStatus);
+    const app = createAdminApp();
+    const res = await request(app)
+      .patch('/agent/sellers/seller-1/cdd/status')
+      .send({ status: 'not_started' });
+    expect(res.status).toBe(200);
+    expect(mockService.updateCddStatus).toHaveBeenCalledWith(
+      'seller-1', 'not_started', 'admin-1', true,
+    );
   });
 });

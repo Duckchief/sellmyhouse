@@ -133,6 +133,21 @@ describe('checkComplianceGate - counterparty_cdd', () => {
     } as never);
     await expect(checkComplianceGate('counterparty_cdd', 'tx-1')).resolves.toBeUndefined();
   });
+
+  it('passes (bypasses CDD check) when buyerRepresented context is true', async () => {
+    // Should not call findCddRecordByTransactionAndSubjectType at all
+    await expect(
+      checkComplianceGate('counterparty_cdd', 'tx-1', { buyerRepresented: true }),
+    ).resolves.toBeUndefined();
+    expect(mockComplianceService.findCddRecordByTransactionAndSubjectType).not.toHaveBeenCalled();
+  });
+
+  it('still requires CDD when buyerRepresented is false', async () => {
+    mockComplianceService.findCddRecordByTransactionAndSubjectType.mockResolvedValue(null);
+    await expect(
+      checkComplianceGate('counterparty_cdd', 'tx-1', { buyerRepresented: false }),
+    ).rejects.toThrow(ComplianceError);
+  });
 });
 
 describe('checkComplianceGate - agent_otp_review (future SP)', () => {

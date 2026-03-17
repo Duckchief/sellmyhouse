@@ -82,9 +82,9 @@ export async function checkComplianceGate(
       break;
     }
     case 'counterparty_cdd': {
-      // entityId = transactionId — checks generic counterparty CDD for transaction status advances.
-      // Additional buyer-specific enforcement is in transaction.service.advanceOtp() which checks
-      // inline because it needs transaction context (accepted offer, buyer agent status).
+      // entityId = transactionId.
+      // Co-broke transactions bypass this gate — the buyer's agent is responsible for their client's CDD.
+      if (_context?.buyerRepresented) return;
       const cddRecord = await complianceService.findCddRecordByTransactionAndSubjectType(
         entityId,
         'counterparty',

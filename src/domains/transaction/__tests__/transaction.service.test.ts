@@ -50,6 +50,7 @@ function makeTransaction(overrides: Record<string, unknown> = {}) {
     id: 'tx-1',
     propertyId: 'property-1',
     sellerId: 'seller-1',
+    offerId: 'offer-1',
     agreedPrice: '600000',
     status: 'option_issued' as const,
     hdbApplicationStatus: 'not_started' as const,
@@ -96,6 +97,7 @@ describe('transaction.service', () => {
       id: 'offer-1',
       propertyId: 'property-1',
       status: 'accepted',
+      isCoBroke: false,
     } as never);
     // Default: no seller CDD record (H5)
     mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(null);
@@ -475,6 +477,7 @@ describe('transaction.service', () => {
       expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith(
         'counterparty_cdd',
         'tx-1',
+        { buyerRepresented: false },
       );
     });
 
@@ -497,6 +500,7 @@ describe('transaction.service', () => {
       expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith(
         'counterparty_cdd',
         'tx-1',
+        { buyerRepresented: false },
       );
       expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith('hdb_complete', 'tx-1');
       expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
@@ -545,6 +549,55 @@ describe('transaction.service', () => {
       });
 
       expect(mockComplianceService.refreshCddRetentionOnCompletion).not.toHaveBeenCalled();
+    });
+
+    it('passes buyerRepresented: true to Gate 3 when offer is co-broke', async () => {
+      const tx = makeTransaction({ status: 'option_issued' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockOfferService.findOffer.mockResolvedValue({
+        id: 'offer-1',
+        status: 'accepted',
+        isCoBroke: true,
+        buyerAgentName: 'John Agent',
+        buyerAgentCeaReg: 'R012345B',
+      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'option_exercised',
+      } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'option_exercised',
+        agentId: 'agent-1',
+      });
+
+      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith(
+        'counterparty_cdd',
+        'tx-1',
+        { buyerRepresented: true },
+      );
+    });
+
+    it('passes buyerRepresented: false when tx has no offerId', async () => {
+      const tx = makeTransaction({ status: 'option_issued', offerId: null });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue({
+        ...tx,
+        status: 'option_exercised',
+      } as never);
+
+      await txService.advanceTransactionStatus({
+        transactionId: 'tx-1',
+        status: 'option_exercised',
+        agentId: 'agent-1',
+      });
+
+      expect(mockReviewService.checkComplianceGate).toHaveBeenCalledWith(
+        'counterparty_cdd',
+        'tx-1',
+        { buyerRepresented: false },
+      );
     });
   });
 

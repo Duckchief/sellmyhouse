@@ -178,8 +178,10 @@
 
 </div>{# end funnel + lead sources grid #}
 
-{# Time to close #}
-<div class="card mb-8 lg:w-1/2">
+{# Time to Close + Viewings (side by side) #}
+<div class="flex flex-col lg:flex-row gap-6 mb-8">
+
+<div class="card flex-1">
   <h3 class="font-semibold mb-4">{{ "Time to Close" | t }}</h3>
   <div class="flex items-baseline gap-2 mb-4">
     <span class="text-3xl font-bold">{{ analytics.timeToClose.averageDays }}</span>
@@ -190,12 +192,9 @@
   <script type="application/json" id="timeToCloseData">{{ analytics.timeToClose.byFlatType | dump | safe }}</script>
 </div>
 
-{# Viewings + Referral Programme (side by side) #}
-<div class="flex flex-col lg:flex-row gap-6 mb-8">
-
 <div class="card flex-1">
   <h3 class="font-semibold mb-4">{{ "Viewings" | t }}</h3>
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+  <div class="grid grid-cols-2 gap-4">
     <div class="text-center">
       <p class="text-2xl font-bold">{{ analytics.viewings.totalViewings }}</p>
       <p class="text-sm text-gray-500">{{ "Total" | t }}</p>
@@ -215,8 +214,10 @@
   </div>
 </div>
 
+</div>{# end time to close + viewings row #}
+
 {# Referral funnel #}
-<div class="card flex-1">
+<div class="card lg:w-1/2 mb-8">
   <h3 class="font-semibold mb-4">{{ "Referral Programme" | t }}</h3>
   <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
     <div class="text-center">
@@ -266,4 +267,4 @@
   {% endif %}
 </div>
 
-</div>{# end viewings + referral row #}
+

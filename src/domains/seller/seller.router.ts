@@ -4,6 +4,8 @@ import * as sellerService from './seller.service';
 import * as caseFlagService from './case-flag.service';
 import { validateOnboardingStep } from './seller.validator';
 import { TOTAL_ONBOARDING_STEPS } from './seller.types';
+import type { TimelineInput } from './seller.types';
+import type { PropertyStatus, TransactionStatus, HdbApplicationStatus } from '@prisma/client';
 import { requireAuth, requireRole } from '@/infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import * as propertyService from '../property/property.service';
@@ -44,10 +46,29 @@ sellerRouter.get('/seller/dashboard', async (req: Request, res: Response, next: 
       return res.redirect('/seller/onboarding');
     }
 
-    const milestones = sellerService.getTimelineMilestones(
-      overview.propertyStatus,
-      overview.transactionStatus,
-    );
+    const timelineInput: TimelineInput = {
+      sellerCddRecord: null,
+      eaa: null,
+      property: overview.propertyStatus
+        ? { status: overview.propertyStatus as PropertyStatus, listedAt: null }
+        : null,
+      firstViewingAt: null,
+      acceptedOffer: null,
+      counterpartyCddRecord: null,
+      isCoBroke: false,
+      otp: null,
+      transaction: overview.transactionStatus
+        ? {
+            status: overview.transactionStatus as TransactionStatus,
+            hdbApplicationStatus: 'not_started' as HdbApplicationStatus,
+            hdbAppSubmittedAt: null,
+            hdbAppApprovedAt: null,
+            hdbAppointmentDate: null,
+            completionDate: null,
+          }
+        : null,
+    };
+    const milestones = sellerService.getTimelineMilestones(timelineInput, 'agent');
 
     if (req.headers['hx-request']) {
       return res.render('partials/seller/dashboard-overview', { overview, milestones });

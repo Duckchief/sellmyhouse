@@ -1,4 +1,5 @@
 {% extends "layouts/base.njk" %}
+{% from "partials/shared/icons.njk" import icon %}
 
 {% block body %}
 {# Mobile hamburger bar — visible only below md breakpoint #}
@@ -16,24 +17,29 @@
   <aside id="sidebar" class="hidden md:flex w-64 bg-ink text-white p-4 flex-col flex-shrink-0 fixed md:static inset-y-0 left-0 z-50">
     <div class="text-lg font-bold mb-6">{{ "Agent Portal" | t }}</div>
     <nav class="space-y-1">
-      <a href="/agent/dashboard" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/dashboard' %}bg-white/10{% endif %}">
+      <a href="/agent/dashboard" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/dashboard' %}bg-white/10{% endif %}">
+        {{ icon('home') }}
         {{ "Dashboard" | t }}
       </a>
       <div class="border-t border-white/10 my-2"></div>
-      <a href="/agent/leads" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/leads' %}bg-white/10{% endif %}">
+      <a href="/agent/leads" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/leads' %}bg-white/10{% endif %}">
+        {{ icon('user-plus') }}
         {{ "Leads" | t }}
       </a>
-      <a href="/agent/sellers" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/sellers' %}bg-white/10{% endif %}">
+      <a href="/agent/sellers" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/sellers' %}bg-white/10{% endif %}">
+        {{ icon('users') }}
         {{ "Sellers" | t }}
       </a>
-      <a href="/agent/reviews" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/reviews' %}bg-white/10{% endif %}">
+      <a href="/agent/reviews" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/reviews' %}bg-white/10{% endif %}">
+        {{ icon('clipboard-document-check') }}
         {{ "Reviews" | t }}
         {% if pendingReviewCount %}
-        <span class="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{{ pendingReviewCount }}</span>
+        <span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{{ pendingReviewCount }}</span>
         {% endif %}
       </a>
       <div class="border-t border-white/10 my-2"></div>
-      <a href="/agent/settings" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/settings' %}bg-white/10{% endif %}">
+      <a href="/agent/settings" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/settings' %}bg-white/10{% endif %}">
+        {{ icon('cog-6-tooth') }}
         {{ "Settings" | t }}
       </a>
     </nav>

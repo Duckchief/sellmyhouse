@@ -1,6 +1,7 @@
 import * as agentRepo from './agent.repository';
 import * as viewingService from '../viewing/viewing.service';
 import * as complianceService from '../compliance/compliance.service';
+import * as transactionService from '../transaction/transaction.service';
 import { NotFoundError } from '@/domains/shared/errors';
 import type {
   PipelineOverview,
@@ -12,8 +13,7 @@ import type {
   ComplianceStatus,
   NotificationHistoryResult,
 } from './agent.types';
-import type { TimelineMilestone } from '@/domains/seller/seller.types';
-import { getTimelineMilestones } from '@/domains/seller/seller.service';
+import type { TimelineInput } from '@/domains/seller/seller.types';
 
 export async function getPipelineOverview(agentId?: string): Promise<PipelineOverview> {
   const [stages, recentActivity, pendingReviewCount, unassignedLeadCount] = await Promise.all([
@@ -158,11 +158,64 @@ export async function getNotificationHistory(
   };
 }
 
-export function getTimeline(
-  propertyStatus: string | null,
-  transactionStatus: string | null,
-): TimelineMilestone[] {
-  return getTimelineMilestones(propertyStatus, transactionStatus);
+export async function getTimelineInput(sellerId: string, agentId?: string): Promise<TimelineInput> {
+  const [seller, compliance, transaction, cddRecord, eaa] = await Promise.all([
+    agentRepo.getSellerDetail(sellerId, agentId),
+    agentRepo.getComplianceStatus(sellerId, agentId),
+    transactionService.findTransactionBySellerId(sellerId),
+    complianceService.findLatestSellerCddRecord(sellerId),
+    complianceService.findEaaBySellerId(sellerId),
+  ]);
+
+  const property = seller?.properties[0] ?? null;
+
+  const [firstViewingAt, otp] = await Promise.all([
+    property ? viewingService.findFirstViewingDateForProperty(property.id) : Promise.resolve(null),
+    transaction ? transactionService.findOtpByTransactionId(transaction.id) : Promise.resolve(null),
+  ]);
+
+  const counterpartyCddRecord =
+    compliance.counterpartyCdd?.transactionId && !compliance.counterpartyCdd.isCoBroke
+      ? await complianceService.findCddRecordByTransactionAndSubjectType(
+          compliance.counterpartyCdd.transactionId,
+          'counterparty',
+        )
+      : null;
+
+  return {
+    sellerCddRecord: cddRecord ? { createdAt: cddRecord.createdAt } : null,
+    eaa: eaa
+      ? {
+          videoCallConfirmedAt: eaa.videoCallConfirmedAt ?? null,
+          signedCopyPath: eaa.signedCopyPath ?? null,
+        }
+      : null,
+    property: property ? { status: property.status, listedAt: null } : null,
+    firstViewingAt,
+    acceptedOffer: transaction ? { createdAt: transaction.createdAt } : null,
+    counterpartyCddRecord: counterpartyCddRecord
+      ? { createdAt: counterpartyCddRecord.createdAt }
+      : null,
+    isCoBroke: compliance.counterpartyCdd?.isCoBroke ?? false,
+    otp: otp
+      ? {
+          status: otp.status,
+          agentReviewedAt: otp.agentReviewedAt ?? null,
+          issuedAt: otp.issuedAt ?? null,
+          exercisedAt: otp.exercisedAt ?? null,
+        }
+      : null,
+    transaction: transaction
+      ? {
+          status: transaction.status,
+          hdbApplicationStatus: transaction.hdbApplicationStatus,
+          hdbAppSubmittedAt: transaction.hdbAppSubmittedAt ?? null,
+          hdbAppApprovedAt: transaction.hdbAppApprovedAt ?? null,
+          hdbAppointmentDate: transaction.hdbAppointmentDate ?? null,
+          completionDate: transaction.completionDate ?? null,
+        }
+      : null,
+  };
 }
 
 export async function getRepeatViewers() {

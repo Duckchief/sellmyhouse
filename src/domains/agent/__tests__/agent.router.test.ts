@@ -186,7 +186,18 @@ describe('agent.router', () => {
         page: 1,
         totalPages: 0,
       } as never);
-      mockService.getTimeline.mockReturnValue([]);
+      mockService.getTimelineInput.mockResolvedValue({
+        sellerCddRecord: null,
+        eaa: null,
+        property: null,
+        firstViewingAt: null,
+        acceptedOffer: null,
+        counterpartyCddRecord: null,
+        isCoBroke: false,
+        otp: null,
+        transaction: null,
+      });
+      mockSellerService.getTimelineMilestones.mockReturnValue([]);
 
       const res = await request(app).get('/agent/sellers/seller-1');
 
@@ -196,7 +207,7 @@ describe('agent.router', () => {
         page: 1,
         limit: 10,
       });
-      expect(mockService.getTimeline).toHaveBeenCalled();
+      expect(mockService.getTimelineInput).toHaveBeenCalled();
     });
 
     it('does not have an HTMX partial path for the main seller detail route', async () => {
@@ -234,7 +245,18 @@ describe('agent.router', () => {
         page: 1,
         totalPages: 0,
       } as never);
-      mockService.getTimeline.mockReturnValue([]);
+      mockService.getTimelineInput.mockResolvedValue({
+        sellerCddRecord: null,
+        eaa: null,
+        property: null,
+        firstViewingAt: null,
+        acceptedOffer: null,
+        counterpartyCddRecord: null,
+        isCoBroke: false,
+        otp: null,
+        transaction: null,
+      });
+      mockSellerService.getTimelineMilestones.mockReturnValue([]);
 
       const res = await request(app).get('/agent/sellers/seller-1').set('HX-Request', 'true');
 

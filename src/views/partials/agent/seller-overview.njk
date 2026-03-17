@@ -4,7 +4,8 @@
     <dl class="space-y-2 text-sm">
       <div class="flex justify-between"><dt class="text-gray-500">{{ "Status" | t }}</dt><dd>{{ seller.status }}</dd></div>
       <div class="flex justify-between"><dt class="text-gray-500">{{ "Lead Source" | t }}</dt><dd>{{ seller.leadSource or "—" }}</dd></div>
-      <div class="flex justify-between"><dt class="text-gray-500">{{ "Onboarding" | t }}</dt><dd>{{ "Step" | t }} {{ seller.onboardingStep }} / 5</dd></div>
+      {% set stepLabels = ["Accepts initial consent", "Enters property details", "Enters financial details", "Uploads property photos", "Signs EA Agreement"] %}
+      <div class="flex justify-between"><dt class="text-gray-500">{{ "Onboarding" | t }}</dt><dd>{{ "Step" | t }} {{ seller.onboardingStep }} / 5: {{ stepLabels[seller.onboardingStep - 1] }}</dd></div>
       <div class="flex justify-between"><dt class="text-gray-500">{{ "Created" | t }}</dt><dd>{{ seller.createdAt }}</dd></div>
     </dl>
   </div>

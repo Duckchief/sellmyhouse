@@ -795,6 +795,26 @@ describe('viewing.service', () => {
     });
   });
 
+  // ─── findFirstViewingDateForProperty ───────────────────
+
+  describe('findFirstViewingDateForProperty', () => {
+    it('returns the earliest scheduled date for scheduled/completed viewings', async () => {
+      const mockDate = new Date('2026-01-15T10:00:00Z');
+      mockedRepo.findFirstViewingDateForProperty.mockResolvedValue(mockDate);
+
+      const result = await viewingService.findFirstViewingDateForProperty('prop-1');
+
+      expect(mockedRepo.findFirstViewingDateForProperty).toHaveBeenCalledWith('prop-1');
+      expect(result).toEqual(mockDate);
+    });
+
+    it('returns null when no viewings exist', async () => {
+      mockedRepo.findFirstViewingDateForProperty.mockResolvedValue(null);
+      const result = await viewingService.findFirstViewingDateForProperty('prop-1');
+      expect(result).toBeNull();
+    });
+  });
+
   // ─── Stats ─────────────────────────────────────────────
 
   describe('getViewingStats', () => {

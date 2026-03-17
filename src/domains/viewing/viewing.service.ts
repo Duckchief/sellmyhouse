@@ -786,6 +786,10 @@ export async function getRepeatViewers(minProperties: number = 2) {
   return viewingRepo.findRepeatViewers(minProperties);
 }
 
+export async function findFirstViewingDateForProperty(propertyId: string): Promise<Date | null> {
+  return viewingRepo.findFirstViewingDateForProperty(propertyId);
+}
+
 // ─── Helpers ─────────────────────────────────────────────
 
 async function verifyPropertyOwnership(propertyId: string, sellerId: string) {

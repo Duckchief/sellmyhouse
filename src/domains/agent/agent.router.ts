@@ -137,6 +137,7 @@ agentRouter.get(
         agentService.getNotificationHistory(sellerId, agentId, { page: 1, limit: 10 }),
       ]);
       const milestones = agentService.getTimeline(seller.property?.status ?? null, null); // synchronous
+      const isAdmin = user.role === 'admin';
 
       res.render('pages/agent/seller-detail', {
         seller,
@@ -144,6 +145,7 @@ agentRouter.get(
         notifications,
         milestones,
         sellerId: seller.id,
+        isAdmin,
       });
     } catch (err) {
       next(err);

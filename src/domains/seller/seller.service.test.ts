@@ -224,6 +224,7 @@ describe('getTimelineMilestones', () => {
       const milestones = getTimelineMilestones(
         {
           ...emptyInput,
+          counterpartyCddRecord: { createdAt: new Date() },
           otp: { status: 'exercised' as any, agentReviewedAt: new Date(), issuedAt: new Date(), exercisedAt: new Date() },
           transaction: {
             status: 'completing' as any,

@@ -312,14 +312,13 @@ export function getTimelineMilestones(
   }
 
   // 6. Counterparty CDD
-  // Auto-complete when OTP has been reviewed or transaction exists — CDD must have occurred first.
-  const isPostCdd = !!data.otp?.agentReviewedAt || !!data.transaction;
+  // Completed only when counterpartyCddRecord exists (or N/A when isCoBroke).
   raw.push({
     label: 'Counterparty CDD',
     description: data.isCoBroke
       ? 'Not required — co-broke transaction'
       : 'Due diligence completed on buyer',
-    completed: !data.isCoBroke && (!!data.counterpartyCddRecord || isPostCdd),
+    completed: !data.isCoBroke && !!data.counterpartyCddRecord,
     date: data.isCoBroke ? null : (data.counterpartyCddRecord?.createdAt ?? null),
     notApplicable: data.isCoBroke,
   });

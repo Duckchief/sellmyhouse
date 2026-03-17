@@ -3,8 +3,12 @@ import request from 'supertest';
 import express, { NextFunction, Request, Response } from 'express';
 import { adminRouter } from '../admin.router';
 import * as contentService from '../../content/content.service';
+import * as adminService from '../admin.service';
 
 jest.mock('../../content/content.service');
+jest.mock('../admin.service');
+
+const mockAdminService = adminService as jest.Mocked<typeof adminService>;
 
 const mockTutorials = {
   photography: [
@@ -99,5 +103,48 @@ describe('GET /admin/tutorials — tab param', () => {
     const app = makeApp();
     const res = await request(app).get('/admin/tutorials?tab=forms').set('HX-Request', 'true');
     expect(res.status).toBe(200);
+  });
+});
+
+describe('GET /admin/dashboard — preset param', () => {
+  beforeEach(() => {
+    mockAdminService.getAnalytics.mockResolvedValue({
+      revenue: {
+        totalRevenue: 0,
+        completedCount: 0,
+        pipelineValue: 0,
+        activeTransactions: 0,
+        pendingInvoices: 0,
+        commissionPerTransaction: 0,
+      },
+      funnel: { lead: 0, engaged: 0, active: 0, completed: 0, archived: 0 },
+      timeToClose: { averageDays: 0, count: 0, byFlatType: {} },
+      leadSources: {},
+      viewings: { totalViewings: 0, completed: 0, noShowRate: 0, cancellationRate: 0 },
+      referrals: {
+        totalLinks: 0,
+        totalClicks: 0,
+        leadsCreated: 0,
+        transactionsCompleted: 0,
+        conversionRate: 0,
+        topReferrers: [],
+      },
+    } as any);
+  });
+
+  it('passes preset param through to getAnalytics', async () => {
+    const app = makeApp();
+    await request(app).get('/admin/dashboard?preset=this-month');
+    expect(mockAdminService.getAnalytics).toHaveBeenCalledWith(
+      expect.objectContaining({ preset: 'this-month' }),
+    );
+  });
+
+  it('passes undefined preset when not provided', async () => {
+    const app = makeApp();
+    await request(app).get('/admin/dashboard');
+    expect(mockAdminService.getAnalytics).toHaveBeenCalledWith(
+      expect.objectContaining({ preset: undefined }),
+    );
   });
 });

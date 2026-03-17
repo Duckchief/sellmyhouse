@@ -89,6 +89,7 @@ export interface AnalyticsData {
 export interface AnalyticsFilter {
   dateFrom?: string;
   dateTo?: string;
+  preset?: string;
 }
 
 export interface NotificationFilter {

@@ -1,3 +1,30 @@
+{# Hidden preset input — included in HTMX filter request #}
+<input type="hidden" id="preset" name="preset" value="{{ filter.preset or '' }}">
+
+{# Quick filter preset buttons #}
+<div class="flex flex-wrap gap-2 mb-3">
+  {% set presets = [
+    { value: 'this-week',  label: 'This Week' },
+    { value: 'this-month', label: 'This Month' },
+    { value: '3-months',   label: '3 Months' },
+    { value: '6-months',   label: '6 Months' },
+    { value: 'ytd',        label: 'YTD' }
+  ] %}
+  {% for p in presets %}
+    <button
+      type="button"
+      data-preset="{{ p.value }}"
+      class="px-3 py-1 text-sm rounded border transition-colors
+        {% if filter.preset == p.value %}
+          border-2 border-accent text-accent font-semibold
+        {% else %}
+          border border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-600
+        {% endif %}">
+      {{ p.label | t }}
+    </button>
+  {% endfor %}
+</div>
+
 {# Date filter #}
 <div class="flex flex-wrap items-end gap-4 mb-6">
   <div>
@@ -9,8 +36,9 @@
     <input type="date" name="dateTo" id="dateTo" value="{{ filter.dateTo or '' }}" class="input-field w-40">
   </div>
   <button
+    id="filterBtn"
     hx-get="/admin/dashboard"
-    hx-include="#dateFrom, #dateTo"
+    hx-include="#dateFrom, #dateTo, #preset"
     hx-target="#analytics-content"
     hx-swap="innerHTML"
     class="btn-primary">
@@ -127,24 +155,8 @@
   <div class="card">
     <h3 class="font-semibold mb-4">{{ "Lead Sources" | t }}</h3>
     {% if analytics.leadSources | length %}
-      <canvas id="leadSourceChart" height="150"></canvas>
-      <script nonce="{{ cspNonce }}">
-        (function() {
-          const ctx = document.getElementById('leadSourceChart');
-          if (!ctx) return;
-          const data = {{ analytics.leadSources | dump | safe }};
-          const labels = Object.keys(data);
-          const values = labels.map(k => data[k].total);
-          new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-              labels,
-              datasets: [{ data: values, backgroundColor: ['#c8553d', '#1a1a2e', '#3b82f6', '#22c55e', '#eab308'] }],
-            },
-            options: { plugins: { legend: { position: 'bottom' } } },
-          });
-        })();
-      </script>
+      <canvas id="leadSourceChart" height="120"></canvas>
+      <script type="application/json" id="leadSourceData">{{ analytics.leadSources | dump | safe }}</script>
       <table class="w-full text-sm mt-4">
         <thead class="text-xs text-gray-500 uppercase">
           <tr><th class="text-left py-1">{{ "Source" | t }}</th><th class="text-right py-1">{{ "Total" | t }}</th><th class="text-right py-1">{{ "Conv. %" | t }}</th></tr>
@@ -166,8 +178,10 @@
 
 </div>{# end funnel + lead sources grid #}
 
-{# Time to close #}
-<div class="card mb-8">
+{# Time to Close + Viewings (side by side) #}
+<div class="flex flex-col lg:flex-row gap-6 mb-8">
+
+<div class="card flex-1">
   <h3 class="font-semibold mb-4">{{ "Time to Close" | t }}</h3>
   <div class="flex items-baseline gap-2 mb-4">
     <span class="text-3xl font-bold">{{ analytics.timeToClose.averageDays }}</span>
@@ -175,32 +189,12 @@
     <span class="text-sm text-gray-400">({{ analytics.timeToClose.count }} {{ "transactions" | t }})</span>
   </div>
   <canvas id="timeToCloseChart" height="150"></canvas>
-  <script nonce="{{ cspNonce }}">
-    (function() {
-      const ctx = document.getElementById('timeToCloseChart');
-      if (!ctx) return;
-      const data = {{ analytics.timeToClose.byFlatType | dump | safe }};
-      const labels = Object.keys(data);
-      const values = labels.map(k => data[k].averageDays);
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{ label: 'Days', data: values, backgroundColor: '#c8553d' }],
-        },
-        options: {
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } },
-        },
-      });
-    })();
-  </script>
+  <script type="application/json" id="timeToCloseData">{{ analytics.timeToClose.byFlatType | dump | safe }}</script>
 </div>
 
-{# Viewings analytics #}
-<div class="card mb-8">
+<div class="card flex-1">
   <h3 class="font-semibold mb-4">{{ "Viewings" | t }}</h3>
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+  <div class="grid grid-cols-2 gap-4">
     <div class="text-center">
       <p class="text-2xl font-bold">{{ analytics.viewings.totalViewings }}</p>
       <p class="text-sm text-gray-500">{{ "Total" | t }}</p>
@@ -220,8 +214,10 @@
   </div>
 </div>
 
+</div>{# end time to close + viewings row #}
+
 {# Referral funnel #}
-<div class="card">
+<div class="card lg:w-1/2 mb-8">
   <h3 class="font-semibold mb-4">{{ "Referral Programme" | t }}</h3>
   <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
     <div class="text-center">
@@ -270,3 +266,5 @@
   </table>
   {% endif %}
 </div>
+
+

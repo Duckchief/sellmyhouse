@@ -27,6 +27,7 @@ adminRouter.get(
       const filter = {
         dateFrom: req.query['dateFrom'] as string | undefined,
         dateTo: req.query['dateTo'] as string | undefined,
+        preset: req.query['preset'] as string | undefined,
       };
       const analytics = await adminService.getAnalytics(filter);
 

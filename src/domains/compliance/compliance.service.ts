@@ -738,11 +738,7 @@ export async function updateCddStatus(
   }
 }
 
-export async function verifyCdd(
-  sellerId: string,
-  agentId: string,
-  phrase: string,
-): Promise<void> {
+export async function verifyCdd(sellerId: string, agentId: string, phrase: string): Promise<void> {
   if (phrase !== 'I confirm') {
     throw new ValidationError('Invalid confirmation phrase');
   }
@@ -827,7 +823,6 @@ export async function updateEaaStatus(
 
   return record;
 }
-
 
 export async function confirmEaaExplanation(input: ConfirmEaaExplanationInput): Promise<EaaRecord> {
   const eaa = await complianceRepo.findEaaById(input.eaaId);

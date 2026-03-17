@@ -799,9 +799,9 @@ describe('verifyCdd', () => {
       identityVerified: true,
     });
 
-    await expect(
-      complianceService.verifyCdd('seller-1', 'agent-1', 'I confirm'),
-    ).rejects.toThrow('CDD is already verified and locked');
+    await expect(complianceService.verifyCdd('seller-1', 'agent-1', 'I confirm')).rejects.toThrow(
+      'CDD is already verified and locked',
+    );
   });
 
   it('calls upsertCddStatus("verified") and logs audit on success', async () => {

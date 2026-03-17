@@ -440,12 +440,16 @@ describe('seller.service', () => {
       ).rejects.toThrow(ValidationError);
     });
 
-    it('throws ValidationError when note is missing for engaged→active transition', async () => {
+    it('allows engaged→active transition without a note (EAA activation handles this path)', async () => {
       mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', status: 'engaged' } as Seller);
+      mockedSellerRepo.updateSellerStatus.mockResolvedValue({
+        id: 'seller-1',
+        status: 'active',
+      } as Seller);
 
       await expect(
         sellerService.updateSellerStatus('seller-1', 'active', 'agent-1', undefined),
-      ).rejects.toThrow(ValidationError);
+      ).resolves.toBeDefined();
     });
 
     it('throws ValidationError when note is missing for archive transition', async () => {

@@ -562,7 +562,6 @@ complianceRouter.put(
   },
 );
 
-
 // POST /agent/eaa/:eaaId/explanation — Confirm EAA explanation (Gate 4)
 complianceRouter.post(
   '/agent/eaa/:eaaId/explanation',
@@ -672,7 +671,6 @@ complianceRouter.get(
     }
   },
 );
-
 
 // GET /agent/transactions/:txId/counterparty-cdd/modal
 complianceRouter.get(

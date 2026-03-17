@@ -126,38 +126,42 @@
   {# Lead sources #}
   <div class="card">
     <h3 class="font-semibold mb-4">{{ "Lead Sources" | t }}</h3>
-    <canvas id="leadSourceChart" height="150"></canvas>
-    <script nonce="{{ cspNonce }}">
-      (function() {
-        const ctx = document.getElementById('leadSourceChart');
-        if (!ctx) return;
-        const data = {{ analytics.leadSources | dump | safe }};
-        const labels = Object.keys(data);
-        const values = labels.map(k => data[k].total);
-        new Chart(ctx, {
-          type: 'doughnut',
-          data: {
-            labels,
-            datasets: [{ data: values, backgroundColor: ['#c8553d', '#1a1a2e', '#3b82f6', '#22c55e', '#eab308'] }],
-          },
-          options: { plugins: { legend: { position: 'bottom' } } },
-        });
-      })();
-    </script>
-    <table class="w-full text-sm mt-4">
-      <thead class="text-xs text-gray-500 uppercase">
-        <tr><th class="text-left py-1">{{ "Source" | t }}</th><th class="text-right py-1">{{ "Total" | t }}</th><th class="text-right py-1">{{ "Conv. %" | t }}</th></tr>
-      </thead>
-      <tbody class="divide-y divide-gray-100">
-        {% for source, data in analytics.leadSources | dictsort %}
-        <tr>
-          <td class="py-1">{{ source }}</td>
-          <td class="py-1 text-right">{{ data.total }}</td>
-          <td class="py-1 text-right">{{ data.conversionRate }}%</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    {% if analytics.leadSources | length %}
+      <canvas id="leadSourceChart" height="150"></canvas>
+      <script nonce="{{ cspNonce }}">
+        (function() {
+          const ctx = document.getElementById('leadSourceChart');
+          if (!ctx) return;
+          const data = {{ analytics.leadSources | dump | safe }};
+          const labels = Object.keys(data);
+          const values = labels.map(k => data[k].total);
+          new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels,
+              datasets: [{ data: values, backgroundColor: ['#c8553d', '#1a1a2e', '#3b82f6', '#22c55e', '#eab308'] }],
+            },
+            options: { plugins: { legend: { position: 'bottom' } } },
+          });
+        })();
+      </script>
+      <table class="w-full text-sm mt-4">
+        <thead class="text-xs text-gray-500 uppercase">
+          <tr><th class="text-left py-1">{{ "Source" | t }}</th><th class="text-right py-1">{{ "Total" | t }}</th><th class="text-right py-1">{{ "Conv. %" | t }}</th></tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for source, data in analytics.leadSources | dictsort %}
+          <tr>
+            <td class="py-1">{{ source }}</td>
+            <td class="py-1 text-right">{{ data.total }}</td>
+            <td class="py-1 text-right">{{ data.conversionRate }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-sm text-gray-400">{{ "No lead source data for this period." | t }}</p>
+    {% endif %}
   </div>
 
 </div>{# end funnel + lead sources grid #}

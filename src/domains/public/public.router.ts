@@ -121,7 +121,8 @@ publicRouter.get(
   hdbRateLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const town = req.query.town as string | undefined;
+      const rawTown = req.query.town as string | undefined;
+      const town = rawTown?.trim() || undefined;
 
       const flatTypes = town
         ? await hdbService.getDistinctFlatTypesByTown(town)

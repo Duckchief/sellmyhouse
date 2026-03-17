@@ -22,13 +22,16 @@ All changes are in `src/views/pages/agent/seller-detail.njk`.
 
 ### 1. Extend the Compliance card
 
-Add a divider and EAA section inside the existing Compliance card `<div class="card">`, after the CDD partial include:
+Inside the existing Compliance card, insert a divider and EAA section after the CDD partial include and **before** the closing `</div>` of the card:
 
 ```njk
-<hr class="my-4 border-gray-200">
+    {% include "partials/agent/compliance-cdd-card.njk" %}
 
-<h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Estate Agency Agreement" | t }}</h3>
-{% include "partials/agent/compliance-eaa-card.njk" %}
+    <hr class="my-4 border-gray-200">
+
+    <h3 class="text-sm font-medium text-gray-700 mb-3">{{ "Estate Agency Agreement" | t }}</h3>
+    {% include "partials/agent/compliance-eaa-card.njk" %}
+  </div>  {# ← end of Compliance card #}
 ```
 
 ### 2. Remove the standalone EAA card
@@ -65,6 +68,14 @@ Compliance card
 | Transaction Timeline | Compliance (incl. EAA)     |
 | Case Flags         |                              |
 | Notifications (colspan 2)                         |
+
+### 3. Renumber remaining block comments
+
+After removing the `{# 4. Estate Agency Agreement #}` block, renumber the remaining comments so they stay sequential:
+
+- `{# 5. Counterparty CDD — ... #}` → `{# 4. Counterparty CDD — ... #}`
+- `{# 6. Case Flags #}` → `{# 5. Case Flags #}`
+- `{# 7. Notifications — full-width #}` → `{# 6. Notifications — full-width #}`
 
 ## Out of Scope
 

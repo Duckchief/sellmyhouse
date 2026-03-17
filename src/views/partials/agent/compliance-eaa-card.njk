@@ -19,11 +19,11 @@
         {{ "Create EAA" | t }}
       </button>
     {% else %}
-      <span title="{{ 'CDD must be Verified before creating an EAA' | t }}">
+      <span title="{{ 'CDD must be Verified before creating an EAA' | t }}" class="cursor-not-allowed">
         <button
           type="button"
           disabled
-          class="px-4 py-2 text-sm bg-gray-300 text-gray-500 rounded cursor-not-allowed">
+          class="px-4 py-2 text-sm bg-gray-300 text-gray-500 rounded pointer-events-none">
           {{ "Create EAA" | t }}
         </button>
       </span>

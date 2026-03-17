@@ -5,43 +5,48 @@ import type { TeamMember, AgentCreateInput, HdbDataStatus, HdbSyncRecord } from 
 
 // ─── Agent Queries ───────────────────────────────────────────
 
+const PIPELINE_STAGES = ['lead', 'engaged', 'active', 'completed', 'archived'] as const;
+const ACTIVE_STAGES = new Set(['lead', 'engaged', 'active']);
+
 export async function findAllAgents(): Promise<TeamMember[]> {
-  const agents = await prisma.agent.findMany({
-    orderBy: { name: 'asc' },
-    include: {
-      _count: {
-        select: {
-          sellers: {
-            where: { status: { notIn: ['completed', 'archived'] } },
-          },
-        },
-      },
-    },
-  });
+  const [agents, stageCounts] = await Promise.all([
+    prisma.agent.findMany({ orderBy: { name: 'asc' } }),
+    prisma.seller.groupBy({
+      by: ['agentId', 'status'],
+      where: { agentId: { not: null } },
+      _count: { id: true },
+    }),
+  ]);
 
-  const completedCounts = await prisma.seller.groupBy({
-    by: ['agentId'],
-    where: { status: 'completed' },
-    _count: { id: true },
-  });
-  const completedMap = new Map(
-    completedCounts
-      .filter((r) => r.agentId !== null)
-      .map((r) => [r.agentId as string, r._count.id]),
-  );
+  // agentId -> status -> count
+  const countMap = new Map<string, Record<string, number>>();
+  for (const row of stageCounts) {
+    if (!row.agentId) continue;
+    if (!countMap.has(row.agentId)) countMap.set(row.agentId, {});
+    countMap.get(row.agentId)![row.status] = row._count.id;
+  }
 
-  return agents.map((a) => ({
-    id: a.id,
-    name: a.name,
-    email: a.email,
-    phone: a.phone,
-    ceaRegNo: a.ceaRegNo,
-    role: a.role as 'agent' | 'admin',
-    isActive: a.isActive,
-    activeSellersCount: a._count.sellers,
-    completedCount: completedMap.get(a.id) ?? 0,
-    createdAt: a.createdAt,
-  }));
+  return agents.map((a) => {
+    const counts = countMap.get(a.id) ?? {};
+    const perStage = Object.fromEntries(PIPELINE_STAGES.map((s) => [s, counts[s] ?? 0]));
+    const activeSellersCount = PIPELINE_STAGES.filter((s) => ACTIVE_STAGES.has(s)).reduce(
+      (sum, s) => sum + (counts[s] ?? 0),
+      0,
+    );
+    return {
+      id: a.id,
+      name: a.name,
+      email: a.email,
+      phone: a.phone,
+      ceaRegNo: a.ceaRegNo,
+      role: a.role as 'agent' | 'admin',
+      isActive: a.isActive,
+      activeSellersCount,
+      completedCount: counts['completed'] ?? 0,
+      stageCounts: perStage,
+      createdAt: a.createdAt,
+    };
+  });
 }
 
 export async function findAgentById(

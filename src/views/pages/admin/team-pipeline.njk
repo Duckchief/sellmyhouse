@@ -1,10 +1,168 @@
 {% extends "layouts/admin.njk" %}
 
 {% block content %}
-{% set pageTitle = ("Pipeline: " | t) + agent.name %}
+{% set pageTitle = agent.name %}
 {% set backUrl = "/admin/team" %}
 {% set backLabel = "Back to Team" %}
+{% set pageBadge = { text: ("Active" if agent.isActive else "Inactive"), color: ("green" if agent.isActive else "gray") } %}
 {% include "partials/shared/page-header.njk" %}
-<p class="text-gray-500">{{ "Active sellers: " | t }}{{ agent.activeSellersCount }}</p>
-<p class="text-gray-500">{{ "Completed: " | t }}{{ agent.completedCount }}</p>
+
+{# ── Agent info + stats ── #}
+<div class="info-grid mb-6">
+
+  <div class="card">
+    <h2 class="text-lg font-semibold mb-4">{{ "Agent Profile" | t }}</h2>
+    <dl class="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Email" | t }}</dt>
+        <dd>{{ agent.email }}</dd>
+      </div>
+      <div>
+        <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Phone" | t }}</dt>
+        <dd>{{ agent.phone or '—' }}</dd>
+      </div>
+      <div>
+        <dt class="text-gray-500 text-xs uppercase mb-1">{{ "CEA Reg No" | t }}</dt>
+        <dd class="font-mono">{{ agent.ceaRegNo }}</dd>
+      </div>
+      <div>
+        <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Role" | t }}</dt>
+        <dd class="capitalize">{{ agent.role }}</dd>
+      </div>
+      <div>
+        <dt class="text-gray-500 text-xs uppercase mb-1">{{ "Joined" | t }}</dt>
+        <dd>{{ agent.createdAt | date }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2 class="text-lg font-semibold mb-4">{{ "Pipeline Summary" | t }}</h2>
+    <div class="grid grid-cols-3 gap-3 mb-3">
+      <button type="button" data-filter="lead"
+        class="pipeline-filter rounded-lg p-3 cursor-pointer hover:ring-2 hover:ring-blue-400 transition text-left w-full bg-blue-50">
+        <div class="text-2xl font-bold text-blue-700">{{ agent.stageCounts.lead }}</div>
+        <div class="text-xs text-gray-500 mt-1">{{ "Lead" | t }}</div>
+      </button>
+      <button type="button" data-filter="engaged"
+        class="pipeline-filter rounded-lg p-3 cursor-pointer hover:ring-2 hover:ring-yellow-400 transition text-left w-full bg-yellow-50">
+        <div class="text-2xl font-bold text-yellow-700">{{ agent.stageCounts.engaged }}</div>
+        <div class="text-xs text-gray-500 mt-1">{{ "Engaged" | t }}</div>
+      </button>
+      <button type="button" data-filter="active"
+        class="pipeline-filter rounded-lg p-3 cursor-pointer hover:ring-2 hover:ring-green-400 transition text-left w-full bg-green-50">
+        <div class="text-2xl font-bold text-green-700">{{ agent.stageCounts.active }}</div>
+        <div class="text-xs text-gray-500 mt-1">{{ "Active" | t }}</div>
+      </button>
+    </div>
+    <div class="grid grid-cols-3 gap-3">
+      <button type="button" data-filter="completed"
+        class="pipeline-filter rounded-lg p-3 cursor-pointer hover:ring-2 hover:ring-gray-400 transition text-left w-full bg-gray-50">
+        <div class="text-2xl font-bold text-gray-700">{{ agent.stageCounts.completed }}</div>
+        <div class="text-xs text-gray-500 mt-1">{{ "Completed" | t }}</div>
+      </button>
+      <button type="button" data-filter="archived"
+        class="pipeline-filter rounded-lg p-3 cursor-pointer hover:ring-2 hover:ring-red-400 transition text-left w-full bg-red-50">
+        <div class="text-2xl font-bold text-red-700">{{ agent.stageCounts.archived }}</div>
+        <div class="text-xs text-gray-500 mt-1">{{ "Archived" | t }}</div>
+      </button>
+      <button type="button" data-filter="all"
+        class="pipeline-filter rounded-lg p-3 cursor-pointer hover:ring-2 hover:ring-indigo-400 transition text-left w-full bg-indigo-50">
+        <div class="text-2xl font-bold text-indigo-700">{{ sellersTotal }}</div>
+        <div class="text-xs text-gray-500 mt-1">{{ "All" | t }}</div>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+{# ── Sellers table ── #}
+<div class="card p-0 overflow-hidden">
+  <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+    <h2 class="text-base font-semibold">
+      {{ "Assigned Sellers" | t }}
+      <span id="filter-label" class="ml-2 text-xs font-normal text-gray-400"></span>
+    </h2>
+    <span id="filter-count" class="text-sm text-gray-400">{{ sellersTotal }} {{ "total" | t }}</span>
+  </div>
+
+  {% if sellers.length > 0 %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+        <tr>
+          <th class="px-4 py-3 text-left">{{ "Seller" | t }}</th>
+          <th class="px-4 py-3 text-left">{{ "Status" | t }}</th>
+          <th class="px-4 py-3 text-left">{{ "Phone" | t }}</th>
+          <th class="px-4 py-3 text-left">{{ "Source" | t }}</th>
+          <th class="px-4 py-3 text-left">{{ "Created" | t }}</th>
+        </tr>
+      </thead>
+      {% set statusColors = {
+        'lead': 'bg-blue-100 text-blue-700',
+        'engaged': 'bg-yellow-100 text-yellow-700',
+        'active': 'bg-green-100 text-green-700',
+        'completed': 'bg-gray-100 text-gray-600',
+        'archived': 'bg-red-100 text-red-700'
+      } %}
+      <tbody class="divide-y">
+        {% for seller in sellers %}
+        <tr class="hover:bg-gray-50" data-status="{{ seller.status }}">
+          <td class="px-4 py-3">
+            <a href="/admin/sellers/{{ seller.id }}" class="font-medium text-accent hover:underline">{{ seller.name }}</a>
+            {% if seller.email %}<div class="text-xs text-gray-400">{{ seller.email }}</div>{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-1 rounded-full text-xs {{ statusColors[seller.status] or 'bg-gray-100 text-gray-600' }}">{{ seller.status }}</span>
+          </td>
+          <td class="px-4 py-3 text-gray-600">{{ seller.phone or '—' }}</td>
+          <td class="px-4 py-3 text-gray-500 capitalize">{{ seller.leadSource or '—' }}</td>
+          <td class="px-4 py-3 text-gray-500">{{ seller.createdAt | date }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="px-6 py-10 text-center text-gray-400 text-sm">{{ "No sellers assigned to this agent yet." | t }}</p>
+  {% endif %}
+</div>
+
+<script nonce="{{ cspNonce }}">
+(function () {
+  var filters = document.querySelectorAll('.pipeline-filter');
+  var rows = document.querySelectorAll('tbody tr[data-status]');
+  var filterLabel = document.getElementById('filter-label');
+  var filterCount = document.getElementById('filter-count');
+  var total = rows.length;
+
+  function applyFilter(active) {
+    var visible = 0;
+    rows.forEach(function (row) {
+      var show = active === 'all' || row.dataset.status === active;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+
+    filterLabel.textContent = active === 'all' ? '' : '— ' + active;
+    filterCount.textContent = (active === 'all' ? total : visible) + ' ' + (active === 'all' ? 'total' : 'shown');
+
+    filters.forEach(function (btn) {
+      var isActive = btn.dataset.filter === active;
+      btn.classList.toggle('ring-2', isActive);
+      btn.classList.toggle('ring-offset-1', isActive);
+      var colors = { lead: 'ring-blue-500', engaged: 'ring-yellow-500', active: 'ring-green-500', completed: 'ring-gray-500', archived: 'ring-red-500', all: 'ring-indigo-500' };
+      Object.values(colors).forEach(function (c) { btn.classList.remove(c); });
+      if (isActive) btn.classList.add(colors[active] || 'ring-indigo-500');
+    });
+  }
+
+  filters.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      applyFilter(btn.dataset.filter);
+    });
+  });
+})();
+</script>
+
 {% endblock %}

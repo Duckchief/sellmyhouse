@@ -323,10 +323,18 @@ adminRouter.get(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const team = await adminService.getTeam();
+      const [team, sellersResult] = await Promise.all([
+        adminService.getTeam(),
+        adminService.getAllSellers({ agentId: req.params['id'] as string, limit: 200 }),
+      ]);
       const agent = team.find((a) => a.id === req.params['id']);
       if (!agent) throw new NotFoundError('Agent', req.params['id'] as string);
-      res.render('pages/admin/team-pipeline', { agent, currentPath: '/admin/team' });
+      res.render('pages/admin/team-pipeline', {
+        agent,
+        sellers: sellersResult.sellers,
+        sellersTotal: sellersResult.total,
+        currentPath: '/admin/team',
+      });
     } catch (err) {
       next(err);
     }

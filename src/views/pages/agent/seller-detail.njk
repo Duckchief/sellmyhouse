@@ -93,9 +93,9 @@
     {% include "partials/agent/compliance-eaa-card.njk" %}
   </div>
 
-  {# 5. Counterparty CDD — only when active transaction exists, full-width #}
+  {# 5. Counterparty CDD — only when active transaction exists #}
   {% if compliance.counterpartyCdd %}
-  <div class="card md:col-span-2">
+  <div class="card">
     <h2 class="page-section-title">{{ "Counterparty CDD" | t }}</h2>
     {% include "partials/agent/compliance-counterparty-cdd-card.njk" %}
   </div>

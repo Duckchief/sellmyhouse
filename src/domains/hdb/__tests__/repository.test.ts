@@ -125,6 +125,33 @@ describe('HdbRepository', () => {
     });
   });
 
+  describe('getDistinctFlatTypesByTown', () => {
+    it('returns distinct flat types filtered by town', async () => {
+      mockPrisma.hdbTransaction.findMany.mockResolvedValue([
+        { flatType: '3 ROOM' },
+        { flatType: '4 ROOM' },
+      ]);
+
+      const result = await repo.getDistinctFlatTypesByTown('BISHAN');
+
+      expect(mockPrisma.hdbTransaction.findMany).toHaveBeenCalledWith({
+        distinct: ['flatType'],
+        select: { flatType: true },
+        orderBy: { flatType: 'asc' },
+        where: { town: 'BISHAN' },
+      });
+      expect(result).toEqual(['3 ROOM', '4 ROOM']);
+    });
+
+    it('returns empty array when town has no transactions', async () => {
+      mockPrisma.hdbTransaction.findMany.mockResolvedValue([]);
+
+      const result = await repo.getDistinctFlatTypesByTown('UNKNOWN TOWN');
+
+      expect(result).toEqual([]);
+    });
+  });
+
   describe('getDistinctStoreyRangesByTownAndFlatType', () => {
     it('returns storey ranges filtered by town and flat type', async () => {
       mockPrisma.hdbTransaction.findMany.mockResolvedValue([

@@ -171,6 +171,16 @@ export class HdbRepository {
     return results.map((r) => r.flatType);
   }
 
+  async getDistinctFlatTypesByTown(town: string): Promise<string[]> {
+    const results = await prisma.hdbTransaction.findMany({
+      distinct: ['flatType'],
+      select: { flatType: true },
+      orderBy: { flatType: 'asc' },
+      where: { town },
+    });
+    return results.map((r) => r.flatType);
+  }
+
   async getDistinctStoreyRanges(): Promise<string[]> {
     const results = await prisma.hdbTransaction.findMany({
       distinct: ['storeyRange'],

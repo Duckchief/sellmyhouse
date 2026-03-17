@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  @keyframes red-throb {
+    0%   { background-color: #ef4444; transform: scale(1); }    /* red-500 */
+    25%  { background-color: #b91c1c; transform: scale(1.12); } /* red-700 */
+    50%  { background-color: #dc2626; transform: scale(1); }    /* red-600 */
+    75%  { background-color: #991b1b; transform: scale(1.12); } /* red-800 */
+    100% { background-color: #ef4444; transform: scale(1); }
+  }
+  .btn-red-throb {
+    animation: red-throb 1.4s ease-in-out infinite;
+    color: white;
+  }
+}
+
 @layer components {
   .btn-primary {
     @apply bg-accent text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-accent-dark transition;

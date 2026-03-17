@@ -209,7 +209,7 @@ export async function findEaaByTransactionId(transactionId: string) {
   if (!tx?.estateAgencyAgreementId) return null;
   return prisma.estateAgencyAgreement.findUnique({
     where: { id: tx.estateAgencyAgreementId },
-    select: { id: true, videoCallConfirmedAt: true, signedCopyPath: true },
+    select: { id: true, videoCallConfirmedAt: true },
   });
 }
 

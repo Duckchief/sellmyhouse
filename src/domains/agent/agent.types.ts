@@ -132,7 +132,6 @@ export interface ComplianceStatus {
     id: string | null;
     status: 'signed' | 'active' | 'sent_to_seller' | 'draft' | 'not_started';
     signedAt: Date | null;
-    signedCopyPath: string | null;
     expiryDate: Date | null;
     explanationConfirmedAt: Date | null;
     explanationMethod: string | null;

@@ -427,16 +427,6 @@ export async function updateEaaStatus(
   }) as unknown as Promise<EaaRecord>;
 }
 
-export async function updateEaaSignedCopy(
-  eaaId: string,
-  signedCopyPath: string,
-): Promise<EaaRecord> {
-  return prisma.estateAgencyAgreement.update({
-    where: { id: eaaId },
-    data: { signedCopyPath },
-  }) as unknown as Promise<EaaRecord>;
-}
-
 export async function updateEaaExplanation(input: ConfirmEaaExplanationInput): Promise<EaaRecord> {
   return prisma.estateAgencyAgreement.update({
     where: { id: input.eaaId },
@@ -652,15 +642,6 @@ export async function collectSellerFilePaths(sellerId: string): Promise<string[]
     if (invoice.invoiceFilePath) paths.push(invoice.invoiceFilePath);
   }
 
-  // 4. Estate agency agreement signed copies
-  const eaas = await prisma.estateAgencyAgreement.findMany({
-    where: { sellerId },
-    select: { signedCopyPath: true },
-  });
-  for (const eaa of eaas) {
-    if (eaa.signedCopyPath) paths.push(eaa.signedCopyPath);
-  }
-
   return paths;
 }
 
@@ -717,8 +698,6 @@ export async function findTransactionDocuments(transactionId: string) {
       estateAgencyAgreement: {
         select: {
           id: true,
-          signedCopyPath: true,
-          signedCopyDeletedAt: true,
         },
       },
     },
@@ -753,13 +732,6 @@ export async function markInvoiceDeleted(invoiceId: string): Promise<void> {
   await prisma.commissionInvoice.update({
     where: { id: invoiceId },
     data: { invoiceFilePath: null, invoiceDeletedAt: new Date() },
-  });
-}
-
-export async function markEaaSignedCopyDeleted(eaaId: string): Promise<void> {
-  await prisma.estateAgencyAgreement.update({
-    where: { id: eaaId },
-    data: { signedCopyPath: null, signedCopyDeletedAt: new Date() },
   });
 }
 

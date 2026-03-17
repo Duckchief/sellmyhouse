@@ -403,15 +403,6 @@ describe('GET /agent/eaa/:eaaId/explanation/modal', () => {
   });
 });
 
-describe('GET /agent/eaa/:eaaId/signed-copy/modal', () => {
-  it('returns signed copy upload modal HTML', async () => {
-    const app = createAgentApp();
-    const res = await request(app).get('/agent/eaa/eaa-1/signed-copy/modal');
-    expect(res.status).toBe(200);
-    expect(res.text).toContain('Upload Signed EAA Copy');
-  });
-});
-
 describe('GET /agent/sellers/:sellerId/cdd/verify-modal', () => {
   beforeEach(() => jest.clearAllMocks());
 

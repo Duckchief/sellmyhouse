@@ -342,7 +342,6 @@ export async function getComplianceStatus(sellerId: string, agentId?: string) {
         ? (eaa.status as 'signed' | 'active' | 'sent_to_seller' | 'draft')
         : ('not_started' as const),
       signedAt: eaa?.signedAt ?? null,
-      signedCopyPath: eaa?.signedCopyPath ?? null,
       expiryDate: eaa?.expiryDate ?? null,
       explanationConfirmedAt: eaa?.videoCallConfirmedAt ?? null,
       explanationMethod,

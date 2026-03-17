@@ -43,6 +43,7 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   findEaaById: jest.Mock;
   deleteCddRecord: jest.Mock;
   upsertCddStatus: jest.Mock;
+  findSellerCddRecord: jest.Mock;
 };
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 
@@ -788,7 +789,7 @@ describe('confirmEaaExplanation', () => {
 describe('updateCddStatus', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (mockRepo as any).findSellerCddRecord = jest.fn().mockResolvedValue(null);
+    mockRepo.findSellerCddRecord = jest.fn().mockResolvedValue(null);
   });
 
   it('calls deleteCddRecord and logs cdd.record_deleted for not_started', async () => {
@@ -835,7 +836,7 @@ describe('verifyCdd', () => {
   });
 
   it('throws ConflictError when record is already identityVerified', async () => {
-    (mockRepo as any).findSellerCddRecord = jest.fn().mockResolvedValue({
+    mockRepo.findSellerCddRecord = jest.fn().mockResolvedValue({
       id: 'cdd-1',
       identityVerified: true,
     });
@@ -847,7 +848,7 @@ describe('verifyCdd', () => {
 
   it('calls upsertCddStatus("verified") and logs audit on success', async () => {
     // upsertCddStatus with 'verified' sets identityVerified=true and verifiedAt=now in the repo
-    (mockRepo as any).findSellerCddRecord = jest.fn().mockResolvedValue(null);
+    mockRepo.findSellerCddRecord = jest.fn().mockResolvedValue(null);
     mockRepo.upsertCddStatus.mockResolvedValue(undefined);
 
     await complianceService.verifyCdd('seller-1', 'agent-1', 'I confirm');
@@ -862,7 +863,7 @@ describe('verifyCdd', () => {
 describe('updateCddStatus — lock guards', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (mockRepo as any).findSellerCddRecord = jest.fn();
+    mockRepo.findSellerCddRecord = jest.fn();
   });
 
   it('throws ForbiddenError when agent tries to set status=verified directly', async () => {
@@ -872,7 +873,7 @@ describe('updateCddStatus — lock guards', () => {
   });
 
   it('throws ForbiddenError when agent tries to change status on a locked record', async () => {
-    (mockRepo as any).findSellerCddRecord.mockResolvedValue({
+    mockRepo.findSellerCddRecord.mockResolvedValue({
       id: 'cdd-1',
       identityVerified: true,
     });
@@ -884,7 +885,7 @@ describe('updateCddStatus — lock guards', () => {
 
   it('allows admin to revert a locked record (skips lock check)', async () => {
     // identityVerified: true — proves admin bypasses the lock
-    (mockRepo as any).findSellerCddRecord.mockResolvedValue({
+    mockRepo.findSellerCddRecord.mockResolvedValue({
       id: 'cdd-1',
       identityVerified: true,
     });

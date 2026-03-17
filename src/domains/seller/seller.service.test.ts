@@ -166,7 +166,7 @@ describe('getTimelineMilestones', () => {
     });
   });
 
-  describe('admin role — 19 milestones', () => {
+  describe('admin role', () => {
     it('returns 19 milestones for admin role when otp and transaction exist', () => {
       const milestones = getTimelineMilestones(
         {

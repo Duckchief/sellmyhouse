@@ -196,7 +196,12 @@ const HDB_STATUS_ORDER = [
   'completed',
 ] as const;
 
+const PROPERTY_STATUS_ORDER = [
+  'draft', 'listed', 'offer_received', 'under_option', 'completing', 'completed', 'withdrawn',
+];
+
 function otpStatusGte(current: string, target: string): boolean {
+  if (current === 'expired') return false; // expired is terminal failure, no sub-step is "completed"
   return OTP_STATUS_ORDER.indexOf(current as (typeof OTP_STATUS_ORDER)[number]) >=
     OTP_STATUS_ORDER.indexOf(target as (typeof OTP_STATUS_ORDER)[number]);
 }
@@ -246,16 +251,16 @@ export function getTimelineMilestones(
   });
 
   // 4. Viewings — current while listed, completed when property reaches offer_received or beyond,
-  //    or when an accepted offer / transaction exists (implying viewings already occurred)
-  const PROPERTY_STATUS_ORDER = [
-    'draft', 'listed', 'offer_received', 'under_option', 'completing', 'completed', 'withdrawn',
-  ];
+  //    or when an accepted offer / transaction exists (implying viewings already occurred).
+  //    Withdrawn is a terminal failure state — do not treat it as post-offer completion.
   const propertyStatusIndex = data.property
     ? PROPERTY_STATUS_ORDER.indexOf(data.property.status)
     : -1;
   const offerReceivedIndex = PROPERTY_STATUS_ORDER.indexOf('offer_received');
   const viewingsCompleted =
-    (propertyStatusIndex >= offerReceivedIndex && propertyStatusIndex !== -1) ||
+    (propertyStatusIndex >= offerReceivedIndex &&
+      propertyStatusIndex !== -1 &&
+      data.property?.status !== 'withdrawn') ||
     !!data.acceptedOffer ||
     !!data.otp ||
     !!data.transaction;

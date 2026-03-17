@@ -449,6 +449,7 @@ export async function findSellerDetailForAdmin(id: string) {
         take: 1,
         orderBy: { createdAt: 'desc' },
         select: {
+          id: true,
           block: true,
           street: true,
           town: true,

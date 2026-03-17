@@ -10,6 +10,9 @@ jest.mock('@/domains/shared/settings.service');
 jest.mock('@/domains/notification/notification.service');
 jest.mock('@/domains/compliance/compliance.service');
 jest.mock('@/domains/agent/agent.service');
+jest.mock('@/domains/transaction/transaction.service');
+jest.mock('@/domains/viewing/viewing.service');
+jest.mock('@/domains/offer/offer.service');
 jest.mock('nodemailer', () => ({
   createTransport: () => ({
     sendMail: jest.fn().mockResolvedValue({ messageId: 'test-msg-id' }),
@@ -23,6 +26,9 @@ import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as complianceService from '@/domains/compliance/compliance.service';
 import * as agentService from '@/domains/agent/agent.service';
+import * as transactionService from '@/domains/transaction/transaction.service';
+import * as viewingService from '@/domains/viewing/viewing.service';
+import * as offerService from '@/domains/offer/offer.service';
 import * as adminService from '../admin.service';
 import { NotFoundError } from '@/domains/shared/errors';
 
@@ -33,6 +39,9 @@ const mockSettingsService = settingsService as jest.Mocked<typeof settingsServic
 const mockNotificationService = notificationService as jest.Mocked<typeof notificationService>;
 const mockComplianceService = complianceService as jest.Mocked<typeof complianceService>;
 const mockAgentService = agentService as jest.Mocked<typeof agentService>;
+const mockTransactionService = transactionService as jest.Mocked<typeof transactionService>;
+const mockViewingService = viewingService as jest.Mocked<typeof viewingService>;
+const mockOfferService = offerService as jest.Mocked<typeof offerService>;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -633,6 +642,12 @@ describe('getAdminSellerDetail', () => {
       page: 1,
       totalPages: 0,
     });
+    mockComplianceService.findEaaBySellerId.mockResolvedValue(null);
+    mockTransactionService.findTransactionBySellerId.mockResolvedValue(null);
+    mockTransactionService.findOtpByTransactionId.mockResolvedValue(null);
+    mockViewingService.findFirstViewingDateForProperty.mockResolvedValue(null);
+    mockComplianceService.findCddRecordByTransactionAndSubjectType.mockResolvedValue(null);
+    mockOfferService.findOffer.mockResolvedValue(null);
   });
 
   const baseSeller = {
@@ -646,6 +661,7 @@ describe('getAdminSellerDetail', () => {
     agent: { id: 'agent-1', name: 'Bob Agent', ceaRegNo: 'R12345', phone: '98765432' },
     properties: [
       {
+        id: 'prop-1',
         block: '123',
         street: 'Tampines Ave 1',
         town: 'TAMPINES',
@@ -722,6 +738,24 @@ describe('getAdminSellerDetail', () => {
       total: 1,
       page: 1,
       totalPages: 1,
+    } as never);
+    mockTransactionService.findTransactionBySellerId.mockResolvedValue({
+      id: 'txn-1',
+      status: 'option_issued',
+      offerId: 'offer-1',
+      agreedPrice: { toNumber: () => 498000 },
+      hdbApplicationStatus: 'not_started',
+      hdbAppSubmittedAt: null,
+      hdbAppApprovedAt: null,
+      hdbAppointmentDate: null,
+      completionDate: null,
+      createdAt: new Date('2026-02-01'),
+    } as never);
+    mockTransactionService.findOtpByTransactionId.mockResolvedValue({
+      status: 'prepared',
+      agentReviewedAt: null,
+      issuedAt: null,
+      exercisedAt: null,
     } as never);
 
     const result = await adminService.getAdminSellerDetail('seller-1');

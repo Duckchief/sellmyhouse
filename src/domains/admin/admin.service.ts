@@ -27,7 +27,11 @@ import type {
 } from './admin.types';
 import type { SettingKey } from '@/domains/shared/settings.types';
 import { getTimelineMilestones } from '@/domains/seller/seller.service';
+import type { TimelineInput } from '@/domains/seller/seller.types';
 import * as agentService from '@/domains/agent/agent.service';
+import * as transactionService from '@/domains/transaction/transaction.service';
+import * as viewingService from '@/domains/viewing/viewing.service';
+import * as offerService from '@/domains/offer/offer.service';
 
 // ─── Team Management ─────────────────────────────────────────
 
@@ -561,15 +565,65 @@ export async function getAdminSellerDetail(id: string): Promise<AdminSellerDetai
   const raw = await adminRepo.findSellerDetailForAdmin(id);
   if (!raw) throw new NotFoundError('Seller not found');
 
-  const [cdd, auditLog, notificationsResult] = await Promise.all([
+  const [cdd, auditLog, notificationsResult, eaa, transaction] = await Promise.all([
     complianceService.findLatestSellerCddRecord(id),
     auditRepo.findByEntity('seller', id),
     agentService.getNotificationHistory(id),
+    complianceService.findEaaBySellerId(id),
+    transactionService.findTransactionBySellerId(id),
   ]);
 
   const property = raw.properties[0] ?? null;
-  const transaction = raw.transactions[0] ?? null;
-  const milestones = getTimelineMilestones(property?.status ?? null, transaction?.status ?? null);
+
+  const [firstViewingAt, otp, counterpartyCddRecord] = await Promise.all([
+    property ? viewingService.findFirstViewingDateForProperty(property.id) : Promise.resolve(null),
+    transaction ? transactionService.findOtpByTransactionId(transaction.id) : Promise.resolve(null),
+    transaction
+      ? complianceService.findCddRecordByTransactionAndSubjectType(transaction.id, 'counterparty')
+      : Promise.resolve(null),
+  ]);
+
+  const acceptedOffer = transaction?.offerId
+    ? await offerService.findOffer(transaction.offerId)
+    : null;
+  const isCoBroke = acceptedOffer?.isCoBroke ?? false;
+
+  const timelineInput: TimelineInput = {
+    sellerCddRecord: cdd ? { createdAt: cdd.createdAt } : null,
+    eaa: eaa
+      ? { videoCallConfirmedAt: eaa.videoCallConfirmedAt ?? null, signedCopyPath: eaa.signedCopyPath ?? null }
+      : null,
+    property: property ? { status: property.status, listedAt: null } : null,
+    firstViewingAt,
+    acceptedOffer: acceptedOffer
+      ? { createdAt: acceptedOffer.createdAt }
+      : transaction
+        ? { createdAt: transaction.createdAt }
+        : null,
+    counterpartyCddRecord: counterpartyCddRecord && !isCoBroke
+      ? { createdAt: counterpartyCddRecord.createdAt }
+      : null,
+    isCoBroke,
+    otp: otp
+      ? {
+          status: otp.status,
+          agentReviewedAt: otp.agentReviewedAt ?? null,
+          issuedAt: otp.issuedAt ?? null,
+          exercisedAt: otp.exercisedAt ?? null,
+        }
+      : null,
+    transaction: transaction
+      ? {
+          status: transaction.status,
+          hdbApplicationStatus: transaction.hdbApplicationStatus,
+          hdbAppSubmittedAt: transaction.hdbAppSubmittedAt ?? null,
+          hdbAppApprovedAt: transaction.hdbAppApprovedAt ?? null,
+          hdbAppointmentDate: transaction.hdbAppointmentDate ?? null,
+          completionDate: transaction.completionDate ?? null,
+        }
+      : null,
+  };
+  const milestones = getTimelineMilestones(timelineInput, 'admin');
 
   return {
     seller: {
@@ -600,7 +654,7 @@ export async function getAdminSellerDetail(id: string): Promise<AdminSellerDetai
           offerId: transaction.offerId,
           agreedPrice: transaction.agreedPrice.toNumber(),
           hdbApplicationStatus: transaction.hdbApplicationStatus,
-          otpStatus: transaction.otp?.status ?? null,
+          otpStatus: otp?.status ?? null,
           createdAt: transaction.createdAt,
         }
       : null,

@@ -310,7 +310,6 @@ const STATUS_TRANSITIONS: Record<string, string[]> = {
 
 const NOTE_REQUIRED_TRANSITIONS = new Set([
   'lead→engaged',
-  'engaged→active',
   'lead→archived',
   'engaged→archived',
   'active→archived',

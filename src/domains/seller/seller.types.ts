@@ -92,6 +92,31 @@ export interface TimelineMilestone {
   status: 'completed' | 'current' | 'upcoming';
   date: Date | null;
   description: string;
+  notApplicable: boolean;
+}
+
+export interface TimelineInput {
+  sellerCddRecord:       { createdAt: Date } | null;
+  eaa:                   { videoCallConfirmedAt: Date | null; signedCopyPath: string | null } | null;
+  property:              { status: string; listedAt: Date | null } | null;
+  firstViewingAt:        Date | null;
+  acceptedOffer:         { createdAt: Date } | null;
+  counterpartyCddRecord: { createdAt: Date } | null;
+  isCoBroke:             boolean;
+  otp: {
+    status:          string;
+    agentReviewedAt: Date | null;
+    issuedAt:        Date | null;
+    exercisedAt:     Date | null;
+  } | null;
+  transaction: {
+    status:               string;
+    hdbApplicationStatus: string;
+    hdbAppSubmittedAt:    Date | null;
+    hdbAppApprovedAt:     Date | null;
+    hdbAppointmentDate:   Date | null;
+    completionDate:       Date | null;
+  } | null;
 }
 
 export interface CompleteOnboardingStepInput {

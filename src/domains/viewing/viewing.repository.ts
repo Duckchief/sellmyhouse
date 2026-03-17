@@ -443,3 +443,15 @@ export async function findPropertyBySlug(slug: string) {
     where: { slug, status: 'listed' },
   });
 }
+
+export async function findFirstViewingDateForProperty(propertyId: string): Promise<Date | null> {
+  const viewing = await prisma.viewing.findFirst({
+    where: {
+      propertyId,
+      status: { in: ['scheduled', 'completed'] },
+    },
+    orderBy: { scheduledAt: 'asc' },
+    select: { scheduledAt: true },
+  });
+  return viewing?.scheduledAt ?? null;
+}

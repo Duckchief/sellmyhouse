@@ -190,8 +190,10 @@
   <script type="application/json" id="timeToCloseData">{{ analytics.timeToClose.byFlatType | dump | safe }}</script>
 </div>
 
-{# Viewings analytics #}
-<div class="card mb-8 lg:w-1/2">
+{# Viewings + Referral Programme (side by side) #}
+<div class="flex flex-col lg:flex-row gap-6 mb-8">
+
+<div class="card flex-1">
   <h3 class="font-semibold mb-4">{{ "Viewings" | t }}</h3>
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
     <div class="text-center">
@@ -214,7 +216,7 @@
 </div>
 
 {# Referral funnel #}
-<div class="card lg:w-1/2">
+<div class="card flex-1">
   <h3 class="font-semibold mb-4">{{ "Referral Programme" | t }}</h3>
   <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
     <div class="text-center">
@@ -263,3 +265,5 @@
   </table>
   {% endif %}
 </div>
+
+</div>{# end viewings + referral row #}

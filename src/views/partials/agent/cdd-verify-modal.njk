@@ -1,0 +1,48 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" id="cdd-verify-modal-backdrop">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3">{{ "Confirm CDD Completion" | t }}</h2>
+    <p class="text-sm text-gray-600 mb-4">
+      {{ "You are about to mark this seller's CDD as Verified. This action cannot be undone by you. Type" | t }}
+      <strong>I confirm</strong>
+      {{ "below to proceed." | t }}
+    </p>
+
+    <input
+      type="text"
+      id="cdd-confirm-phrase"
+      name="phrase"
+      class="w-full border rounded px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      placeholder="{{ 'Type: I confirm' | t }}"
+      autocomplete="off">
+
+    <div class="flex gap-3 justify-end">
+      <button
+        type="button"
+        class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50"
+        onclick="document.getElementById('compliance-modal-container').innerHTML = ''">
+        {{ "Cancel" | t }}
+      </button>
+      <button
+        id="cdd-confirm-btn"
+        type="button"
+        disabled
+        class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed"
+        hx-post="/agent/sellers/{{ sellerId }}/cdd/verify"
+        hx-include="#cdd-confirm-phrase"
+        hx-target="#compliance-cdd-card"
+        hx-swap="outerHTML">
+        {{ "Confirm Verification" | t }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<script nonce="{{ cspNonce }}">
+(function () {
+  var input = document.getElementById('cdd-confirm-phrase');
+  var btn = document.getElementById('cdd-confirm-btn');
+  input.addEventListener('input', function () {
+    btn.disabled = input.value !== 'I confirm';
+  });
+})();
+</script>

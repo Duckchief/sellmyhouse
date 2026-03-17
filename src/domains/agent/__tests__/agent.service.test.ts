@@ -239,6 +239,43 @@ describe('agent.service', () => {
       expect(result.cdd.status).toBe('verified');
       expect(result.eaa.status).toBe('not_started');
     });
+
+    it('passes co-broke fields through when counterpartyCdd is present', async () => {
+      mockRepo.getComplianceStatus.mockResolvedValue({
+        cdd: {
+          status: 'verified',
+          verifiedAt: new Date(),
+          riskLevel: 'standard',
+          fullName: 'Test',
+          nricLast4: '567A',
+        },
+        eaa: {
+          status: 'not_started',
+          id: null,
+          signedAt: null,
+          signedCopyPath: null,
+          expiryDate: null,
+          explanationConfirmedAt: null,
+          explanationMethod: null,
+        },
+        consent: { service: true, marketing: false, withdrawnAt: null },
+        caseFlags: [],
+        counterpartyCdd: {
+          status: 'not_started',
+          verifiedAt: null,
+          transactionId: 'tx-1',
+          isCoBroke: true,
+          buyerAgentName: 'John Agent',
+          buyerAgentCeaReg: 'R012345B',
+        },
+      } as never);
+
+      const result = await agentService.getComplianceStatus('seller-1');
+
+      expect(result.counterpartyCdd?.isCoBroke).toBe(true);
+      expect(result.counterpartyCdd?.buyerAgentName).toBe('John Agent');
+      expect(result.counterpartyCdd?.buyerAgentCeaReg).toBe('R012345B');
+    });
   });
 
   describe('getNotificationHistory', () => {

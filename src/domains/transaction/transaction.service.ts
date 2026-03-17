@@ -120,9 +120,11 @@ export async function advanceTransactionStatus(input: {
     );
   }
 
-  // H3: Gate 3 — counterparty CDD must be complete before any status advance
-  // Passes transaction.id as entityId; checkComplianceGate uses it as the CDD subject lookup key
-  await checkComplianceGate('counterparty_cdd', tx.id);
+  // H3: Gate 3 — counterparty CDD (bypassed for co-broke transactions)
+  const offer = tx.offerId ? await offerService.findOffer(tx.offerId) : null;
+  await checkComplianceGate('counterparty_cdd', tx.id, {
+    buyerRepresented: offer?.isCoBroke ?? false,
+  });
 
   // Gate 5: HDB approval required before marking completed
   if (input.status === 'completed') {

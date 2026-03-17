@@ -1,3 +1,26 @@
+{% if compliance.counterpartyCdd.isCoBroke %}
+<div class="space-y-3">
+  <p class="text-sm text-gray-500 italic">
+    {{ "Not required — counterparty is represented by an agent." | t }}
+  </p>
+  {% if compliance.counterpartyCdd.buyerAgentName or compliance.counterpartyCdd.buyerAgentCeaReg %}
+  <dl class="space-y-2 text-sm">
+    {% if compliance.counterpartyCdd.buyerAgentName %}
+    <div class="flex justify-between">
+      <dt class="text-gray-500">{{ "Agent Name" | t }}</dt>
+      <dd class="text-gray-700">{{ compliance.counterpartyCdd.buyerAgentName }}</dd>
+    </div>
+    {% endif %}
+    {% if compliance.counterpartyCdd.buyerAgentCeaReg %}
+    <div class="flex justify-between">
+      <dt class="text-gray-500">{{ "CEA Reg No" | t }}</dt>
+      <dd class="text-gray-700">{{ compliance.counterpartyCdd.buyerAgentCeaReg }}</dd>
+    </div>
+    {% endif %}
+  </dl>
+  {% endif %}
+</div>
+{% else %}
 <div id="compliance-counterparty-cdd-card">
   <div class="flex items-center justify-between mb-4">
     <span class="px-2 py-1 text-xs rounded-full
@@ -26,3 +49,4 @@
     </dl>
   {% endif %}
 </div>
+{% endif %}

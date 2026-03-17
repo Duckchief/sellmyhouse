@@ -287,7 +287,10 @@ export async function getComplianceStatus(sellerId: string, agentId?: string) {
     }),
     prisma.transaction.findFirst({
       where: { sellerId, status: { notIn: ['completed', 'fallen_through'] } },
-      select: { id: true },
+      select: {
+        id: true,
+        offer: { select: { isCoBroke: true, buyerAgentName: true, buyerAgentCeaReg: true } },
+      },
       orderBy: { createdAt: 'desc' },
     }),
   ]);
@@ -308,6 +311,9 @@ export async function getComplianceStatus(sellerId: string, agentId?: string) {
     status: 'verified' | 'not_started';
     verifiedAt: Date | null;
     transactionId: string | null;
+    isCoBroke: boolean;
+    buyerAgentName: string | null;
+    buyerAgentCeaReg: string | null;
   } | null = null;
 
   if (activeTransaction) {
@@ -321,6 +327,9 @@ export async function getComplianceStatus(sellerId: string, agentId?: string) {
         : ('not_started' as const),
       verifiedAt: counterpartyCddRecord?.verifiedAt ?? null,
       transactionId: activeTransaction.id,
+      isCoBroke: activeTransaction.offer?.isCoBroke ?? false,
+      buyerAgentName: activeTransaction.offer?.buyerAgentName ?? null,
+      buyerAgentCeaReg: activeTransaction.offer?.buyerAgentCeaReg ?? null,
     };
   }
 

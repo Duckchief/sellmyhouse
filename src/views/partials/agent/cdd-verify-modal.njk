@@ -30,7 +30,8 @@
         hx-post="/agent/sellers/{{ sellerId }}/cdd/verify"
         hx-include="#cdd-confirm-phrase"
         hx-target="#compliance-cdd-card"
-        hx-swap="outerHTML">
+        hx-swap="outerHTML"
+        hx-on::after-request="document.getElementById('compliance-modal-container').innerHTML = ''">
         {{ "Confirm Verification" | t }}
       </button>
     </div>

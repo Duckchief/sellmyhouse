@@ -179,9 +179,7 @@ describe('GET /api/hdb/flat-types', () => {
   });
 
   it('returns empty options (only placeholder) when town has no data', async () => {
-    jest
-      .spyOn(HdbService.prototype, 'getDistinctFlatTypesByTown')
-      .mockResolvedValue([]);
+    jest.spyOn(HdbService.prototype, 'getDistinctFlatTypesByTown').mockResolvedValue([]);
     const app = buildApp();
 
     const res = await request(app).get('/api/hdb/flat-types?town=UNKNOWN');

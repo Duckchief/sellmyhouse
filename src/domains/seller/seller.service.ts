@@ -186,27 +186,31 @@ export function getTimelineMilestones(
       status: 'upcoming',
       date: null,
       description: 'Your property is live on the market',
+      notApplicable: false,
     },
-    { label: 'Viewings', status: 'upcoming', date: null, description: 'Buyers view your home' },
+    { label: 'Viewings', status: 'upcoming', date: null, description: 'Buyers view your home', notApplicable: false },
     {
       label: 'Offer Received',
       status: 'upcoming',
       date: null,
       description: 'A buyer makes an offer',
+      notApplicable: false,
     },
     {
       label: 'OTP Issued',
       status: 'upcoming',
       date: null,
       description: 'Option to Purchase signed',
+      notApplicable: false,
     },
     {
       label: 'OTP Exercised',
       status: 'upcoming',
       date: null,
       description: 'Buyer exercises the option',
+      notApplicable: false,
     },
-    { label: 'Completion', status: 'upcoming', date: null, description: 'Sale completed' },
+    { label: 'Completion', status: 'upcoming', date: null, description: 'Sale completed', notApplicable: false },
   ];
 
   const propertyStageMap: Record<string, number> = {

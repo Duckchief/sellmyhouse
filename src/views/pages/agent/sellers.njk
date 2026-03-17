@@ -18,7 +18,5 @@
   <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm">{{ "Search" | t }}</button>
 </form>
 
-<div id="seller-list" hx-get="/agent/sellers" hx-trigger="load" hx-swap="innerHTML" hx-headers='{"HX-Request": "true"}'>
-  <div class="text-gray-500">{{ "Loading..." | t }}</div>
-</div>
+<div id="seller-list">{% include "partials/agent/seller-list.njk" %}</div>
 {% endblock %}

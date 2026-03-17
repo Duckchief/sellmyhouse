@@ -591,7 +591,10 @@ export async function getAdminSellerDetail(id: string): Promise<AdminSellerDetai
   const timelineInput: TimelineInput = {
     sellerCddRecord: cdd ? { createdAt: cdd.createdAt } : null,
     eaa: eaa
-      ? { videoCallConfirmedAt: eaa.videoCallConfirmedAt ?? null, signedCopyPath: eaa.signedCopyPath ?? null }
+      ? {
+          videoCallConfirmedAt: eaa.videoCallConfirmedAt ?? null,
+          signedCopyPath: eaa.signedCopyPath ?? null,
+        }
       : null,
     property: property ? { status: property.status, listedAt: null } : null,
     firstViewingAt,
@@ -600,9 +603,8 @@ export async function getAdminSellerDetail(id: string): Promise<AdminSellerDetai
       : transaction
         ? { createdAt: transaction.createdAt }
         : null,
-    counterpartyCddRecord: counterpartyCddRecord && !isCoBroke
-      ? { createdAt: counterpartyCddRecord.createdAt }
-      : null,
+    counterpartyCddRecord:
+      counterpartyCddRecord && !isCoBroke ? { createdAt: counterpartyCddRecord.createdAt } : null,
     isCoBroke,
     otp: otp
       ? {

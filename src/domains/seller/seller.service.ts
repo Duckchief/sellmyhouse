@@ -197,18 +197,28 @@ const HDB_STATUS_ORDER = [
 ] as const;
 
 const PROPERTY_STATUS_ORDER = [
-  'draft', 'listed', 'offer_received', 'under_option', 'completing', 'completed', 'withdrawn',
+  'draft',
+  'listed',
+  'offer_received',
+  'under_option',
+  'completing',
+  'completed',
+  'withdrawn',
 ];
 
 function otpStatusGte(current: string, target: string): boolean {
   if (current === 'expired') return false; // expired is terminal failure, no sub-step is "completed"
-  return OTP_STATUS_ORDER.indexOf(current as (typeof OTP_STATUS_ORDER)[number]) >=
-    OTP_STATUS_ORDER.indexOf(target as (typeof OTP_STATUS_ORDER)[number]);
+  return (
+    OTP_STATUS_ORDER.indexOf(current as (typeof OTP_STATUS_ORDER)[number]) >=
+    OTP_STATUS_ORDER.indexOf(target as (typeof OTP_STATUS_ORDER)[number])
+  );
 }
 
 function hdbStatusGte(current: string, target: string): boolean {
-  return HDB_STATUS_ORDER.indexOf(current as (typeof HDB_STATUS_ORDER)[number]) >=
-    HDB_STATUS_ORDER.indexOf(target as (typeof HDB_STATUS_ORDER)[number]);
+  return (
+    HDB_STATUS_ORDER.indexOf(current as (typeof HDB_STATUS_ORDER)[number]) >=
+    HDB_STATUS_ORDER.indexOf(target as (typeof HDB_STATUS_ORDER)[number])
+  );
 }
 
 type RawMilestone = Omit<TimelineMilestone, 'status'> & { completed: boolean };

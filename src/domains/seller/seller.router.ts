@@ -49,7 +49,9 @@ sellerRouter.get('/seller/dashboard', async (req: Request, res: Response, next: 
     const timelineInput: TimelineInput = {
       sellerCddRecord: null,
       eaa: null,
-      property: overview.propertyStatus ? { status: overview.propertyStatus as PropertyStatus, listedAt: null } : null,
+      property: overview.propertyStatus
+        ? { status: overview.propertyStatus as PropertyStatus, listedAt: null }
+        : null,
       firstViewingAt: null,
       acceptedOffer: null,
       counterpartyCddRecord: null,

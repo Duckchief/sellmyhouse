@@ -137,7 +137,10 @@ agentRouter.get(
         agentService.getNotificationHistory(sellerId, agentId, { page: 1, limit: 10 }),
         agentService.getTimelineInput(sellerId, agentId),
       ]);
-      const milestones = sellerService.getTimelineMilestones(timelineInput, user.role as 'agent' | 'admin');
+      const milestones = sellerService.getTimelineMilestones(
+        timelineInput,
+        user.role as 'agent' | 'admin',
+      );
       const isAdmin = user.role === 'admin';
 
       res.render('pages/agent/seller-detail', {

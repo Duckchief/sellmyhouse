@@ -328,11 +328,32 @@ describe('agent.service', () => {
 
       mockRepo.getSellerDetail.mockResolvedValue(sellerWithProperty as never);
       mockRepo.getComplianceStatus.mockResolvedValue({
-        cdd: { status: 'verified', verifiedAt: createdAt, riskLevel: 'standard', fullName: 'Alice', nricLast4: '567A' },
-        eaa: { id: 'eaa-1', status: 'signed', signedAt: createdAt, signedCopyPath: '/docs/eaa.pdf', expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+        cdd: {
+          status: 'verified',
+          verifiedAt: createdAt,
+          riskLevel: 'standard',
+          fullName: 'Alice',
+          nricLast4: '567A',
+        },
+        eaa: {
+          id: 'eaa-1',
+          status: 'signed',
+          signedAt: createdAt,
+          signedCopyPath: '/docs/eaa.pdf',
+          expiryDate: null,
+          explanationConfirmedAt: null,
+          explanationMethod: null,
+        },
         consent: { service: true, marketing: false, withdrawnAt: null },
         caseFlags: [],
-        counterpartyCdd: { transactionId: 'tx-1', status: 'verified', verifiedAt: createdAt, isCoBroke: false, buyerAgentName: null, buyerAgentCeaReg: null },
+        counterpartyCdd: {
+          transactionId: 'tx-1',
+          status: 'verified',
+          verifiedAt: createdAt,
+          isCoBroke: false,
+          buyerAgentName: null,
+          buyerAgentCeaReg: null,
+        },
       } as never);
       mockTransactionService.findTransactionBySellerId.mockResolvedValue({
         id: 'tx-1',
@@ -356,12 +377,17 @@ describe('agent.service', () => {
         issuedAt: new Date('2026-02-15'),
         exercisedAt: null,
       } as never);
-      mockComplianceService.findCddRecordByTransactionAndSubjectType.mockResolvedValue({ createdAt } as never);
+      mockComplianceService.findCddRecordByTransactionAndSubjectType.mockResolvedValue({
+        createdAt,
+      } as never);
 
       const result = await agentService.getTimelineInput('seller-1', 'agent-1');
 
       expect(result.sellerCddRecord).toEqual({ createdAt });
-      expect(result.eaa).toEqual({ videoCallConfirmedAt: createdAt, signedCopyPath: '/docs/eaa.pdf' });
+      expect(result.eaa).toEqual({
+        videoCallConfirmedAt: createdAt,
+        signedCopyPath: '/docs/eaa.pdf',
+      });
       expect(result.property).toEqual({ status: 'active', listedAt: null });
       expect(result.firstViewingAt).toEqual(new Date('2026-02-10'));
       expect(result.acceptedOffer).toEqual({ createdAt });
@@ -374,8 +400,22 @@ describe('agent.service', () => {
     it('returns nulls for optional fields when no transaction, otp, or property', async () => {
       mockRepo.getSellerDetail.mockResolvedValue({ ...baseSeller, properties: [] } as never);
       mockRepo.getComplianceStatus.mockResolvedValue({
-        cdd: { status: 'not_started', verifiedAt: null, riskLevel: null, fullName: null, nricLast4: null },
-        eaa: { id: null, status: 'not_started', signedAt: null, signedCopyPath: null, expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+        cdd: {
+          status: 'not_started',
+          verifiedAt: null,
+          riskLevel: null,
+          fullName: null,
+          nricLast4: null,
+        },
+        eaa: {
+          id: null,
+          status: 'not_started',
+          signedAt: null,
+          signedCopyPath: null,
+          expiryDate: null,
+          explanationConfirmedAt: null,
+          explanationMethod: null,
+        },
         consent: { service: false, marketing: false, withdrawnAt: null },
         caseFlags: [],
         counterpartyCdd: null,
@@ -403,11 +443,32 @@ describe('agent.service', () => {
       const createdAt = new Date('2026-02-01');
       mockRepo.getSellerDetail.mockResolvedValue({ ...baseSeller, properties: [] } as never);
       mockRepo.getComplianceStatus.mockResolvedValue({
-        cdd: { status: 'verified', verifiedAt: createdAt, riskLevel: 'standard', fullName: 'Alice', nricLast4: '567A' },
-        eaa: { id: null, status: 'not_started', signedAt: null, signedCopyPath: null, expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+        cdd: {
+          status: 'verified',
+          verifiedAt: createdAt,
+          riskLevel: 'standard',
+          fullName: 'Alice',
+          nricLast4: '567A',
+        },
+        eaa: {
+          id: null,
+          status: 'not_started',
+          signedAt: null,
+          signedCopyPath: null,
+          expiryDate: null,
+          explanationConfirmedAt: null,
+          explanationMethod: null,
+        },
         consent: { service: true, marketing: false, withdrawnAt: null },
         caseFlags: [],
-        counterpartyCdd: { transactionId: 'tx-1', status: 'not_started', verifiedAt: null, isCoBroke: true, buyerAgentName: 'Bob', buyerAgentCeaReg: 'R012345B' },
+        counterpartyCdd: {
+          transactionId: 'tx-1',
+          status: 'not_started',
+          verifiedAt: null,
+          isCoBroke: true,
+          buyerAgentName: 'Bob',
+          buyerAgentCeaReg: 'R012345B',
+        },
       } as never);
       mockTransactionService.findTransactionBySellerId.mockResolvedValue(null);
       mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(null);
@@ -423,8 +484,22 @@ describe('agent.service', () => {
     it('returns isCoBroke false when counterpartyCdd is absent', async () => {
       mockRepo.getSellerDetail.mockResolvedValue({ ...baseSeller, properties: [] } as never);
       mockRepo.getComplianceStatus.mockResolvedValue({
-        cdd: { status: 'not_started', verifiedAt: null, riskLevel: null, fullName: null, nricLast4: null },
-        eaa: { id: null, status: 'not_started', signedAt: null, signedCopyPath: null, expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+        cdd: {
+          status: 'not_started',
+          verifiedAt: null,
+          riskLevel: null,
+          fullName: null,
+          nricLast4: null,
+        },
+        eaa: {
+          id: null,
+          status: 'not_started',
+          signedAt: null,
+          signedCopyPath: null,
+          expiryDate: null,
+          explanationConfirmedAt: null,
+          explanationMethod: null,
+        },
         consent: { service: false, marketing: false, withdrawnAt: null },
         caseFlags: [],
         counterpartyCdd: null,

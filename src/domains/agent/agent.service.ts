@@ -158,10 +158,7 @@ export async function getNotificationHistory(
   };
 }
 
-export async function getTimelineInput(
-  sellerId: string,
-  agentId?: string,
-): Promise<TimelineInput> {
+export async function getTimelineInput(sellerId: string, agentId?: string): Promise<TimelineInput> {
   const [seller, compliance, transaction, cddRecord, eaa] = await Promise.all([
     agentRepo.getSellerDetail(sellerId, agentId),
     agentRepo.getComplianceStatus(sellerId, agentId),

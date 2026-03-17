@@ -73,10 +73,7 @@ describe('getTimelineMilestones', () => {
     });
 
     it('marks counterparty CDD as not_applicable when isCoBroke', () => {
-      const milestones = getTimelineMilestones(
-        { ...emptyInput, isCoBroke: true },
-        'agent',
-      );
+      const milestones = getTimelineMilestones({ ...emptyInput, isCoBroke: true }, 'agent');
       const cdd = milestones.find((m) => m.label === 'Counterparty CDD')!;
       expect(cdd.notApplicable).toBe(true);
       expect(cdd.status).toBe('upcoming'); // N/A milestones are never 'current'
@@ -108,7 +105,12 @@ describe('getTimelineMilestones', () => {
       const milestones = getTimelineMilestones(
         {
           ...emptyInput,
-          otp: { status: 'exercised' as any, agentReviewedAt: reviewed, issuedAt: issued, exercisedAt: exercised },
+          otp: {
+            status: 'exercised' as any,
+            agentReviewedAt: reviewed,
+            issuedAt: issued,
+            exercisedAt: exercised,
+          },
         },
         'agent',
       );
@@ -171,7 +173,12 @@ describe('getTimelineMilestones', () => {
       const milestones = getTimelineMilestones(
         {
           ...emptyInput,
-          otp: { status: 'prepared' as any, agentReviewedAt: null, issuedAt: null, exercisedAt: null },
+          otp: {
+            status: 'prepared' as any,
+            agentReviewedAt: null,
+            issuedAt: null,
+            exercisedAt: null,
+          },
           transaction: {
             status: 'option_issued' as any,
             hdbApplicationStatus: 'not_started' as any,
@@ -195,7 +202,12 @@ describe('getTimelineMilestones', () => {
       const milestones = getTimelineMilestones(
         {
           ...emptyInput,
-          otp: { status: 'returned' as any, agentReviewedAt: null, issuedAt: null, exercisedAt: null },
+          otp: {
+            status: 'returned' as any,
+            agentReviewedAt: null,
+            issuedAt: null,
+            exercisedAt: null,
+          },
           transaction: {
             status: 'option_issued' as any,
             hdbApplicationStatus: 'not_started' as any,
@@ -225,7 +237,12 @@ describe('getTimelineMilestones', () => {
         {
           ...emptyInput,
           counterpartyCddRecord: { createdAt: new Date() },
-          otp: { status: 'exercised' as any, agentReviewedAt: new Date(), issuedAt: new Date(), exercisedAt: new Date() },
+          otp: {
+            status: 'exercised' as any,
+            agentReviewedAt: new Date(),
+            issuedAt: new Date(),
+            exercisedAt: new Date(),
+          },
           transaction: {
             status: 'completing' as any,
             hdbApplicationStatus: 'approval_granted' as any,

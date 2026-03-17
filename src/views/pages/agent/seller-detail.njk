@@ -139,7 +139,7 @@
 
   // Wire up modal controls whenever HTMX loads the CDD verify modal
   document.body.addEventListener('htmx:afterSwap', function (evt) {
-    if (evt.target.id === 'compliance-modal-container') {
+    if (evt.detail.target && evt.detail.target.id === 'compliance-modal-container') {
       var input = document.getElementById('cdd-confirm-phrase');
       var btn = document.getElementById('cdd-confirm-btn');
       var cancelBtn = document.getElementById('cdd-cancel-btn');

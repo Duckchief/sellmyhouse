@@ -218,14 +218,258 @@
   </script>
 
     {% elif statusCode == 403 %}
-      <div class="text-6xl mb-4">🔒</div>
-      <p class="text-sm text-gray-400 mb-1">{{ "Error" | t }} {{ statusCode }}</p>
-      <h1 class="text-2xl font-bold text-gray-900 mb-3">{{ "Nothing to see here!" | t }}</h1>
-      <p class="text-gray-500 mb-8">{{ "You don't have permission to view this page. If you think that's a mistake, give us a shout." | t }}</p>
-      <a href="/"
-        class="inline-block px-6 py-3 rounded-md text-white font-medium bg-[#c8553d] hover:bg-[#b04a34] transition-colors">
-        {{ "Go to dashboard" | t }}
-      </a>
+    <style>
+      .inv-body {
+        background: #0a0a0a;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+        overflow: hidden;
+        position: relative;
+        font-family: 'Courier New', monospace;
+      }
+      .inv-stars {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        z-index: 0;
+        pointer-events: none;
+      }
+      .inv-star {
+        position: absolute;
+        background: #fff;
+        border-radius: 50%;
+        opacity: 0;
+        animation: inv-twinkle linear infinite;
+      }
+      @keyframes inv-twinkle {
+        0%   { opacity: 0; }
+        50%  { opacity: 0.8; }
+        100% { opacity: 0; }
+      }
+      .inv-scanline {
+        position: fixed;
+        inset: 0;
+        background: repeating-linear-gradient(
+          to bottom,
+          transparent 0px, transparent 3px,
+          rgba(0,0,0,0.12) 3px, rgba(0,0,0,0.12) 4px
+        );
+        pointer-events: none;
+        z-index: 100;
+      }
+      .inv-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .inv-code {
+        font-size: 80px;
+        font-weight: 900;
+        color: #33ff55;
+        letter-spacing: 12px;
+        text-shadow: 0 0 10px #33ff55, 0 0 30px #33ff55, 0 0 60px rgba(51,255,85,0.5);
+        margin-bottom: 6px;
+        text-align: center;
+      }
+      .inv-subtitle {
+        font-size: 12px;
+        color: #33ff55;
+        opacity: 0.6;
+        letter-spacing: 5px;
+        text-transform: uppercase;
+        margin-bottom: 40px;
+        text-align: center;
+      }
+      .inv-band {
+        width: 100vw;
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
+        overflow: hidden;
+      }
+      #inv-canvas-403 {
+        display: block;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        width: 100%;
+      }
+      .inv-message {
+        margin-top: 40px;
+        text-align: center;
+      }
+      .inv-message h1 {
+        font-size: 20px;
+        font-weight: 700;
+        color: #e0e0e0;
+        margin-bottom: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      .inv-message p {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 32px;
+        max-width: 380px;
+        line-height: 1.7;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .inv-btn {
+        display: inline-block;
+        padding: 14px 36px;
+        background: transparent;
+        color: #33ff55;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 3px;
+        text-decoration: none;
+        border: 2px solid #33ff55;
+        text-transform: uppercase;
+        box-shadow: 0 0 10px rgba(51,255,85,0.3);
+        transition: background 0.15s, box-shadow 0.15s;
+      }
+      .inv-btn:hover {
+        background: rgba(51,255,85,0.12);
+        box-shadow: 0 0 20px rgba(51,255,85,0.6);
+      }
+    </style>
+
+    {# Override the outer wrapper from error.njk so we get a full dark background #}
+    <div class="inv-body" style="position:fixed;inset:0;overflow-y:auto;">
+      <div class="inv-stars" id="inv-stars-403"></div>
+      <div class="inv-scanline"></div>
+
+      <div class="inv-content">
+        <div class="inv-code">403</div>
+        <div class="inv-subtitle">{{ "Access Denied" | t }}</div>
+
+        <div class="inv-band">
+          <canvas id="inv-canvas-403"></canvas>
+        </div>
+
+        <div class="inv-message">
+          <h1>{{ "This sector is off limits." | t }}</h1>
+          <p>{{ "You don't have permission to access this page. If you think that's a mistake, contact your administrator." | t }}</p>
+          <a href="/" class="inv-btn">{{ "[ Return to base ]" | t }}</a>
+        </div>
+      </div>
+    </div>
+
+    <script nonce="{{ cspNonce }}">
+    (function () {
+      var X = true, _ = false;
+      var FRAME_1 = [
+        [_,_,X,_,_,_,_,_,X,_,_],
+        [_,_,_,X,_,_,_,X,_,_,_],
+        [_,_,X,X,X,X,X,X,X,_,_],
+        [_,X,X,_,X,X,X,_,X,X,_],
+        [X,X,X,X,X,X,X,X,X,X,X],
+        [X,_,X,X,X,X,X,X,X,_,X],
+        [X,_,X,_,_,_,_,_,X,_,X],
+        [_,_,_,X,X,_,X,X,_,_,_]
+      ];
+      var FRAME_2 = [
+        [_,_,X,_,_,_,_,_,X,_,_],
+        [_,_,_,X,_,_,_,X,_,_,_],
+        [_,_,X,X,X,X,X,X,X,_,_],
+        [_,X,X,_,X,X,X,_,X,X,_],
+        [X,X,X,X,X,X,X,X,X,X,X],
+        [X,_,X,X,X,X,X,X,X,_,X],
+        [X,_,X,_,_,_,_,_,X,_,X],
+        [_,_,X,X,_,_,_,X,X,_,_]
+      ];
+      var INV_ROWS = 8, INV_COLS = 11;
+
+      var PX = 10;
+      var INV_W = INV_COLS * PX;
+      var INV_H = INV_ROWS * PX;
+      var GAP_X = 28, GAP_Y = 20;
+
+      var FORM_W = 3 * INV_W + 2 * GAP_X;
+      var FORM_H = 2 * INV_H + GAP_Y;
+      var GLOW_PAD = 40;
+      var BAND_H = FORM_H + GLOW_PAD * 2;
+
+      var canvas = document.getElementById('inv-canvas-403');
+      var W = window.innerWidth;
+      canvas.width  = W;
+      canvas.height = BAND_H;
+      var ctx = canvas.getContext('2d');
+
+      var x = (W - FORM_W) / 2;
+      var y = GLOW_PAD;
+      var dx = 1.8;
+      var frame = 0;
+
+      function drawRow(row, g, color) {
+        ctx.shadowColor = color;
+        ctx.shadowBlur  = 32;
+        ctx.fillStyle   = color;
+        for (var col = 0; col < 3; col++) {
+          var ox = Math.round(x + col * (INV_W + GAP_X));
+          var oy = Math.round(y + row * (INV_H + GAP_Y));
+          for (var r = 0; r < INV_ROWS; r++) {
+            for (var c = 0; c < INV_COLS; c++) {
+              if (g[r][c]) ctx.fillRect(ox + c * PX, oy + r * PX, PX, PX);
+            }
+          }
+        }
+        ctx.shadowBlur = 0;
+        for (var col2 = 0; col2 < 3; col2++) {
+          var ox2 = Math.round(x + col2 * (INV_W + GAP_X));
+          var oy2 = Math.round(y + row * (INV_H + GAP_Y));
+          for (var r2 = 0; r2 < INV_ROWS; r2++) {
+            for (var c2 = 0; c2 < INV_COLS; c2++) {
+              if (g[r2][c2]) ctx.fillRect(ox2 + c2 * PX, oy2 + r2 * PX, PX, PX);
+            }
+          }
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, BAND_H);
+        var g = frame === 0 ? FRAME_1 : FRAME_2;
+        drawRow(0, g, '#ff66cc');
+        drawRow(1, g, '#ff9933');
+      }
+
+      draw();
+      setInterval(function () { frame = 1 - frame; draw(); }, 600);
+
+      (function patrol() {
+        x += dx;
+        if (x + FORM_W > W - GLOW_PAD || x < GLOW_PAD) dx = -dx;
+        draw();
+        requestAnimationFrame(patrol);
+      })();
+
+      window.addEventListener('resize', function () {
+        W = window.innerWidth;
+        canvas.width = W;
+        if (x + FORM_W > W) x = W - FORM_W - GLOW_PAD;
+      });
+
+      var starsEl = document.getElementById('inv-stars-403');
+      for (var i = 0; i < 80; i++) {
+        var s = document.createElement('div');
+        s.className = 'inv-star';
+        var size = (Math.random() * 2 + 1).toFixed(1);
+        s.style.cssText = 'width:' + size + 'px;height:' + size + 'px;' +
+          'top:'  + (Math.random() * 100).toFixed(1) + '%;' +
+          'left:' + (Math.random() * 100).toFixed(1) + '%;' +
+          'animation-duration:' + (2 + Math.random() * 4).toFixed(1) + 's;' +
+          'animation-delay:'    + (Math.random() * 4).toFixed(1) + 's;';
+        starsEl.appendChild(s);
+      }
+    })();
+    </script>
 
     {% elif statusCode == 404 %}
       <div class="text-6xl mb-4">🏠</div>

@@ -17,9 +17,9 @@
 
     <div class="flex gap-3 justify-end">
       <button
+        id="cdd-cancel-btn"
         type="button"
-        class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50"
-        onclick="document.getElementById('compliance-modal-container').innerHTML = ''">
+        class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">
         {{ "Cancel" | t }}
       </button>
       <button
@@ -30,20 +30,9 @@
         hx-post="/agent/sellers/{{ sellerId }}/cdd/verify"
         hx-include="#cdd-confirm-phrase"
         hx-target="#compliance-cdd-card"
-        hx-swap="outerHTML"
-        hx-on::after-request="document.getElementById('compliance-modal-container').innerHTML = ''">
+        hx-swap="outerHTML">
         {{ "Confirm Verification" | t }}
       </button>
     </div>
   </div>
 </div>
-
-<script nonce="{{ cspNonce }}">
-(function () {
-  var input = document.getElementById('cdd-confirm-phrase');
-  var btn = document.getElementById('cdd-confirm-btn');
-  input.addEventListener('input', function () {
-    btn.disabled = input.value !== 'I confirm';
-  });
-})();
-</script>

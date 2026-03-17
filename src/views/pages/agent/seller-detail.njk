@@ -128,4 +128,39 @@
 {# Modal containers — #modal-container used by seller-status-buttons.njk HTMX targets #}
 <div id="modal-container"></div>
 <div id="compliance-modal-container"></div>
+
+<script nonce="{{ cspNonce }}">
+(function () {
+  var modalContainer = document.getElementById('compliance-modal-container');
+
+  function clearModal() {
+    if (modalContainer) modalContainer.innerHTML = '';
+  }
+
+  // Wire up modal controls whenever HTMX loads the CDD verify modal
+  document.body.addEventListener('htmx:afterSwap', function (evt) {
+    if (evt.target.id === 'compliance-modal-container') {
+      var input = document.getElementById('cdd-confirm-phrase');
+      var btn = document.getElementById('cdd-confirm-btn');
+      var cancelBtn = document.getElementById('cdd-cancel-btn');
+
+      if (input && btn) {
+        input.addEventListener('input', function () {
+          btn.disabled = input.value !== 'I confirm';
+        });
+      }
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', clearModal);
+      }
+    }
+  });
+
+  // Clear modal after successful CDD verify POST
+  document.body.addEventListener('htmx:afterRequest', function (evt) {
+    if (evt.detail.elt && evt.detail.elt.id === 'cdd-confirm-btn' && !evt.detail.failed) {
+      clearModal();
+    }
+  });
+})();
+</script>
 {% endblock %}

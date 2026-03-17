@@ -109,12 +109,26 @@ describe('GET /admin/tutorials — tab param', () => {
 describe('GET /admin/dashboard — preset param', () => {
   beforeEach(() => {
     mockAdminService.getAnalytics.mockResolvedValue({
-      revenue: { totalRevenue: 0, completedCount: 0, pipelineValue: 0, activeTransactions: 0, pendingInvoices: 0, commissionPerTransaction: 0 },
+      revenue: {
+        totalRevenue: 0,
+        completedCount: 0,
+        pipelineValue: 0,
+        activeTransactions: 0,
+        pendingInvoices: 0,
+        commissionPerTransaction: 0,
+      },
       funnel: { lead: 0, engaged: 0, active: 0, completed: 0, archived: 0 },
       timeToClose: { averageDays: 0, count: 0, byFlatType: {} },
       leadSources: {},
       viewings: { totalViewings: 0, completed: 0, noShowRate: 0, cancellationRate: 0 },
-      referrals: { totalLinks: 0, totalClicks: 0, leadsCreated: 0, transactionsCompleted: 0, conversionRate: 0, topReferrers: [] },
+      referrals: {
+        totalLinks: 0,
+        totalClicks: 0,
+        leadsCreated: 0,
+        transactionsCompleted: 0,
+        conversionRate: 0,
+        topReferrers: [],
+      },
     } as any);
   });
 

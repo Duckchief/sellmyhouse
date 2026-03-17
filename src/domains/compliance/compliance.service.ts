@@ -1,5 +1,6 @@
 // src/domains/compliance/compliance.service.ts
 import * as complianceRepo from './compliance.repository';
+import * as sellerService from '@/domains/seller/seller.service';
 import * as settingsService from '@/domains/shared/settings.service';
 import { localStorage } from '@/infra/storage/local-storage';
 import * as auditService from '../shared/audit.service';
@@ -778,6 +779,11 @@ const VALID_EAA_STATUS_TRANSITIONS: Record<string, string[]> = {
 };
 
 export async function createEaa(input: CreateEaaInput, agentId: string): Promise<EaaRecord> {
+  const cdd = await complianceRepo.findLatestSellerCddRecord(input.sellerId);
+  if (!cdd || !cdd.identityVerified) {
+    throw new ComplianceError('CDD must be verified before creating an EAA');
+  }
+
   const record = await complianceRepo.createEaa(input);
   await auditService.log({
     agentId,
@@ -814,6 +820,11 @@ export async function updateEaaStatus(
     entityId: eaaId,
     details: { previousStatus: eaa.status, newStatus: status },
   });
+
+  if (status === 'active') {
+    await sellerService.updateSellerStatus(eaa.sellerId, 'active', agentId);
+  }
+
   return record;
 }
 

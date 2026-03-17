@@ -43,6 +43,7 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   deleteCddRecord: jest.Mock;
   upsertCddStatus: jest.Mock;
   findSellerCddRecord: jest.Mock;
+  findLatestSellerCddRecord: jest.Mock;
 };
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 
@@ -623,6 +624,7 @@ describe('createEaa', () => {
       agreementType: 'non_exclusive',
       status: 'draft',
     };
+    mockRepo.findLatestSellerCddRecord.mockResolvedValue({ identityVerified: true });
     mockRepo.createEaa.mockResolvedValue(mockEaa as never);
     mockAudit.log.mockResolvedValue(undefined);
 
@@ -632,12 +634,29 @@ describe('createEaa', () => {
     );
 
     expect(result.id).toBe('eaa-1');
+    expect(mockRepo.findLatestSellerCddRecord).toHaveBeenCalledWith('seller-1');
     expect(mockRepo.createEaa).toHaveBeenCalledWith(
       expect.objectContaining({ sellerId: 'seller-1', agentId: 'agent-1' }),
     );
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'compliance.eaa_created' }),
     );
+  });
+
+  it('throws ComplianceError when CDD is not verified', async () => {
+    mockRepo.findLatestSellerCddRecord.mockResolvedValue({ identityVerified: false });
+
+    await expect(
+      complianceService.createEaa({ sellerId: 'seller-1', agentId: 'agent-1' }, 'agent-1'),
+    ).rejects.toThrow('CDD must be verified before creating an EAA');
+  });
+
+  it('throws ComplianceError when no CDD record exists', async () => {
+    mockRepo.findLatestSellerCddRecord.mockResolvedValue(null);
+
+    await expect(
+      complianceService.createEaa({ sellerId: 'seller-1', agentId: 'agent-1' }, 'agent-1'),
+    ).rejects.toThrow('CDD must be verified before creating an EAA');
   });
 });
 

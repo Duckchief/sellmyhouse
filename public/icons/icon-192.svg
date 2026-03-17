@@ -1,4 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
   <rect width="192" height="192" rx="24" fill="#1a1a2e"/>
-  <text x="96" y="110" text-anchor="middle" font-family="system-ui,sans-serif" font-size="64" font-weight="bold" fill="#c8553d">SMH</text>
+  <!-- row 0: cols 3,9 -->
+  <rect x="47" y="26" width="14" height="14" fill="#ff66cc"/>
+  <rect x="131" y="26" width="14" height="14" fill="#ff66cc"/>
+  <!-- row 1: cols 4,8 -->
+  <rect x="61" y="40" width="14" height="14" fill="#ff66cc"/>
+  <rect x="117" y="40" width="14" height="14" fill="#ff66cc"/>
+  <!-- row 2: cols 2-10 -->
+  <rect x="33" y="54" width="126" height="14" fill="#ff66cc"/>
+  <!-- row 3: cols 1-2, 4-8, 10-11 -->
+  <rect x="19" y="68" width="28" height="14" fill="#ff66cc"/>
+  <rect x="61" y="68" width="70" height="14" fill="#ff66cc"/>
+  <rect x="145" y="68" width="28" height="14" fill="#ff66cc"/>
+  <!-- row 4: cols 0-12 -->
+  <rect x="5" y="82" width="182" height="14" fill="#ff66cc"/>
+  <!-- row 5: cols 0, 2-10, 12 -->
+  <rect x="5" y="96" width="14" height="14" fill="#ff66cc"/>
+  <rect x="33" y="96" width="126" height="14" fill="#ff66cc"/>
+  <rect x="173" y="96" width="14" height="14" fill="#ff66cc"/>
+  <!-- row 6: cols 0, 2, 10, 12 -->
+  <rect x="5" y="110" width="14" height="14" fill="#ff66cc"/>
+  <rect x="33" y="110" width="14" height="14" fill="#ff66cc"/>
+  <rect x="145" y="110" width="14" height="14" fill="#ff66cc"/>
+  <rect x="173" y="110" width="14" height="14" fill="#ff66cc"/>
+  <!-- row 7: cols 3-4, 8-9 -->
+  <rect x="47" y="124" width="28" height="14" fill="#ff66cc"/>
+  <rect x="117" y="124" width="28" height="14" fill="#ff66cc"/>
+  <!-- row 8: cols 2-3, 9-10 -->
+  <rect x="33" y="138" width="28" height="14" fill="#ff66cc"/>
+  <rect x="131" y="138" width="28" height="14" fill="#ff66cc"/>
 </svg>

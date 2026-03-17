@@ -1,4 +1,18 @@
 <div id="compliance-cdd-card">
+  {% if compliance.cdd.status == 'verified' and not isAdmin %}
+  {# ── Locked state — agent view ── #}
+  <div class="flex items-center gap-3">
+    <span class="px-3 py-1.5 text-sm font-medium rounded-full bg-green-100 text-green-800">
+      {{ "Verified ✓" | t }}
+    </span>
+    {% if compliance.cdd.verifiedAt %}
+    <span class="text-xs text-gray-500">{{ compliance.cdd.verifiedAt | date('DD/MM/YYYY') }}</span>
+    {% endif %}
+  </div>
+  <p class="text-xs text-gray-400 mt-2 italic">{{ "Locked — contact admin to revert." | t }}</p>
+
+  {% else %}
+  {# ── Editable state — agent (unlocked) or admin ── #}
   <div class="flex items-center gap-3">
     <label class="text-sm font-medium text-gray-700" for="cdd-status-select">{{ "Status" | t }}</label>
     <div class="relative">
@@ -6,7 +20,7 @@
         id="cdd-status-select"
         name="status"
         hx-patch="/agent/sellers/{{ sellerId }}/cdd/status"
-        hx-trigger="change"
+        hx-trigger="change[this.value !== 'verified']"
         hx-target="#compliance-cdd-card"
         hx-swap="outerHTML"
         hx-include="this"
@@ -35,4 +49,23 @@
   {% if compliance.cdd.status == 'verified' and compliance.cdd.verifiedAt %}
   <p class="text-xs text-gray-500 mt-2">{{ "Verified" | t }}: {{ compliance.cdd.verifiedAt | date('DD/MM/YYYY') }}</p>
   {% endif %}
+  {% endif %}
 </div>
+
+<script nonce="{{ cspNonce }}">
+(function () {
+  var select = document.getElementById('cdd-status-select');
+  if (!select) return;
+  select.addEventListener('change', function () {
+    if (select.value === 'verified') {
+      // Intercept: fire modal instead of HTMX PATCH
+      htmx.ajax('GET', '/agent/sellers/{{ sellerId }}/cdd/verify-modal', {
+        target: '#compliance-modal-container',
+        swap: 'innerHTML',
+      });
+      // Reset select so UI stays consistent until modal confirms
+      select.value = '{{ compliance.cdd.status }}';
+    }
+  });
+})();
+</script>

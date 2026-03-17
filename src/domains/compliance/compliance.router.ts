@@ -491,10 +491,11 @@ complianceRouter.patch(
       const agentId = getAgentId(req);
       const { status } = req.body as { status: 'not_started' | 'pending' | 'verified' };
 
-      await complianceService.updateCddStatus(sellerId, status, agentId);
+      const isAdmin = (req.user as { role: string }).role === 'admin';
+      await complianceService.updateCddStatus(sellerId, status, agentId, isAdmin);
 
       const compliance = await agentRepo.getComplianceStatus(sellerId, agentId);
-      return res.render('partials/agent/compliance-cdd-card', { compliance, sellerId });
+      return res.render('partials/agent/compliance-cdd-card', { compliance, sellerId, isAdmin });
     } catch (err) {
       return next(err);
     }
@@ -741,6 +742,41 @@ complianceRouter.get(
         target: '#compliance-counterparty-cdd-card',
         title: 'Create Counterparty CDD Record',
       });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// GET /agent/sellers/:sellerId/cdd/verify-modal — Returns confirmation modal partial
+complianceRouter.get(
+  '/agent/sellers/:sellerId/cdd/verify-modal',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const sellerId = req.params['sellerId'] as string;
+      return res.render('partials/agent/cdd-verify-modal', { sellerId });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /agent/sellers/:sellerId/cdd/verify — Validates phrase, writes verified, returns refreshed card
+complianceRouter.post(
+  '/agent/sellers/:sellerId/cdd/verify',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const sellerId = req.params['sellerId'] as string;
+      const agentId = getAgentId(req);
+      const { phrase } = req.body as { phrase?: string };
+
+      await complianceService.verifyCdd(sellerId, agentId, phrase ?? '');
+
+      const isAdmin = (req.user as { role: string }).role === 'admin';
+      const compliance = await agentRepo.getComplianceStatus(sellerId, agentId);
+      return res.render('partials/agent/compliance-cdd-card', { compliance, sellerId, isAdmin });
     } catch (err) {
       return next(err);
     }

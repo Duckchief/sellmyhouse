@@ -13,7 +13,7 @@
   {% for p in presets %}
     <button
       type="button"
-      onclick="setPreset('{{ p.value }}')"
+      data-preset="{{ p.value }}"
       class="px-3 py-1 text-sm rounded border transition-colors
         {% if filter.preset == p.value %}
           border-2 border-accent text-accent font-semibold
@@ -333,6 +333,10 @@
     htmx.trigger(document.getElementById('filterBtn'), 'click');
   }
 
-  window.setPreset = setPreset;
+  document.querySelectorAll('[data-preset]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setPreset(btn.getAttribute('data-preset'));
+    });
+  });
 })();
 </script>

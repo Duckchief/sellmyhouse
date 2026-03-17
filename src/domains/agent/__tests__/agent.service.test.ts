@@ -1,11 +1,19 @@
 import * as agentService from '../agent.service';
 import * as agentRepo from '../agent.repository';
+import * as complianceService from '@/domains/compliance/compliance.service';
+import * as transactionService from '@/domains/transaction/transaction.service';
+import * as viewingService from '@/domains/viewing/viewing.service';
 import { NotFoundError } from '@/domains/shared/errors';
 
 jest.mock('../agent.repository');
 jest.mock('../../viewing/viewing.service');
+jest.mock('@/domains/compliance/compliance.service');
+jest.mock('@/domains/transaction/transaction.service');
 
 const mockRepo = agentRepo as jest.Mocked<typeof agentRepo>;
+const mockComplianceService = complianceService as jest.Mocked<typeof complianceService>;
+const mockTransactionService = transactionService as jest.Mocked<typeof transactionService>;
+const mockViewingService = viewingService as jest.Mocked<typeof viewingService>;
 
 describe('agent.service', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -275,6 +283,160 @@ describe('agent.service', () => {
       expect(result.counterpartyCdd?.isCoBroke).toBe(true);
       expect(result.counterpartyCdd?.buyerAgentName).toBe('John Agent');
       expect(result.counterpartyCdd?.buyerAgentCeaReg).toBe('R012345B');
+    });
+  });
+
+  describe('getTimelineInput', () => {
+    const baseSeller = {
+      id: 'seller-1',
+      name: 'Alice',
+      email: 'alice@test.local',
+      phone: '91234567',
+      status: 'active',
+      leadSource: null,
+      agentId: 'agent-1',
+      onboardingStep: 3,
+      consentService: true,
+      consentMarketing: false,
+      createdAt: new Date('2026-01-01'),
+      updatedAt: new Date('2026-01-01'),
+      properties: [],
+    };
+
+    it('returns correct shape when all data is present', async () => {
+      const createdAt = new Date('2026-02-01');
+      const sellerWithProperty = {
+        ...baseSeller,
+        properties: [
+          {
+            id: 'prop-1',
+            status: 'active' as const,
+            listings: [],
+            town: 'TAMPINES',
+            street: 'TAMPINES ST 21',
+            block: '123',
+            flatType: '4 ROOM',
+            storeyRange: '04 TO 06',
+            floorAreaSqm: 90,
+            flatModel: 'Improved',
+            leaseCommenceDate: 1998,
+            askingPrice: null,
+            priceHistory: [],
+          },
+        ],
+      };
+
+      mockRepo.getSellerDetail.mockResolvedValue(sellerWithProperty as never);
+      mockRepo.getComplianceStatus.mockResolvedValue({
+        cdd: { status: 'verified', verifiedAt: createdAt, riskLevel: 'standard', fullName: 'Alice', nricLast4: '567A' },
+        eaa: { id: 'eaa-1', status: 'signed', signedAt: createdAt, signedCopyPath: '/docs/eaa.pdf', expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+        consent: { service: true, marketing: false, withdrawnAt: null },
+        caseFlags: [],
+        counterpartyCdd: { transactionId: 'tx-1', status: 'verified', verifiedAt: createdAt, isCoBroke: false, buyerAgentName: null, buyerAgentCeaReg: null },
+      } as never);
+      mockTransactionService.findTransactionBySellerId.mockResolvedValue({
+        id: 'tx-1',
+        status: 'active',
+        hdbApplicationStatus: 'not_submitted',
+        hdbAppSubmittedAt: null,
+        hdbAppApprovedAt: null,
+        hdbAppointmentDate: null,
+        completionDate: null,
+        createdAt,
+      } as never);
+      mockComplianceService.findLatestSellerCddRecord.mockResolvedValue({ createdAt } as never);
+      mockComplianceService.findEaaBySellerId.mockResolvedValue({
+        videoCallConfirmedAt: createdAt,
+        signedCopyPath: '/docs/eaa.pdf',
+      } as never);
+      mockViewingService.findFirstViewingDateForProperty.mockResolvedValue(new Date('2026-02-10'));
+      mockTransactionService.findOtpByTransactionId.mockResolvedValue({
+        status: 'issued',
+        agentReviewedAt: null,
+        issuedAt: new Date('2026-02-15'),
+        exercisedAt: null,
+      } as never);
+      mockComplianceService.findCddRecordByTransactionAndSubjectType.mockResolvedValue({ createdAt } as never);
+
+      const result = await agentService.getTimelineInput('seller-1', 'agent-1');
+
+      expect(result.sellerCddRecord).toEqual({ createdAt });
+      expect(result.eaa).toEqual({ videoCallConfirmedAt: createdAt, signedCopyPath: '/docs/eaa.pdf' });
+      expect(result.property).toEqual({ status: 'active', listedAt: null });
+      expect(result.firstViewingAt).toEqual(new Date('2026-02-10'));
+      expect(result.acceptedOffer).toEqual({ createdAt });
+      expect(result.counterpartyCddRecord).toEqual({ createdAt });
+      expect(result.isCoBroke).toBe(false);
+      expect(result.otp?.status).toBe('issued');
+      expect(result.transaction?.status).toBe('active');
+    });
+
+    it('returns nulls for optional fields when no transaction, otp, or property', async () => {
+      mockRepo.getSellerDetail.mockResolvedValue({ ...baseSeller, properties: [] } as never);
+      mockRepo.getComplianceStatus.mockResolvedValue({
+        cdd: { status: 'not_started', verifiedAt: null, riskLevel: null, fullName: null, nricLast4: null },
+        eaa: { id: null, status: 'not_started', signedAt: null, signedCopyPath: null, expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+        consent: { service: false, marketing: false, withdrawnAt: null },
+        caseFlags: [],
+        counterpartyCdd: null,
+      } as never);
+      mockTransactionService.findTransactionBySellerId.mockResolvedValue(null);
+      mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(null);
+      mockComplianceService.findEaaBySellerId.mockResolvedValue(null);
+
+      const result = await agentService.getTimelineInput('seller-1', 'agent-1');
+
+      expect(result.sellerCddRecord).toBeNull();
+      expect(result.eaa).toBeNull();
+      expect(result.property).toBeNull();
+      expect(result.firstViewingAt).toBeNull();
+      expect(result.acceptedOffer).toBeNull();
+      expect(result.counterpartyCddRecord).toBeNull();
+      expect(result.isCoBroke).toBe(false);
+      expect(result.otp).toBeNull();
+      expect(result.transaction).toBeNull();
+      expect(mockTransactionService.findOtpByTransactionId).not.toHaveBeenCalled();
+      expect(mockComplianceService.findCddRecordByTransactionAndSubjectType).not.toHaveBeenCalled();
+    });
+
+    it('skips counterparty CDD fetch when isCoBroke is true', async () => {
+      const createdAt = new Date('2026-02-01');
+      mockRepo.getSellerDetail.mockResolvedValue({ ...baseSeller, properties: [] } as never);
+      mockRepo.getComplianceStatus.mockResolvedValue({
+        cdd: { status: 'verified', verifiedAt: createdAt, riskLevel: 'standard', fullName: 'Alice', nricLast4: '567A' },
+        eaa: { id: null, status: 'not_started', signedAt: null, signedCopyPath: null, expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+        consent: { service: true, marketing: false, withdrawnAt: null },
+        caseFlags: [],
+        counterpartyCdd: { transactionId: 'tx-1', status: 'not_started', verifiedAt: null, isCoBroke: true, buyerAgentName: 'Bob', buyerAgentCeaReg: 'R012345B' },
+      } as never);
+      mockTransactionService.findTransactionBySellerId.mockResolvedValue(null);
+      mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(null);
+      mockComplianceService.findEaaBySellerId.mockResolvedValue(null);
+
+      const result = await agentService.getTimelineInput('seller-1', 'agent-1');
+
+      expect(result.counterpartyCddRecord).toBeNull();
+      expect(result.isCoBroke).toBe(true);
+      expect(mockComplianceService.findCddRecordByTransactionAndSubjectType).not.toHaveBeenCalled();
+    });
+
+    it('returns isCoBroke false when counterpartyCdd is absent', async () => {
+      mockRepo.getSellerDetail.mockResolvedValue({ ...baseSeller, properties: [] } as never);
+      mockRepo.getComplianceStatus.mockResolvedValue({
+        cdd: { status: 'not_started', verifiedAt: null, riskLevel: null, fullName: null, nricLast4: null },
+        eaa: { id: null, status: 'not_started', signedAt: null, signedCopyPath: null, expiryDate: null, explanationConfirmedAt: null, explanationMethod: null },
+        consent: { service: false, marketing: false, withdrawnAt: null },
+        caseFlags: [],
+        counterpartyCdd: null,
+      } as never);
+      mockTransactionService.findTransactionBySellerId.mockResolvedValue(null);
+      mockComplianceService.findLatestSellerCddRecord.mockResolvedValue(null);
+      mockComplianceService.findEaaBySellerId.mockResolvedValue(null);
+
+      const result = await agentService.getTimelineInput('seller-1');
+
+      expect(result.isCoBroke).toBe(false);
+      expect(result.counterpartyCddRecord).toBeNull();
     });
   });
 

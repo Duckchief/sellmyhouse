@@ -131,12 +131,13 @@ agentRouter.get(
       const sellerId = req.params['id'] as string;
       const agentId = getAgentFilter(user);
 
-      const [seller, compliance, notifications] = await Promise.all([
+      const [seller, compliance, notifications, timelineInput] = await Promise.all([
         agentService.getSellerDetail(sellerId, agentId),
         agentService.getComplianceStatus(sellerId, agentId),
         agentService.getNotificationHistory(sellerId, agentId, { page: 1, limit: 10 }),
+        agentService.getTimelineInput(sellerId, agentId),
       ]);
-      const milestones = agentService.getTimeline(seller.property?.status ?? null, null); // synchronous
+      const milestones = sellerService.getTimelineMilestones(timelineInput, user.role as 'agent' | 'admin');
       const isAdmin = user.role === 'admin';
 
       res.render('pages/agent/seller-detail', {

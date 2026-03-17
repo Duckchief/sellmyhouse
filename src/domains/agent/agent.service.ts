@@ -188,7 +188,10 @@ export async function getTimelineInput(
   return {
     sellerCddRecord: cddRecord ? { createdAt: cddRecord.createdAt } : null,
     eaa: eaa
-      ? { videoCallConfirmedAt: eaa.videoCallConfirmedAt ?? null, signedCopyPath: eaa.signedCopyPath ?? null }
+      ? {
+          videoCallConfirmedAt: eaa.videoCallConfirmedAt ?? null,
+          signedCopyPath: eaa.signedCopyPath ?? null,
+        }
       : null,
     property: property ? { status: property.status, listedAt: null } : null,
     firstViewingAt,

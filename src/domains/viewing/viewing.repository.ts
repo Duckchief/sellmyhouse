@@ -448,7 +448,7 @@ export async function findFirstViewingDateForProperty(propertyId: string): Promi
   const viewing = await prisma.viewing.findFirst({
     where: {
       propertyId,
-      status: { in: ['scheduled', 'completed'] },
+      status: { in: ['scheduled', 'completed'] as ViewingStatus[] },
     },
     orderBy: { scheduledAt: 'asc' },
     select: { scheduledAt: true },

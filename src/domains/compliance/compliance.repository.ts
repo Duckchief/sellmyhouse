@@ -146,6 +146,16 @@ export async function upsertCddStatus(
   }
 }
 
+export async function findSellerCddRecord(
+  sellerId: string,
+): Promise<{ id: string; identityVerified: boolean } | null> {
+  return prisma.cddRecord.findFirst({
+    where: { subjectType: SubjectType.seller, subjectId: sellerId },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, identityVerified: true },
+  });
+}
+
 export async function deleteCddRecord(sellerId: string): Promise<void> {
   const existing = await prisma.cddRecord.findFirst({
     where: { subjectType: SubjectType.seller, subjectId: sellerId },

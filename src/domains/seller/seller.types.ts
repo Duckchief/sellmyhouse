@@ -1,4 +1,11 @@
-import type { Seller, ConsentRecord } from '@prisma/client';
+import type {
+  Seller,
+  ConsentRecord,
+  PropertyStatus,
+  OtpStatus,
+  TransactionStatus,
+  HdbApplicationStatus,
+} from '@prisma/client';
 
 // Onboarding step constants
 export const ONBOARDING_STEPS = {
@@ -96,26 +103,26 @@ export interface TimelineMilestone {
 }
 
 export interface TimelineInput {
-  sellerCddRecord:       { createdAt: Date } | null;
-  eaa:                   { videoCallConfirmedAt: Date | null; signedCopyPath: string | null } | null;
-  property:              { status: string; listedAt: Date | null } | null;
-  firstViewingAt:        Date | null;
-  acceptedOffer:         { createdAt: Date } | null;
+  sellerCddRecord: { createdAt: Date } | null;
+  eaa: { videoCallConfirmedAt: Date | null; signedCopyPath: string | null } | null;
+  property: { status: PropertyStatus; listedAt: Date | null } | null;
+  firstViewingAt: Date | null;
+  acceptedOffer: { createdAt: Date } | null;
   counterpartyCddRecord: { createdAt: Date } | null;
-  isCoBroke:             boolean;
+  isCoBroke: boolean;
   otp: {
-    status:          string;
+    status: OtpStatus;
     agentReviewedAt: Date | null;
-    issuedAt:        Date | null;
-    exercisedAt:     Date | null;
+    issuedAt: Date | null;
+    exercisedAt: Date | null;
   } | null;
   transaction: {
-    status:               string;
-    hdbApplicationStatus: string;
-    hdbAppSubmittedAt:    Date | null;
-    hdbAppApprovedAt:     Date | null;
-    hdbAppointmentDate:   Date | null;
-    completionDate:       Date | null;
+    status: TransactionStatus;
+    hdbApplicationStatus: HdbApplicationStatus;
+    hdbAppSubmittedAt: Date | null;
+    hdbAppApprovedAt: Date | null;
+    hdbAppointmentDate: Date | null;
+    completionDate: Date | null;
   } | null;
 }
 

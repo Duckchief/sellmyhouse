@@ -13,7 +13,7 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
         <div>
           <label for="town" class="block text-sm font-semibold mb-1">{{ "Town" | t }}</label>
-          <select id="town" name="town" required class="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white" hx-get="/api/hdb/storey-ranges" hx-include="#market-report-form" hx-target="#storey-range-select" hx-trigger="change">
+          <select id="town" name="town" required class="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white" hx-get="/api/hdb/flat-types" hx-target="#flatType" hx-swap="innerHTML" hx-trigger="change">
             <option value="">{{ "Select town" | t }}</option>
             {% for t in towns %}
             <option value="{{ t }}">{{ t }}</option>
@@ -43,12 +43,12 @@
       <div class="space-y-1">
         <div class="flex items-center justify-between">
           <label for="months-slider" class="text-sm font-semibold">{{ "Date Range:" | t }}</label>
-          <span id="months-label" class="text-sm font-semibold text-[#c8553d]">2 Years</span>
+          <span id="months-label" class="text-sm font-semibold text-[#c8553d]">1 Year</span>
         </div>
-        <input type="range" id="months-slider" min="0" max="6" step="1" value="3"
+        <input type="range" id="months-slider" min="0" max="6" step="1" value="1"
                class="w-full accent-[#c8553d] cursor-pointer"
                data-action="update-months-label">
-        <input type="hidden" id="months-value" name="months" value="24">
+        <input type="hidden" id="months-value" name="months" value="12">
         <div class="flex justify-between text-xs text-gray-400 px-0.5">
           <span>6 Mo</span>
           <span>1 Yr</span>

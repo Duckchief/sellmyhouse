@@ -145,3 +145,50 @@ describe('GET /api/hdb/storey-ranges', () => {
     expect(HdbService.prototype.getDistinctStoreyRanges).toHaveBeenCalled();
   });
 });
+
+describe('GET /api/hdb/flat-types', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns flat types for a given town', async () => {
+    jest
+      .spyOn(HdbService.prototype, 'getDistinctFlatTypesByTown')
+      .mockResolvedValue(['3 ROOM', '4 ROOM', '5 ROOM']);
+    const app = buildApp();
+
+    const res = await request(app).get('/api/hdb/flat-types?town=BISHAN');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('3 ROOM');
+    expect(res.text).toContain('4 ROOM');
+    expect(res.text).toContain('5 ROOM');
+    // OOB reset element must be present
+    expect(res.text).toContain('id="storey-range-select"');
+    expect(res.text).toContain('hx-swap-oob="innerHTML"');
+  });
+
+  it('falls back to all flat types when town param is missing', async () => {
+    jest
+      .spyOn(HdbService.prototype, 'getDistinctFlatTypes')
+      .mockResolvedValue(['3 ROOM', '4 ROOM']);
+    const app = buildApp();
+
+    const res = await request(app).get('/api/hdb/flat-types');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('3 ROOM');
+  });
+
+  it('returns empty options (only placeholder) when town has no data', async () => {
+    jest
+      .spyOn(HdbService.prototype, 'getDistinctFlatTypesByTown')
+      .mockResolvedValue([]);
+    const app = buildApp();
+
+    const res = await request(app).get('/api/hdb/flat-types?town=UNKNOWN');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Select type');
+    // No flat type option values beyond the placeholder
+    expect(res.text).not.toMatch(/<option value="[^"]+">[\w ]+<\/option>/);
+  });
+});

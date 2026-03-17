@@ -155,7 +155,7 @@
   <div class="card">
     <h3 class="font-semibold mb-4">{{ "Lead Sources" | t }}</h3>
     {% if analytics.leadSources | length %}
-      <canvas id="leadSourceChart" height="150"></canvas>
+      <canvas id="leadSourceChart" height="120"></canvas>
       <script type="application/json" id="leadSourceData">{{ analytics.leadSources | dump | safe }}</script>
       <table class="w-full text-sm mt-4">
         <thead class="text-xs text-gray-500 uppercase">

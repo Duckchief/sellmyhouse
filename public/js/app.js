@@ -142,9 +142,13 @@
     // Review detail panel: close and slide out to the right
     if (action === 'close-review-panel') {
       var reviewPanel = document.getElementById('review-detail-panel');
+      var reviewBackdrop = document.getElementById('review-detail-backdrop');
       if (reviewPanel) {
         reviewPanel.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
         reviewPanel.setAttribute('aria-hidden', 'true');
+      }
+      if (reviewBackdrop) {
+        reviewBackdrop.classList.add('hidden');
       }
     }
 
@@ -253,11 +257,15 @@
       if (e.detail.target && e.detail.target.id === 'review-detail-content' && e.detail.successful) {
         panel.classList.remove('translate-x-full', 'opacity-0', 'pointer-events-none');
         panel.removeAttribute('aria-hidden');
+        var backdrop = document.getElementById('review-detail-backdrop');
+        if (backdrop) backdrop.classList.remove('hidden');
       }
       // Hide panel after approve/reject (form inside the panel fires the request)
       if (e.detail.elt && e.detail.elt.closest && e.detail.elt.closest('#review-detail-panel') && e.detail.successful) {
         panel.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
         panel.setAttribute('aria-hidden', 'true');
+        var backdrop2 = document.getElementById('review-detail-backdrop');
+        if (backdrop2) backdrop2.classList.add('hidden');
       }
     }
   });

@@ -19,6 +19,7 @@
       <a href="/agent/dashboard" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/dashboard' %}bg-white/10{% endif %}">
         {{ "Dashboard" | t }}
       </a>
+      <div class="border-t border-white/10 my-2"></div>
       <a href="/agent/leads" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/leads' %}bg-white/10{% endif %}">
         {{ "Leads" | t }}
       </a>
@@ -31,6 +32,7 @@
         <span class="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{{ pendingReviewCount }}</span>
         {% endif %}
       </a>
+      <div class="border-t border-white/10 my-2"></div>
       <a href="/agent/settings" class="block px-3 py-2 rounded hover:bg-white/10 {% if currentPath == '/agent/settings' %}bg-white/10{% endif %}">
         {{ "Settings" | t }}
       </a>

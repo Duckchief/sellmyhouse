@@ -63,6 +63,17 @@ describe('HdbService', () => {
     });
   });
 
+  describe('getDistinctFlatTypesByTown', () => {
+    it('delegates to repo with the given town', async () => {
+      mockRepo.getDistinctFlatTypesByTown.mockResolvedValue(['3 ROOM', '4 ROOM']);
+
+      const result = await service.getDistinctFlatTypesByTown('BISHAN');
+
+      expect(mockRepo.getDistinctFlatTypesByTown).toHaveBeenCalledWith('BISHAN');
+      expect(result).toEqual(['3 ROOM', '4 ROOM']);
+    });
+  });
+
   describe('getDistinctStoreyRanges', () => {
     it('returns list of storey ranges', async () => {
       mockRepo.getDistinctStoreyRanges.mockResolvedValue(['01 TO 03', '04 TO 06', '07 TO 09']);

@@ -1,0 +1,8 @@
+<option value="">{{ "Select type" | t }}</option>
+{% for ft in flatTypes %}
+<option value="{{ ft }}">{{ ft }}</option>
+{% endfor %}
+
+<select id="storey-range-select" hx-swap-oob="innerHTML">
+  <option value="">{{ "All storeys" | t }}</option>
+</select>

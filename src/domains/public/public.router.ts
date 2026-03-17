@@ -116,6 +116,25 @@ publicRouter.get(
   },
 );
 
+publicRouter.get(
+  '/api/hdb/flat-types',
+  hdbRateLimiter,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const rawTown = req.query.town as string | undefined;
+      const town = rawTown?.trim() || undefined;
+
+      const flatTypes = town
+        ? await hdbService.getDistinctFlatTypesByTown(town)
+        : await hdbService.getDistinctFlatTypes();
+
+      return res.render('partials/public/flat-type-options', { flatTypes });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 publicRouter.get('/privacy', (_req: Request, res: Response) => {
   res.render('pages/public/privacy');
 });

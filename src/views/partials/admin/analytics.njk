@@ -1,3 +1,32 @@
+{# Hidden preset input — included in HTMX filter request #}
+<input type="hidden" id="preset" name="preset" value="{{ filter.preset or '' }}">
+
+{# Quick filter preset buttons #}
+<div class="flex flex-wrap gap-2 mb-3">
+  {% set presets = [
+    { value: 'this-week',  label: 'This Week' },
+    { value: 'this-month', label: 'This Month' },
+    { value: '3-months',   label: '3 Months' },
+    { value: '6-months',   label: '6 Months' },
+    { value: 'ytd',        label: 'YTD' }
+  ] %}
+  {% for p in presets %}
+    <button
+      type="button"
+      onclick="setPreset('{{ p.value }}')"
+      class="px-3 py-1 text-sm rounded border transition-colors
+        {% if filter.preset == p.value %}
+          border-2 border-accent text-accent font-semibold
+        {% else %}
+          border border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-600
+        {% endif %}">
+      {{ p.label | t }}
+    </button>
+  {% endfor %}
+</div>
+
+<hr class="border-gray-200 mb-3">
+
 {# Date filter #}
 <div class="flex flex-wrap items-end gap-4 mb-6">
   <div>
@@ -9,8 +38,9 @@
     <input type="date" name="dateTo" id="dateTo" value="{{ filter.dateTo or '' }}" class="input-field w-40">
   </div>
   <button
+    id="filterBtn"
     hx-get="/admin/dashboard"
-    hx-include="#dateFrom, #dateTo"
+    hx-include="#dateFrom, #dateTo, #preset"
     hx-target="#analytics-content"
     hx-swap="innerHTML"
     class="btn-primary">
@@ -270,3 +300,41 @@
   </table>
   {% endif %}
 </div>
+
+<script nonce="{{ cspNonce }}">
+(function () {
+  function setPreset(name) {
+    var today = new Date();
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+    var fmt = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+    var todayStr = fmt(today);
+    var from;
+
+    if (name === 'this-week') {
+      var d = new Date(today);
+      var day = d.getDay() || 7; // Mon=1…Sun=7
+      d.setDate(d.getDate() - day + 1);
+      from = fmt(d);
+    } else if (name === 'this-month') {
+      from = fmt(new Date(today.getFullYear(), today.getMonth(), 1));
+    } else if (name === '3-months') {
+      var d3 = new Date(today);
+      d3.setMonth(d3.getMonth() - 3);
+      from = fmt(d3);
+    } else if (name === '6-months') {
+      var d6 = new Date(today);
+      d6.setMonth(d6.getMonth() - 6);
+      from = fmt(d6);
+    } else if (name === 'ytd') {
+      from = fmt(new Date(today.getFullYear(), 0, 1));
+    }
+
+    document.getElementById('dateFrom').value = from;
+    document.getElementById('dateTo').value = todayStr;
+    document.getElementById('preset').value = name;
+    htmx.trigger(document.getElementById('filterBtn'), 'click');
+  }
+
+  window.setPreset = setPreset;
+})();
+</script>

@@ -8,4 +8,45 @@
 <div id="analytics-content">
   {% include "partials/admin/analytics.njk" %}
 </div>
+
+<script nonce="{{ cspNonce }}">
+(function () {
+  function setPreset(name) {
+    var today = new Date();
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+    var fmt = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+    var todayStr = fmt(today);
+    var from;
+
+    if (name === 'this-week') {
+      var d = new Date(today);
+      var day = d.getDay() || 7;
+      d.setDate(d.getDate() - day + 1);
+      from = fmt(d);
+    } else if (name === 'this-month') {
+      from = fmt(new Date(today.getFullYear(), today.getMonth(), 1));
+    } else if (name === '3-months') {
+      var d3 = new Date(today);
+      d3.setMonth(d3.getMonth() - 3);
+      from = fmt(d3);
+    } else if (name === '6-months') {
+      var d6 = new Date(today);
+      d6.setMonth(d6.getMonth() - 6);
+      from = fmt(d6);
+    } else if (name === 'ytd') {
+      from = fmt(new Date(today.getFullYear(), 0, 1));
+    }
+
+    document.getElementById('dateFrom').value = from;
+    document.getElementById('dateTo').value = todayStr;
+    document.getElementById('preset').value = name;
+    htmx.trigger(document.getElementById('filterBtn'), 'click');
+  }
+
+  document.getElementById('analytics-content').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-preset]');
+    if (btn) setPreset(btn.getAttribute('data-preset'));
+  });
+})();
+</script>
 {% endblock %}

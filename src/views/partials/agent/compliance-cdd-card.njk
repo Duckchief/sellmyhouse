@@ -20,7 +20,7 @@
         id="cdd-status-select"
         name="status"
         hx-patch="/agent/sellers/{{ sellerId }}/cdd/status"
-        hx-trigger="change[this.value !== 'verified']"
+        hx-trigger="{{ 'change' if isAdmin else 'change[this.value !== \'verified\']' }}"
         hx-target="#compliance-cdd-card"
         hx-swap="outerHTML"
         hx-include="this"
@@ -52,6 +52,7 @@
   {% endif %}
 </div>
 
+{% if not isAdmin %}
 <script nonce="{{ cspNonce }}">
 (function () {
   var select = document.getElementById('cdd-status-select');
@@ -69,3 +70,4 @@
   });
 })();
 </script>
+{% endif %}

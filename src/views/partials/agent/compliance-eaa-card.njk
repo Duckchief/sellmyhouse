@@ -31,27 +31,10 @@
         <dd>{{ compliance.eaa.expiryDate | date }}</dd>
       </div>
       {% endif %}
-      {% if compliance.eaa.signedCopyPath %}
-      <div class="flex justify-between">
-        <dt class="text-gray-500">{{ "Signed Copy" | t }}</dt>
-        <dd class="text-green-600">{{ "Uploaded" | t }}</dd>
-      </div>
-      {% endif %}
     </dl>
 
     {# Action buttons based on current status #}
     <div class="mt-4 flex flex-wrap gap-2">
-      {% if compliance.eaa.status == 'draft' or compliance.eaa.status == 'sent_to_seller' %}
-        <button
-          type="button"
-          hx-get="/agent/eaa/{{ compliance.eaa.id }}/signed-copy/modal"
-          hx-target="#compliance-modal-container"
-          hx-swap="innerHTML"
-          class="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50">
-          {{ "Upload Signed Copy" | t }}
-        </button>
-      {% endif %}
-
       {% if compliance.eaa.status == 'draft' %}
         <form hx-put="/agent/eaa/{{ compliance.eaa.id }}/status"
               hx-target="#compliance-eaa-card"

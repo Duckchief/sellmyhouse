@@ -109,6 +109,52 @@ export async function createCddRecord(data: CreateCddRecordInput): Promise<CddRe
   }) as unknown as Promise<CddRecord>;
 }
 
+export async function upsertCddStatus(
+  sellerId: string,
+  agentId: string,
+  status: 'pending' | 'verified',
+): Promise<void> {
+  const identityVerified = status === 'verified';
+  const verifiedAt = status === 'verified' ? new Date() : null;
+
+  const existing = await prisma.cddRecord.findFirst({
+    where: { subjectType: SubjectType.seller, subjectId: sellerId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (existing) {
+    await prisma.cddRecord.update({
+      where: { id: existing.id },
+      data: { identityVerified, verifiedAt, verifiedByAgentId: agentId },
+    });
+  } else {
+    const retentionExpiresAt = new Date();
+    retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + 5);
+    await prisma.cddRecord.create({
+      data: {
+        id: createId(),
+        subjectType: SubjectType.seller,
+        subjectId: sellerId,
+        fullName: '–',
+        nricLast4: '0000',
+        verifiedByAgentId: agentId,
+        identityVerified,
+        verifiedAt,
+        retentionExpiresAt,
+      },
+    });
+  }
+}
+
+export async function deleteCddRecord(sellerId: string): Promise<void> {
+  const existing = await prisma.cddRecord.findFirst({
+    where: { subjectType: SubjectType.seller, subjectId: sellerId },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (!existing) return;
+  await prisma.cddRecord.delete({ where: { id: existing.id } });
+}
+
 export async function refreshCddRetentionOnCompletion(
   transactionId: string,
   sellerId: string,

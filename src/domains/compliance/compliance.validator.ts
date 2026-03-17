@@ -48,6 +48,12 @@ export const createCddValidator = [
   body('occupation').optional().isString().trim().isLength({ max: 100 }),
 ];
 
+export const updateCddStatusValidator = [
+  body('status')
+    .isIn(['not_started', 'pending', 'verified'])
+    .withMessage('Status must be "not_started", "pending", or "verified"'),
+];
+
 export const createEaaValidator = [
   body('agreementType')
     .optional()

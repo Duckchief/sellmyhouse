@@ -679,6 +679,44 @@ export async function createCddRecord(
   return record;
 }
 
+export async function updateCddStatus(
+  sellerId: string,
+  status: 'not_started' | 'pending' | 'verified',
+  agentId: string,
+): Promise<void> {
+  if (status === 'not_started') {
+    await complianceRepo.deleteCddRecord(sellerId);
+    await auditService.log({
+      agentId,
+      action: 'cdd.record_deleted',
+      entityType: 'seller',
+      entityId: sellerId,
+      details: { sellerId },
+    });
+    return;
+  }
+
+  await complianceRepo.upsertCddStatus(sellerId, agentId, status);
+
+  if (status === 'verified') {
+    await auditService.log({
+      agentId,
+      action: 'cdd.identity_verified',
+      entityType: 'seller',
+      entityId: sellerId,
+      details: { sellerId },
+    });
+  } else {
+    await auditService.log({
+      agentId,
+      action: 'cdd.status_set_pending',
+      entityType: 'seller',
+      entityId: sellerId,
+      details: { sellerId },
+    });
+  }
+}
+
 export async function refreshCddRetentionOnCompletion(
   transactionId: string,
   sellerId: string,

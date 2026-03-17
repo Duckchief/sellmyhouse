@@ -419,16 +419,12 @@ describe('agent.router', () => {
       expect(res.body).toMatchObject({ seller: { id: 'seller-1', status: 'completed' } });
     });
 
-    it('returns 200 with re-rendered header for HTMX requests', async () => {
+    it('returns 200 with HX-Refresh header for HTMX requests', async () => {
       const app = createTestApp({ id: 'agent-1', role: 'agent' });
       mockSellerService.updateSellerStatus.mockResolvedValue({
         id: 'seller-1',
         status: 'engaged',
       } as never);
-      mockService.getSellerDetail.mockResolvedValue({
-        id: 'seller-1',
-        status: 'engaged',
-      } as unknown as Awaited<ReturnType<typeof agentService.getSellerDetail>>);
 
       const res = await request(app)
         .put('/agent/sellers/seller-1/status')
@@ -436,7 +432,7 @@ describe('agent.router', () => {
         .send({ status: 'engaged', note: 'Consultation done' });
 
       expect(res.status).toBe(200);
-      expect(mockService.getSellerDetail).toHaveBeenCalledWith('seller-1', 'agent-1');
+      expect(res.headers['hx-refresh']).toBe('true');
     });
   });
 

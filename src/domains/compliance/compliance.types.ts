@@ -99,6 +99,12 @@ export interface CreateCddRecordInput {
   notes?: string;
 }
 
+export interface UpdateCddStatusInput {
+  sellerId: string;
+  agentId: string;
+  status: 'not_started' | 'pending' | 'verified';
+}
+
 export interface CreateEaaInput {
   sellerId: string;
   agentId: string;

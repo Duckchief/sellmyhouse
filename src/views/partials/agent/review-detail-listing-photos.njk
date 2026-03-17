@@ -21,7 +21,7 @@
     <form hx-post="/agent/reviews/listing_photos/{{ detail.id }}/approve"
           hx-target="#review-row-{{ detail.id }}"
           hx-swap="outerHTML"
-          _="on htmx:afterRequest add .hidden to #review-detail-panel">
+         >
       <button type="submit" class="w-full bg-green-600 text-white py-2 rounded font-medium hover:bg-green-700">
         {{ "Approve Photos" | t }}
       </button>
@@ -29,7 +29,7 @@
     <form hx-post="/agent/reviews/listing_photos/{{ detail.id }}/reject"
           hx-target="#review-row-{{ detail.id }}"
           hx-swap="outerHTML"
-          _="on htmx:afterRequest add .hidden to #review-detail-panel">
+         >
       <textarea name="reviewNotes" required rows="3"
                 class="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none"
                 placeholder="{{ 'Rejection notes (required)...' | t }}"></textarea>

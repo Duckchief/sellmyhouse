@@ -20,6 +20,9 @@ jest.mock('@/infra/database/prisma', () => ({
     cddRecord: {
       create: jest.fn(),
       updateMany: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
     },
   },
 }));
@@ -31,7 +34,13 @@ const mockPrisma = prisma as jest.Mocked<typeof prisma> & {
   otp: { deleteMany: jest.Mock; findUnique: jest.Mock };
   commissionInvoice: { deleteMany: jest.Mock; findUnique: jest.Mock };
   transaction: { delete: jest.Mock };
-  cddRecord: { create: jest.Mock; updateMany: jest.Mock };
+  cddRecord: {
+    create: jest.Mock;
+    updateMany: jest.Mock;
+    findFirst: jest.Mock;
+    update: jest.Mock;
+    delete: jest.Mock;
+  };
 };
 
 beforeEach(() => jest.clearAllMocks());
@@ -318,5 +327,88 @@ describe('refreshCddRetentionOnCompletion', () => {
 
     expect(expiry.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000);
     expect(expiry.getTime()).toBeLessThanOrEqual(after.getTime() + 1000);
+  });
+});
+
+// ─── upsertCddStatus ───────────────────────────────────────────────────────────
+
+describe('upsertCddStatus', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('creates a new stub record when none exists (pending)', async () => {
+    mockPrisma.cddRecord.findFirst.mockResolvedValue(null);
+    mockPrisma.cddRecord.create.mockResolvedValue({
+      id: 'cdd-1',
+      identityVerified: false,
+    } as never);
+
+    await complianceRepo.upsertCddStatus('seller-1', 'agent-1', 'pending');
+
+    expect(mockPrisma.cddRecord.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          subjectType: 'seller',
+          subjectId: 'seller-1',
+          identityVerified: false,
+          verifiedByAgentId: 'agent-1',
+        }),
+      }),
+    );
+  });
+
+  it('creates a new stub record when none exists (verified)', async () => {
+    mockPrisma.cddRecord.findFirst.mockResolvedValue(null);
+    mockPrisma.cddRecord.create.mockResolvedValue({ id: 'cdd-1', identityVerified: true } as never);
+
+    await complianceRepo.upsertCddStatus('seller-1', 'agent-1', 'verified');
+
+    expect(mockPrisma.cddRecord.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          identityVerified: true,
+          verifiedByAgentId: 'agent-1',
+        }),
+      }),
+    );
+    const call = mockPrisma.cddRecord.create.mock.calls[0][0];
+    expect(call.data.verifiedAt).toBeInstanceOf(Date);
+  });
+
+  it('updates existing record in-place', async () => {
+    mockPrisma.cddRecord.findFirst.mockResolvedValue({ id: 'existing-cdd' } as never);
+    mockPrisma.cddRecord.update.mockResolvedValue({} as never);
+
+    await complianceRepo.upsertCddStatus('seller-1', 'agent-1', 'verified');
+
+    expect(mockPrisma.cddRecord.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'existing-cdd' },
+        data: expect.objectContaining({ identityVerified: true }),
+      }),
+    );
+    expect(mockPrisma.cddRecord.create).not.toHaveBeenCalled();
+  });
+});
+
+// ─── deleteCddRecord ───────────────────────────────────────────────────────────
+
+describe('deleteCddRecord', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('deletes the seller CDD record if one exists', async () => {
+    mockPrisma.cddRecord.findFirst.mockResolvedValue({ id: 'cdd-1' } as never);
+    mockPrisma.cddRecord.delete.mockResolvedValue({} as never);
+
+    await complianceRepo.deleteCddRecord('seller-1');
+
+    expect(mockPrisma.cddRecord.delete).toHaveBeenCalledWith({ where: { id: 'cdd-1' } });
+  });
+
+  it('is a no-op when no record exists', async () => {
+    mockPrisma.cddRecord.findFirst.mockResolvedValue(null);
+
+    await complianceRepo.deleteCddRecord('seller-1');
+
+    expect(mockPrisma.cddRecord.delete).not.toHaveBeenCalled();
   });
 });

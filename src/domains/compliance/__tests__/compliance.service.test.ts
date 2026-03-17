@@ -41,6 +41,8 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   updateEaaSignedCopy: jest.Mock;
   updateEaaExplanation: jest.Mock;
   findEaaById: jest.Mock;
+  deleteCddRecord: jest.Mock;
+  upsertCddStatus: jest.Mock;
 };
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 
@@ -780,5 +782,42 @@ describe('confirmEaaExplanation', () => {
         agentId: 'agent-1',
       }),
     ).rejects.toThrow('already been confirmed');
+  });
+});
+
+describe('updateCddStatus', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('calls deleteCddRecord and logs cdd.record_deleted for not_started', async () => {
+    mockRepo.deleteCddRecord.mockResolvedValue(undefined);
+
+    await complianceService.updateCddStatus('seller-1', 'not_started', 'agent-1');
+
+    expect(mockRepo.deleteCddRecord).toHaveBeenCalledWith('seller-1');
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'cdd.record_deleted', entityId: 'seller-1' }),
+    );
+  });
+
+  it('calls upsertCddStatus and logs cdd.status_set_pending for pending', async () => {
+    mockRepo.upsertCddStatus.mockResolvedValue(undefined);
+
+    await complianceService.updateCddStatus('seller-1', 'pending', 'agent-1');
+
+    expect(mockRepo.upsertCddStatus).toHaveBeenCalledWith('seller-1', 'agent-1', 'pending');
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'cdd.status_set_pending', entityId: 'seller-1' }),
+    );
+  });
+
+  it('calls upsertCddStatus and logs cdd.identity_verified for verified', async () => {
+    mockRepo.upsertCddStatus.mockResolvedValue(undefined);
+
+    await complianceService.updateCddStatus('seller-1', 'verified', 'agent-1');
+
+    expect(mockRepo.upsertCddStatus).toHaveBeenCalledWith('seller-1', 'agent-1', 'verified');
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'cdd.identity_verified', entityId: 'seller-1' }),
+    );
   });
 });

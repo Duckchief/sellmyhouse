@@ -9,14 +9,25 @@
 
   {% if compliance.eaa.status == 'not_started' %}
     <p class="text-sm text-gray-500 mb-4">{{ "No EAA has been created for this seller." | t }}</p>
-    <button
-      type="button"
-      hx-get="/agent/sellers/{{ sellerId }}/eaa/modal"
-      hx-target="#compliance-modal-container"
-      hx-swap="innerHTML"
-      class="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
-      {{ "Create EAA" | t }}
-    </button>
+    {% if compliance.cdd.status == 'verified' %}
+      <button
+        type="button"
+        hx-get="/agent/sellers/{{ sellerId }}/eaa/modal"
+        hx-target="#compliance-modal-container"
+        hx-swap="innerHTML"
+        class="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
+        {{ "Create EAA" | t }}
+      </button>
+    {% else %}
+      <span title="{{ 'CDD must be Verified before creating an EAA' | t }}">
+        <button
+          type="button"
+          disabled
+          class="px-4 py-2 text-sm bg-gray-300 text-gray-500 rounded cursor-not-allowed">
+          {{ "Create EAA" | t }}
+        </button>
+      </span>
+    {% endif %}
   {% else %}
     <dl class="space-y-2 text-sm">
       {% if compliance.eaa.signedAt %}

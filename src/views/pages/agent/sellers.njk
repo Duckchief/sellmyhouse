@@ -4,7 +4,7 @@
 {% set pageTitle = "Sellers" %}
 {% include "partials/shared/page-header.njk" %}
 
-<form hx-get="/agent/sellers" hx-target="#seller-list" hx-trigger="change, keyup changed delay:300ms from:find input[name=search]" class="flex gap-3 mb-6 flex-wrap">
+<form id="seller-filter-form" hx-get="/agent/sellers" hx-target="#seller-list" hx-trigger="submit" class="flex gap-3 mb-6 flex-wrap">
   <select name="status" class="border rounded px-3 py-2 text-sm">
     <option value="">{{ "All Statuses" | t }}</option>
     <option value="lead">{{ "Lead" | t }}</option>
@@ -15,6 +15,7 @@
   </select>
   <input type="text" name="search" placeholder="{{ 'Search name, email, phone...' | t }}" class="border rounded px-3 py-2 text-sm w-64" />
   <input type="text" name="town" placeholder="{{ 'Town' | t }}" class="border rounded px-3 py-2 text-sm w-40" />
+  <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm">{{ "Search" | t }}</button>
 </form>
 
 <div id="seller-list" hx-get="/agent/sellers" hx-trigger="load" hx-swap="innerHTML" hx-headers='{"HX-Request": "true"}'>

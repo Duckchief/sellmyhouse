@@ -16,6 +16,7 @@ import {
   type NextStep,
   type CompleteOnboardingStepInput,
   type TimelineMilestone,
+  type TimelineInput,
   type DocumentChecklistItem,
 } from './seller.types';
 import * as contentService from '@/domains/content/content.service';
@@ -176,59 +177,251 @@ export async function getTutorialsGrouped() {
   return contentService.getTutorialsGrouped();
 }
 
+const OTP_STATUS_ORDER = [
+  'prepared',
+  'sent_to_seller',
+  'signed_by_seller',
+  'returned',
+  'issued_to_buyer',
+  'exercised',
+] as const;
+
+const HDB_STATUS_ORDER = [
+  'not_started',
+  'application_submitted',
+  'approval_in_principle',
+  'approval_granted',
+  'resale_checklist_submitted',
+  'hdb_appointment_booked',
+  'completed',
+] as const;
+
+function otpStatusGte(current: string, target: string): boolean {
+  return OTP_STATUS_ORDER.indexOf(current as (typeof OTP_STATUS_ORDER)[number]) >=
+    OTP_STATUS_ORDER.indexOf(target as (typeof OTP_STATUS_ORDER)[number]);
+}
+
+function hdbStatusGte(current: string, target: string): boolean {
+  return HDB_STATUS_ORDER.indexOf(current as (typeof HDB_STATUS_ORDER)[number]) >=
+    HDB_STATUS_ORDER.indexOf(target as (typeof HDB_STATUS_ORDER)[number]);
+}
+
+type RawMilestone = Omit<TimelineMilestone, 'status'> & { completed: boolean };
+
 export function getTimelineMilestones(
-  propertyStatus: string | null,
-  _transactionStatus: string | null,
+  data: TimelineInput,
+  role: 'agent' | 'admin',
 ): TimelineMilestone[] {
-  const milestones: TimelineMilestone[] = [
-    {
-      label: 'Property Listed',
-      status: 'upcoming',
-      date: null,
-      description: 'Your property is live on the market',
-      notApplicable: false,
-    },
-    { label: 'Viewings', status: 'upcoming', date: null, description: 'Buyers view your home', notApplicable: false },
-    {
-      label: 'Offer Received',
-      status: 'upcoming',
-      date: null,
-      description: 'A buyer makes an offer',
-      notApplicable: false,
-    },
-    {
-      label: 'OTP Issued',
-      status: 'upcoming',
-      date: null,
-      description: 'Option to Purchase signed',
-      notApplicable: false,
-    },
-    {
-      label: 'OTP Exercised',
-      status: 'upcoming',
-      date: null,
-      description: 'Buyer exercises the option',
-      notApplicable: false,
-    },
-    { label: 'Completion', status: 'upcoming', date: null, description: 'Sale completed', notApplicable: false },
+  const raw: RawMilestone[] = [];
+
+  // Infer whether we are past the pre-offer phase. If an OTP or transaction
+  // exists, earlier milestones (CDD, EAA, listing, viewings) must have already been completed.
+  const isPostOffer = !!data.otp || !!data.transaction;
+
+  // 1. Seller CDD Done
+  raw.push({
+    label: 'Seller CDD Done',
+    description: 'Customer due diligence completed for seller',
+    completed: !!data.sellerCddRecord || isPostOffer,
+    date: data.sellerCddRecord?.createdAt ?? null,
+    notApplicable: false,
+  });
+
+  // 2. Estate Agency Agreement Signed
+  raw.push({
+    label: 'Estate Agency Agreement Signed',
+    description: 'Agency agreement executed with video call explanation',
+    completed: !!data.eaa?.signedCopyPath || isPostOffer,
+    date: data.eaa?.videoCallConfirmedAt ?? null,
+    notApplicable: false,
+  });
+
+  // 3. Property Listed
+  raw.push({
+    label: 'Property Listed',
+    description: 'Property is live on the market',
+    completed: (!!data.property && data.property.status !== 'draft') || isPostOffer,
+    date: data.property?.listedAt ?? null,
+    notApplicable: false,
+  });
+
+  // 4. Viewings — current while listed, completed when property reaches offer_received or beyond,
+  //    or when an accepted offer / transaction exists (implying viewings already occurred)
+  const PROPERTY_STATUS_ORDER = [
+    'draft', 'listed', 'offer_received', 'under_option', 'completing', 'completed', 'withdrawn',
   ];
+  const propertyStatusIndex = data.property
+    ? PROPERTY_STATUS_ORDER.indexOf(data.property.status)
+    : -1;
+  const offerReceivedIndex = PROPERTY_STATUS_ORDER.indexOf('offer_received');
+  const viewingsCompleted =
+    (propertyStatusIndex >= offerReceivedIndex && propertyStatusIndex !== -1) ||
+    !!data.acceptedOffer ||
+    !!data.otp ||
+    !!data.transaction;
 
-  const propertyStageMap: Record<string, number> = {
-    listed: 0,
-    offer_received: 2,
-    under_option: 3,
-    completing: 4,
-    completed: 5,
-  };
+  raw.push({
+    label: 'Viewings',
+    description: 'Buyers view your home',
+    completed: viewingsCompleted,
+    date: data.firstViewingAt ?? null,
+    notApplicable: false,
+  });
 
-  if (propertyStatus && propertyStatus in propertyStageMap) {
-    const completedUpTo = propertyStageMap[propertyStatus];
-    for (let i = 0; i <= completedUpTo; i++) {
-      milestones[i].status = i === completedUpTo ? 'current' : 'completed';
-    }
+  // 5. Offer Received
+  const hasOffer = !!data.acceptedOffer || !!data.transaction || !!data.otp;
+  raw.push({
+    label: 'Offer Received',
+    description: 'A buyer has made an accepted offer',
+    completed: hasOffer,
+    date: data.acceptedOffer?.createdAt ?? null,
+    notApplicable: false,
+  });
+
+  // Admin-only: OTP sub-steps (between Offer Received and Counterparty CDD)
+  if (role === 'admin' && data.otp) {
+    const otpStatus = data.otp.status;
+    raw.push({
+      label: 'OTP Prepared',
+      description: 'Option to Purchase prepared by agent',
+      completed: otpStatusGte(otpStatus, 'sent_to_seller'),
+      date: null,
+      notApplicable: false,
+    });
+    raw.push({
+      label: 'OTP Sent to Seller',
+      description: 'OTP sent to seller for signing',
+      completed: otpStatusGte(otpStatus, 'signed_by_seller'),
+      date: null,
+      notApplicable: false,
+    });
+    raw.push({
+      label: 'OTP Signed by Seller',
+      description: 'OTP signed by seller and returned to agent',
+      completed: otpStatusGte(otpStatus, 'returned'),
+      date: null,
+      notApplicable: false,
+    });
+    raw.push({
+      label: 'OTP Returned to Agent',
+      description: 'OTP returned to agent for review before issuing',
+      completed: otpStatusGte(otpStatus, 'issued_to_buyer'),
+      date: null,
+      notApplicable: false,
+    });
   }
 
-  return milestones;
+  // 6. Counterparty CDD
+  // Auto-complete when OTP has been reviewed or transaction exists — CDD must have occurred first.
+  const isPostCdd = !!data.otp?.agentReviewedAt || !!data.transaction;
+  raw.push({
+    label: 'Counterparty CDD',
+    description: data.isCoBroke
+      ? 'Not required — co-broke transaction'
+      : 'Due diligence completed on buyer',
+    completed: !data.isCoBroke && (!!data.counterpartyCddRecord || isPostCdd),
+    date: data.isCoBroke ? null : (data.counterpartyCddRecord?.createdAt ?? null),
+    notApplicable: data.isCoBroke,
+  });
+
+  // 7. OTP Review
+  raw.push({
+    label: 'OTP Review',
+    description: 'Agent reviews OTP terms before issuing to buyer',
+    completed: !!data.otp?.agentReviewedAt,
+    date: data.otp?.agentReviewedAt ?? null,
+    notApplicable: false,
+  });
+
+  // 8. OTP Issued
+  raw.push({
+    label: 'OTP Issued',
+    description: 'Option to Purchase issued to buyer',
+    completed: !!data.otp?.issuedAt,
+    date: data.otp?.issuedAt ?? null,
+    notApplicable: false,
+  });
+
+  // 9. OTP Exercised
+  raw.push({
+    label: 'OTP Exercised',
+    description: 'Buyer has exercised the Option to Purchase',
+    completed: !!data.otp?.exercisedAt,
+    date: data.otp?.exercisedAt ?? null,
+    notApplicable: false,
+  });
+
+  // 10. HDB Resale Submission
+  const hdbStatus = data.transaction?.hdbApplicationStatus ?? 'not_started';
+  raw.push({
+    label: 'HDB Resale Submission',
+    description: 'Buyer and seller submit documents via HDB portal',
+    completed: hdbStatus !== 'not_started',
+    date: data.transaction?.hdbAppSubmittedAt ?? null,
+    notApplicable: false,
+  });
+
+  // Admin-only: HDB sub-steps (between HDB Resale Submission and Completion)
+  if (role === 'admin' && data.transaction) {
+    const hdb = data.transaction.hdbApplicationStatus;
+    raw.push({
+      label: 'HDB Approval in Principle',
+      description: 'HDB grants approval in principle',
+      completed: hdbStatusGte(hdb, 'approval_in_principle'),
+      date: null,
+      notApplicable: false,
+    });
+    raw.push({
+      label: 'HDB Approval Granted',
+      description: 'HDB grants full approval for resale',
+      completed: hdbStatusGte(hdb, 'approval_granted'),
+      date: data.transaction.hdbAppApprovedAt ?? null,
+      notApplicable: false,
+    });
+    raw.push({
+      label: 'Resale Checklist Submitted',
+      description: 'Resale checklist submitted to HDB',
+      completed: hdbStatusGte(hdb, 'resale_checklist_submitted'),
+      date: null,
+      notApplicable: false,
+    });
+    raw.push({
+      label: 'HDB Appointment Booked',
+      description: 'Final HDB completion appointment scheduled',
+      completed: hdbStatusGte(hdb, 'hdb_appointment_booked'),
+      date: data.transaction.hdbAppointmentDate ?? null,
+      notApplicable: false,
+    });
+  }
+
+  // 11. Completion
+  raw.push({
+    label: 'Completion',
+    description: 'Sale completed successfully',
+    completed: data.transaction?.status === 'completed',
+    date: data.transaction?.completionDate ?? null,
+    notApplicable: false,
+  });
+
+  // Assign statuses: first non-completed non-N/A milestone = 'current'
+  let currentSet = false;
+  return raw.map((m): TimelineMilestone => {
+    if (m.notApplicable) {
+      const { completed: _, ...rest } = m;
+      return { ...rest, status: 'upcoming' };
+    }
+    if (m.completed) {
+      const { completed: _, ...rest } = m;
+      return { ...rest, status: 'completed' };
+    }
+    if (!currentSet) {
+      currentSet = true;
+      const { completed: _, ...rest } = m;
+      return { ...rest, status: 'current' };
+    }
+    const { completed: _, ...rest } = m;
+    return { ...rest, status: 'upcoming' };
+  });
 }
 
 export function getDocumentChecklist(propertyStatus: string | null): DocumentChecklistItem[] {

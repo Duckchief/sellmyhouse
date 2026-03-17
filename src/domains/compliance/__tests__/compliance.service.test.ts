@@ -786,7 +786,10 @@ describe('confirmEaaExplanation', () => {
 });
 
 describe('updateCddStatus', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (mockRepo as any).findSellerCddRecord = jest.fn().mockResolvedValue(null);
+  });
 
   it('calls deleteCddRecord and logs cdd.record_deleted for not_started', async () => {
     mockRepo.deleteCddRecord.mockResolvedValue(undefined);
@@ -810,14 +813,85 @@ describe('updateCddStatus', () => {
     );
   });
 
-  it('calls upsertCddStatus and logs cdd.identity_verified for verified', async () => {
+  it('allows admin to set verified directly', async () => {
     mockRepo.upsertCddStatus.mockResolvedValue(undefined);
 
-    await complianceService.updateCddStatus('seller-1', 'verified', 'agent-1');
+    await complianceService.updateCddStatus('seller-1', 'verified', 'agent-1', true);
 
     expect(mockRepo.upsertCddStatus).toHaveBeenCalledWith('seller-1', 'agent-1', 'verified');
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'cdd.identity_verified', entityId: 'seller-1' }),
     );
+  });
+});
+
+describe('verifyCdd', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('throws ValidationError when phrase is wrong', async () => {
+    await expect(
+      complianceService.verifyCdd('seller-1', 'agent-1', 'wrong phrase'),
+    ).rejects.toThrow('Invalid confirmation phrase');
+  });
+
+  it('throws ConflictError when record is already identityVerified', async () => {
+    (mockRepo as any).findSellerCddRecord = jest.fn().mockResolvedValue({
+      id: 'cdd-1',
+      identityVerified: true,
+    });
+
+    await expect(
+      complianceService.verifyCdd('seller-1', 'agent-1', 'I confirm'),
+    ).rejects.toThrow('CDD is already verified and locked');
+  });
+
+  it('calls upsertCddStatus("verified") and logs audit on success', async () => {
+    // upsertCddStatus with 'verified' sets identityVerified=true and verifiedAt=now in the repo
+    (mockRepo as any).findSellerCddRecord = jest.fn().mockResolvedValue(null);
+    mockRepo.upsertCddStatus.mockResolvedValue(undefined);
+
+    await complianceService.verifyCdd('seller-1', 'agent-1', 'I confirm');
+
+    expect(mockRepo.upsertCddStatus).toHaveBeenCalledWith('seller-1', 'agent-1', 'verified');
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'cdd.identity_verified', entityId: 'seller-1' }),
+    );
+  });
+});
+
+describe('updateCddStatus — lock guards', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (mockRepo as any).findSellerCddRecord = jest.fn();
+  });
+
+  it('throws ForbiddenError when agent tries to set status=verified directly', async () => {
+    await expect(
+      complianceService.updateCddStatus('seller-1', 'verified', 'agent-1', false),
+    ).rejects.toThrow('Agents must use the verification modal to set CDD to Verified');
+  });
+
+  it('throws ForbiddenError when agent tries to change status on a locked record', async () => {
+    (mockRepo as any).findSellerCddRecord.mockResolvedValue({
+      id: 'cdd-1',
+      identityVerified: true,
+    });
+
+    await expect(
+      complianceService.updateCddStatus('seller-1', 'pending', 'agent-1', false),
+    ).rejects.toThrow('CDD is locked. Contact an admin to revert.');
+  });
+
+  it('allows admin to revert a locked record (skips lock check)', async () => {
+    // identityVerified: true — proves admin bypasses the lock
+    (mockRepo as any).findSellerCddRecord.mockResolvedValue({
+      id: 'cdd-1',
+      identityVerified: true,
+    });
+    mockRepo.deleteCddRecord.mockResolvedValue(undefined);
+
+    await complianceService.updateCddStatus('seller-1', 'not_started', 'agent-1', true);
+
+    expect(mockRepo.deleteCddRecord).toHaveBeenCalledWith('seller-1');
   });
 });

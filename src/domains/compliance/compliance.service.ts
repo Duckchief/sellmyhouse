@@ -3,7 +3,13 @@ import * as complianceRepo from './compliance.repository';
 import * as settingsService from '@/domains/shared/settings.service';
 import { localStorage } from '@/infra/storage/local-storage';
 import * as auditService from '../shared/audit.service';
-import { NotFoundError, ComplianceError } from '../shared/errors';
+import {
+  NotFoundError,
+  ComplianceError,
+  ForbiddenError,
+  ValidationError,
+  ConflictError,
+} from '../shared/errors';
 import { AUTO_APPLY_FIELDS, type CreateCorrectionRequestInput } from './compliance.types';
 import type {
   DncChannel,
@@ -683,7 +689,21 @@ export async function updateCddStatus(
   sellerId: string,
   status: 'not_started' | 'pending' | 'verified',
   agentId: string,
+  isAdmin = false,
 ): Promise<void> {
+  // Agents cannot set verified directly — must use verifyCdd (modal flow)
+  if (status === 'verified' && !isAdmin) {
+    throw new ForbiddenError('Agents must use the verification modal to set CDD to Verified');
+  }
+
+  // If record is locked, only admins can change it
+  if (!isAdmin) {
+    const existing = await complianceRepo.findSellerCddRecord(sellerId);
+    if (existing?.identityVerified) {
+      throw new ForbiddenError('CDD is locked. Contact an admin to revert.');
+    }
+  }
+
   if (status === 'not_started') {
     await complianceRepo.deleteCddRecord(sellerId);
     await auditService.log({
@@ -715,6 +735,31 @@ export async function updateCddStatus(
       details: { sellerId },
     });
   }
+}
+
+export async function verifyCdd(
+  sellerId: string,
+  agentId: string,
+  phrase: string,
+): Promise<void> {
+  if (phrase !== 'I confirm') {
+    throw new ValidationError('Invalid confirmation phrase');
+  }
+
+  const existing = await complianceRepo.findSellerCddRecord(sellerId);
+  if (existing?.identityVerified) {
+    throw new ConflictError('CDD is already verified and locked');
+  }
+
+  await complianceRepo.upsertCddStatus(sellerId, agentId, 'verified');
+
+  await auditService.log({
+    agentId,
+    action: 'cdd.identity_verified',
+    entityType: 'seller',
+    entityId: sellerId,
+    details: { sellerId },
+  });
 }
 
 export async function refreshCddRetentionOnCompletion(

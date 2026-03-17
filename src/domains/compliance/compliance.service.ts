@@ -817,39 +817,6 @@ export async function updateEaaStatus(
   return record;
 }
 
-const ALLOWED_DOC_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-const MAX_DOC_SIZE = 10 * 1024 * 1024; // 10MB
-
-export async function uploadEaaSignedCopy(
-  eaaId: string,
-  file: { buffer: Buffer; mimetype: string; originalname: string },
-  agentId: string,
-): Promise<EaaRecord> {
-  const eaa = await complianceRepo.findEaaById(eaaId);
-  if (!eaa) throw new NotFoundError('EstateAgencyAgreement', eaaId);
-
-  if (!ALLOWED_DOC_TYPES.includes(file.mimetype)) {
-    throw new ComplianceError('File type not allowed. Only PDF, JPG, and PNG are accepted.');
-  }
-  if (file.buffer.length > MAX_DOC_SIZE) {
-    throw new ComplianceError('File size exceeds 10MB limit');
-  }
-
-  const ext = file.originalname.split('.').pop()?.toLowerCase() || 'pdf';
-  const safeName = `${eaa.id}.${ext}`;
-  const storagePath = `eaa/${eaa.sellerId}/${safeName}`;
-  await localStorage.save(storagePath, file.buffer);
-
-  const record = await complianceRepo.updateEaaSignedCopy(eaaId, storagePath);
-  await auditService.log({
-    agentId,
-    action: 'compliance.eaa_signed_copy_uploaded',
-    entityType: 'estate_agency_agreement',
-    entityId: eaaId,
-    details: { storagePath, mimeType: file.mimetype },
-  });
-  return record;
-}
 
 export async function confirmEaaExplanation(input: ConfirmEaaExplanationInput): Promise<EaaRecord> {
   const eaa = await complianceRepo.findEaaById(input.eaaId);
@@ -890,10 +857,6 @@ export async function recordOtpScannedCopyDeleted(otpId: string): Promise<void> 
 
 export async function recordInvoiceDeleted(invoiceId: string): Promise<void> {
   return complianceRepo.markInvoiceDeleted(invoiceId);
-}
-
-export async function recordEaaSignedCopyDeleted(eaaId: string): Promise<void> {
-  return complianceRepo.markEaaSignedCopyDeleted(eaaId);
 }
 
 export async function getCddRecordsByTransaction(transactionId: string) {

@@ -73,11 +73,17 @@ function createTestApp(userOverride?: { id: string; role: string }) {
   // Error handler — converts typed errors to HTTP status codes
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     const status =
-      err.name === 'ValidationError' ? 400 :
-      err.name === 'UnauthorizedError' ? 401 :
-      err.name === 'ForbiddenError' ? 403 :
-      err.name === 'NotFoundError' ? 404 :
-      err.name === 'ConflictError' ? 409 : 500;
+      err.name === 'ValidationError'
+        ? 400
+        : err.name === 'UnauthorizedError'
+          ? 401
+          : err.name === 'ForbiddenError'
+            ? 403
+            : err.name === 'NotFoundError'
+              ? 404
+              : err.name === 'ConflictError'
+                ? 409
+                : 500;
     res.status(status).json({ error: err.message });
   });
 
@@ -209,7 +215,12 @@ describe('PATCH /agent/sellers/:sellerId/cdd/status', () => {
 
     expect(res.status).toBe(200);
     expect(res.text).toContain('compliance-cdd-card');
-    expect(mockService.updateCddStatus).toHaveBeenCalledWith('seller-1', 'verified', 'agent-1', false);
+    expect(mockService.updateCddStatus).toHaveBeenCalledWith(
+      'seller-1',
+      'verified',
+      'agent-1',
+      false,
+    );
   });
 
   it('calls updateCddStatus with not_started to delete the record', async () => {
@@ -231,7 +242,12 @@ describe('PATCH /agent/sellers/:sellerId/cdd/status', () => {
       .send({ status: 'not_started' });
 
     expect(res.status).toBe(200);
-    expect(mockService.updateCddStatus).toHaveBeenCalledWith('seller-1', 'not_started', 'agent-1', false);
+    expect(mockService.updateCddStatus).toHaveBeenCalledWith(
+      'seller-1',
+      'not_started',
+      'agent-1',
+      false,
+    );
   });
 });
 
@@ -484,9 +500,11 @@ describe('PATCH /agent/sellers/:sellerId/cdd/status — lock guards', () => {
   });
 
   it('returns 403 when agent tries to change a locked record', async () => {
-    mockService.updateCddStatus = jest.fn().mockRejectedValue(
-      Object.assign(new Error('CDD is locked'), { name: 'ForbiddenError', statusCode: 403 }),
-    );
+    mockService.updateCddStatus = jest
+      .fn()
+      .mockRejectedValue(
+        Object.assign(new Error('CDD is locked'), { name: 'ForbiddenError', statusCode: 403 }),
+      );
     const app = createAgentApp();
     const res = await request(app)
       .patch('/agent/sellers/seller-1/cdd/status')
@@ -503,7 +521,10 @@ describe('PATCH /agent/sellers/:sellerId/cdd/status — lock guards', () => {
       .send({ status: 'not_started' });
     expect(res.status).toBe(200);
     expect(mockService.updateCddStatus).toHaveBeenCalledWith(
-      'seller-1', 'not_started', 'admin-1', true,
+      'seller-1',
+      'not_started',
+      'admin-1',
+      true,
     );
   });
 });

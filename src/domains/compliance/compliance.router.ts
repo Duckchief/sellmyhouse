@@ -7,7 +7,6 @@ import archiver from 'archiver';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import * as complianceService from './compliance.service';
 import * as auditService from '../shared/audit.service';
-import multer from 'multer';
 import {
   withdrawConsentValidator,
   createCorrectionValidator,
@@ -22,7 +21,6 @@ import * as agentRepo from '../agent/agent.repository';
 import { logger } from '@/infra/logger';
 
 const UPLOADS_ROOT = path.resolve(process.env['UPLOADS_DIR'] ?? 'uploads');
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const agentAuth = [requireAuth(), requireRole('agent', 'admin'), requireTwoFactor()];
 
@@ -246,9 +244,6 @@ complianceRouter.post(
       } else if (docType === 'invoice' && txDocs.commissionInvoice?.invoiceFilePath) {
         filePath = txDocs.commissionInvoice.invoiceFilePath;
         docRecordId = txDocs.commissionInvoice.id;
-      } else if (docType === 'eaa' && txDocs.estateAgencyAgreement?.signedCopyPath) {
-        filePath = txDocs.estateAgencyAgreement.signedCopyPath;
-        docRecordId = txDocs.estateAgencyAgreement.id;
       } else if (docType === 'cdd') {
         const cddRecords = await complianceService.getCddRecordsByTransaction(transactionId);
         const cddDoc = cddRecords
@@ -288,8 +283,6 @@ complianceRouter.post(
             await complianceService.recordOtpScannedCopyDeleted(docRecordId);
           } else if (docType === 'invoice' && docRecordId) {
             await complianceService.recordInvoiceDeleted(docRecordId);
-          } else if (docType === 'eaa' && docRecordId) {
-            await complianceService.recordEaaSignedCopyDeleted(docRecordId);
           }
 
           await auditService.log({
@@ -371,13 +364,6 @@ complianceRouter.post(
           recordId: txDocs.commissionInvoice.id,
         });
       }
-      if (txDocs.estateAgencyAgreement?.signedCopyPath) {
-        filesToProcess.push({
-          filePath: txDocs.estateAgencyAgreement.signedCopyPath,
-          docType: 'eaa',
-          recordId: txDocs.estateAgencyAgreement.id,
-        });
-      }
       const cddRecords = await complianceService.getCddRecordsByTransaction(transactionId);
       for (const cddRecord of cddRecords) {
         const docs = (cddRecord.documents as { path: string }[] | null) ?? [];
@@ -434,8 +420,6 @@ complianceRouter.post(
                 await complianceService.recordOtpScannedCopyDeleted(doc.recordId);
               } else if (doc.docType === 'invoice') {
                 await complianceService.recordInvoiceDeleted(doc.recordId);
-              } else if (doc.docType === 'eaa') {
-                await complianceService.recordEaaSignedCopyDeleted(doc.recordId);
               }
             } catch (deleteErr) {
               logger.error(
@@ -534,8 +518,12 @@ complianceRouter.post(
           agentId,
           agreementType,
           commissionAmount: commissionAmount ? Number(commissionAmount) : undefined,
-          commissionGstInclusive,
-          coBrokingAllowed,
+          commissionGstInclusive:
+            commissionGstInclusive !== undefined
+              ? String(commissionGstInclusive) === 'true'
+              : undefined,
+          coBrokingAllowed:
+            coBrokingAllowed !== undefined ? String(coBrokingAllowed) === 'true' : undefined,
           coBrokingTerms,
           expiryDate: expiryDate ? new Date(expiryDate) : undefined,
         },
@@ -574,36 +562,6 @@ complianceRouter.put(
   },
 );
 
-// POST /agent/eaa/:eaaId/signed-copy — Upload signed EAA copy (Gate 2)
-complianceRouter.post(
-  '/agent/eaa/:eaaId/signed-copy',
-  ...agentAuth,
-  upload.single('signedCopy'),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const eaaId = req.params['eaaId'] as string;
-      const agentId = getAgentId(req);
-      const file = req.file;
-
-      if (!file) {
-        return next(new ValidationError('Signed copy file is required'));
-      }
-
-      const eaa = await complianceService.uploadEaaSignedCopy(
-        eaaId,
-        { buffer: file.buffer, mimetype: file.mimetype, originalname: file.originalname },
-        agentId,
-      );
-      const compliance = await agentRepo.getComplianceStatus(eaa.sellerId, agentId);
-      return res.render('partials/agent/compliance-eaa-card', {
-        compliance,
-        sellerId: eaa.sellerId,
-      });
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
 
 // POST /agent/eaa/:eaaId/explanation — Confirm EAA explanation (Gate 4)
 complianceRouter.post(
@@ -715,19 +673,6 @@ complianceRouter.get(
   },
 );
 
-// GET /agent/eaa/:eaaId/signed-copy/modal
-complianceRouter.get(
-  '/agent/eaa/:eaaId/signed-copy/modal',
-  ...agentAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const eaaId = req.params['eaaId'] as string;
-      return res.render('partials/agent/eaa-signed-copy-modal', { eaaId });
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
 
 // GET /agent/transactions/:txId/counterparty-cdd/modal
 complianceRouter.get(

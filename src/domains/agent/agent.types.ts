@@ -142,6 +142,9 @@ export interface ComplianceStatus {
     status: 'verified' | 'not_started';
     verifiedAt: Date | null;
     transactionId: string | null;
+    isCoBroke: boolean;
+    buyerAgentName: string | null;
+    buyerAgentCeaReg: string | null;
   } | null;
 }
 

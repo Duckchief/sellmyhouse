@@ -156,23 +156,7 @@
     <h3 class="font-semibold mb-4">{{ "Lead Sources" | t }}</h3>
     {% if analytics.leadSources | length %}
       <canvas id="leadSourceChart" height="150"></canvas>
-      <script nonce="{{ cspNonce }}">
-        (function() {
-          const ctx = document.getElementById('leadSourceChart');
-          if (!ctx) return;
-          const data = {{ analytics.leadSources | dump | safe }};
-          const labels = Object.keys(data);
-          const values = labels.map(k => data[k].total);
-          new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-              labels,
-              datasets: [{ data: values, backgroundColor: ['#c8553d', '#1a1a2e', '#3b82f6', '#22c55e', '#eab308'] }],
-            },
-            options: { plugins: { legend: { position: 'bottom' } } },
-          });
-        })();
-      </script>
+      <script type="application/json" id="leadSourceData">{{ analytics.leadSources | dump | safe }}</script>
       <table class="w-full text-sm mt-4">
         <thead class="text-xs text-gray-500 uppercase">
           <tr><th class="text-left py-1">{{ "Source" | t }}</th><th class="text-right py-1">{{ "Total" | t }}</th><th class="text-right py-1">{{ "Conv. %" | t }}</th></tr>
@@ -203,26 +187,7 @@
     <span class="text-sm text-gray-400">({{ analytics.timeToClose.count }} {{ "transactions" | t }})</span>
   </div>
   <canvas id="timeToCloseChart" height="150"></canvas>
-  <script nonce="{{ cspNonce }}">
-    (function() {
-      const ctx = document.getElementById('timeToCloseChart');
-      if (!ctx) return;
-      const data = {{ analytics.timeToClose.byFlatType | dump | safe }};
-      const labels = Object.keys(data);
-      const values = labels.map(k => data[k].averageDays);
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{ label: 'Days', data: values, backgroundColor: '#c8553d' }],
-        },
-        options: {
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } },
-        },
-      });
-    })();
-  </script>
+  <script type="application/json" id="timeToCloseData">{{ analytics.timeToClose.byFlatType | dump | safe }}</script>
 </div>
 
 {# Viewings analytics #}

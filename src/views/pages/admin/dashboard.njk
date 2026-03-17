@@ -43,10 +43,56 @@
     htmx.trigger(document.getElementById('filterBtn'), 'click');
   }
 
-  document.getElementById('analytics-content').addEventListener('click', function (e) {
+  var analyticsEl = document.getElementById('analytics-content');
+
+  analyticsEl.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-preset]');
     if (btn) setPreset(btn.getAttribute('data-preset'));
   });
+
+  function initCharts() {
+    var leadDataEl = document.getElementById('leadSourceData');
+    var leadCtx = document.getElementById('leadSourceChart');
+    if (leadCtx && leadDataEl) {
+      var existing = Chart.getChart(leadCtx);
+      if (existing) existing.destroy();
+      var leadData = JSON.parse(leadDataEl.textContent);
+      var leadLabels = Object.keys(leadData);
+      var leadValues = leadLabels.map(function (k) { return leadData[k].total; });
+      new Chart(leadCtx, {
+        type: 'doughnut',
+        data: {
+          labels: leadLabels,
+          datasets: [{ data: leadValues, backgroundColor: ['#c8553d', '#1a1a2e', '#3b82f6', '#22c55e', '#eab308'] }],
+        },
+        options: { plugins: { legend: { position: 'bottom' } } },
+      });
+    }
+
+    var timeDataEl = document.getElementById('timeToCloseData');
+    var timeCtx = document.getElementById('timeToCloseChart');
+    if (timeCtx && timeDataEl) {
+      var existing2 = Chart.getChart(timeCtx);
+      if (existing2) existing2.destroy();
+      var timeData = JSON.parse(timeDataEl.textContent);
+      var timeLabels = Object.keys(timeData);
+      var timeValues = timeLabels.map(function (k) { return timeData[k].averageDays; });
+      new Chart(timeCtx, {
+        type: 'bar',
+        data: {
+          labels: timeLabels,
+          datasets: [{ label: 'Days', data: timeValues, backgroundColor: '#c8553d' }],
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } },
+        },
+      });
+    }
+  }
+
+  initCharts();
+  analyticsEl.addEventListener('htmx:afterSettle', initCharts);
 })();
 </script>
 {% endblock %}

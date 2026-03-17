@@ -38,7 +38,6 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   createEaa: jest.Mock;
   findEaaBySellerId: jest.Mock;
   updateEaaStatus: jest.Mock;
-  updateEaaSignedCopy: jest.Mock;
   updateEaaExplanation: jest.Mock;
   findEaaById: jest.Mock;
   deleteCddRecord: jest.Mock;
@@ -674,66 +673,6 @@ describe('updateEaaStatus', () => {
     await expect(complianceService.updateEaaStatus('eaa-999', 'signed', 'agent-1')).rejects.toThrow(
       'not found',
     );
-  });
-});
-
-describe('uploadEaaSignedCopy', () => {
-  const baseEaa = {
-    id: 'eaa-1',
-    sellerId: 'seller-1',
-    agentId: 'agent-1',
-    status: 'draft',
-  };
-
-  it('saves file and updates EAA record', async () => {
-    mockRepo.findEaaById.mockResolvedValue(baseEaa as never);
-    mockStorage.save.mockResolvedValue('eaa/seller-1/eaa-1.pdf');
-    mockRepo.updateEaaSignedCopy.mockResolvedValue({
-      ...baseEaa,
-      signedCopyPath: 'eaa/seller-1/eaa-1.pdf',
-    } as never);
-    mockAudit.log.mockResolvedValue(undefined);
-
-    const result = await complianceService.uploadEaaSignedCopy(
-      'eaa-1',
-      { buffer: Buffer.from('pdf'), mimetype: 'application/pdf', originalname: 'signed.pdf' },
-      'agent-1',
-    );
-
-    expect(mockStorage.save).toHaveBeenCalledWith('eaa/seller-1/eaa-1.pdf', expect.any(Buffer));
-    expect(result.signedCopyPath).toBe('eaa/seller-1/eaa-1.pdf');
-  });
-
-  it('rejects non-allowed file types', async () => {
-    mockRepo.findEaaById.mockResolvedValue(baseEaa as never);
-
-    await expect(
-      complianceService.uploadEaaSignedCopy(
-        'eaa-1',
-        {
-          buffer: Buffer.from('exe'),
-          mimetype: 'application/x-msdownload',
-          originalname: 'virus.exe',
-        },
-        'agent-1',
-      ),
-    ).rejects.toThrow('File type not allowed');
-  });
-
-  it('rejects files exceeding 10MB', async () => {
-    mockRepo.findEaaById.mockResolvedValue(baseEaa as never);
-
-    await expect(
-      complianceService.uploadEaaSignedCopy(
-        'eaa-1',
-        {
-          buffer: Buffer.alloc(11 * 1024 * 1024),
-          mimetype: 'application/pdf',
-          originalname: 'large.pdf',
-        },
-        'agent-1',
-      ),
-    ).rejects.toThrow('10MB');
   });
 });
 

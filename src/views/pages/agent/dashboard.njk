@@ -7,16 +7,9 @@
 {# Pipeline cards auto-refresh #}
 <div id="pipeline-cards"
      hx-get="/agent/dashboard/stats{% if currentStage %}?stage={{ currentStage }}{% endif %}"
-     hx-trigger="load, every 30s"
+     hx-trigger="every 30s"
      hx-swap="innerHTML">
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-    {% for stage in overview.stages %}
-    <div class="card border-t-4 border-gray-200 animate-pulse">
-      <div class="h-4 bg-gray-200 rounded w-16 mb-2"></div>
-      <div class="h-8 bg-gray-200 rounded w-10"></div>
-    </div>
-    {% endfor %}
-  </div>
+  {% include "partials/agent/pipeline-cards.njk" %}
 </div>
 
 {# Full pipeline content (loaded once, not auto-refreshed) #}

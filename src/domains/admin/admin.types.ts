@@ -13,6 +13,7 @@ export interface TeamMember {
   isActive: boolean;
   activeSellersCount: number;
   completedCount: number;
+  stageCounts: Record<string, number>;
   createdAt: Date;
 }
 

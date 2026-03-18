@@ -177,17 +177,22 @@
       {{ "Saved as Pending Review — approve from the list to feature on website." | t }}
     </p>
   </form>
-  <script>
+  <script nonce="{{ cspNonce }}">
     (function () {
       // allItems excludes the empty-state element (it has no role="option")
       var allItems = Array.from(document.querySelectorAll('#town-combobox-list [role="option"]'));
       var emptyEl  = document.getElementById('town-combobox-empty');
 
       function townComboShow() {
-        allItems.forEach(function (el) { el.style.display = ''; });
-        emptyEl.classList.add('hidden');
-        document.getElementById('town-combobox-list').classList.remove('hidden');
-        document.getElementById('town-combobox-chevron').style.transform = 'translateY(-50%) rotate(180deg)';
+        var q = document.getElementById('drawer-clientTown-search').value;
+        if (q) {
+          townComboFilter(q);
+        } else {
+          allItems.forEach(function (el) { el.style.display = ''; });
+          emptyEl.classList.add('hidden');
+          document.getElementById('town-combobox-list').classList.remove('hidden');
+          document.getElementById('town-combobox-chevron').style.transform = 'translateY(-50%) rotate(180deg)';
+        }
         document.getElementById('drawer-clientTown-search').setAttribute('aria-expanded', 'true');
       }
 
@@ -198,6 +203,8 @@
       }
 
       function townComboFilter(q) {
+        // Clear the hidden value when the user manually edits — they must re-select from the list
+        document.getElementById('drawer-clientTown').value = '';
         var lower   = q.toLowerCase();
         var anyVisible = false;
         allItems.forEach(function (el) {

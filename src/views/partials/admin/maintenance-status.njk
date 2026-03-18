@@ -20,7 +20,7 @@
       hx-post="/admin/maintenance/toggle"
       hx-target="#maintenance-status"
       hx-swap="outerHTML"
-      hx-confirm="{{ 'Enable maintenance mode? Visitors and sellers will be blocked immediately.' | t if not maintenance.isOn else '' }}"
+      {% if not maintenance.isOn %}hx-confirm="{{ 'Enable maintenance mode? Visitors and sellers will be blocked immediately.' | t }}"{% endif %}
       hx-disabled-elt="this"
       aria-label="{{ 'Toggle maintenance mode' | t }}"
       class="relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 {{ 'bg-red-500' if maintenance.isOn else 'bg-gray-300' }}"

@@ -25,6 +25,9 @@ const SETTINGS = [
   { key: 'cdd_retention_years', value: '5', description: 'Years post-verification before CDD documents are flagged for deletion (AML/CFT minimum)' },
   { key: 'consent_post_withdrawal_retention_years', value: '1', description: 'Years after consent withdrawal before the consent record is flagged for deletion' },
   { key: 'seller_inactive_alert_days', value: '14', description: 'Days of inactivity before agent alert is sent' },
+  { key: 'maintenance_mode', value: 'false', description: 'Set to true to show the maintenance page to sellers and public visitors' },
+  { key: 'maintenance_message', value: '', description: 'Optional custom message displayed on the maintenance page' },
+  { key: 'maintenance_eta', value: '', description: 'Optional estimated return time shown on the maintenance page (ISO 8601 datetime)' },
 ];
 
 export async function seedSystemSettings(prisma: PrismaClient): Promise<void> {

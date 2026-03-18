@@ -6,7 +6,7 @@ import * as complianceService from '../compliance.service';
 import { localStorage } from '@/infra/storage/local-storage';
 import { encryptedStorage } from '@/infra/storage/encrypted-storage';
 import { scanBuffer } from '@/infra/security/virus-scanner';
-import type { CddRecord } from '../compliance.types';
+import type { CddRecord, CddDocument } from '../compliance.types';
 
 jest.mock('@/infra/storage/local-storage', () => ({
   localStorage: { delete: jest.fn(), save: jest.fn() },
@@ -970,5 +970,76 @@ describe('uploadCddDocument', () => {
   it('throws NotFoundError when CDD record does not exist', async () => {
     mockRepo.findCddRecordById.mockResolvedValue(null);
     await expect(complianceService.uploadCddDocument(baseInput)).rejects.toThrow('CddRecord');
+  });
+});
+
+describe('downloadCddDocument', () => {
+  const mockDoc: CddDocument = {
+    id: 'doc-1',
+    docType: 'nric',
+    label: null,
+    path: 'cdd/cdd-1/nric-doc1.enc',
+    wrappedKey: 'wrapped-key',
+    mimeType: 'image/jpeg',
+    sizeBytes: 5000,
+    uploadedAt: '2026-03-18T00:00:00.000Z',
+    uploadedByAgentId: 'agent-1',
+  };
+
+  it('decrypts and returns buffer with document metadata', async () => {
+    mockRepo.findCddRecordWithDocument.mockResolvedValue({
+      verifiedByAgentId: 'agent-1',
+      document: mockDoc,
+    });
+    const decryptedBuffer = Buffer.from('decrypted-nric-image');
+    mockEncryptedStorage.read.mockResolvedValue(decryptedBuffer);
+    mockAudit.log.mockResolvedValue(undefined);
+
+    const result = await complianceService.downloadCddDocument({
+      cddRecordId: 'cdd-1',
+      documentId: 'doc-1',
+      agentId: 'agent-1',
+      isAdmin: false,
+    });
+
+    expect(mockEncryptedStorage.read).toHaveBeenCalledWith(mockDoc.path, mockDoc.wrappedKey);
+    expect(result.buffer).toEqual(decryptedBuffer);
+    expect(result.mimeType).toBe('image/jpeg');
+    expect(result.docType).toBe('nric');
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'cdd.document_downloaded' }),
+    );
+  });
+
+  it('throws ForbiddenError when agent does not own the record', async () => {
+    mockRepo.findCddRecordWithDocument.mockResolvedValue({
+      verifiedByAgentId: 'other-agent',
+      document: mockDoc,
+    });
+
+    await expect(
+      complianceService.downloadCddDocument({
+        cddRecordId: 'cdd-1',
+        documentId: 'doc-1',
+        agentId: 'agent-1',
+        isAdmin: false,
+      }),
+    ).rejects.toThrow('not authorised');
+  });
+
+  it('throws NotFoundError when document entry does not exist', async () => {
+    mockRepo.findCddRecordWithDocument.mockResolvedValue({
+      verifiedByAgentId: 'agent-1',
+      document: null,
+    });
+
+    await expect(
+      complianceService.downloadCddDocument({
+        cddRecordId: 'cdd-1',
+        documentId: 'missing',
+        agentId: 'agent-1',
+        isAdmin: false,
+      }),
+    ).rejects.toThrow('CddDocument');
   });
 });

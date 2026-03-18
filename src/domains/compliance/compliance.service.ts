@@ -30,6 +30,7 @@ import type {
   CddDocument,
   CddDocumentType,
   UploadCddDocumentInput,
+  DownloadCddDocumentInput,
 } from './compliance.types';
 
 // ─── DNC Gate ────────────────────────────────────────────────────────────────
@@ -968,6 +969,35 @@ export async function uploadCddDocument(input: UploadCddDocumentInput): Promise<
   });
 
   return doc;
+}
+
+// ─── CDD Document Download ────────────────────────────────────────────────────
+
+export async function downloadCddDocument(
+  input: DownloadCddDocumentInput,
+): Promise<{ buffer: Buffer; mimeType: string; docType: CddDocumentType; filePath: string }> {
+  const result = await complianceRepo.findCddRecordWithDocument(
+    input.cddRecordId,
+    input.documentId,
+  );
+  if (!result) throw new NotFoundError('CddRecord', input.cddRecordId);
+
+  assertCddOwnership(result.verifiedByAgentId, input.agentId, input.isAdmin);
+
+  const doc = result.document;
+  if (!doc) throw new NotFoundError('CddDocument', input.documentId);
+
+  const buffer = await encryptedStorage.read(doc.path, doc.wrappedKey);
+
+  await auditService.log({
+    agentId: input.agentId,
+    action: 'cdd.document_downloaded',
+    entityType: 'cdd_record',
+    entityId: input.cddRecordId,
+    details: { documentId: input.documentId, docType: doc.docType },
+  });
+
+  return { buffer, mimeType: doc.mimeType, docType: doc.docType, filePath: doc.path };
 }
 
 // ─── AML/CFT Reg 12H: Tipping-Off Suppression ───────────────────────────────

@@ -1,9 +1,9 @@
 {% extends "layouts/admin.njk" %}
 
-{% block title %}{{ "Market Content" | t }} — Admin{% endblock %}
+{% block title %}{{ "Media Content" | t }} — Admin{% endblock %}
 
 {% block content %}
-{% set pageTitle = "Market Content" %}
+{% set pageTitle = "Media Content" %}
 {% set pageActionsHtml %}
 <form method="POST" action="/admin/content/market/run">
   <button type="submit"
@@ -22,5 +22,22 @@
 
 <div id="market-content-list">
   {% include "partials/admin/market-content-list.njk" %}
+</div>
+
+{# Click-outside backdrop — closes panel when open #}
+<div id="market-content-backdrop" class="hidden fixed inset-0 z-[39]" data-action="close-market-content-panel"></div>
+
+{# Slide-out detail panel #}
+<div id="market-content-panel"
+     class="fixed inset-y-0 right-0 w-[480px] bg-white shadow-2xl z-40 translate-x-full opacity-0 pointer-events-none transition-all duration-300 ease-out flex flex-col border-l-2 border-indigo-600"
+     aria-hidden="true">
+  <button data-action="close-market-content-panel"
+          aria-label="{{ 'Close' | t }}"
+          class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 p-1 rounded z-10">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+    </svg>
+  </button>
+  <div id="market-content-detail-content" class="flex flex-col h-full">{# Populated via HTMX on row click #}</div>
 </div>
 {% endblock %}

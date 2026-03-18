@@ -483,6 +483,20 @@ describe('rejectMarketContent', () => {
   });
 });
 
+describe('listMarketContent', () => {
+  it('calls repo with no filter when no status provided', async () => {
+    mockedRepo.findAllMarketContent.mockResolvedValue([]);
+    await contentService.listMarketContent();
+    expect(mockedRepo.findAllMarketContent).toHaveBeenCalledWith(undefined);
+  });
+
+  it('calls repo with status filter when status provided', async () => {
+    mockedRepo.findAllMarketContent.mockResolvedValue([]);
+    await contentService.listMarketContent('pending_review');
+    expect(mockedRepo.findAllMarketContent).toHaveBeenCalledWith('pending_review');
+  });
+});
+
 // ─── Testimonials ─────────────────────────────────────────────────────────────
 
 describe('formatDisplayName', () => {

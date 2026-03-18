@@ -411,6 +411,7 @@ export const factory = {
     sellerName?: string;
     sellerTown?: string;
     clientName?: string;
+    clientTown?: string;
     submissionToken?: string;
     tokenExpiresAt?: Date;
     displayOnWebsite?: boolean;
@@ -427,6 +428,7 @@ export const factory = {
         sellerName: overrides.sellerName ?? 'John T.',
         sellerTown: overrides.sellerTown ?? 'Tampines',
         clientName: overrides.clientName ?? 'John T.',
+        clientTown: overrides.clientTown ?? 'Tampines',
         submissionToken: overrides.submissionToken ?? createId(),
         tokenExpiresAt: overrides.tokenExpiresAt ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         displayOnWebsite: overrides.displayOnWebsite ?? false,

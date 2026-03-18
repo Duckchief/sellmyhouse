@@ -319,6 +319,155 @@ describe('POST /admin/content/testimonials/:id/feature — HTMX', () => {
   });
 });
 
+describe('GET /admin/content/market — list handler', () => {
+  const mockRecords = [
+    { id: 'mc-1', period: '2026-03', status: 'approved', rawData: {} },
+    { id: 'mc-2', period: '2026-02', status: 'pending_review', rawData: {} },
+  ];
+
+  beforeEach(() => {
+    jest.mocked(contentService.listMarketContent).mockResolvedValue(mockRecords as any);
+  });
+
+  it('no filter — calls listMarketContent once with no args and passes activeStatus as empty string', async () => {
+    const app = makeApp();
+    const res = await request(app).get('/admin/content/market');
+    expect(res.status).toBe(200);
+    expect(contentService.listMarketContent).toHaveBeenCalledTimes(1);
+    expect(contentService.listMarketContent).toHaveBeenCalledWith(undefined);
+  });
+
+  it('with status filter — calls listMarketContent twice: once filtered, once for hasPendingReview', async () => {
+    const app = makeApp();
+    const res = await request(app).get('/admin/content/market?status=pending_review');
+    expect(res.status).toBe(200);
+    expect(contentService.listMarketContent).toHaveBeenCalledTimes(2);
+    expect(contentService.listMarketContent).toHaveBeenNthCalledWith(1, 'pending_review');
+    expect(contentService.listMarketContent).toHaveBeenNthCalledWith(2);
+  });
+
+  it('HTMX partial request — returns 200 with activeStatus and hasPendingReview in render context', async () => {
+    let capturedOptions: Record<string, unknown> = {};
+    const app = express();
+    app.use(express.urlencoded({ extended: true }));
+    app.use((req, _res, next) => {
+      Object.assign(req, {
+        isAuthenticated: () => true,
+        user: { id: 'admin-1', role: 'admin', twoFactorEnabled: false, twoFactorVerified: true },
+      });
+      next();
+    });
+    app.use((_req, res, next) => {
+      res.render = ((_view: string, options?: object) => {
+        capturedOptions = (options ?? {}) as Record<string, unknown>;
+        res.status(200).send('<html></html>');
+      }) as typeof res.render;
+      next();
+    });
+    app.use(adminRouter);
+    app.use(
+      (err: Error & { statusCode?: number }, _req: Request, res: Response, _next: NextFunction) => {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      },
+    );
+
+    const res = await request(app).get('/admin/content/market').set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+    expect(capturedOptions).toHaveProperty('activeStatus', '');
+    expect(capturedOptions).toHaveProperty('hasPendingReview', true);
+  });
+});
+
+describe('GET /admin/content/market/:id/detail — slide-out panel', () => {
+  it('renders the detail panel partial with record and statusColors', async () => {
+    jest.mocked(contentService.getMarketContentById).mockResolvedValue({
+      id: 'mc-1',
+      period: '2026-03',
+      status: 'pending_review',
+      aiNarrative: 'Market is strong.',
+      rawData: {},
+      createdAt: new Date('2026-03-01'),
+      approvedAt: null,
+    } as any);
+
+    const app = makeApp();
+    const res = await request(app)
+      .get('/admin/content/market/mc-1/detail')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+    expect(contentService.getMarketContentById).toHaveBeenCalledWith('mc-1');
+  });
+
+  it('returns 404 for an unknown record', async () => {
+    const { NotFoundError } = await import('@/domains/shared/errors');
+    jest
+      .mocked(contentService.getMarketContentById)
+      .mockRejectedValue(new NotFoundError('MarketContent', 'bad-id'));
+
+    const app = makeApp();
+    const res = await request(app).get('/admin/content/market/bad-id/detail');
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('POST /admin/content/market/:id/approve', () => {
+  it('renders the row partial on HTMX request', async () => {
+    jest.mocked(contentService.approveMarketContent).mockResolvedValue(undefined as any);
+    jest.mocked(contentService.getMarketContentById).mockResolvedValue({
+      id: 'mc-1',
+      period: '2026-03',
+      status: 'approved',
+      rawData: {},
+    } as any);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/content/market/mc-1/approve')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+    expect(contentService.approveMarketContent).toHaveBeenCalledWith('mc-1', 'admin-1');
+    expect(contentService.getMarketContentById).toHaveBeenCalledWith('mc-1');
+  });
+
+  it('redirects to list on non-HTMX request', async () => {
+    jest.mocked(contentService.approveMarketContent).mockResolvedValue(undefined as any);
+
+    const app = makeApp();
+    const res = await request(app).post('/admin/content/market/mc-1/approve');
+    expect(res.status).toBe(302);
+    expect(res.headers['location']).toBe('/admin/content/market');
+  });
+});
+
+describe('POST /admin/content/market/:id/reject', () => {
+  it('renders the row partial on HTMX request', async () => {
+    jest.mocked(contentService.rejectMarketContent).mockResolvedValue(undefined as any);
+    jest.mocked(contentService.getMarketContentById).mockResolvedValue({
+      id: 'mc-1',
+      period: '2026-03',
+      status: 'rejected',
+      rawData: {},
+    } as any);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/content/market/mc-1/reject')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+    expect(contentService.rejectMarketContent).toHaveBeenCalledWith('mc-1');
+    expect(contentService.getMarketContentById).toHaveBeenCalledWith('mc-1');
+  });
+
+  it('redirects to list on non-HTMX request', async () => {
+    jest.mocked(contentService.rejectMarketContent).mockResolvedValue(undefined as any);
+
+    const app = makeApp();
+    const res = await request(app).post('/admin/content/market/mc-1/reject');
+    expect(res.status).toBe(302);
+    expect(res.headers['location']).toBe('/admin/content/market');
+  });
+});
+
 describe('GET /admin/dashboard — preset param', () => {
   beforeEach(() => {
     mockAdminService.getAnalytics.mockResolvedValue({

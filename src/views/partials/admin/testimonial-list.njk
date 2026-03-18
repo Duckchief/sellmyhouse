@@ -74,10 +74,8 @@
     {% for record in records %}
     {% if record.status != 'pending_submission' %}
     <tr class="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
-        hx-get="/admin/content/testimonials/{{ record.id }}"
-        hx-target="#testimonial-drawer-content"
-        hx-swap="innerHTML"
-        data-action="open-testimonial-drawer">
+        data-action="open-testimonial-drawer"
+        data-testimonial-url="/admin/content/testimonials/{{ record.id }}">
     {% else %}
     <tr class="border-b last:border-0 cursor-default">
     {% endif %}
@@ -103,7 +101,7 @@
           {{ record.status | replace('_', ' ') }}
         </span>
       </td>
-      <td class="py-2 pr-4" onclick="event.stopPropagation()">
+      <td class="py-2 pr-4 no-row-click">
         {% if record.status == 'approved' %}
         <form
           hx-post="/admin/content/testimonials/{{ record.id }}/feature"

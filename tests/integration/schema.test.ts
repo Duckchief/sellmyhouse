@@ -80,6 +80,7 @@ describe('Phase 1A Schema', () => {
         sellerName: 'John T.',
         sellerTown: 'Tampines',
         clientName: 'John T.',
+        clientTown: 'Tampines',
         status: 'pending_submission',
         submissionToken: token,
         tokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),

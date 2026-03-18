@@ -20,6 +20,15 @@ export const adminRouter = Router();
 
 const adminAuth = [requireAuth(), requireRole('admin'), requireTwoFactor()];
 
+// ─── Market Content ─────────────────────────────────────────────
+const MARKET_CONTENT_STATUS_COLORS: Record<string, string> = {
+  ai_generated: 'bg-gray-100 text-gray-700',
+  pending_review: 'bg-yellow-100 text-yellow-800',
+  approved: 'bg-green-100 text-green-800',
+  rejected: 'bg-red-100 text-red-700',
+  published: 'bg-blue-100 text-blue-800',
+};
+
 // ─── Dashboard (Analytics) ─────────────────────────────────────
 adminRouter.get(
   '/admin/dashboard',
@@ -983,12 +992,15 @@ adminRouter.post(
       if (err instanceof ConflictError) {
         logger.warn({ err }, 'Market content run blocked: duplicate period');
         const records = await contentService.listMarketContent();
+        const hasPendingReview = records.some((r) => r.status === 'pending_review');
         const hasAvatar = await getHasAvatar(user.id);
         return res.status(409).render('pages/admin/market-content', {
           pageTitle: 'Market Content',
           user,
           hasAvatar,
           records,
+          activeStatus: '',
+          hasPendingReview,
           error: err.message,
           currentPath: '/admin/content/market',
         });
@@ -1003,11 +1015,18 @@ adminRouter.get(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const records = await contentService.listMarketContent();
+      const activeStatus = (req.query['status'] as string) || '';
+      const records = await contentService.listMarketContent(activeStatus || undefined);
+      const allRecords = activeStatus ? await contentService.listMarketContent() : records;
+      const hasPendingReview = allRecords.some((r) => r.status === 'pending_review');
       const notice =
         req.query['notice'] === 'no_data' ? 'Insufficient HDB data for the current period.' : null;
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/market-content-list', { records });
+        return res.render('partials/admin/market-content-list', {
+          records,
+          activeStatus,
+          hasPendingReview,
+        });
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
@@ -1016,6 +1035,8 @@ adminRouter.get(
         user,
         hasAvatar,
         records,
+        activeStatus,
+        hasPendingReview,
         error: notice,
         currentPath: '/admin/content/market',
       });
@@ -1025,6 +1046,7 @@ adminRouter.get(
   },
 );
 
+// GET /admin/content/market/:id — full-page detail view
 adminRouter.get(
   '/admin/content/market/:id',
   ...adminAuth,
@@ -1034,11 +1056,29 @@ adminRouter.get(
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
       return res.render('pages/admin/market-content-detail', {
-        pageTitle: 'Market Content',
+        pageTitle: 'Market Content Detail',
         user,
         hasAvatar,
         record,
+        statusColors: MARKET_CONTENT_STATUS_COLORS,
         currentPath: '/admin/content/market',
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// GET /admin/content/market/:id/detail — HTMX slide-out panel
+adminRouter.get(
+  '/admin/content/market/:id/detail',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const record = await contentService.getMarketContentById(req.params['id'] as string);
+      return res.render('partials/admin/market-content-detail-panel', {
+        record,
+        statusColors: MARKET_CONTENT_STATUS_COLORS,
       });
     } catch (err) {
       return next(err);
@@ -1052,7 +1092,15 @@ adminRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      await contentService.approveMarketContent(req.params['id'] as string, user.id);
+      const id = req.params['id'] as string;
+      await contentService.approveMarketContent(id, user.id);
+      if (req.headers['hx-request']) {
+        const record = await contentService.getMarketContentById(id);
+        return res.render('partials/admin/market-content-row', {
+          record,
+          statusColors: MARKET_CONTENT_STATUS_COLORS,
+        });
+      }
       return res.redirect('/admin/content/market');
     } catch (err) {
       return next(err);
@@ -1065,7 +1113,15 @@ adminRouter.post(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await contentService.rejectMarketContent(req.params['id'] as string);
+      const id = req.params['id'] as string;
+      await contentService.rejectMarketContent(id);
+      if (req.headers['hx-request']) {
+        const record = await contentService.getMarketContentById(id);
+        return res.render('partials/admin/market-content-row', {
+          record,
+          statusColors: MARKET_CONTENT_STATUS_COLORS,
+        });
+      }
       return res.redirect('/admin/content/market');
     } catch (err) {
       return next(err);

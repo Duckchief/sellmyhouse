@@ -5,7 +5,6 @@ const VALID_ENTITY_TYPES = [
   'listing_description',
   'listing_photos',
   'weekly_update',
-  'market_content',
   'document_checklist',
 ];
 

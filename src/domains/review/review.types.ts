@@ -5,7 +5,6 @@ export type EntityType =
   | 'listing_description'
   | 'listing_photos'
   | 'weekly_update'
-  | 'market_content'
   | 'document_checklist';
 
 export type ReviewStatus = FinancialReportStatus | WeeklyUpdateStatus | DocumentChecklistStatus;
@@ -27,7 +26,6 @@ export const ENTITY_TYPES: EntityType[] = [
   'listing_description',
   'listing_photos',
   'weekly_update',
-  'market_content',
   'document_checklist',
 ];
 

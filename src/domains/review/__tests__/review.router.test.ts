@@ -88,7 +88,6 @@ describe('GET /agent/reviews', () => {
         listing_description: 0,
         listing_photos: 0,
         weekly_update: 0,
-        market_content: 0,
         document_checklist: 0,
       },
     });
@@ -108,7 +107,6 @@ describe('GET /agent/reviews', () => {
         listing_description: 0,
         listing_photos: 0,
         weekly_update: 0,
-        market_content: 0,
         document_checklist: 0,
       },
     });

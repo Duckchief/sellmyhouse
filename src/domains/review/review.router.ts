@@ -61,7 +61,6 @@ reviewRouter.get(
         listing_description: 'partials/agent/review-detail-listing-desc',
         listing_photos: 'partials/agent/review-detail-listing-photos',
         weekly_update: 'partials/agent/review-detail-weekly-update',
-        market_content: 'partials/agent/review-detail-market-content',
         document_checklist: 'partials/agent/review-detail-document-checklist',
       };
 

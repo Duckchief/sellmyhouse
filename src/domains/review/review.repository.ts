@@ -1,6 +1,6 @@
 import { prisma } from '@/infra/database/prisma';
 import { Prisma } from '@prisma/client';
-import type { AiDescriptionStatus, FinancialReportStatus } from '@prisma/client';
+import type { AiDescriptionStatus } from '@prisma/client';
 
 import type { ReviewItem, EntityType, ReviewStatus } from './review.types';
 
@@ -10,41 +10,12 @@ export interface ReviewQueueResult {
   totalCount: number;
 }
 
-/** Map MarketContentStatus 'published' → 'sent'; all others pass through */
-export function mapMcsToFrs(status: string): FinancialReportStatus {
-  if (status === 'published') return 'sent';
-  const valid: readonly string[] = [
-    'draft',
-    'ai_generated',
-    'pending_review',
-    'approved',
-    'rejected',
-    'sent',
-  ];
-  if (!valid.includes(status)) {
-    throw new Error(`Unexpected MarketContentStatus value: ${status}`);
-  }
-  return status as FinancialReportStatus;
-}
-
 export function buildAddress(town: string, street: string, block: string): string {
   return `${block} ${street}, ${town}`.trim();
 }
 
-export function buildMarketContentLabel(town: string, _flatType: string, period: string): string {
-  if (town === 'ALL') return `Weekly Market Summary (${period})`;
-  return `${town} — ${_flatType} (${period})`;
-}
-
 export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResult> {
   const sellerWhere = agentId ? { agentId } : {};
-
-  // MarketContent has no sellerId/propertyId — global content queue
-  const marketContentRecords = agentId
-    ? []
-    : await prisma.marketContent.findMany({
-        where: { status: 'pending_review' },
-      });
 
   const [financialReports, listingDescs, listingPhotos, weeklyUpdates, docChecklists] =
     await Promise.all([
@@ -142,18 +113,6 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
       submittedAt: w.createdAt,
       priority: now - w.createdAt.getTime(),
     })),
-    ...marketContentRecords.map((m) => ({
-      id: m.id,
-      entityType: 'market_content' as EntityType,
-      entityId: m.id,
-      // MarketContent is not seller-specific; use empty strings for seller fields
-      sellerId: '',
-      sellerName: 'N/A',
-      propertyAddress: buildMarketContentLabel(m.town, m.flatType, m.period),
-      currentStatus: mapMcsToFrs(m.status),
-      submittedAt: m.createdAt,
-      priority: now - m.createdAt.getTime(),
-    })),
     ...docChecklists.map((d) => ({
       id: d.id,
       entityType: 'document_checklist' as EntityType,
@@ -172,7 +131,6 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
     listing_description: listingDescs.length,
     listing_photos: listingPhotos.length,
     weekly_update: weeklyUpdates.length,
-    market_content: marketContentRecords.length,
     document_checklist: docChecklists.length,
   };
 
@@ -186,7 +144,6 @@ export async function getDetailForReview(
   | Awaited<ReturnType<typeof prisma.financialReport.findUnique>>
   | Awaited<ReturnType<typeof prisma.listing.findUnique>>
   | Awaited<ReturnType<typeof prisma.weeklyUpdate.findUnique>>
-  | Awaited<ReturnType<typeof prisma.marketContent.findUnique>>
   | Awaited<ReturnType<typeof prisma.documentChecklist.findUnique>>
   | undefined
 > {
@@ -206,10 +163,6 @@ export async function getDetailForReview(
       return prisma.weeklyUpdate.findUnique({
         where: { id: entityId },
         include: { seller: true, property: true },
-      });
-    case 'market_content':
-      return prisma.marketContent.findUnique({
-        where: { id: entityId },
       });
     case 'document_checklist':
       return prisma.documentChecklist.findUnique({
@@ -320,28 +273,6 @@ export async function rejectWeeklyUpdate(entityId: string, agentId: string, revi
       reviewedAt: new Date(),
       reviewNotes,
     },
-  });
-}
-
-export async function approveMarketContent(entityId: string, agentId: string) {
-  return prisma.marketContent.update({
-    where: { id: entityId },
-    data: {
-      status: 'approved',
-      approvedByAgentId: agentId,
-      approvedAt: new Date(),
-    },
-  });
-}
-
-export async function rejectMarketContent(
-  entityId: string,
-  _agentId: string,
-  _reviewNotes: string,
-) {
-  return prisma.marketContent.update({
-    where: { id: entityId },
-    data: { status: 'rejected' },
   });
 }
 

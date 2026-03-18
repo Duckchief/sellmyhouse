@@ -43,22 +43,24 @@ export function validateCalculationInput(body: Record<string, unknown>): Financi
     throw new ValidationError(`Invalid subsidy type: ${subsidyType}`);
   }
 
-  // CPF: accept null, "unknown", or a number
-  const cpfOaUsed = parseCpfInput(body.cpfOaUsed);
-  const purchaseYear = Number(body.purchaseYear) || new Date().getFullYear();
+  // ownerCpfs: array of { cpfRefund: number } — seller-provided from my.cpf.gov.sg
+  const rawOwnerCpfs = body.ownerCpfs;
+  let ownerCpfs: CpfOwnerInput[];
 
-  const owner1Cpf: CpfOwnerInput = {
-    oaUsed: cpfOaUsed,
-    purchaseYear,
-  };
-
-  // Joint owner (optional)
-  let owner2Cpf: CpfOwnerInput | undefined;
-  if (body.jointOwnerCpfOaUsed !== undefined || body.jointOwnerPurchaseYear !== undefined) {
-    owner2Cpf = {
-      oaUsed: parseCpfInput(body.jointOwnerCpfOaUsed),
-      purchaseYear: Number(body.jointOwnerPurchaseYear) || purchaseYear,
-    };
+  if (Array.isArray(rawOwnerCpfs) && rawOwnerCpfs.length > 0) {
+    if (rawOwnerCpfs.length > 4) {
+      throw new ValidationError('ownerCpfs may not have more than 4 entries');
+    }
+    ownerCpfs = rawOwnerCpfs.map((entry: unknown, idx: number) => {
+      const cpfRefund = Number((entry as Record<string, unknown>).cpfRefund ?? 0);
+      if (isNaN(cpfRefund) || cpfRefund < 0) {
+        throw new ValidationError(`ownerCpfs[${idx}].cpfRefund must be a non-negative number`);
+      }
+      return { cpfRefund };
+    });
+  } else {
+    // Default: single owner with zero CPF refund
+    ownerCpfs = [{ cpfRefund: 0 }];
   }
 
   const legalFeesEstimate =
@@ -67,8 +69,7 @@ export function validateCalculationInput(body: Record<string, unknown>): Financi
   return {
     salePrice,
     outstandingLoan,
-    owner1Cpf,
-    owner2Cpf,
+    ownerCpfs,
     flatType: flatType as FlatType,
     subsidyType: subsidyType as SubsidyType,
     isFirstTimer: body.isFirstTimer === true || body.isFirstTimer === 'true',
@@ -90,15 +91,4 @@ export function validateSendInput(body: Record<string, unknown>): {
     throw new ValidationError(`Invalid channel: ${channel}`);
   }
   return { channel: channel as 'whatsapp' | 'email' | 'in_app' };
-}
-
-function parseCpfInput(value: unknown): number | null {
-  if (value === null || value === undefined || value === 'unknown' || value === '') {
-    return null;
-  }
-  const num = Number(value);
-  if (isNaN(num) || num < 0) {
-    throw new ValidationError('CPF OA used must be a non-negative number or "unknown"');
-  }
-  return num;
 }

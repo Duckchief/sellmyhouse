@@ -30,6 +30,7 @@ financialRouter.post(
           flatType: req.body.flatType,
           town: req.body.town || '',
           leaseCommenceDate: Number(req.body.leaseCommenceDate) || 0,
+          cpfDisclaimerShownAt: req.body.cpfDisclaimerShownAt || new Date().toISOString(),
         },
       });
 
@@ -97,24 +98,6 @@ financialRouter.get(
   },
 );
 
-financialRouter.post(
-  '/seller/financial/report/:id/acknowledge-disclaimer',
-  requireAuth(),
-  requireRole('seller'),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const user = req.user as AuthenticatedUser;
-      const report = await financialService.acknowledgeDisclaimer(req.params.id as string, user.id);
-
-      if (req.headers['hx-request']) {
-        return res.render('partials/seller/financial-report-disclaimer-ack', { report });
-      }
-      return res.json({ success: true, report });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
 
 // Agent routes — require agent or admin role with 2FA
 financialRouter.post(

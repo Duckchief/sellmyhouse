@@ -9,8 +9,7 @@ describe('financial.validator', () => {
     const validBody = {
       salePrice: 500000,
       outstandingLoan: 200000,
-      cpfOaUsed: 100000,
-      purchaseYear: 2016,
+      ownerCpfs: [{ cpfRefund: 100000 }],
       flatType: '4 ROOM',
       subsidyType: 'subsidised',
       isFirstTimer: true,
@@ -20,7 +19,7 @@ describe('financial.validator', () => {
     it('returns validated input for valid body', () => {
       const result = validateCalculationInput(validBody);
       expect(result.salePrice).toBe(500000);
-      expect(result.owner1Cpf.oaUsed).toBe(100000);
+      expect(result.ownerCpfs[0].cpfRefund).toBe(100000);
     });
 
     it('throws for zero sale price', () => {
@@ -46,14 +45,11 @@ describe('financial.validator', () => {
       );
     });
 
-    it('accepts null/unknown CPF', () => {
-      const result = validateCalculationInput({ ...validBody, cpfOaUsed: null });
-      expect(result.owner1Cpf.oaUsed).toBeNull();
-    });
-
-    it('accepts "unknown" string for CPF', () => {
-      const result = validateCalculationInput({ ...validBody, cpfOaUsed: 'unknown' });
-      expect(result.owner1Cpf.oaUsed).toBeNull();
+    it('defaults to single owner with zero CPF when ownerCpfs not provided', () => {
+      const { ownerCpfs: _omit, ...bodyWithout } = validBody;
+      const result = validateCalculationInput(bodyWithout);
+      expect(result.ownerCpfs).toHaveLength(1);
+      expect(result.ownerCpfs[0].cpfRefund).toBe(0);
     });
 
     it('throws for invalid flat type', () => {
@@ -62,14 +58,28 @@ describe('financial.validator', () => {
       );
     });
 
-    it('handles joint owner CPF fields', () => {
+    it('handles multiple owners in ownerCpfs', () => {
       const result = validateCalculationInput({
         ...validBody,
-        jointOwnerCpfOaUsed: 50000,
-        jointOwnerPurchaseYear: 2016,
+        ownerCpfs: [{ cpfRefund: 100000 }, { cpfRefund: 50000 }],
       });
-      expect(result.owner2Cpf).toBeDefined();
-      expect(result.owner2Cpf!.oaUsed).toBe(50000);
+      expect(result.ownerCpfs).toHaveLength(2);
+      expect(result.ownerCpfs[1].cpfRefund).toBe(50000);
+    });
+
+    it('throws for more than 4 owners', () => {
+      expect(() =>
+        validateCalculationInput({
+          ...validBody,
+          ownerCpfs: [
+            { cpfRefund: 10000 },
+            { cpfRefund: 10000 },
+            { cpfRefund: 10000 },
+            { cpfRefund: 10000 },
+            { cpfRefund: 10000 },
+          ],
+        }),
+      ).toThrow('ownerCpfs may not have more than 4 entries');
     });
 
     it('throws for missing sale price', () => {

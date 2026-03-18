@@ -5,6 +5,7 @@ import { testPrisma, cleanDatabase } from '../helpers/prisma';
 import { factory } from '../fixtures/factory';
 import { createApp } from '../../src/infra/http/app';
 import { getIsoWeekPeriod } from '../../src/domains/content/content.service';
+import { getCsrfToken, withCsrf } from '../helpers/csrf';
 
 jest.mock('@/domains/shared/ai/ai.facade', () => ({
   generateText: jest.fn().mockResolvedValue({
@@ -43,8 +44,13 @@ async function loginAsAdmin() {
     role: 'admin',
   });
   const agent = request.agent(app);
-  await agent.post('/auth/login/agent').type('form').send({ email: adminRecord.email, password });
-  return { adminRecord, agent };
+  const csrfToken = await getCsrfToken(agent);
+  await agent
+    .post('/auth/login/agent')
+    .set('x-csrf-token', csrfToken)
+    .type('form')
+    .send({ email: adminRecord.email, password });
+  return { adminRecord, agent: withCsrf(agent, csrfToken) };
 }
 
 async function loginAsAgent() {
@@ -55,8 +61,13 @@ async function loginAsAgent() {
     role: 'agent',
   });
   const agent = request.agent(app);
-  await agent.post('/auth/login/agent').type('form').send({ email: agentRecord.email, password });
-  return { agentRecord, agent };
+  const csrfToken = await getCsrfToken(agent);
+  await agent
+    .post('/auth/login/agent')
+    .set('x-csrf-token', csrfToken)
+    .type('form')
+    .send({ email: agentRecord.email, password });
+  return { agentRecord, agent: withCsrf(agent, csrfToken) };
 }
 
 // ─── Section 2: Video Tutorial Management ────────────────────────────────────
@@ -326,11 +337,13 @@ async function loginAsSeller() {
     passwordHash: await bcrypt.hash(password, 12),
   });
   const sellerAgent = request.agent(app);
+  const csrfToken = await getCsrfToken(sellerAgent);
   await sellerAgent
     .post('/auth/login/seller')
+    .set('x-csrf-token', csrfToken)
     .type('form')
     .send({ email: sellerRecord.email, password });
-  return { sellerRecord, agentRecord, sellerAgent };
+  return { sellerRecord, agentRecord, sellerAgent: withCsrf(sellerAgent, csrfToken) };
 }
 
 describe('GET /testimonial/:token — public submission form', () => {
@@ -394,8 +407,11 @@ describe('POST /testimonial/:token — submit', () => {
       tokenExpiresAt: new Date(Date.now() + 86_400_000),
     });
 
-    const res = await request(app)
+    const testimonialAgent = request.agent(app);
+    const csrfToken = await getCsrfToken(testimonialAgent);
+    const res = await testimonialAgent
       .post(`/testimonial/${testimonial.submissionToken}`)
+      .set('x-csrf-token', csrfToken)
       .type('form')
       .send({
         content: 'Excellent service!',
@@ -426,8 +442,11 @@ describe('POST /testimonial/:token — submit', () => {
       tokenExpiresAt: new Date(Date.now() + 86_400_000),
     });
 
-    const res = await request(app)
+    const testimonialAgent = request.agent(app);
+    const csrfToken = await getCsrfToken(testimonialAgent);
+    const res = await testimonialAgent
       .post(`/testimonial/${testimonial.submissionToken}`)
+      .set('x-csrf-token', csrfToken)
       .type('form')
       .send({ content: '' });
 
@@ -649,13 +668,15 @@ describe('POST /api/leads — lead form with referral session', () => {
     });
 
     const sessionAgent = request.agent(app);
-    // Visit with ?ref= to store referral code in session
+    // Visit with ?ref= to store referral code in session; also establishes CSRF cookie
     await sessionAgent.get(`/?ref=${referral.referralCode}`);
+    const csrfToken = await getCsrfToken(sessionAgent);
 
     // Submit lead form
     const res = await sessionAgent
       .post('/api/leads')
       .set('HX-Request', 'true')
+      .set('x-csrf-token', csrfToken)
       .send({
         name: 'Jane Doe',
         phone: '98765432',
@@ -824,10 +845,12 @@ describe('GET /seller/tutorials — seller view still works after refactor', () 
     });
 
     const sellerAgent = request.agent(app);
-    await sellerAgent.post('/auth/login/seller').type('form').send({
-      email: sellerRecord.email,
-      password,
-    });
+    const csrfToken = await getCsrfToken(sellerAgent);
+    await sellerAgent
+      .post('/auth/login/seller')
+      .set('x-csrf-token', csrfToken)
+      .type('form')
+      .send({ email: sellerRecord.email, password });
 
     const res = await sellerAgent.get('/seller/tutorials').set('HX-Request', 'true');
     expect(res.status).toBe(200);

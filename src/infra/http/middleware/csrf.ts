@@ -4,8 +4,11 @@ import type { Request, Response, NextFunction } from 'express';
 
 const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
   getSecret: () => process.env.SESSION_SECRET ?? 'dev-csrf-secret',
-  // Use session ID as the per-user identifier for the HMAC
-  getSessionIdentifier: (req) => (req as Request & { sessionID?: string }).sessionID ?? '',
+  // Empty string identifier: classic double-submit cookie pattern (no session binding).
+  // Session binding is desirable in theory but breaks with saveUninitialized:false because
+  // the session ID isn't stable before the first authenticated request.
+  // Security is maintained by the HMAC secret + SameSite=strict cookie.
+  getSessionIdentifier: () => '',
   cookieName: process.env.NODE_ENV === 'production' ? '__Host-csrf' : '_csrf',
   cookieOptions: {
     httpOnly: true,

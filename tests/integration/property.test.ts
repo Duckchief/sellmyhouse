@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import { testPrisma, cleanDatabase } from '../helpers/prisma';
 import { factory } from '../fixtures/factory';
 import { createApp } from '../../src/infra/http/app';
+import { getCsrfToken, withCsrf } from '../helpers/csrf';
 
 let app: ReturnType<typeof createApp>;
 
@@ -35,12 +36,13 @@ async function loginAsSeller(overrides?: {
   });
 
   const agent = request.agent(app);
-  await agent.post('/auth/login/seller').type('form').send({
+  const csrfToken = await getCsrfToken(agent);
+  await agent.post('/auth/login/seller').set('x-csrf-token', csrfToken).type('form').send({
     email: seller.email,
     password,
   });
 
-  return { seller, agent };
+  return { seller, agent: withCsrf(agent, csrfToken) };
 }
 
 // ─── Valid property form data ─────────────────────────────────────────────────

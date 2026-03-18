@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import { testPrisma, cleanDatabase } from '../helpers/prisma';
 import { factory } from '../fixtures/factory';
 import { createApp } from '../../src/infra/http/app';
+import { getCsrfToken, withCsrf } from '../helpers/csrf';
 
 let app: ReturnType<typeof createApp>;
 
@@ -32,12 +33,13 @@ async function loginAsAgent(overrides?: { role?: 'agent' | 'admin' }) {
   });
 
   const agent = request.agent(app);
-  await agent.post('/auth/login/agent').type('form').send({
+  const csrfToken = await getCsrfToken(agent);
+  await agent.post('/auth/login/agent').set('x-csrf-token', csrfToken).type('form').send({
     email: agentRecord.email,
     password,
   });
 
-  return { agentRecord, agent };
+  return { agentRecord, agent: withCsrf(agent, csrfToken) };
 }
 
 /**
@@ -53,12 +55,13 @@ async function loginAsSeller() {
   });
 
   const agent = request.agent(app);
-  await agent.post('/auth/login/seller').type('form').send({
+  const csrfToken = await getCsrfToken(agent);
+  await agent.post('/auth/login/seller').set('x-csrf-token', csrfToken).type('form').send({
     email: seller.email,
     password,
   });
 
-  return { seller, agent };
+  return { seller, agent: withCsrf(agent, csrfToken) };
 }
 
 describe('Agent Dashboard Integration', () => {

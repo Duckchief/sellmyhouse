@@ -3,12 +3,20 @@ import bcrypt from 'bcrypt';
 import { testPrisma, cleanDatabase } from '../helpers/prisma';
 import { factory } from '../fixtures/factory';
 import { createApp } from '../../src/infra/http/app';
+import { getCsrfToken } from '../helpers/csrf';
 
 let app: ReturnType<typeof createApp>;
 
 beforeAll(() => {
   app = createApp();
 });
+
+/** One-off agent: establishes CSRF cookie, then returns agent + token for a single request. */
+async function csrfAgent() {
+  const agent = request.agent(app);
+  const csrfToken = await getCsrfToken(agent);
+  return { agent, csrfToken };
+}
 
 beforeEach(async () => {
   await cleanDatabase();
@@ -21,14 +29,19 @@ afterAll(async () => {
 describe('Auth Integration', () => {
   describe('POST /auth/register', () => {
     it('creates seller + consent record + audit log', async () => {
-      const res = await request(app).post('/auth/register').type('form').send({
-        name: 'Integration Seller',
-        email: 'integration@test.local',
-        phone: '91234567',
-        password: 'password123',
-        consentService: 'true',
-        consentMarketing: 'true',
-      });
+      const { agent, csrfToken } = await csrfAgent();
+      const res = await agent
+        .post('/auth/register')
+        .set('x-csrf-token', csrfToken)
+        .type('form')
+        .send({
+          name: 'Integration Seller',
+          email: 'integration@test.local',
+          phone: '91234567',
+          password: 'password123',
+          consentService: 'true',
+          consentMarketing: 'true',
+        });
 
       expect(res.status).toBe(302); // redirect after success
 
@@ -66,7 +79,8 @@ describe('Auth Integration', () => {
         passwordHash: await bcrypt.hash('password', 12),
       });
 
-      const res = await request(app).post('/auth/register').type('form').send({
+      const { agent, csrfToken } = await csrfAgent();
+      const res = await agent.post('/auth/register').set('x-csrf-token', csrfToken).type('form').send({
         name: 'Dupe Seller',
         email: 'dupe@test.local',
         phone: '92345678',
@@ -78,7 +92,8 @@ describe('Auth Integration', () => {
     });
 
     it('returns 400 when consent is missing', async () => {
-      const res = await request(app).post('/auth/register').type('form').send({
+      const { agent, csrfToken } = await csrfAgent();
+      const res = await agent.post('/auth/register').set('x-csrf-token', csrfToken).type('form').send({
         name: 'No Consent',
         email: 'noconsent@test.local',
         phone: '93456789',
@@ -96,8 +111,10 @@ describe('Auth Integration', () => {
         passwordHash: await bcrypt.hash('password123', 12),
       });
 
-      const res = await request(app)
+      const { agent, csrfToken } = await csrfAgent();
+      const res = await agent
         .post('/auth/login/seller')
+        .set('x-csrf-token', csrfToken)
         .type('form')
         .send({ email: 'login@test.local', password: 'password123' });
 
@@ -112,8 +129,10 @@ describe('Auth Integration', () => {
         passwordHash: await bcrypt.hash('correct', 12),
       });
 
-      const res = await request(app)
+      const { agent, csrfToken } = await csrfAgent();
+      const res = await agent
         .post('/auth/login/seller')
+        .set('x-csrf-token', csrfToken)
         .type('form')
         .send({ email: 'wrong@test.local', password: 'incorrect' });
 
@@ -128,8 +147,10 @@ describe('Auth Integration', () => {
         passwordHash: await bcrypt.hash('agentpass', 12),
       });
 
-      const res = await request(app)
+      const { agent, csrfToken } = await csrfAgent();
+      const res = await agent
         .post('/auth/login/agent')
+        .set('x-csrf-token', csrfToken)
         .type('form')
         .send({ email: 'agent@test.local', password: 'agentpass' });
 

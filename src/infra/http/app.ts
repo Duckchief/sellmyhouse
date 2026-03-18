@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import cookieParser from 'cookie-parser';
 import express from 'express';
 import nunjucks from 'nunjucks';
 import helmet from 'helmet';
@@ -141,11 +142,14 @@ export function createApp() {
       },
     }),
   );
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '100kb' }));
+  app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
   // Static files
   app.use(express.static(path.resolve('public')));
+
+  // Cookie parsing — required for csrf-csrf which reads req.cookies
+  app.use(cookieParser());
 
   // Session + Passport
   app.use(createSessionMiddleware());

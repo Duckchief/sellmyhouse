@@ -85,6 +85,28 @@ try {
 // Start cron jobs and server
 startJobs();
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   logger.info(`Server running on port ${port}`);
+});
+
+// Graceful shutdown — close the HTTP server before nodemon restarts or process exits
+function shutdown(signal: string) {
+  logger.info(`${signal} received — closing server`);
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
+  // Force exit if server hasn't closed within 3 seconds
+  setTimeout(() => process.exit(1), 3000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+// nodemon sends SIGUSR2 for restart
+process.once('SIGUSR2', () => {
+  logger.info('SIGUSR2 received — restarting');
+  server.close(() => {
+    process.kill(process.pid, 'SIGUSR2');
+  });
+  setTimeout(() => process.kill(process.pid, 'SIGUSR2'), 3000).unref();
 });

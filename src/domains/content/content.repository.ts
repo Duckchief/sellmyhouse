@@ -1,6 +1,6 @@
 // src/domains/content/content.repository.ts
 import { prisma } from '@/infra/database/prisma';
-import type { Prisma } from '@prisma/client';
+import type { Prisma, MarketContentStatus, TestimonialStatus } from '@prisma/client';
 import type { TutorialCreateInput, TutorialUpdateInput, ReorderItem } from './content.types';
 
 // ─── Video Tutorials ─────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ export async function findMarketContentByPeriod(period: string) {
 
 export async function findAllMarketContent(status?: string) {
   return prisma.marketContent.findMany({
-    where: status ? { status: status as import('@prisma/client').MarketContentStatus } : undefined,
+    where: status ? { status: status as MarketContentStatus } : undefined,
     orderBy: { createdAt: 'desc' },
     take: 50,
   });
@@ -145,14 +145,14 @@ export async function findTestimonialBySeller(sellerId: string) {
 
 export async function findAllTestimonials(status?: string) {
   return prisma.testimonial.findMany({
-    where: status ? { status: status as import('@prisma/client').TestimonialStatus } : undefined,
+    where: status ? { status: status as TestimonialStatus } : undefined,
     orderBy: { createdAt: 'desc' },
   });
 }
 
 export async function countTestimonialsByStatus(status: string): Promise<number> {
   return prisma.testimonial.count({
-    where: { status: status as import('@prisma/client').TestimonialStatus },
+    where: { status: status as TestimonialStatus },
   });
 }
 

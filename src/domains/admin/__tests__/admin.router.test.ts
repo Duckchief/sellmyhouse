@@ -604,3 +604,111 @@ describe('POST /admin/maintenance/eta', () => {
     expect(res.text).toBe('Saved');
   });
 });
+
+describe('POST /admin/hdb/sync — progress fragment', () => {
+  beforeEach(() => {
+    mockAdminService.triggerHdbSync.mockResolvedValue(undefined);
+    mockAdminService.getHdbStatus.mockResolvedValue({
+      totalRecords: 1000,
+      dateRange: { earliest: '2017-01', latest: '2026-03' },
+      lastSync: {
+        id: 'sync-1',
+        syncedAt: new Date('2026-03-18T10:00:00Z'),
+        recordsAdded: 3,
+        recordsTotal: 1000,
+        source: 'd_8b84c4ee58e3cfc0ece0d773c8ca6abc',
+        status: 'success',
+        error: null,
+        createdAt: new Date('2026-03-18T10:00:00Z'),
+      },
+      recentSyncs: [],
+    });
+  });
+
+  it('returns 200 and calls triggerHdbSync on HTMX request', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/hdb/sync')
+      .set('hx-request', 'true');
+    expect(res.status).toBe(200);
+    expect(mockAdminService.triggerHdbSync).toHaveBeenCalledWith('admin-1');
+  });
+
+  it('redirects to /admin/hdb on non-HTMX request', async () => {
+    const app = makeApp();
+    const res = await request(app).post('/admin/hdb/sync');
+    expect(res.status).toBe(302);
+    expect(res.headers['location']).toBe('/admin/hdb');
+  });
+});
+
+describe('GET /admin/hdb/sync/poll — polling endpoint', () => {
+  const sinceBefore = new Date('2026-03-18T09:00:00Z').toISOString();
+  const sinceAfter = new Date('2026-03-18T11:00:00Z').toISOString();
+
+  beforeEach(() => {
+    mockAdminService.getHdbStatus.mockResolvedValue({
+      totalRecords: 1003,
+      dateRange: { earliest: '2017-01', latest: '2026-03' },
+      lastSync: {
+        id: 'sync-1',
+        syncedAt: new Date('2026-03-18T10:00:00Z'),
+        recordsAdded: 3,
+        recordsTotal: 1003,
+        source: 'd_8b84c4ee58e3cfc0ece0d773c8ca6abc',
+        status: 'success',
+        error: null,
+        createdAt: new Date('2026-03-18T10:00:00Z'),
+      },
+      recentSyncs: [],
+    });
+  });
+
+  it('returns 200 with complete fragment when lastSync is newer than since', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .get(`/admin/hdb/sync/poll?since=${sinceBefore}`)
+      .set('hx-request', 'true');
+    expect(res.status).toBe(200);
+    expect(mockAdminService.getHdbStatus).toHaveBeenCalled();
+  });
+
+  it('returns 200 with progress fragment when lastSync is older than since', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .get(`/admin/hdb/sync/poll?since=${sinceAfter}`)
+      .set('hx-request', 'true');
+    expect(res.status).toBe(200);
+    expect(mockAdminService.getHdbStatus).toHaveBeenCalled();
+  });
+
+  it('returns 200 with progress fragment when no lastSync exists', async () => {
+    mockAdminService.getHdbStatus.mockResolvedValue({
+      totalRecords: 0,
+      dateRange: null,
+      lastSync: null,
+      recentSyncs: [],
+    });
+    const app = makeApp();
+    const res = await request(app)
+      .get(`/admin/hdb/sync/poll?since=${sinceBefore}`)
+      .set('hx-request', 'true');
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 400 when since param is missing', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .get('/admin/hdb/sync/poll')
+      .set('hx-request', 'true');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when since param is not a valid date', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .get('/admin/hdb/sync/poll?since=garbage')
+      .set('hx-request', 'true');
+    expect(res.status).toBe(400);
+  });
+});

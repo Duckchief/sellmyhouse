@@ -14,6 +14,7 @@ import type {
   HdbTransactionPartial,
   MarketInsights,
   TestimonialSubmitInput,
+  CreateManualTestimonialInput,
 } from './content.types';
 import type { VideoTutorial } from '@prisma/client';
 
@@ -365,6 +366,26 @@ export async function rejectTestimonial(id: string, agentId?: string, reason?: s
     );
   }
   return testimonial;
+}
+
+export async function createManualTestimonial(
+  agentId: string,
+  input: CreateManualTestimonialInput,
+) {
+  return contentRepo.createManualTestimonial({
+    id: createId(),
+    clientName: input.clientName,
+    clientTown: input.clientTown,
+    rating: input.rating,
+    content: input.content,
+    source: input.source ?? null,
+    isManual: true,
+    status: 'pending_review',
+    createdByAgentId: agentId,
+    sellerId: null,
+    buyerId: null,
+    transactionId: null,
+  });
 }
 
 export async function featureTestimonial(id: string, displayOnWebsite: boolean) {

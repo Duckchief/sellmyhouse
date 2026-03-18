@@ -21,7 +21,7 @@ Admins can manually create testimonials from offline sources (phone, WhatsApp, e
 | Rename `sellerTown` → `clientTown` | String, HDB town. DB column renamed `seller_town` → `client_town` in the migration. |
 | Add `source` | String?, free text — e.g. "Google", "WhatsApp", "Phone" |
 | Add `isManual` | Boolean, default `false` |
-| Add `createdByAdminId` | String?, optional FK → Admin |
+| Add `createdByAgentId` | String?, optional FK → Agent (project has no separate Admin model — agents with `role = admin` fulfil this role) |
 | `transactionId` | Make nullable (was required unique FK) |
 
 **Rationale for dual FKs:** Follows the existing `ConsentRecord` pattern (separate `sellerId` + `buyerId` columns) to maintain referential integrity while supporting both client types. Prisma does not support polymorphic FKs natively.

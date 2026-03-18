@@ -1,3 +1,12 @@
+-- Note: The approved_by_agent_id FK constraint retains its original name
+-- "testimonials_approved_by_agent_id_fkey" in the live database. The Prisma
+-- schema now uses the named relation "TestimonialApprovedBy", but Prisma does
+-- not require the DB constraint name to match the relation name — this is
+-- cosmetic drift only and does not affect runtime behaviour.
+--
+-- Note: seller_id and transaction_id ON DELETE behaviour changed from
+-- RESTRICT to SET NULL (both fields are now nullable per this migration).
+
 -- CreateEnum
 CREATE TYPE "ClientType" AS ENUM ('seller', 'buyer');
 

@@ -1043,3 +1043,56 @@ describe('downloadCddDocument', () => {
     ).rejects.toThrow('CddDocument');
   });
 });
+
+describe('deleteCddDocument', () => {
+  it('deletes encrypted file, removes from JSON, and audits', async () => {
+    mockRepo.findCddRecordWithDocument.mockResolvedValue({
+      verifiedByAgentId: 'agent-1',
+      document: {
+        id: 'doc-1',
+        docType: 'nric',
+        path: 'cdd/cdd-1/nric-doc1.enc',
+        wrappedKey: 'wrapped',
+        label: null,
+        mimeType: 'image/jpeg',
+        sizeBytes: 5000,
+        uploadedAt: '2026-03-18T00:00:00.000Z',
+        uploadedByAgentId: 'agent-1',
+      },
+    });
+    mockEncryptedStorage.delete.mockResolvedValue(undefined);
+    mockRepo.removeCddDocument.mockResolvedValue('cdd/cdd-1/nric-doc1.enc');
+    mockAudit.log.mockResolvedValue(undefined);
+
+    await complianceService.deleteCddDocument({
+      cddRecordId: 'cdd-1',
+      documentId: 'doc-1',
+      agentId: 'agent-1',
+      isAdmin: false,
+    });
+
+    expect(mockEncryptedStorage.delete).toHaveBeenCalledWith('cdd/cdd-1/nric-doc1.enc');
+    expect(mockRepo.removeCddDocument).toHaveBeenCalledWith('cdd-1', 'doc-1');
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'cdd.document_deleted' }),
+    );
+  });
+
+  it('throws ForbiddenError when agent does not own record', async () => {
+    mockRepo.findCddRecordWithDocument.mockResolvedValue({
+      verifiedByAgentId: 'other-agent',
+      document: { id: 'doc-1', path: 'cdd/cdd-1/nric.enc', wrappedKey: 'k' },
+    });
+
+    await expect(
+      complianceService.deleteCddDocument({
+        cddRecordId: 'cdd-1',
+        documentId: 'doc-1',
+        agentId: 'agent-1',
+        isAdmin: false,
+      }),
+    ).rejects.toThrow('not authorised');
+
+    expect(mockEncryptedStorage.delete).not.toHaveBeenCalled();
+  });
+});

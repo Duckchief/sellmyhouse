@@ -31,6 +31,7 @@ import type {
   CddDocumentType,
   UploadCddDocumentInput,
   DownloadCddDocumentInput,
+  DeleteCddDocumentInput,
 } from './compliance.types';
 
 // ─── DNC Gate ────────────────────────────────────────────────────────────────
@@ -1004,6 +1005,40 @@ export async function downloadCddDocument(
 
 export async function isSensitiveCaseSeller(sellerId: string): Promise<boolean> {
   return complianceRepo.findSensitiveCaseBySellerId(sellerId);
+}
+
+// ─── CDD Document Delete ──────────────────────────────────────────────────────
+
+export async function deleteCddDocument(input: DeleteCddDocumentInput): Promise<void> {
+  const result = await complianceRepo.findCddRecordWithDocument(
+    input.cddRecordId,
+    input.documentId,
+  );
+  if (!result) throw new NotFoundError('CddRecord', input.cddRecordId);
+
+  assertCddOwnership(result.verifiedByAgentId, input.agentId, input.isAdmin);
+
+  const doc = result.document;
+  if (!doc) throw new NotFoundError('CddDocument', input.documentId);
+
+  // Path traversal guard before deletion
+  const uploadsRoot = path.resolve(process.env['UPLOADS_DIR'] ?? 'uploads');
+  const resolved = path.resolve(uploadsRoot, doc.path);
+  if (!resolved.startsWith(uploadsRoot + path.sep)) {
+    throw new ForbiddenError('File path is outside the allowed uploads directory');
+  }
+
+  // Hard delete: remove file first, then clear from DB
+  await encryptedStorage.delete(doc.path);
+  await complianceRepo.removeCddDocument(input.cddRecordId, input.documentId);
+
+  await auditService.log({
+    agentId: input.agentId,
+    action: 'cdd.document_deleted',
+    entityType: 'cdd_record',
+    entityId: input.cddRecordId,
+    details: { documentId: input.documentId, docType: doc.docType },
+  });
 }
 
 // ─── SP3: Agent Anonymisation ─────────────────────────────────────────────────

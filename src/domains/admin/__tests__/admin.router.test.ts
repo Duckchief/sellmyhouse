@@ -627,9 +627,7 @@ describe('POST /admin/hdb/sync — progress fragment', () => {
 
   it('returns 200 and calls triggerHdbSync on HTMX request', async () => {
     const app = makeApp();
-    const res = await request(app)
-      .post('/admin/hdb/sync')
-      .set('hx-request', 'true');
+    const res = await request(app).post('/admin/hdb/sync').set('hx-request', 'true');
     expect(res.status).toBe(200);
     expect(mockAdminService.triggerHdbSync).toHaveBeenCalledWith('admin-1');
   });
@@ -698,9 +696,7 @@ describe('GET /admin/hdb/sync/poll — polling endpoint', () => {
 
   it('returns 400 when since param is missing', async () => {
     const app = makeApp();
-    const res = await request(app)
-      .get('/admin/hdb/sync/poll')
-      .set('hx-request', 'true');
+    const res = await request(app).get('/admin/hdb/sync/poll').set('hx-request', 'true');
     expect(res.status).toBe(400);
   });
 

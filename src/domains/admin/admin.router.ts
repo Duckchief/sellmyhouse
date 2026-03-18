@@ -655,6 +655,40 @@ adminRouter.post(
   },
 );
 
+adminRouter.get(
+  '/admin/hdb/sync/poll',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { since } = req.query as { since?: string };
+      if (!since) {
+        return res.status(400).send('Missing since param');
+      }
+      const sinceDate = new Date(since);
+      if (isNaN(sinceDate.getTime())) {
+        return res.status(400).send('Invalid since param');
+      }
+      const status = await adminService.getHdbStatus();
+
+      const syncComplete =
+        status.lastSync !== null && new Date(status.lastSync.syncedAt) > sinceDate;
+
+      if (syncComplete) {
+        return res.render('partials/admin/hdb-sync-complete', {
+          status,
+          success: status.lastSync!.status === 'success',
+          recordsAdded: status.lastSync!.recordsAdded,
+          errorMessage: status.lastSync!.error ?? null,
+        });
+      }
+
+      return res.render('partials/admin/hdb-sync-progress', { since });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 adminRouter.post(
   '/admin/hdb/upload',
   ...adminAuth,

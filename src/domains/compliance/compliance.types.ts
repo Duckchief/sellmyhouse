@@ -163,3 +163,64 @@ export interface CddRecord {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ─── CDD Document Upload ──────────────────────────────────────────────────────
+
+export const CDD_DOCUMENT_TYPES = [
+  'nric',
+  'passport',
+  'work_pass',
+  'proof_of_address',
+  'source_of_funds',
+  'acra_bizfile',
+  'death_certificate',
+  'will',
+  'letters_of_administration',
+  'grant_of_probate',
+  'hdb_transmission_approval',
+  'other',
+] as const;
+
+export type CddDocumentType = (typeof CDD_DOCUMENT_TYPES)[number];
+
+/**
+ * One entry in the CddRecord.documents JSON array.
+ * path + wrappedKey are required to decrypt the .enc file.
+ * wrappedKey is the per-file data key encrypted by the active KeyProvider.
+ */
+export interface CddDocument {
+  id: string;
+  docType: CddDocumentType;
+  label: string | null; // required when docType === 'other'
+  path: string;         // relative: cdd/{cddRecordId}/{docType}-{uuid}.enc
+  wrappedKey: string;   // base64 — data key encrypted by master key
+  mimeType: string;
+  sizeBytes: number;    // plaintext size (for UI display)
+  uploadedAt: string;   // ISO timestamp
+  uploadedByAgentId: string;
+}
+
+export interface UploadCddDocumentInput {
+  cddRecordId: string;
+  agentId: string;
+  isAdmin: boolean;
+  fileBuffer: Buffer;
+  originalFilename: string;
+  mimeType: string;
+  docType: CddDocumentType;
+  label?: string;
+}
+
+export interface DownloadCddDocumentInput {
+  cddRecordId: string;
+  documentId: string;
+  agentId: string;
+  isAdmin: boolean;
+}
+
+export interface DeleteCddDocumentInput {
+  cddRecordId: string;
+  documentId: string;
+  agentId: string;
+  isAdmin: boolean;
+}

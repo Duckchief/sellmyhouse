@@ -499,8 +499,8 @@ describe('submitTestimonial', () => {
   const validInput: TestimonialSubmitInput = {
     content: 'Great service!',
     rating: 5,
-    sellerName: 'John Thomas',
-    sellerTown: 'Tampines',
+    clientName: 'John Thomas',
+    clientTown: 'Tampines',
   };
 
   it('throws NotFoundError when token does not exist', async () => {

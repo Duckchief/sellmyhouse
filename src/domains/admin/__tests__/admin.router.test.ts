@@ -7,6 +7,9 @@ import * as adminService from '../admin.service';
 
 jest.mock('../../content/content.service');
 jest.mock('../admin.service');
+jest.mock('@/domains/profile/profile.service', () => ({
+  getHasAvatar: jest.fn().mockResolvedValue(false),
+}));
 
 const mockAdminService = adminService as jest.Mocked<typeof adminService>;
 

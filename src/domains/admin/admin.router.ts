@@ -1091,6 +1091,23 @@ adminRouter.post(
   },
 );
 
+// Detail drawer partial — loads testimonial into the slide-in drawer
+adminRouter.get(
+  '/admin/content/testimonials/:id',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const record = await contentService.getTestimonialById(req.params['id'] as string);
+      if (!req.headers['hx-request']) {
+        return res.redirect('/admin/content/testimonials');
+      }
+      return res.render('partials/admin/testimonial-detail-drawer', { record });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 adminRouter.post(
   '/admin/content/testimonials/:id/approve',
   ...adminAuth,
@@ -1098,6 +1115,10 @@ adminRouter.post(
     try {
       const user = req.user as AuthenticatedUser;
       await contentService.approveTestimonial(req.params['id'] as string, user.id);
+      if (req.headers['hx-request']) {
+        const records = await contentService.listTestimonials();
+        return res.render('partials/admin/testimonial-list', { records });
+      }
       return res.redirect('/admin/content/testimonials');
     } catch (err) {
       return next(err);
@@ -1112,6 +1133,10 @@ adminRouter.post(
     try {
       const user = req.user as AuthenticatedUser;
       await contentService.rejectTestimonial(req.params['id'] as string, user.id);
+      if (req.headers['hx-request']) {
+        const records = await contentService.listTestimonials();
+        return res.render('partials/admin/testimonial-list', { records });
+      }
       return res.redirect('/admin/content/testimonials');
     } catch (err) {
       return next(err);

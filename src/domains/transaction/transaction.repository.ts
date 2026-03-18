@@ -40,7 +40,7 @@ export async function createTransaction(data: CreateTransactionData) {
 export async function findById(id: string) {
   return prisma.transaction.findUnique({
     where: { id },
-    include: { otp: true, commissionInvoice: true },
+    include: { otp: true, commissionInvoice: true, seller: { select: { agentId: true } } },
   });
 }
 

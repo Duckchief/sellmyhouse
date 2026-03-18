@@ -86,9 +86,27 @@ export async function createTransaction(input: CreateTransactionInput) {
   return tx;
 }
 
-export async function getTransaction(transactionId: string) {
+/**
+ * Assert the requesting agent owns this transaction (via seller.agentId).
+ * Admins bypass the check. Returns 404 to avoid leaking existence of other agents' transactions.
+ */
+function assertTransactionOwnership(
+  tx: { seller?: { agentId: string | null } | null },
+  callerAgentId: string | undefined,
+): void {
+  if (!callerAgentId) return; // admin — no filter
+  if (tx.seller?.agentId !== callerAgentId) {
+    throw new NotFoundError('Transaction', 'unknown');
+  }
+}
+
+export async function getTransaction(
+  transactionId: string,
+  callerAgentId?: string,
+) {
   const tx = await txRepo.findById(transactionId);
   if (!tx) throw new NotFoundError('Transaction', transactionId);
+  assertTransactionOwnership(tx, callerAgentId);
   return tx;
 }
 

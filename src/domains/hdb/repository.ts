@@ -1,4 +1,5 @@
 // src/domains/hdb/repository.ts
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/infra/database/prisma';
 import type { HdbTransactionFilters } from './types';
 
@@ -65,43 +66,37 @@ export class HdbRepository {
     median: number;
     avgPricePerSqm: number;
   } | null> {
-    const conditions: string[] = [];
-    const values: (string | number)[] = [];
-    let i = 1;
+    const conditions: Prisma.Sql[] = [];
 
     if (filters.town) {
-      conditions.push(`town = $${i++}`);
-      values.push(filters.town);
+      conditions.push(Prisma.sql`town = ${filters.town}`);
     }
     if (filters.flatType) {
-      conditions.push(`flat_type = $${i++}`);
-      values.push(filters.flatType);
+      conditions.push(Prisma.sql`flat_type = ${filters.flatType}`);
     }
     if (filters.storeyRange) {
-      conditions.push(`storey_range = $${i++}`);
-      values.push(filters.storeyRange);
+      conditions.push(Prisma.sql`storey_range = ${filters.storeyRange}`);
     }
     if (filters.fromMonth) {
-      conditions.push(`month >= $${i++}`);
-      values.push(filters.fromMonth);
+      conditions.push(Prisma.sql`month >= ${filters.fromMonth}`);
     }
     if (filters.toMonth) {
-      conditions.push(`month <= $${i++}`);
-      values.push(filters.toMonth);
+      conditions.push(Prisma.sql`month <= ${filters.toMonth}`);
     }
 
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const where = conditions.length
+      ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+      : Prisma.empty;
 
     type StatsRow = { count: bigint; min: string; max: string; median: string; avg_psm: string };
-    const rows = await prisma.$queryRawUnsafe<StatsRow[]>(
-      `SELECT
+    const rows = await prisma.$queryRaw<StatsRow[]>(
+      Prisma.sql`SELECT
          COUNT(*)                                                          AS count,
          MIN(resale_price)                                                 AS min,
          MAX(resale_price)                                                 AS max,
          PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY resale_price)        AS median,
          AVG(resale_price::float / NULLIF(floor_area_sqm, 0))             AS avg_psm
        FROM hdb_transactions ${where}`,
-      ...values,
     );
 
     const row = rows[0];

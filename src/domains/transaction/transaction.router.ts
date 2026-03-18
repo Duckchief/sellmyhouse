@@ -23,6 +23,11 @@ export const transactionRouter = Router();
 const agentAuth = [requireAuth(), requireRole('agent', 'admin'), requireTwoFactor()];
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
+/** Return undefined for admin (allow all), or agent's own ID for ownership filtering */
+function getCallerAgentId(user: AuthenticatedUser): string | undefined {
+  return user.role === 'admin' ? undefined : user.id;
+}
+
 // POST /agent/transactions — create transaction
 transactionRouter.post(
   '/agent/transactions',
@@ -61,7 +66,7 @@ transactionRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const tx = await txService.getTransaction(req.params['id'] as string);
+      const tx = await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));
 
       if (req.headers['hx-request']) {
         return res.render('partials/agent/transaction-detail', { tx });
@@ -92,6 +97,7 @@ transactionRouter.patch(
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
       const user = req.user as AuthenticatedUser;
+      await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));
       const tx = await txService.advanceTransactionStatus({
         transactionId: req.params['id'] as string,
         status: req.body.status as 'option_exercised' | 'completing' | 'completed',
@@ -119,6 +125,7 @@ transactionRouter.post(
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
       const user = req.user as AuthenticatedUser;
+      await txService.getTransaction(req.params['transactionId'] as string, getCallerAgentId(user));
       const tx = await txService.markFallenThrough({
         transactionId: req.params['transactionId'] as string,
         sellerId: req.body.sellerId as string,
@@ -147,6 +154,7 @@ transactionRouter.patch(
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
       const user = req.user as AuthenticatedUser;
+      await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));
       const tx = await txService.updateHdbTracking({
         transactionId: req.params['id'] as string,
         hdbApplicationStatus: req.body.hdbApplicationStatus,
@@ -184,6 +192,7 @@ transactionRouter.post(
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
       const user = req.user as AuthenticatedUser;
+      await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));
       const otp = await txService.createOtp({
         transactionId: req.params['id'] as string,
         hdbSerialNumber: req.body.hdbSerialNumber as string,
@@ -207,6 +216,7 @@ transactionRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
+      await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));
       const otp = await txService.advanceOtp({
         transactionId: req.params['id'] as string,
         notes: req.body.notes as string | undefined,
@@ -239,6 +249,7 @@ transactionRouter.post(
       }
 
       const user = req.user as AuthenticatedUser;
+      await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));
       const otp = await txService.uploadOtpScan({
         transactionId: req.params['id'] as string,
         scanType,
@@ -264,6 +275,7 @@ transactionRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
+      await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));
       const otp = await txService.markOtpReviewed({
         transactionId: req.params['id'] as string,
         notes: req.body.notes as string | undefined,
@@ -293,6 +305,7 @@ transactionRouter.post(
       if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
       const user = req.user as AuthenticatedUser;
+      await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));
       const invoice = await txService.uploadInvoice({
         transactionId: req.params['id'] as string,
         fileBuffer: req.file.buffer,
@@ -322,6 +335,7 @@ transactionRouter.post(
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
       const user = req.user as AuthenticatedUser;
+      await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));
       const invoice = await txService.sendInvoice({
         transactionId: req.params['id'] as string,
         sellerId: req.body.sellerId as string,
@@ -345,6 +359,7 @@ transactionRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
+      await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));
       const invoice = await txService.markInvoicePaid({
         transactionId: req.params['id'] as string,
         agentId: user.id,
@@ -366,16 +381,14 @@ transactionRouter.get(
   ...agentAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const invoice = await txService.getTransaction(req.params['id'] as string);
+      const user = req.user as AuthenticatedUser;
+      const invoice = await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));
       const invoicePath = (invoice as { commissionInvoice?: { invoiceFilePath?: string | null } })
         .commissionInvoice?.invoiceFilePath;
       if (!invoicePath) return res.status(404).json({ error: 'No invoice file found' });
 
       // Files are served through this authenticated route — never directly via nginx
       const buffer = await localStorage.read(invoicePath);
-
-      // A7: Audit invoice file download
-      const user = req.user as AuthenticatedUser;
       const invoiceRecord = (invoice as { commissionInvoice?: { id?: string } }).commissionInvoice;
       await auditService.log({
         agentId: user.id,

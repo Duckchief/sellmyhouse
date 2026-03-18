@@ -857,6 +857,26 @@ describe('featureTestimonial — approved status guard', () => {
   });
 });
 
+// ─── getTestimonialById ───────────────────────────────────────────────────────
+
+describe('getTestimonialById', () => {
+  it('returns the testimonial when found', async () => {
+    const mock = { id: 't-1', clientName: 'Mary L.', status: 'approved' } as Testimonial;
+    mockedRepo.findTestimonialById.mockResolvedValue(mock);
+
+    const result = await contentService.getTestimonialById('t-1');
+
+    expect(mockedRepo.findTestimonialById).toHaveBeenCalledWith('t-1');
+    expect(result).toEqual(mock);
+  });
+
+  it('throws NotFoundError when not found', async () => {
+    mockedRepo.findTestimonialById.mockResolvedValue(null);
+
+    await expect(contentService.getTestimonialById('missing')).rejects.toThrow(NotFoundError);
+  });
+});
+
 // ─── rejectTestimonial — notification to seller ───────────────────────────────
 
 jest.mock('@/domains/notification/notification.service');

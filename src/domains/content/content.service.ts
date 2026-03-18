@@ -339,6 +339,12 @@ export async function getTestimonialBySeller(sellerId: string) {
   return contentRepo.findTestimonialBySeller(sellerId);
 }
 
+export async function getTestimonialById(id: string) {
+  const testimonial = await contentRepo.findTestimonialById(id);
+  if (!testimonial) throw new NotFoundError('Testimonial', id);
+  return testimonial;
+}
+
 export async function listTestimonials() {
   return contentRepo.findAllTestimonials();
 }

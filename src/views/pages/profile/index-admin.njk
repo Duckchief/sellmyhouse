@@ -143,6 +143,14 @@
     var file = e.target.files && e.target.files[0];
     if (!file) return;
 
+    var sizeErr = document.getElementById('avatar-size-error');
+    if (file.size > 2 * 1024 * 1024) {
+      if (sizeErr) sizeErr.classList.remove('hidden');
+      this.value = '';
+      return;
+    }
+    if (sizeErr) sizeErr.classList.add('hidden');
+
     var reader = new FileReader();
     reader.onload = function (ev) {
       var img = document.getElementById('crop-preview');

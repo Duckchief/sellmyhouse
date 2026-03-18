@@ -14,9 +14,11 @@
     </div>
   {%- endif %}
   <div class="flex flex-col gap-1">
-    <label for="avatar-file-input" class="cursor-pointer px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded border border-gray-200 text-gray-700">
+    <label for="avatar-file-input" class="cursor-pointer px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded border border-gray-200 text-gray-700 text-center">
       {{ "Upload photo" | t }}
     </label>
+    <p class="text-xs text-gray-400">{{ "jpg/ jpeg/ png only. Max 2MB" | t }}</p>
+    <p id="avatar-size-error" class="hidden text-xs text-red-500">{{ "File too large. Max 2MB." | t }}</p>
     {%- if hasAvatar %}
       <button
         hx-delete="/profile/avatar"

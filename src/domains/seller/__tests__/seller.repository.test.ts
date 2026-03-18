@@ -120,4 +120,20 @@ describe('seller.repository', () => {
       });
     });
   });
+
+  describe('recordCpfDisclaimerShown', () => {
+    it('updates cpfDisclaimerShownAt on the seller', async () => {
+      prisma.seller.update.mockResolvedValue({
+        id: 'seller-1',
+        cpfDisclaimerShownAt: new Date(),
+      });
+
+      await sellerRepo.recordCpfDisclaimerShown('seller-1');
+
+      expect(prisma.seller.update).toHaveBeenCalledWith({
+        where: { id: 'seller-1' },
+        data: { cpfDisclaimerShownAt: expect.any(Date) },
+      });
+    });
+  });
 });

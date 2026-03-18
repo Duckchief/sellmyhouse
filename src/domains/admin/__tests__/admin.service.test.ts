@@ -591,6 +591,23 @@ describe('updateSetting', () => {
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
+  it('rejects invalid cron expression for market_content_schedule', async () => {
+    const { ValidationError } = await import('@/domains/shared/errors');
+    await expect(
+      adminService.updateSetting('market_content_schedule', 'not-a-cron', 'admin-1'),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('accepts valid multi-day cron expression for market_content_schedule', async () => {
+    mockSettingsService.findByKey.mockResolvedValueOnce(null);
+    mockSettingsService.upsert.mockResolvedValueOnce({} as any);
+    // mockAudit.log is already defaulted to resolved in beforeEach
+
+    await expect(
+      adminService.updateSetting('market_content_schedule', '30 9 * * 1,3', 'admin-1'),
+    ).resolves.toBeUndefined();
+  });
+
   it('saves valid value and audits with old and new values', async () => {
     mockSettingsService.findByKey.mockResolvedValue({
       id: 'id-1',
@@ -629,6 +646,23 @@ describe('updateSetting', () => {
         }),
       }),
     );
+  });
+});
+
+describe('getSettingsGrouped', () => {
+  it('assigns inputType cron to market_content_schedule and text to others', async () => {
+    mockSettingsService.findAll.mockResolvedValueOnce([
+      { id: '1', key: 'market_content_schedule', value: '0 8 * * 1', description: 'desc', updatedByAgentId: null, updatedAt: new Date(), createdAt: new Date() },
+      { id: '2', key: 'maintenance_mode', value: 'false', description: 'desc', updatedByAgentId: null, updatedAt: new Date(), createdAt: new Date() },
+    ]);
+
+    const groups = await adminService.getSettingsGrouped();
+    const platform = groups.find((g) => g.label === 'Platform')!;
+    const schedSetting = platform.settings.find((s) => s.key === 'market_content_schedule')!;
+    const modeSetting = platform.settings.find((s) => s.key === 'maintenance_mode')!;
+
+    expect(schedSetting.inputType).toBe('cron');
+    expect(modeSetting.inputType).toBe('text');
   });
 });
 

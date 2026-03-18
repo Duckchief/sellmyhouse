@@ -65,18 +65,30 @@
     </div>
 
     <div>
-      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-rating">
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1">
         {{ "Rating" | t }}
       </label>
-      <select id="drawer-rating" name="rating" required class="input-field w-full">
+      {# Pure-CSS star picker: DOM order 5→1, flex-row-reverse for visual 1→5.
+         Hovering a label highlights it + all DOM-subsequent labels (= visually lower stars).
+         Checked radio fills its label + all DOM-subsequent labels (= stars to its left). #}
+      <style>
+        .star-picker { display:flex; flex-direction:row-reverse; width:fit-content; gap:2px; }
+        .star-picker input[type=radio] { display:none; }
+        .star-picker label { font-size:1.75rem; line-height:1; cursor:pointer; color:#d1d5db; transition:color .1s; }
+        .star-picker input:checked + label,
+        .star-picker input:checked + label ~ label { color:#f59e0b; }
+        .star-picker:hover label { color:#d1d5db; }
+        .star-picker label:hover,
+        .star-picker label:hover ~ label { color:#f59e0b; }
+      </style>
+      <div class="star-picker">
         {% set ratingVal = values.rating | int if values else 0 %}
-        <option value="" {% if not ratingVal %}selected{% endif %} disabled>{{ "Select rating" | t }}</option>
         {% for n in [5, 4, 3, 2, 1] %}
-        <option value="{{ n }}" {% if ratingVal == n %}selected{% endif %}>
-          {{ n }}★
-        </option>
+        <input type="radio" id="drawer-star-{{ n }}" name="rating" value="{{ n }}"
+               {% if ratingVal == n %}checked{% endif %}>
+        <label for="drawer-star-{{ n }}" aria-label="{{ n }} {{ 'stars' | t }}">★</label>
         {% endfor %}
-      </select>
+      </div>
     </div>
 
     <div>

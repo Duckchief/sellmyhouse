@@ -163,6 +163,16 @@
       }
     }
 
+    if (action === 'close-testimonial-drawer') {
+      var testimonialDrawer = document.getElementById('testimonial-drawer-panel');
+      var testimonialBackdrop = document.getElementById('testimonial-drawer-backdrop');
+      if (testimonialDrawer) {
+        testimonialDrawer.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
+        testimonialDrawer.setAttribute('aria-hidden', 'true');
+      }
+      if (testimonialBackdrop) testimonialBackdrop.classList.add('hidden');
+    }
+
     // Referral table: toggle the pre-composed message expansion row
     if (action === 'toggle-referral-message') {
       var msgRow = document.getElementById(el.dataset.target);
@@ -286,6 +296,27 @@
         panel.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
         panel.setAttribute('aria-hidden', 'true');
         var backdrop2 = document.getElementById('review-detail-backdrop');
+        if (backdrop2) backdrop2.classList.add('hidden');
+      }
+    }
+  });
+
+  // ── HTMX: testimonial drawer show/hide ──────────────────────
+  document.addEventListener('htmx:afterRequest', function (e) {
+    var drawer = document.getElementById('testimonial-drawer-panel');
+    if (drawer) {
+      // Show drawer when form content loads into it
+      if (e.detail.target && e.detail.target.id === 'testimonial-drawer-content' && e.detail.successful) {
+        drawer.classList.remove('translate-x-full', 'opacity-0', 'pointer-events-none');
+        drawer.removeAttribute('aria-hidden');
+        var backdrop = document.getElementById('testimonial-drawer-backdrop');
+        if (backdrop) backdrop.classList.remove('hidden');
+      }
+      // Hide drawer and refresh list after successful form POST
+      if (e.detail.elt && e.detail.elt.closest && e.detail.elt.closest('#testimonial-drawer-panel') && e.detail.successful && e.detail.target && e.detail.target.id === 'testimonial-list') {
+        drawer.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
+        drawer.setAttribute('aria-hidden', 'true');
+        var backdrop2 = document.getElementById('testimonial-drawer-backdrop');
         if (backdrop2) backdrop2.classList.add('hidden');
       }
     }

@@ -601,6 +601,14 @@ export async function checkInactiveSellers() {
   return { checked: inactive.length };
 }
 
+export async function recordCpfDisclaimerShown(sellerId: string): Promise<void> {
+  await sellerRepo.recordCpfDisclaimerShown(sellerId);
+}
+
+export async function findById(sellerId: string) {
+  return sellerRepo.findById(sellerId);
+}
+
 // --- Private helpers ---
 
 function buildOnboardingStatus(step: number): OnboardingStatus {

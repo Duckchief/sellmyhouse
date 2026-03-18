@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import * as financialService from './financial.service';
+import * as sellerService from '@/domains/seller/seller.service';
 import {
   validateCalculationInput,
   validateApproveInput,
@@ -9,6 +10,7 @@ import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middlew
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import { logger } from '@/infra/logger';
 import * as auditService from '@/domains/shared/audit.service';
+import { ForbiddenError } from '@/domains/shared/errors';
 
 export const financialRouter = Router();
 
@@ -20,17 +22,28 @@ financialRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
+
+      // Gate: seller must have loaded the form (which shows the disclaimer)
+      // before they can submit a calculation. Prevents crafted direct API calls
+      // from bypassing the disclaimer entirely.
+      const seller = await sellerService.findById(user.id);
+      if (!seller?.cpfDisclaimerShownAt) {
+        throw new ForbiddenError(
+          'Please load the financial calculator form before submitting.',
+        );
+      }
+
       const input = validateCalculationInput(req.body);
 
       const report = await financialService.calculateAndCreateReport({
         sellerId: user.id,
-        propertyId: req.body.propertyId,
+        propertyId: req.body.propertyId as string,
         calculationInput: input,
         metadata: {
-          flatType: req.body.flatType,
-          town: req.body.town || '',
+          flatType: req.body.flatType as string,
+          town: (req.body.town as string) || '',
           leaseCommenceDate: Number(req.body.leaseCommenceDate) || 0,
-          cpfDisclaimerShownAt: req.body.cpfDisclaimerShownAt || new Date().toISOString(),
+          cpfDisclaimerShownAt: seller.cpfDisclaimerShownAt.toISOString(),
         },
       });
 
@@ -76,9 +89,22 @@ financialRouter.get(
   },
 );
 
-financialRouter.get('/seller/financial/form', requireAuth(), (_req: Request, res: Response) => {
-  res.render('partials/seller/financial-form');
-});
+financialRouter.get(
+  '/seller/financial/form',
+  requireAuth(),
+  requireRole('seller'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      // Record that this authenticated seller was served the disclaimer.
+      // This is the server-side proof used to gate POST /calculate.
+      await sellerService.recordCpfDisclaimerShown(user.id);
+      res.render('partials/seller/financial-form');
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 financialRouter.get(
   '/seller/financial/report/:id',

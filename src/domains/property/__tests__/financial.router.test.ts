@@ -3,10 +3,13 @@ import request from 'supertest';
 import type { FinancialReport } from '@prisma/client';
 import { financialRouter } from '../financial.router';
 import * as financialService from '../financial.service';
+import * as sellerService from '@/domains/seller/seller.service';
 
 jest.mock('../financial.service');
+jest.mock('@/domains/seller/seller.service');
 
 const mockService = financialService as jest.Mocked<typeof financialService>;
+const mockSellerService = sellerService as jest.Mocked<typeof sellerService>;
 
 // Stub res.render so tests don't need a full Nunjucks setup
 function addRenderStub(app: express.Express) {
@@ -74,6 +77,12 @@ function createAgentTestApp() {
 describe('financial.router', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default: seller has loaded the form (disclaimer shown)
+    mockSellerService.findById.mockResolvedValue({
+      id: 'seller-1',
+      cpfDisclaimerShownAt: new Date('2026-01-01T00:00:00.000Z'),
+    } as never);
+    mockSellerService.recordCpfDisclaimerShown.mockResolvedValue(undefined);
   });
 
   describe('POST /seller/financial/calculate', () => {
@@ -89,8 +98,7 @@ describe('financial.router', () => {
       const res = await request(app).post('/seller/financial/calculate').send({
         salePrice: 500000,
         outstandingLoan: 200000,
-        cpfOaUsed: 100000,
-        purchaseYear: 2016,
+        cpfRefund1: 100000,
         flatType: '4 ROOM',
         subsidyType: 'subsidised',
         isFirstTimer: true,

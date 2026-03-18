@@ -1012,11 +1012,18 @@ adminRouter.get(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const records = await contentService.listMarketContent();
+      const activeStatus = (req.query['status'] as string) || '';
+      const records = await contentService.listMarketContent(activeStatus || undefined);
+      const allRecords = activeStatus ? await contentService.listMarketContent() : records;
+      const hasPendingReview = allRecords.some((r) => r.status === 'pending_review');
       const notice =
         req.query['notice'] === 'no_data' ? 'Insufficient HDB data for the current period.' : null;
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/market-content-list', { records });
+        return res.render('partials/admin/market-content-list', {
+          records,
+          activeStatus,
+          hasPendingReview,
+        });
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
@@ -1025,6 +1032,8 @@ adminRouter.get(
         user,
         hasAvatar,
         records,
+        activeStatus,
+        hasPendingReview,
         error: notice,
         currentPath: '/admin/content/market',
       });

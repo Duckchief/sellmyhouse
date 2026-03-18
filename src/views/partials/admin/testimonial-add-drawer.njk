@@ -50,18 +50,58 @@
     </div>
 
     <div>
-      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-clientTown">
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-clientTown-search">
         {{ "Town" | t }}
       </label>
-      <input
-        type="text"
-        id="drawer-clientTown"
-        name="clientTown"
-        value="{{ values.clientTown if values else '' }}"
-        maxlength="100"
-        required
-        class="input-field w-full"
-        placeholder="{{ 'e.g. Bishan' | t }}">
+      <div class="relative" id="town-combobox">
+        {# Visible search input #}
+        <input
+          type="text"
+          id="drawer-clientTown-search"
+          autocomplete="off"
+          placeholder="{{ 'Search town…' | t }}"
+          value="{{ values.clientTown if values else '' }}"
+          class="input-field w-full pl-8 pr-8"
+          oninput="townComboFilter(this.value)"
+          onfocus="townComboShow()"
+          onblur="setTimeout(townComboHide, 150)"
+          aria-autocomplete="list"
+          aria-controls="town-combobox-list"
+          aria-expanded="false">
+        {# Search icon #}
+        <svg class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+        </svg>
+        {# Chevron icon #}
+        <svg id="town-combobox-chevron" class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 transition-transform duration-150" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+        {# Hidden input — submitted with the form. No `required` here (browsers ignore it on
+           hidden inputs). Client-side enforcement is handled by the submit guard in the script. #}
+        <input
+          type="hidden"
+          id="drawer-clientTown"
+          name="clientTown"
+          value="{{ values.clientTown if values else '' }}">
+        {# Dropdown list #}
+        <div
+          id="town-combobox-list"
+          role="listbox"
+          class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg max-h-48 overflow-y-auto hidden">
+          {% for town in towns %}
+          <div
+            role="option"
+            class="px-3 py-2 text-sm text-gray-800 cursor-pointer hover:bg-indigo-50"
+            onmousedown="townComboSelect('{{ town }}')">
+            {{ town }}
+          </div>
+          {% endfor %}
+          {# Empty state — shown when no towns match the search query #}
+          <div id="town-combobox-empty" class="px-3 py-2 text-sm text-gray-400 hidden">
+            {{ "No towns found" | t }}
+          </div>
+        </div>
+      </div>
     </div>
 
     <div>
@@ -137,4 +177,63 @@
       {{ "Saved as Pending Review — approve from the list to feature on website." | t }}
     </p>
   </form>
+  <script>
+    (function () {
+      // allItems excludes the empty-state element (it has no role="option")
+      var allItems = Array.from(document.querySelectorAll('#town-combobox-list [role="option"]'));
+      var emptyEl  = document.getElementById('town-combobox-empty');
+
+      function townComboShow() {
+        allItems.forEach(function (el) { el.style.display = ''; });
+        emptyEl.classList.add('hidden');
+        document.getElementById('town-combobox-list').classList.remove('hidden');
+        document.getElementById('town-combobox-chevron').style.transform = 'translateY(-50%) rotate(180deg)';
+        document.getElementById('drawer-clientTown-search').setAttribute('aria-expanded', 'true');
+      }
+
+      function townComboHide() {
+        document.getElementById('town-combobox-list').classList.add('hidden');
+        document.getElementById('town-combobox-chevron').style.transform = 'translateY(-50%)';
+        document.getElementById('drawer-clientTown-search').setAttribute('aria-expanded', 'false');
+      }
+
+      function townComboFilter(q) {
+        var lower   = q.toLowerCase();
+        var anyVisible = false;
+        allItems.forEach(function (el) {
+          var match = el.textContent.trim().toLowerCase().includes(lower);
+          el.style.display = match ? '' : 'none';
+          if (match) anyVisible = true;
+        });
+        emptyEl.classList.toggle('hidden', anyVisible);
+        document.getElementById('town-combobox-list').classList.remove('hidden');
+        document.getElementById('town-combobox-chevron').style.transform = 'translateY(-50%) rotate(180deg)';
+      }
+
+      function townComboSelect(town) {
+        document.getElementById('drawer-clientTown-search').value = town;
+        document.getElementById('drawer-clientTown').value = town;
+        townComboHide();
+      }
+
+      // Submit guard — prevent form submission if no town is selected.
+      // (browsers do not enforce `required` on hidden inputs)
+      var form = document.getElementById('drawer-clientTown-search').closest('form');
+      form.addEventListener('submit', function (e) {
+        if (!document.getElementById('drawer-clientTown').value) {
+          e.preventDefault();
+          document.getElementById('drawer-clientTown-search').focus();
+          document.getElementById('drawer-clientTown-search').setCustomValidity('{{ "Please select a town." | t }}');
+          document.getElementById('drawer-clientTown-search').reportValidity();
+        } else {
+          document.getElementById('drawer-clientTown-search').setCustomValidity('');
+        }
+      });
+
+      window.townComboShow   = townComboShow;
+      window.townComboHide   = townComboHide;
+      window.townComboFilter = townComboFilter;
+      window.townComboSelect = townComboSelect;
+    })();
+  </script>
 </div>

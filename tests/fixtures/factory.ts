@@ -408,8 +408,6 @@ export const factory = {
     status?: 'pending_submission' | 'pending_review' | 'approved' | 'rejected';
     content?: string | null;
     rating?: number | null;
-    sellerName?: string;
-    sellerTown?: string;
     clientName?: string;
     clientTown?: string;
     submissionToken?: string;
@@ -425,8 +423,6 @@ export const factory = {
         status: overrides.status ?? 'pending_submission',
         content: overrides.content ?? null,
         rating: overrides.rating ?? null,
-        sellerName: overrides.sellerName ?? 'John T.',
-        sellerTown: overrides.sellerTown ?? 'Tampines',
         clientName: overrides.clientName ?? 'John T.',
         clientTown: overrides.clientTown ?? 'Tampines',
         submissionToken: overrides.submissionToken ?? createId(),

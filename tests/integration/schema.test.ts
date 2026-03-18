@@ -77,8 +77,6 @@ describe('Phase 1A Schema', () => {
         id: createId(),
         seller: { connect: { id: seller.id } },
         transaction: { connect: { id: transaction.id } },
-        sellerName: 'John T.',
-        sellerTown: 'Tampines',
         clientName: 'John T.',
         clientTown: 'Tampines',
         status: 'pending_submission',

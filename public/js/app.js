@@ -6,6 +6,14 @@
     navigator.serviceWorker.register('/sw.js');
   }
 
+  // ── Sidebar collapse: restore persisted state before first paint ─
+  (function () {
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar && localStorage.getItem('sidebar:collapsed') === 'true') {
+      sidebar.classList.add('sidebar-collapsed');
+    }
+  })();
+
   // ── Cookie consent banner ──────────────────────────────────────
   (function () {
     if (localStorage.getItem('cookieConsent')) {
@@ -130,6 +138,15 @@
     // Navigate to a URL stored in data-url (table row click)
     if (action === 'navigate') {
       window.location.href = el.dataset.url;
+    }
+
+    // Toggle desktop sidebar collapse (icon rail)
+    if (action === 'toggle-sidebar-collapse') {
+      var sidebar = document.getElementById('sidebar');
+      if (sidebar) {
+        var isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
+        localStorage.setItem('sidebar:collapsed', isCollapsed ? 'true' : 'false');
+      }
     }
 
     // Toggle mobile sidebar open/closed

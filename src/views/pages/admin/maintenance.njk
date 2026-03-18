@@ -17,7 +17,7 @@
           class="w-28 h-28 object-contain"
           style="image-rendering: pixelated;"
         />
-        <span class="text-xs font-medium px-2 py-1 rounded-full {{ 'bg-red-100 text-red-700' if maintenance.isOn else 'bg-gray-100 text-gray-500' }}">
+        <span id="maintenance-status-badge" class="text-xs font-medium px-2 py-1 rounded-full {{ 'bg-red-100 text-red-700' if maintenance.isOn else 'bg-gray-100 text-gray-500' }}">
           {{ "● Live" if maintenance.isOn else "● Off" }}
         </span>
       </div>

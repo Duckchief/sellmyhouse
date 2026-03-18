@@ -20,6 +20,8 @@
       hx-post="/admin/maintenance/toggle"
       hx-target="#maintenance-status"
       hx-swap="outerHTML"
+      hx-confirm="{{ 'Enable maintenance mode? Visitors and sellers will be blocked immediately.' | t if not maintenance.isOn else '' }}"
+      hx-disabled-elt="this"
       aria-label="{{ 'Toggle maintenance mode' | t }}"
       class="relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 {{ 'bg-red-500' if maintenance.isOn else 'bg-gray-300' }}"
     >
@@ -31,4 +33,10 @@
       {{ "On" | t }}
     </span>
   </div>
+
+  {# Out-of-band: sync the left-column badge on toggle #}
+  <span id="maintenance-status-badge" hx-swap-oob="true"
+    class="text-xs font-medium px-2 py-1 rounded-full {{ 'bg-red-100 text-red-700' if maintenance.isOn else 'bg-gray-100 text-gray-500' }}">
+    {{ "● Live" | t if maintenance.isOn else "● Off" | t }}
+  </span>
 </div>

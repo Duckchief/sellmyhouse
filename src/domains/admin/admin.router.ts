@@ -644,9 +644,8 @@ adminRouter.post(
       const user = req.user as AuthenticatedUser;
       await adminService.triggerHdbSync(user.id);
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/team-action-result', {
-          message: 'HDB sync triggered. Data will update shortly.',
-          type: 'success',
+        return res.render('partials/admin/hdb-sync-progress', {
+          since: new Date().toISOString(),
         });
       }
       res.redirect('/admin/hdb');

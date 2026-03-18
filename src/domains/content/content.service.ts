@@ -310,8 +310,8 @@ export async function submitTestimonial(token: string, input: TestimonialSubmitI
   return contentRepo.updateTestimonialSubmission(testimonial.id, {
     content: input.content,
     rating: input.rating,
-    sellerName: input.sellerName,
-    sellerTown: input.sellerTown,
+    sellerName: input.clientName,
+    sellerTown: input.clientTown,
     status: 'pending_review' as const,
   });
 }
@@ -351,17 +351,19 @@ export async function approveTestimonial(id: string, agentId: string) {
 
 export async function rejectTestimonial(id: string, agentId?: string, reason?: string) {
   const testimonial = await contentRepo.updateTestimonialStatus(id, 'rejected');
-  void notificationService.send(
-    {
-      recipientType: 'seller',
-      recipientId: testimonial.sellerId,
-      templateName: 'testimonial_rejected',
-      templateData: {
-        reason: reason ?? 'Your testimonial did not meet our publication guidelines.',
+  if (testimonial.sellerId) {
+    void notificationService.send(
+      {
+        recipientType: 'seller',
+        recipientId: testimonial.sellerId,
+        templateName: 'testimonial_rejected',
+        templateData: {
+          reason: reason ?? 'Your testimonial did not meet our publication guidelines.',
+        },
       },
-    },
-    agentId ?? 'system',
-  );
+      agentId ?? 'system',
+    );
+  }
   return testimonial;
 }
 

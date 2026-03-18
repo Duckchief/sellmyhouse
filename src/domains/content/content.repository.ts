@@ -165,7 +165,17 @@ export async function createTestimonial(input: {
   submissionToken: string;
   tokenExpiresAt: Date;
 }) {
-  return prisma.testimonial.create({ data: input });
+  return prisma.testimonial.create({
+    data: {
+      id: input.id,
+      sellerId: input.sellerId,
+      transactionId: input.transactionId,
+      clientName: input.sellerName,
+      clientTown: input.sellerTown,
+      submissionToken: input.submissionToken,
+      tokenExpiresAt: input.tokenExpiresAt,
+    },
+  });
 }
 
 export async function updateTestimonialSubmission(

@@ -52,8 +52,8 @@ testimonialRouter.post(
       await contentService.submitTestimonial(req.params['token'] as string, {
         content: req.body.content as string,
         rating: Number(req.body.rating),
-        sellerName: req.body.sellerName as string,
-        sellerTown: req.body.sellerTown as string,
+        clientName: req.body.sellerName as string,
+        clientTown: req.body.sellerTown as string,
       });
 
       return res.redirect('/testimonial/thankyou');

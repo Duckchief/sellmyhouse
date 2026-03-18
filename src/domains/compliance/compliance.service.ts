@@ -1,8 +1,12 @@
 // src/domains/compliance/compliance.service.ts
+import path from 'path';
+import { createId } from '@paralleldrive/cuid2';
 import * as complianceRepo from './compliance.repository';
 import * as sellerService from '@/domains/seller/seller.service';
 import * as settingsService from '@/domains/shared/settings.service';
 import { localStorage } from '@/infra/storage/local-storage';
+import { encryptedStorage } from '@/infra/storage/encrypted-storage';
+import { scanBuffer } from '@/infra/security/virus-scanner';
 import * as auditService from '../shared/audit.service';
 import {
   NotFoundError,
@@ -23,6 +27,9 @@ import type {
   CreateEaaInput,
   EaaRecord,
   ConfirmEaaExplanationInput,
+  CddDocument,
+  CddDocumentType,
+  UploadCddDocumentInput,
 } from './compliance.types';
 
 // ─── DNC Gate ────────────────────────────────────────────────────────────────
@@ -891,6 +898,76 @@ export function findCddRecordByTransactionAndSubjectType(
   subjectType: string,
 ) {
   return complianceRepo.findCddRecordByTransactionAndSubjectType(transactionId, subjectType);
+}
+
+// ─── CDD Document Upload ──────────────────────────────────────────────────────
+
+const MAX_CDD_DOCUMENTS = 5;
+
+function assertCddOwnership(
+  verifiedByAgentId: string,
+  agentId: string,
+  isAdmin: boolean,
+): void {
+  if (!isAdmin && verifiedByAgentId !== agentId) {
+    throw new ForbiddenError('You are not authorised to access this CDD record');
+  }
+}
+
+export async function uploadCddDocument(input: UploadCddDocumentInput): Promise<CddDocument> {
+  const record = await complianceRepo.findCddRecordById(input.cddRecordId);
+  if (!record) throw new NotFoundError('CddRecord', input.cddRecordId);
+
+  assertCddOwnership(record.verifiedByAgentId, input.agentId, input.isAdmin);
+
+  const existing = (record.documents as CddDocument[]) ?? [];
+  if (existing.length >= MAX_CDD_DOCUMENTS) {
+    throw new ValidationError(`Maximum ${MAX_CDD_DOCUMENTS} documents per CDD record`);
+  }
+
+  // Virus scan — fail-closed in production
+  const scan = await scanBuffer(input.fileBuffer, input.originalFilename);
+  if (!scan.isClean) {
+    await auditService.log({
+      agentId: input.agentId,
+      action: 'cdd.document_scan_rejected',
+      entityType: 'cdd_record',
+      entityId: input.cddRecordId,
+      details: { filename: input.originalFilename, viruses: scan.viruses },
+    });
+    throw new ValidationError('File rejected: security scan failed');
+  }
+
+  // Encrypt + save — UUID filename prevents enumeration
+  const docId = createId();
+  const ext = path.extname(input.originalFilename).toLowerCase() || '.bin';
+  const filePath = `cdd/${input.cddRecordId}/${input.docType}-${docId}${ext}.enc`;
+
+  const { path: savedPath, wrappedKey } = await encryptedStorage.save(filePath, input.fileBuffer);
+
+  const doc: CddDocument = {
+    id: docId,
+    docType: input.docType as CddDocumentType,
+    label: input.label ?? null,
+    path: savedPath,
+    wrappedKey,
+    mimeType: input.mimeType,
+    sizeBytes: input.fileBuffer.length,
+    uploadedAt: new Date().toISOString(),
+    uploadedByAgentId: input.agentId,
+  };
+
+  await complianceRepo.addCddDocument(input.cddRecordId, doc);
+
+  await auditService.log({
+    agentId: input.agentId,
+    action: 'cdd.document_uploaded',
+    entityType: 'cdd_record',
+    entityId: input.cddRecordId,
+    details: { docType: input.docType, sizeBytes: input.fileBuffer.length },
+  });
+
+  return doc;
 }
 
 // ─── AML/CFT Reg 12H: Tipping-Off Suppression ───────────────────────────────

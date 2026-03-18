@@ -4,6 +4,7 @@ import path from 'path';
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import archiver from 'archiver';
+import multer from 'multer';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import * as complianceService from './compliance.service';
 import * as auditService from '../shared/audit.service';
@@ -15,12 +16,27 @@ import {
   createEaaValidator,
   updateEaaStatusValidator,
   confirmExplanationValidator,
+  uploadCddDocumentValidator,
 } from './compliance.validator';
 import { ValidationError, ForbiddenError, NotFoundError } from '../shared/errors';
+import type { CddDocumentType } from './compliance.types';
 import * as agentRepo from '../agent/agent.repository';
 import { logger } from '@/infra/logger';
 
 const UPLOADS_ROOT = path.resolve(process.env['UPLOADS_DIR'] ?? 'uploads');
+
+const cddUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, and PDF files are allowed for CDD documents'));
+    }
+  },
+});
 
 const agentAuth = [requireAuth(), requireRole('agent', 'admin'), requireTwoFactor()];
 
@@ -720,6 +736,103 @@ complianceRouter.post(
       const isAdmin = (req.user as { role: string }).role === 'admin';
       const compliance = await agentRepo.getComplianceStatus(sellerId, agentId);
       return res.render('partials/agent/compliance-cdd-card', { compliance, sellerId, isAdmin });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// ─── CDD Document Upload / Download / Delete ──────────────────────────────────
+
+// POST /agent/cdd-records/:cddRecordId/documents — upload a CDD document
+complianceRouter.post(
+  '/agent/cdd-records/:cddRecordId/documents',
+  ...agentAuth,
+  cddUpload.single('file'),
+  uploadCddDocumentValidator,
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (extractValidationErrors(req, next)) return;
+    try {
+      if (!req.file) return next(new ValidationError('No file uploaded'));
+
+      const agentId = getAgentId(req);
+      const isAdmin = (req.user as { role: string }).role === 'admin';
+      const cddRecordId = req.params['cddRecordId'] as string;
+      const { docType, label } = req.body as { docType: string; label?: string };
+
+      const doc = await complianceService.uploadCddDocument({
+        cddRecordId,
+        agentId,
+        isAdmin,
+        fileBuffer: req.file.buffer,
+        originalFilename: req.file.originalname,
+        mimeType: req.file.mimetype,
+        docType: docType as CddDocumentType,
+        label,
+      });
+
+      return res.status(200).json({
+        id: doc.id,
+        docType: doc.docType,
+        label: doc.label,
+        mimeType: doc.mimeType,
+        sizeBytes: doc.sizeBytes,
+        uploadedAt: doc.uploadedAt,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// DELETE /agent/cdd-records/:cddRecordId/documents/:documentId — hard delete a document
+complianceRouter.delete(
+  '/agent/cdd-records/:cddRecordId/documents/:documentId',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const agentId = getAgentId(req);
+      const isAdmin = (req.user as { role: string }).role === 'admin';
+      const { cddRecordId, documentId } = req.params as {
+        cddRecordId: string;
+        documentId: string;
+      };
+
+      await complianceService.deleteCddDocument({ cddRecordId, documentId, agentId, isAdmin });
+      return res.status(204).send();
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /agent/cdd-records/:cddRecordId/documents/:documentId/download — decrypt and stream
+complianceRouter.post(
+  '/agent/cdd-records/:cddRecordId/documents/:documentId/download',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const agentId = getAgentId(req);
+      const isAdmin = (req.user as { role: string }).role === 'admin';
+      const { cddRecordId, documentId } = req.params as {
+        cddRecordId: string;
+        documentId: string;
+      };
+
+      const { buffer, mimeType, docType, filePath } = await complianceService.downloadCddDocument({
+        cddRecordId,
+        documentId,
+        agentId,
+        isAdmin,
+      });
+
+      // Path traversal guard — filePath came from DB but verify it stays in uploads root
+      assertInUploadsRoot(path.resolve(UPLOADS_ROOT, filePath));
+
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="cdd-${docType}-${documentId}"`);
+      res.setHeader('Cache-Control', 'no-store');
+      return res.send(buffer);
     } catch (err) {
       return next(err);
     }

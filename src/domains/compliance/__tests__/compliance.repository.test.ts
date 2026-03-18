@@ -1,5 +1,6 @@
 // src/domains/compliance/__tests__/compliance.repository.test.ts
 import * as complianceRepo from '../compliance.repository';
+import type { CddDocument, CddRecord } from '../compliance.types';
 
 jest.mock('@/infra/database/prisma', () => ({
   prisma: {
@@ -9,18 +10,25 @@ jest.mock('@/infra/database/prisma', () => ({
     otp: {
       deleteMany: jest.fn(),
       findUnique: jest.fn(),
+      findMany: jest.fn(),
     },
     commissionInvoice: {
       deleteMany: jest.fn(),
       findUnique: jest.fn(),
+      findMany: jest.fn(),
     },
     transaction: {
       delete: jest.fn(),
+    },
+    property: {
+      findMany: jest.fn(),
     },
     cddRecord: {
       create: jest.fn(),
       updateMany: jest.fn(),
       findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     },
@@ -31,13 +39,16 @@ import { prisma } from '@/infra/database/prisma';
 
 const mockPrisma = prisma as jest.Mocked<typeof prisma> & {
   testimonial: { deleteMany: jest.Mock };
-  otp: { deleteMany: jest.Mock; findUnique: jest.Mock };
-  commissionInvoice: { deleteMany: jest.Mock; findUnique: jest.Mock };
+  otp: { deleteMany: jest.Mock; findUnique: jest.Mock; findMany: jest.Mock };
+  commissionInvoice: { deleteMany: jest.Mock; findUnique: jest.Mock; findMany: jest.Mock };
   transaction: { delete: jest.Mock };
+  property: { findMany: jest.Mock };
   cddRecord: {
     create: jest.Mock;
     updateMany: jest.Mock;
     findFirst: jest.Mock;
+    findUnique: jest.Mock;
+    findMany: jest.Mock;
     update: jest.Mock;
     delete: jest.Mock;
   };
@@ -409,5 +420,140 @@ describe('deleteCddRecord', () => {
     await complianceRepo.deleteCddRecord('seller-1');
 
     expect(mockPrisma.cddRecord.delete).not.toHaveBeenCalled();
+  });
+});
+
+// ─── CDD document repository functions ───────────────────────────────────────
+
+describe('CDD document repository functions', () => {
+  const mockCddRecordId = 'cdd-record-1';
+  const mockDoc: CddDocument = {
+    id: 'doc-1',
+    docType: 'nric',
+    label: null,
+    path: 'cdd/cdd-record-1/nric-doc-1.enc',
+    wrappedKey: 'wrapped-key-base64',
+    mimeType: 'image/jpeg',
+    sizeBytes: 12345,
+    uploadedAt: '2026-03-18T00:00:00.000Z',
+    uploadedByAgentId: 'agent-1',
+  };
+
+  describe('findCddRecordById', () => {
+    it('returns record when found', async () => {
+      mockPrisma.cddRecord.findUnique.mockResolvedValue({
+        id: mockCddRecordId,
+        verifiedByAgentId: 'agent-1',
+        documents: [],
+      } as unknown as CddRecord);
+
+      const result = await complianceRepo.findCddRecordById(mockCddRecordId);
+      expect(result).not.toBeNull();
+      expect(result?.id).toBe(mockCddRecordId);
+    });
+
+    it('returns null when not found', async () => {
+      mockPrisma.cddRecord.findUnique.mockResolvedValue(null);
+      const result = await complianceRepo.findCddRecordById('nonexistent');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('addCddDocument', () => {
+    it('appends document to existing documents array', async () => {
+      mockPrisma.cddRecord.findUnique.mockResolvedValue({
+        documents: [],
+      } as unknown as CddRecord);
+      mockPrisma.cddRecord.update.mockResolvedValue({} as unknown as CddRecord);
+
+      await complianceRepo.addCddDocument(mockCddRecordId, mockDoc);
+
+      expect(mockPrisma.cddRecord.update).toHaveBeenCalledWith({
+        where: { id: mockCddRecordId },
+        data: { documents: [mockDoc] },
+      });
+    });
+  });
+
+  describe('removeCddDocument', () => {
+    it('removes document by id and returns its path', async () => {
+      mockPrisma.cddRecord.findUnique.mockResolvedValue({
+        documents: [mockDoc],
+      } as unknown as CddRecord);
+      mockPrisma.cddRecord.update.mockResolvedValue({} as unknown as CddRecord);
+
+      const path = await complianceRepo.removeCddDocument(mockCddRecordId, 'doc-1');
+      expect(path).toBe(mockDoc.path);
+      expect(mockPrisma.cddRecord.update).toHaveBeenCalledWith({
+        where: { id: mockCddRecordId },
+        data: { documents: [] },
+      });
+    });
+
+    it('returns null when document id not found', async () => {
+      mockPrisma.cddRecord.findUnique.mockResolvedValue({
+        documents: [mockDoc],
+      } as unknown as CddRecord);
+
+      const path = await complianceRepo.removeCddDocument(mockCddRecordId, 'nonexistent');
+      expect(path).toBeNull();
+      expect(mockPrisma.cddRecord.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findCddRecordWithDocument', () => {
+    it('returns verifiedByAgentId and matching document', async () => {
+      mockPrisma.cddRecord.findUnique.mockResolvedValue({
+        verifiedByAgentId: 'agent-1',
+        documents: [mockDoc],
+      } as unknown as CddRecord);
+
+      const result = await complianceRepo.findCddRecordWithDocument(mockCddRecordId, 'doc-1');
+      expect(result?.verifiedByAgentId).toBe('agent-1');
+      expect(result?.document?.id).toBe('doc-1');
+    });
+
+    it('returns document as null when documentId not found', async () => {
+      mockPrisma.cddRecord.findUnique.mockResolvedValue({
+        verifiedByAgentId: 'agent-1',
+        documents: [mockDoc],
+      } as unknown as CddRecord);
+
+      const result = await complianceRepo.findCddRecordWithDocument(mockCddRecordId, 'missing');
+      expect(result?.document).toBeNull();
+    });
+
+    it('returns null when CDD record not found', async () => {
+      mockPrisma.cddRecord.findUnique.mockResolvedValue(null);
+      const result = await complianceRepo.findCddRecordWithDocument('none', 'doc-1');
+      expect(result).toBeNull();
+    });
+  });
+});
+
+// ─── collectSellerFilePaths — CDD documents ───────────────────────────────────
+
+describe('collectSellerFilePaths — CDD documents', () => {
+  it('includes .enc file paths from seller CDD records', async () => {
+    const cddDocs = [
+      { path: 'cdd/cdd-1/nric-doc1.jpg.enc', wrappedKey: 'k1' },
+      { path: 'cdd/cdd-1/passport-doc2.pdf.enc', wrappedKey: 'k2' },
+    ];
+
+    // Mock the property query (returns no photos)
+    mockPrisma.property.findMany.mockResolvedValue([]);
+    // Mock OTP query (returns no paths)
+    mockPrisma.otp.findMany.mockResolvedValue([]);
+    // Mock invoice query (returns no paths)
+    mockPrisma.commissionInvoice.findMany.mockResolvedValue([]);
+    // Mock CDD query
+    mockPrisma.cddRecord.findMany.mockResolvedValue([
+      { id: 'cdd-1', documents: cddDocs },
+    ] as unknown as CddRecord[]);
+
+    const paths = await complianceRepo.collectSellerFilePaths('seller-1');
+
+    expect(paths).toContain('cdd/cdd-1/nric-doc1.jpg.enc');
+    expect(paths).toContain('cdd/cdd-1/passport-doc2.pdf.enc');
   });
 });

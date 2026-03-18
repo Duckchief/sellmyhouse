@@ -12,6 +12,7 @@ import type {
   CreateEaaInput,
   EaaRecord,
   ConfirmEaaExplanationInput,
+  CddDocument,
 } from './compliance.types';
 
 export async function createConsentRecord(data: {
@@ -642,6 +643,18 @@ export async function collectSellerFilePaths(sellerId: string): Promise<string[]
     if (invoice.invoiceFilePath) paths.push(invoice.invoiceFilePath);
   }
 
+  // 4. CDD document .enc files (seller CDD records only)
+  const cddRecords = await prisma.cddRecord.findMany({
+    where: { subjectType: SubjectType.seller, subjectId: sellerId },
+    select: { documents: true },
+  });
+  for (const cdd of cddRecords) {
+    const docs = (cdd.documents as { path?: string }[] | null) ?? [];
+    for (const doc of docs) {
+      if (doc.path) paths.push(doc.path);
+    }
+  }
+
   return paths;
 }
 
@@ -802,4 +815,61 @@ export async function findAgentById(
     where: { id: agentId },
     select: { id: true, name: true, email: true, phone: true, isActive: true },
   });
+}
+
+// ─── CDD Document Management ──────────────────────────────────────────────────
+
+export async function findCddRecordById(id: string): Promise<CddRecord | null> {
+  return prisma.cddRecord.findUnique({
+    where: { id },
+  }) as unknown as Promise<CddRecord | null>;
+}
+
+export async function addCddDocument(cddRecordId: string, doc: CddDocument): Promise<void> {
+  const record = await prisma.cddRecord.findUnique({
+    where: { id: cddRecordId },
+    select: { documents: true },
+  });
+  const existing = (record?.documents as unknown as CddDocument[]) ?? [];
+  await prisma.cddRecord.update({
+    where: { id: cddRecordId },
+    data: { documents: [...existing, doc] as unknown as Prisma.InputJsonValue },
+  });
+}
+
+export async function removeCddDocument(
+  cddRecordId: string,
+  documentId: string,
+): Promise<string | null> {
+  const record = await prisma.cddRecord.findUnique({
+    where: { id: cddRecordId },
+    select: { documents: true },
+  });
+  const existing = (record?.documents as unknown as CddDocument[]) ?? [];
+  const target = existing.find((d) => d.id === documentId);
+  if (!target) return null;
+
+  await prisma.cddRecord.update({
+    where: { id: cddRecordId },
+    data: {
+      documents: existing.filter((d) => d.id !== documentId) as unknown as Prisma.InputJsonValue,
+    },
+  });
+  return target.path;
+}
+
+export async function findCddRecordWithDocument(
+  cddRecordId: string,
+  documentId: string,
+): Promise<{ verifiedByAgentId: string; document: CddDocument | null } | null> {
+  const record = await prisma.cddRecord.findUnique({
+    where: { id: cddRecordId },
+    select: { verifiedByAgentId: true, documents: true },
+  });
+  if (!record) return null;
+  const docs = (record.documents as unknown as CddDocument[]) ?? [];
+  return {
+    verifiedByAgentId: record.verifiedByAgentId,
+    document: docs.find((d) => d.id === documentId) ?? null,
+  };
 }

@@ -17,12 +17,20 @@ export interface KeyProvider {
  */
 export class EnvKeyProvider implements KeyProvider {
   async wrapKey(dataKey: Buffer): Promise<string> {
-    return encrypt(dataKey.toString('hex'));
+    try {
+      return encrypt(dataKey.toString('hex'));
+    } catch {
+      throw new Error('Failed to wrap key');
+    }
   }
 
   async unwrapKey(wrapped: string): Promise<Buffer> {
-    const hex = decrypt(wrapped);
-    return Buffer.from(hex, 'hex');
+    try {
+      const hex = decrypt(wrapped);
+      return Buffer.from(hex, 'hex');
+    } catch {
+      throw new Error('Failed to unwrap key');
+    }
   }
 }
 
@@ -32,16 +40,22 @@ let _keyProvider: KeyProvider | null = null;
 
 export function getKeyProvider(): KeyProvider {
   if (!_keyProvider) {
-    _keyProvider =
-      process.env['KEY_PROVIDER'] === 'aws'
-        ? (() => {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const { AwsKmsKeyProvider } = require('./key-provider-aws') as {
-              AwsKmsKeyProvider: new () => KeyProvider;
-            };
-            return new AwsKmsKeyProvider();
-          })()
-        : new EnvKeyProvider();
+    if (process.env['KEY_PROVIDER'] === 'aws') {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const mod = require('./key-provider-aws') as { AwsKmsKeyProvider?: new () => KeyProvider };
+        if (!mod.AwsKmsKeyProvider) throw new Error('AwsKmsKeyProvider not exported');
+        _keyProvider = new mod.AwsKmsKeyProvider();
+      } catch (err) {
+        throw new Error(`Failed to load AwsKmsKeyProvider: ${String(err)}`);
+      }
+    } else {
+      const hex = process.env['ENCRYPTION_KEY'];
+      if (!hex || hex.length !== 64) {
+        throw new Error('ENCRYPTION_KEY must be set (64 hex chars = 32 bytes)');
+      }
+      _keyProvider = new EnvKeyProvider();
+    }
   }
   return _keyProvider;
 }

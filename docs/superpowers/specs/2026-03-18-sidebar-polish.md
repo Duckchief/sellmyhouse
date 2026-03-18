@@ -20,14 +20,15 @@ Admin and agent sidebar layouts only (`admin.njk`, `agent.njk`). Seller sidebar 
 
 **Problem:** Nav links use `flex items-center gap-2 px-3`. When the `sidebar-label` collapses to 0-width, the icon remains at the left edge. Additionally, the `border-l-2` active indicator shifts the icon 2px right.
 
-**Fix (CSS):** When collapsed, override the link layout:
+**Fix (CSS):** Patch the **existing** `#sidebar.sidebar-collapsed nav a` rule in `input.css` — add `border-left-width: 0` and retain the existing `gap: 0`:
 
 ```css
 #sidebar.sidebar-collapsed nav a {
   justify-content: center;
   padding-left: 0;
   padding-right: 0;
-  border-left-width: 0;
+  gap: 0;                  /* existing — must be retained */
+  border-left-width: 0;    /* new */
 }
 ```
 
@@ -39,9 +40,11 @@ The `border-l-2` active indicator is hidden in collapsed state — it is decorat
 
 **Overflow problem:** `#sidebar` uses `overflow: hidden` during the collapse animation to prevent text spilling outside the narrowing sidebar. A tooltip positioned with `left: calc(100% + 10px)` would be clipped by this.
 
-**Solution — `sidebar-settled` class:** After the width transition completes, add `sidebar-settled` to `#sidebar`, which sets `overflow: visible`. This allows the tooltip to render outside the 44px boundary. The class is removed before each toggle so `overflow: hidden` is restored for the next animation.
+**Solution — `sidebar-settled` class:** After the width transition completes, add `sidebar-settled` to `#sidebar`, which sets `overflow: visible`. This allows the tooltip to render outside the 44px boundary. The class is removed before each toggle so `overflow: hidden` is restored for the next animation. After expanding, `sidebar-settled` is intentionally not re-added — `overflow: hidden` is the correct steady state for the expanded sidebar.
 
 **HTML change:** Each nav link gets a `<span class="sidebar-tooltip">` immediately after the icon SVG and before the `sidebar-label` span. The span is `position: absolute` so it does not affect flex layout or icon centering.
+
+**Edge case — agent Reviews link:** The Reviews `<a>` contains a `pendingReviewCount` badge span nested inside `.sidebar-label`. The tooltip span goes after the icon and before `.sidebar-label` as normal; the badge collapses correctly with the label and requires no special handling.
 
 ```html
 {{ icon('home') }}
@@ -108,7 +111,7 @@ if (action === 'toggle-sidebar-collapse') {
 var sidebar = document.getElementById('sidebar');
 if (sidebar) {
   sidebar.addEventListener('transitionend', function (e) {
-    if (e.propertyName === 'width' && sidebar.classList.contains('sidebar-collapsed')) {
+    if (e.target === sidebar && e.propertyName === 'width' && sidebar.classList.contains('sidebar-collapsed')) {
       sidebar.classList.add('sidebar-settled');
     }
   });
@@ -124,7 +127,7 @@ All nav links in `admin.njk` and `agent.njk`: change `py-2` to `py-2.5`. This in
 | File | Change |
 |------|--------|
 | `src/views/styles/input.css` | Add icon-centering rules, tooltip CSS, `sidebar-settled` overflow rule |
-| `src/views/layouts/admin.njk` | Add `sidebar-tooltip` spans to all 15 nav links; `py-2` → `py-2.5` |
+| `src/views/layouts/admin.njk` | Add `sidebar-tooltip` spans to all 15 nav links; `py-2` → `py-2.5`; add `sidebar-header` class to header div (currently missing, causing the existing `#sidebar.sidebar-collapsed .sidebar-header` CSS rule to not fire) |
 | `src/views/layouts/agent.njk` | Add `sidebar-tooltip` spans to all 5 nav links; `py-2` → `py-2.5` |
 | `public/js/app.js` | Update IIFE, update toggle handler, add `transitionend` listener |
 

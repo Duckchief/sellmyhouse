@@ -1,5 +1,6 @@
 // src/domains/compliance/compliance.validator.ts
 import { body } from 'express-validator';
+import { CDD_DOCUMENT_TYPES } from './compliance.types';
 
 export const withdrawConsentValidator = [
   body('type')
@@ -80,4 +81,16 @@ export const confirmExplanationValidator = [
     .isIn(['video_call', 'in_person'])
     .withMessage('Method must be "video_call" or "in_person"'),
   body('notes').optional().isString().trim().isLength({ max: 2000 }),
+];
+
+export const uploadCddDocumentValidator = [
+  body('docType')
+    .isIn([...CDD_DOCUMENT_TYPES])
+    .withMessage(`docType must be one of: ${CDD_DOCUMENT_TYPES.join(', ')}`),
+  body('label')
+    .if(body('docType').equals('other'))
+    .notEmpty()
+    .withMessage('label is required when docType is "other"')
+    .isLength({ max: 100 })
+    .withMessage('label must be 100 characters or fewer'),
 ];

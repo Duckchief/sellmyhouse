@@ -113,6 +113,22 @@
   margin-left: 0;
 }
 
+/* Collapsed header: centre the toggle button in the 44px rail */
+#sidebar.sidebar-collapsed .sidebar-header {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Collapsed nav links: centre the icon in the 44px rail */
+#sidebar.sidebar-collapsed nav a {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+  gap: 0;
+  border-left-width: 0;
+}
+
 /* Collapsed dividers: narrow centred rule */
 #sidebar.sidebar-collapsed .sidebar-divider {
   width: 24px;
@@ -122,4 +138,36 @@
 
 #sidebar.sidebar-collapsed .sidebar-section-label {
   display: none;
+}
+
+/* Sidebar tooltips */
+#sidebar nav a {
+  position: relative;
+}
+
+#sidebar nav a .sidebar-tooltip {
+  display: none;
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #111827;
+  color: #f9fafb;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  pointer-events: none;
+}
+
+#sidebar.sidebar-settled.sidebar-collapsed nav a:hover .sidebar-tooltip {
+  display: block;
+}
+
+/* Allow tooltips to overflow the 44px rail once transition is complete */
+#sidebar.sidebar-settled {
+  overflow: visible;
 }

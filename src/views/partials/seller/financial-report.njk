@@ -2,14 +2,10 @@
   Variables: report (FinancialReport)
     report.reportData: { inputs, outputs, metadata }
     report.aiNarrative: string | null
-    report.status: 'generated' | 'pending_review' | 'approved' | 'sent'
+    report.status: FinancialReportStatus
     report.version: number
     report.approvedAt: Date | null
     report.sentToSellerAt: Date | null
-
-  Two states:
-    - aiNarrative is null: show breakdown with "narrative generating…" placeholder
-    - aiNarrative present: show narrative above breakdown
 #}
 {% set data = report.reportData %}
 {% set out = data.outputs %}
@@ -102,41 +98,13 @@
         <span class="text-red-600">−${{ out.outstandingLoan }}</span>
       </div>
 
-      {# CPF Owner 1 #}
-      <div class="py-1">
-        <div class="flex justify-between text-sm">
-          <span class="text-gray-600">
-            {{ "CPF Refund — Owner 1" | t }}
-            {% if out.owner1Cpf.isEstimated %}
-            <span class="ml-1 text-xs text-yellow-600">({{ "estimated" | t }})</span>
-            {% endif %}
-          </span>
-          <span class="text-red-600">−${{ out.owner1Cpf.totalRefund }}</span>
-        </div>
-        <div class="ml-4 mt-0.5 space-y-0.5">
-          <p class="text-xs text-gray-400">{{ "OA used:" | t }} ${{ out.owner1Cpf.oaUsed }}</p>
-          <p class="text-xs text-gray-400">{{ "Accrued interest:" | t }} ${{ out.owner1Cpf.accruedInterest }}</p>
-        </div>
+      {# CPF Refunds — seller-provided, one row per owner #}
+      {% for refund in out.ownerCpfRefunds %}
+      <div class="flex justify-between text-sm py-1">
+        <span class="text-gray-600">{{ "CPF Refund — Owner" | t }} {{ loop.index }}</span>
+        <span class="text-red-600">−${{ refund }}</span>
       </div>
-
-      {# CPF Owner 2 (joint, conditional) #}
-      {% if out.owner2Cpf %}
-      <div class="py-1">
-        <div class="flex justify-between text-sm">
-          <span class="text-gray-600">
-            {{ "CPF Refund — Owner 2" | t }}
-            {% if out.owner2Cpf.isEstimated %}
-            <span class="ml-1 text-xs text-yellow-600">({{ "estimated" | t }})</span>
-            {% endif %}
-          </span>
-          <span class="text-red-600">−${{ out.owner2Cpf.totalRefund }}</span>
-        </div>
-        <div class="ml-4 mt-0.5 space-y-0.5">
-          <p class="text-xs text-gray-400">{{ "OA used:" | t }} ${{ out.owner2Cpf.oaUsed }}</p>
-          <p class="text-xs text-gray-400">{{ "Accrued interest:" | t }} ${{ out.owner2Cpf.accruedInterest }}</p>
-        </div>
-      </div>
-      {% endif %}
+      {% endfor %}
 
       {# Resale levy #}
       <div class="flex justify-between text-sm py-1">
@@ -172,6 +140,13 @@
         </span>
       </div>
     </div>
+  </div>
+
+  {# ── CPF disclaimer notice ─────────────────────── #}
+  <div class="rounded-md bg-amber-50 border border-amber-200 p-3">
+    <p class="text-xs text-amber-700">
+      {{ "CPF figures are based on information provided by the seller from their CPF account. This estimate does not constitute financial advice." | t }}
+    </p>
   </div>
 
   {# ── Sale inputs reference ────────────────────── #}

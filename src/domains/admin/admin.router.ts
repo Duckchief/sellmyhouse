@@ -1087,6 +1087,13 @@ adminRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await contentService.deleteTutorial(req.params['id'] as string);
+      if (req.headers['hx-request']) {
+        const rawTab = (req.body.activeTab as string) ?? 'photography';
+        const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? (rawTab as TutorialTab) : 'photography';
+        const allTutorials = await contentService.getTutorialsGrouped();
+        const activeItems = allTutorials[activeTab] ?? [];
+        return res.render('partials/admin/tutorial-list', { tutorials: activeItems, activeTab });
+      }
       return res.redirect('/admin/tutorials');
     } catch (err) {
       return next(err);

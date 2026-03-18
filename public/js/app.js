@@ -505,6 +505,7 @@
       var minute = parseInt(parts[0], 10);
       var hour = parseInt(parts[1], 10);
       if (isNaN(minute) || isNaN(hour)) return defaults;
+      if (minute < 0 || minute > 59 || hour < 0 || hour > 23) return defaults;
       var dowPart = parts[4];
       var days = dowPart
         .split(',')
@@ -595,9 +596,7 @@
       updateSummary(container);
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-      document.querySelectorAll('.cron-picker').forEach(initCronPicker);
-    });
+    document.querySelectorAll('.cron-picker').forEach(initCronPicker);
   })();
 
 })();

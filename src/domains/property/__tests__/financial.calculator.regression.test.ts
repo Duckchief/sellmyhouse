@@ -2,17 +2,17 @@ import { calculateNetProceeds } from '../financial.calculator';
 import type { FinancialCalculationInput } from '../financial.types';
 
 /**
- * Regression suite: 26 edge cases for financial calculations.
- * Commission is always $1,633.91 (from SystemSetting).
+ * Regression suite for financial calculations.
+ * CPF figures are seller-provided — the calculator performs no CPF calculation.
+ * Commission is always $1,633.91 (from SystemSetting, passed in as argument).
  */
 describe('Financial Calculator — Regression Suite', () => {
   const COMMISSION = 1633.91;
-  const CURRENT_YEAR = 2026;
 
   const makeInput = (overrides: Partial<FinancialCalculationInput>): FinancialCalculationInput => ({
     salePrice: 500000,
     outstandingLoan: 200000,
-    owner1Cpf: { oaUsed: 100000, purchaseYear: 2016 },
+    ownerCpfs: [{ cpfRefund: 128000 }],
     flatType: '4 ROOM',
     subsidyType: 'subsidised',
     isFirstTimer: false,
@@ -20,137 +20,88 @@ describe('Financial Calculator — Regression Suite', () => {
     ...overrides,
   });
 
-  // --- Standard cases ---
+  // --- Single owner ---
 
-  it('1. Standard 4-ROOM subsidised, known CPF', () => {
-    const r = calculateNetProceeds(makeInput({}), COMMISSION, CURRENT_YEAR);
-    expect(r.netCashProceeds).toBeCloseTo(
-      500000 - 200000 - (100000 + 100000 * (Math.pow(1.025, 10) - 1)) - 40000 - 1633.91 - 2500,
-      0,
-    );
+  it('1. Standard 4-ROOM subsidised, single owner', () => {
+    const r = calculateNetProceeds(makeInput({}), COMMISSION);
+    expect(r.ownerCpfRefunds).toEqual([128000]);
+    expect(r.totalCpfRefund).toBe(128000);
+    expect(r.netCashProceeds).toBeCloseTo(500000 - 200000 - 128000 - 40000 - 1633.91 - 2500, 2);
     expect(r.warnings).toEqual([]);
   });
 
-  it('2. Standard 3-ROOM subsidised', () => {
-    const r = calculateNetProceeds(
-      makeInput({
-        salePrice: 350000,
-        outstandingLoan: 100000,
-        flatType: '3 ROOM',
-        owner1Cpf: { oaUsed: 60000, purchaseYear: 2010 },
-      }),
-      COMMISSION,
-      CURRENT_YEAR,
-    );
-    expect(r.resaleLevy).toBe(30000);
-    expect(r.netCashProceeds).toBeGreaterThan(0);
+  it('2. Zero CPF refund (paid cash, no CPF used)', () => {
+    const r = calculateNetProceeds(makeInput({ ownerCpfs: [{ cpfRefund: 0 }] }), COMMISSION);
+    expect(r.totalCpfRefund).toBe(0);
+    expect(r.ownerCpfRefunds).toEqual([0]);
   });
 
-  it('3. 5-ROOM non-subsidised (no levy)', () => {
-    const r = calculateNetProceeds(
-      makeInput({
-        salePrice: 700000,
-        flatType: '5 ROOM',
-        subsidyType: 'non_subsidised',
-      }),
-      COMMISSION,
-      CURRENT_YEAR,
-    );
-    expect(r.resaleLevy).toBe(0);
-  });
-
-  // --- Zero deduction cases ---
-
-  it('4. Zero outstanding loan', () => {
-    const r = calculateNetProceeds(makeInput({ outstandingLoan: 0 }), COMMISSION, CURRENT_YEAR);
+  it('3. Zero outstanding loan', () => {
+    const r = calculateNetProceeds(makeInput({ outstandingLoan: 0 }), COMMISSION);
     expect(r.outstandingLoan).toBe(0);
     expect(r.netCashProceeds).toBeGreaterThan(0);
   });
 
-  it('5. Zero CPF usage', () => {
+  it('4. Zero loan and zero CPF — only levy, commission, legal', () => {
     const r = calculateNetProceeds(
-      makeInput({ owner1Cpf: { oaUsed: 0, purchaseYear: 2016 } }),
+      makeInput({ outstandingLoan: 0, ownerCpfs: [{ cpfRefund: 0 }] }),
       COMMISSION,
-      CURRENT_YEAR,
     );
-    expect(r.owner1Cpf.totalRefund).toBe(0);
-    expect(r.totalCpfRefund).toBe(0);
-  });
-
-  it('6. Zero loan AND zero CPF', () => {
-    const r = calculateNetProceeds(
-      makeInput({
-        outstandingLoan: 0,
-        owner1Cpf: { oaUsed: 0, purchaseYear: 2016 },
-      }),
-      COMMISSION,
-      CURRENT_YEAR,
-    );
-    // Only deductions: levy + commission + legal
     expect(r.totalDeductions).toBeCloseTo(40000 + 1633.91 + 2500, 2);
   });
 
-  // --- Unknown CPF ---
+  // --- Multiple owners ---
 
-  it('7. Unknown CPF usage → estimated', () => {
+  it('5. Two owners', () => {
     const r = calculateNetProceeds(
-      makeInput({ owner1Cpf: { oaUsed: null, purchaseYear: 2016 } }),
+      makeInput({ ownerCpfs: [{ cpfRefund: 80000 }, { cpfRefund: 70000 }] }),
       COMMISSION,
-      CURRENT_YEAR,
     );
-    expect(r.owner1Cpf.isEstimated).toBe(true);
-    expect(r.owner1Cpf.oaUsed).toBeGreaterThan(0);
-    expect(r.warnings.length).toBeGreaterThan(0);
+    expect(r.ownerCpfRefunds).toEqual([80000, 70000]);
+    expect(r.totalCpfRefund).toBe(150000);
   });
 
-  // --- Joint owners ---
-
-  it('8. Joint owners, both known CPF', () => {
+  it('6. Three owners', () => {
     const r = calculateNetProceeds(
       makeInput({
-        owner1Cpf: { oaUsed: 80000, purchaseYear: 2016 },
-        owner2Cpf: { oaUsed: 70000, purchaseYear: 2016 },
+        salePrice: 700000,
+        ownerCpfs: [{ cpfRefund: 50000 }, { cpfRefund: 40000 }, { cpfRefund: 30000 }],
       }),
       COMMISSION,
-      CURRENT_YEAR,
     );
-    expect(r.owner2Cpf).toBeDefined();
-    expect(r.totalCpfRefund).toBeCloseTo(r.owner1Cpf.totalRefund + r.owner2Cpf!.totalRefund, 2);
+    expect(r.ownerCpfRefunds).toHaveLength(3);
+    expect(r.totalCpfRefund).toBe(120000);
   });
 
-  it('9. Joint owners, one unknown CPF', () => {
+  it('7. Four owners (HDB maximum)', () => {
     const r = calculateNetProceeds(
       makeInput({
-        owner1Cpf: { oaUsed: 80000, purchaseYear: 2016 },
-        owner2Cpf: { oaUsed: null, purchaseYear: 2016 },
+        salePrice: 800000,
+        ownerCpfs: [
+          { cpfRefund: 40000 },
+          { cpfRefund: 35000 },
+          { cpfRefund: 30000 },
+          { cpfRefund: 25000 },
+        ],
       }),
       COMMISSION,
-      CURRENT_YEAR,
     );
-    expect(r.owner1Cpf.isEstimated).toBe(false);
-    expect(r.owner2Cpf!.isEstimated).toBe(true);
+    expect(r.ownerCpfRefunds).toHaveLength(4);
+    expect(r.totalCpfRefund).toBe(130000);
   });
 
-  it('10. Joint owners, both unknown CPF', () => {
-    const r = calculateNetProceeds(
-      makeInput({
-        owner1Cpf: { oaUsed: null, purchaseYear: 2016 },
-        owner2Cpf: { oaUsed: null, purchaseYear: 2016 },
-      }),
-      COMMISSION,
-      CURRENT_YEAR,
-    );
-    expect(r.owner1Cpf.isEstimated).toBe(true);
-    expect(r.owner2Cpf!.isEstimated).toBe(true);
+  it('8. ownerCpfRefunds is parallel array to ownerCpfs', () => {
+    const ownerCpfs = [{ cpfRefund: 60000 }, { cpfRefund: 55000 }, { cpfRefund: 45000 }];
+    const r = calculateNetProceeds(makeInput({ ownerCpfs }), COMMISSION);
+    expect(r.ownerCpfRefunds).toEqual([60000, 55000, 45000]);
   });
 
   // --- Negative net proceeds ---
 
-  it('11. Negative net proceeds — warning, not error', () => {
+  it('9. Negative net proceeds — warning, not error', () => {
     const r = calculateNetProceeds(
       makeInput({ salePrice: 100000, outstandingLoan: 300000 }),
       COMMISSION,
-      CURRENT_YEAR,
     );
     expect(r.netCashProceeds).toBeLessThan(0);
     expect(r.warnings).toContain(
@@ -158,136 +109,74 @@ describe('Financial Calculator — Regression Suite', () => {
     );
   });
 
-  // --- Resale levy for every flat type (subsidised, second-timer) ---
+  // --- Resale levy by flat type (subsidised, second-timer) ---
 
-  it('12. 2-ROOM levy = $15,000', () => {
-    const r = calculateNetProceeds(makeInput({ flatType: '2 ROOM' }), COMMISSION, CURRENT_YEAR);
+  it('10. 2-ROOM levy = $15,000', () => {
+    const r = calculateNetProceeds(makeInput({ flatType: '2 ROOM' }), COMMISSION);
     expect(r.resaleLevy).toBe(15000);
   });
 
-  it('13. 3-ROOM levy = $30,000', () => {
-    const r = calculateNetProceeds(makeInput({ flatType: '3 ROOM' }), COMMISSION, CURRENT_YEAR);
+  it('11. 3-ROOM levy = $30,000', () => {
+    const r = calculateNetProceeds(makeInput({ flatType: '3 ROOM' }), COMMISSION);
     expect(r.resaleLevy).toBe(30000);
   });
 
-  it('14. 5-ROOM levy = $45,000', () => {
-    const r = calculateNetProceeds(makeInput({ flatType: '5 ROOM' }), COMMISSION, CURRENT_YEAR);
+  it('12. 5-ROOM levy = $45,000', () => {
+    const r = calculateNetProceeds(makeInput({ flatType: '5 ROOM' }), COMMISSION);
     expect(r.resaleLevy).toBe(45000);
   });
 
-  it('15. EXECUTIVE levy = $50,000', () => {
-    const r = calculateNetProceeds(makeInput({ flatType: 'EXECUTIVE' }), COMMISSION, CURRENT_YEAR);
+  it('13. EXECUTIVE levy = $50,000', () => {
+    const r = calculateNetProceeds(makeInput({ flatType: 'EXECUTIVE' }), COMMISSION);
     expect(r.resaleLevy).toBe(50000);
   });
 
-  it('16. MULTI-GENERATION levy = $50,000', () => {
+  it('14. Non-subsidised flat — no resale levy', () => {
     const r = calculateNetProceeds(
-      makeInput({ flatType: 'MULTI-GENERATION' }),
+      makeInput({ flatType: '5 ROOM', subsidyType: 'non_subsidised' }),
       COMMISSION,
-      CURRENT_YEAR,
     );
-    expect(r.resaleLevy).toBe(50000);
+    expect(r.resaleLevy).toBe(0);
   });
 
-  it('17. First-timer pays no resale levy even if subsidised', () => {
-    const r = calculateNetProceeds(makeInput({ isFirstTimer: true }), COMMISSION, CURRENT_YEAR);
+  it('15. First-timer — no resale levy even if subsidised', () => {
+    const r = calculateNetProceeds(makeInput({ isFirstTimer: true }), COMMISSION);
     expect(r.resaleLevy).toBe(0);
   });
 
   // --- Commission ---
 
-  it('18. Commission is always $1,633.91', () => {
-    const r = calculateNetProceeds(makeInput({}), 1633.91, CURRENT_YEAR);
+  it('16. Commission passed through unchanged', () => {
+    const r = calculateNetProceeds(makeInput({}), 1633.91);
     expect(r.commission).toBe(1633.91);
-  });
-
-  it('19. GST calculation: $1,499 × 1.09 = $1,633.91', () => {
-    const amount = 1499;
-    const gstRate = 0.09;
-    const gstAmount = Math.round(amount * gstRate * 100) / 100;
-    const total = Math.round((amount + gstAmount) * 100) / 100;
-    expect(total).toBe(1633.91);
-  });
-
-  // --- Old lease / old purchase ---
-
-  it('20. Old lease (1985 purchase, 40+ years of CPF interest)', () => {
-    const r = calculateNetProceeds(
-      makeInput({
-        owner1Cpf: { oaUsed: 30000, purchaseYear: 1985 },
-      }),
-      COMMISSION,
-      CURRENT_YEAR,
-    );
-    // 41 years of interest on $30,000
-    expect(r.owner1Cpf.accruedInterest).toBeGreaterThan(50000);
-  });
-
-  it('21. Very recent purchase (2025), minimal interest', () => {
-    const r = calculateNetProceeds(
-      makeInput({
-        owner1Cpf: { oaUsed: 100000, purchaseYear: 2025 },
-      }),
-      COMMISSION,
-      CURRENT_YEAR,
-    );
-    expect(r.owner1Cpf.accruedInterest).toBeCloseTo(2500, 0);
-  });
-
-  // --- Million-dollar flat ---
-
-  it('22. Million-dollar flat', () => {
-    const r = calculateNetProceeds(
-      makeInput({
-        salePrice: 1500000,
-        outstandingLoan: 500000,
-        owner1Cpf: { oaUsed: 250000, purchaseYear: 2010 },
-        flatType: '5 ROOM',
-      }),
-      COMMISSION,
-      CURRENT_YEAR,
-    );
-    expect(r.salePrice).toBe(1500000);
-    expect(r.netCashProceeds).toBeGreaterThan(0);
   });
 
   // --- Legal fees ---
 
-  it('23. Custom legal fees', () => {
-    const r = calculateNetProceeds(
-      makeInput({ legalFeesEstimate: 3000 }),
-      COMMISSION,
-      CURRENT_YEAR,
-    );
+  it('17. Custom legal fees', () => {
+    const r = calculateNetProceeds(makeInput({ legalFeesEstimate: 3000 }), COMMISSION);
     expect(r.legalFees).toBe(3000);
   });
 
-  it('24. Default legal fees when not provided', () => {
-    const r = calculateNetProceeds(
-      makeInput({ legalFeesEstimate: undefined }),
-      COMMISSION,
-      CURRENT_YEAR,
-    );
+  it('18. Default legal fees when not provided', () => {
+    const r = calculateNetProceeds(makeInput({ legalFeesEstimate: undefined }), COMMISSION);
     expect(r.legalFees).toBe(2500);
   });
 
   // --- Consistency checks ---
 
-  it('25. totalDeductions = sum of all deduction components', () => {
+  it('19. totalDeductions = sum of all components', () => {
     const r = calculateNetProceeds(
-      makeInput({
-        owner2Cpf: { oaUsed: 50000, purchaseYear: 2016 },
-      }),
+      makeInput({ ownerCpfs: [{ cpfRefund: 80000 }, { cpfRefund: 50000 }] }),
       COMMISSION,
-      CURRENT_YEAR,
     );
-    const expectedTotal =
+    const expected =
       r.outstandingLoan + r.totalCpfRefund + r.resaleLevy + r.commission + r.legalFees;
-    expect(r.totalDeductions).toBeCloseTo(expectedTotal, 2);
+    expect(r.totalDeductions).toBeCloseTo(expected, 2);
   });
 
-  it('26. netCashProceeds = salePrice - totalDeductions', () => {
-    const r = calculateNetProceeds(makeInput({}), COMMISSION, CURRENT_YEAR);
+  it('20. netCashProceeds = salePrice - totalDeductions', () => {
+    const r = calculateNetProceeds(makeInput({}), COMMISSION);
     expect(r.netCashProceeds).toBeCloseTo(r.salePrice - r.totalDeductions, 2);
   });
 });

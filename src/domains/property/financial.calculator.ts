@@ -1,48 +1,40 @@
 import type {
   FinancialCalculationInput,
   FinancialCalculationOutput,
-  CpfBreakdown,
-  FlatType,
 } from './financial.types';
-import { calculateCpfAccruedInterest, estimateCpfUsage } from './cpf-interest';
 import { getResaleLevy } from './resale-levy';
 
 const DEFAULT_LEGAL_FEES = 2500;
 
+/**
+ * Calculate net cash proceeds from HDB resale.
+ *
+ * CPF figures are seller-provided (from my.cpf.gov.sg → Home Ownership).
+ * The platform performs no CPF calculations — this aligns with HDB's own
+ * sales proceeds calculator approach.
+ *
+ * Formula:
+ *   totalCpfRefund  = sum of all owner cpfRefund values
+ *   totalDeductions = outstandingLoan + totalCpfRefund + resaleLevy + commission + legalFees
+ *   netCashProceeds = salePrice − totalDeductions
+ */
 export function calculateNetProceeds(
   input: FinancialCalculationInput,
   commission: number,
-  currentYear: number,
 ): FinancialCalculationOutput {
   const warnings: string[] = [];
 
-  // CPF Owner 1
-  const owner1Cpf = calculateCpfBreakdown(
-    input.owner1Cpf.oaUsed,
-    input.owner1Cpf.purchaseYear,
-    currentYear,
-    input.flatType,
-    warnings,
-  );
+  const ownerCpfRefunds = input.ownerCpfs.map((o) => o.cpfRefund);
+  const totalCpfRefund = Math.round(
+    ownerCpfRefunds.reduce((sum, r) => sum + r, 0) * 100,
+  ) / 100;
 
-  // CPF Owner 2 (optional joint owner)
-  let owner2Cpf: CpfBreakdown | undefined;
-  if (input.owner2Cpf) {
-    owner2Cpf = calculateCpfBreakdown(
-      input.owner2Cpf.oaUsed,
-      input.owner2Cpf.purchaseYear,
-      currentYear,
-      input.flatType,
-      warnings,
-    );
-  }
-
-  const totalCpfRefund = owner1Cpf.totalRefund + (owner2Cpf?.totalRefund ?? 0);
   const resaleLevy = getResaleLevy(input.flatType, input.subsidyType, input.isFirstTimer);
   const legalFees = input.legalFeesEstimate ?? DEFAULT_LEGAL_FEES;
 
-  const totalDeductions =
-    input.outstandingLoan + totalCpfRefund + resaleLevy + commission + legalFees;
+  const totalDeductions = Math.round(
+    (input.outstandingLoan + totalCpfRefund + resaleLevy + commission + legalFees) * 100,
+  ) / 100;
 
   const netCashProceeds = Math.round((input.salePrice - totalDeductions) * 100) / 100;
 
@@ -55,40 +47,13 @@ export function calculateNetProceeds(
   return {
     salePrice: input.salePrice,
     outstandingLoan: input.outstandingLoan,
-    owner1Cpf,
-    owner2Cpf,
-    totalCpfRefund: Math.round(totalCpfRefund * 100) / 100,
+    ownerCpfRefunds,
+    totalCpfRefund,
     resaleLevy,
     commission,
     legalFees,
-    totalDeductions: Math.round(totalDeductions * 100) / 100,
+    totalDeductions,
     netCashProceeds,
     warnings,
-  };
-}
-
-function calculateCpfBreakdown(
-  oaUsed: number | null,
-  purchaseYear: number,
-  currentYear: number,
-  flatType: string,
-  warnings: string[],
-): CpfBreakdown {
-  const isEstimated = oaUsed === null;
-  const actualOaUsed = oaUsed ?? estimateCpfUsage(flatType as FlatType);
-
-  if (isEstimated && actualOaUsed > 0) {
-    warnings.push(
-      'CPF OA usage was estimated based on flat type. Please check my.cpf.gov.sg for actual figures.',
-    );
-  }
-
-  const accruedInterest = calculateCpfAccruedInterest(actualOaUsed, purchaseYear, currentYear);
-
-  return {
-    oaUsed: actualOaUsed,
-    accruedInterest,
-    totalRefund: Math.round((actualOaUsed + accruedInterest) * 100) / 100,
-    isEstimated,
   };
 }

@@ -20,6 +20,15 @@
     if (el) el.value = Date.now().toString();
   })();
 
+  // ── Dark mode: system preference live listener ─────────────────
+  (function () {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+      if (!localStorage.getItem('theme')) {
+        document.documentElement.classList.toggle('dark', e.matches);
+      }
+    });
+  })();
+
   // ── Click event delegation ─────────────────────────────────────
   document.addEventListener('click', function (e) {
     var el = e.target.closest('[data-action]');
@@ -180,6 +189,12 @@
         var isHidden = msgRow.classList.toggle('hidden');
         el.textContent = isHidden ? (el.dataset.labelShow || 'View Message') : (el.dataset.labelHide || 'Hide');
       }
+    }
+
+    // Toggle dark mode
+    if (action === 'toggle-dark-mode') {
+      var isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
     }
   });
 

@@ -1088,10 +1088,10 @@ adminRouter.post(
 
       if (req.headers['hx-request']) {
         const [records, hasPendingReview] = await Promise.all([
-          contentService.listTestimonials(),
+          contentService.listTestimonials('pending_review'),
           contentService.hasPendingReviewTestimonials(),
         ]);
-        return res.render('partials/admin/testimonial-list', { records, hasPendingReview });
+        return res.render('partials/admin/testimonial-list', { records, activeStatus: 'pending_review', hasPendingReview });
       }
       return res.redirect('/admin/content/testimonials');
     } catch (err) {

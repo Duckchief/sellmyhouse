@@ -192,6 +192,16 @@ describe('POST /admin/content/testimonials — manual testimonial creation', () 
   });
 });
 
+describe('GET /admin/content/testimonials/new — drawer form partial', () => {
+  it('returns 200 with drawer form content', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .get('/admin/content/testimonials/new')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+  });
+});
+
 describe('GET /admin/dashboard — preset param', () => {
   beforeEach(() => {
     mockAdminService.getAnalytics.mockResolvedValue({

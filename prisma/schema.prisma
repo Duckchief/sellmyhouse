@@ -220,6 +220,11 @@ enum TestimonialStatus {
   rejected
 }
 
+enum ClientType {
+  seller
+  buyer
+}
+
 enum ReferralStatus {
   link_generated
   clicked
@@ -343,7 +348,8 @@ model Agent {
   financialReports          FinancialReport[]
   cddRecords                CddRecord[]
   estateAgencyAgreements    EstateAgencyAgreement[]
-  testimonials              Testimonial[]
+  testimonialsApproved      Testimonial[]          @relation("TestimonialApprovedBy")
+  testimonialsCreated       Testimonial[]          @relation("TestimonialCreatedBy")
   marketContentApproved     MarketContent[]        @relation("ContentApprover")
   deletionReviews           DataDeletionRequest[]  @relation("DeletionReviewer")
   correctionProcessed       DataCorrectionRequest[] @relation("CorrectionProcessor")
@@ -423,6 +429,7 @@ model Buyer {
 
   transactions   Transaction[]
   consentRecords ConsentRecord[]
+  testimonials   Testimonial[]
 
   @@map("buyers")
 }
@@ -868,23 +875,30 @@ model HdbDataSync {
 }
 
 model Testimonial {
-  id                String            @id
-  sellerId          String            @map("seller_id")
-  seller            Seller            @relation(fields: [sellerId], references: [id])
-  transactionId     String            @unique @map("transaction_id")
-  transaction       Transaction       @relation(fields: [transactionId], references: [id])
-  content           String?
-  rating            Int?
-  sellerName        String            @map("seller_name")
-  sellerTown        String            @map("seller_town")
-  status            TestimonialStatus @default(pending_submission)
-  submissionToken   String?           @unique @map("submission_token")
-  tokenExpiresAt    DateTime?         @map("token_expires_at")
-  approvedByAgentId String?           @map("approved_by_agent_id")
-  approvedByAgent   Agent?            @relation(fields: [approvedByAgentId], references: [id])
-  approvedAt        DateTime?         @map("approved_at")
-  displayOnWebsite  Boolean           @default(false) @map("display_on_website")
-  createdAt         DateTime          @default(now()) @map("created_at")
+  id                  String             @id
+  sellerId            String?            @map("seller_id")
+  seller              Seller?            @relation(fields: [sellerId], references: [id])
+  buyerId             String?            @map("buyer_id")
+  buyer               Buyer?             @relation(fields: [buyerId], references: [id])
+  transactionId       String?            @unique @map("transaction_id")
+  transaction         Transaction?       @relation(fields: [transactionId], references: [id])
+  clientType          ClientType?        @map("client_type")
+  content             String?
+  rating              Int?
+  clientName          String             @map("client_name")
+  clientTown          String             @map("client_town")
+  source              String?
+  isManual            Boolean            @default(false) @map("is_manual")
+  createdByAgentId    String?            @map("created_by_agent_id")
+  createdByAgent      Agent?             @relation("TestimonialCreatedBy", fields: [createdByAgentId], references: [id])
+  status              TestimonialStatus  @default(pending_submission)
+  submissionToken     String?            @unique @map("submission_token")
+  tokenExpiresAt      DateTime?          @map("token_expires_at")
+  approvedByAgentId   String?            @map("approved_by_agent_id")
+  approvedByAgent     Agent?             @relation("TestimonialApprovedBy", fields: [approvedByAgentId], references: [id])
+  approvedAt          DateTime?          @map("approved_at")
+  displayOnWebsite    Boolean            @default(false) @map("display_on_website")
+  createdAt           DateTime           @default(now()) @map("created_at")
 
   @@map("testimonials")
 }

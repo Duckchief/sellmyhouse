@@ -1,0 +1,92 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/shared/icons.njk" import icon %}
+
+{% block content %}
+{% set pageTitle = "Maintenance Mode" %}
+{% include "partials/shared/page-header.njk" %}
+
+<div class="max-w-2xl">
+  <div class="card p-6">
+    <div class="flex gap-6 items-start">
+
+      {# Left: Monkey + status badge #}
+      <div class="flex flex-col items-center gap-3 flex-shrink-0">
+        <img
+          src="/images/space-monkey-maintenance.png"
+          alt="Maintenance monkey"
+          class="w-28 h-28 object-contain"
+          style="image-rendering: pixelated;"
+        />
+        <span class="text-xs font-medium px-2 py-1 rounded-full {{ 'bg-red-100 text-red-700' if maintenance.isOn else 'bg-gray-100 text-gray-500' }}">
+          {{ "● Live" if maintenance.isOn else "● Off" }}
+        </span>
+      </div>
+
+      {# Right: Controls #}
+      <div class="flex-1 space-y-6">
+
+        <div>
+          <h2 class="text-base font-semibold text-gray-800">{{ "Maintenance Mode" | t }}</h2>
+          <p class="text-sm text-gray-500 mt-1">
+            {{ "When enabled, visitors and sellers see a maintenance page instead of the platform. Admins and agents retain full access." | t }}
+          </p>
+        </div>
+
+        {# Toggle region — swapped by HTMX on toggle #}
+        {% include "partials/admin/maintenance-status.njk" %}
+
+        <hr class="border-gray-100" />
+
+        {# Custom message #}
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="maintenance-message">
+            {{ "Custom message" | t }}
+            <span class="text-gray-400 font-normal">{{ "(optional — shown on maintenance page)" | t }}</span>
+          </label>
+          <form
+            hx-post="/admin/maintenance/message"
+            hx-target="#message-result"
+            hx-swap="innerHTML"
+            class="flex gap-2 items-start"
+          >
+            <textarea
+              id="maintenance-message"
+              name="message"
+              rows="2"
+              placeholder="{{ 'e.g. Upgrading our transaction processing system.' | t }}"
+              class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >{{ maintenance.message }}</textarea>
+            <button type="submit" class="btn-secondary text-sm px-3 py-2">{{ "Save" | t }}</button>
+          </form>
+          <div id="message-result" class="text-xs text-green-600 mt-1 h-4"></div>
+        </div>
+
+        {# ETA #}
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="maintenance-eta">
+            {{ "Estimated back" | t }}
+            <span class="text-gray-400 font-normal">{{ "(optional)" | t }}</span>
+          </label>
+          <form
+            hx-post="/admin/maintenance/eta"
+            hx-target="#eta-result"
+            hx-swap="innerHTML"
+            class="flex gap-2 items-center"
+          >
+            <input
+              id="maintenance-eta"
+              type="datetime-local"
+              name="eta"
+              value="{{ maintenance.eta }}"
+              class="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button type="submit" class="btn-secondary text-sm px-3 py-2">{{ "Save" | t }}</button>
+          </form>
+          <div id="eta-result" class="text-xs text-green-600 mt-1 h-4"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

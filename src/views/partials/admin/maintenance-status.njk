@@ -1,0 +1,34 @@
+{# Partial: rendered by HTMX toggle response — replaces #maintenance-status region #}
+<div id="maintenance-status">
+  {% if maintenance.isOn %}
+  <div class="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+    <span class="font-semibold">{{ "● Maintenance is LIVE" | t }}</span>
+    <span class="text-red-600">{{ "— visitors cannot access the platform." | t }}</span>
+  </div>
+  {% else %}
+  <div class="flex items-center gap-2 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500">
+    <span>{{ "● Maintenance is off" | t }}</span>
+    <span class="text-gray-400">{{ "— platform is accessible normally." | t }}</span>
+  </div>
+  {% endif %}
+
+  {# Apple-style toggle #}
+  <div class="flex items-center gap-4 mt-4">
+    <span class="text-sm text-gray-500">{{ "Off" | t }}</span>
+    <button
+      type="button"
+      hx-post="/admin/maintenance/toggle"
+      hx-target="#maintenance-status"
+      hx-swap="outerHTML"
+      aria-label="{{ 'Toggle maintenance mode' | t }}"
+      class="relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 {{ 'bg-red-500' if maintenance.isOn else 'bg-gray-300' }}"
+    >
+      <span
+        class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform {{ 'translate-x-8' if maintenance.isOn else 'translate-x-1' }}"
+      ></span>
+    </button>
+    <span class="text-sm {{ 'font-semibold text-red-600' if maintenance.isOn else 'text-gray-500' }}">
+      {{ "On" | t }}
+    </span>
+  </div>
+</div>

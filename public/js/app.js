@@ -11,6 +11,9 @@
     var sidebar = document.getElementById('sidebar');
     if (sidebar && localStorage.getItem('sidebar:collapsed') === 'true') {
       sidebar.classList.add('sidebar-collapsed');
+      if (window.innerWidth >= 768) {
+        sidebar.classList.add('sidebar-settled'); // already settled — no animation on load
+      }
     }
   })();
 
@@ -144,6 +147,7 @@
     if (action === 'toggle-sidebar-collapse') {
       var sidebar = document.getElementById('sidebar');
       if (sidebar) {
+        sidebar.classList.remove('sidebar-settled'); // restore overflow:hidden for animation
         var isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
         localStorage.setItem('sidebar:collapsed', isCollapsed ? 'true' : 'false');
       }
@@ -495,6 +499,18 @@
           break;
         }
       }
+    }
+  })();
+
+  // ── Sidebar settled: re-enable overflow after collapse transition ─
+  (function () {
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      sidebar.addEventListener('transitionend', function (e) {
+        if (e.target === sidebar && e.propertyName === 'width' && sidebar.classList.contains('sidebar-collapsed') && window.innerWidth >= 768) {
+          sidebar.classList.add('sidebar-settled');
+        }
+      });
     }
   })();
 

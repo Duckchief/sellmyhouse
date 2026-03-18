@@ -53,6 +53,11 @@
         {{ "Log In as Seller" | t }}
       </button>
     </form>
+
+    <p class="mt-4 text-center text-sm text-gray-600">
+      {{ "Don't have an account?" | t }}
+      <a href="/auth/register" class="font-medium text-indigo-600 hover:text-indigo-500">{{ "Register" | t }}</a>
+    </p>
   </div>
 
   <div id="agent-form" class="hidden">
@@ -82,11 +87,6 @@
       </button>
     </form>
   </div>
-
-  <p class="mt-4 text-center text-sm text-gray-600">
-    {{ "Don't have an account?" | t }}
-    <a href="/auth/register" class="font-medium text-indigo-600 hover:text-indigo-500">{{ "Register" | t }}</a>
-  </p>
 </div>
 
 {% endblock %}

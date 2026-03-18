@@ -9,6 +9,7 @@ import {
 } from './offer.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import { offerRateLimiter } from '@/infra/http/middleware/rate-limit';
+import { getHasAvatar } from '../profile/profile.service';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 
 export const offerRouter = Router();
@@ -32,7 +33,8 @@ offerRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/agent/offer-chain', { offers, propertyId });
       }
-      res.render('pages/agent/offers', { offers, propertyId });
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/agent/offers', { pageTitle: 'Offers', user, hasAvatar, offers, propertyId });
     } catch (err) {
       next(err);
     }

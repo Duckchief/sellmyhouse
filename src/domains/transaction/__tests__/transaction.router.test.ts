@@ -5,6 +5,7 @@ import { transactionRouter } from '../transaction.router';
 import * as txService from '../transaction.service';
 
 jest.mock('../transaction.service');
+jest.mock('../../profile/profile.service', () => ({ getHasAvatar: jest.fn().mockResolvedValue(false) }));
 jest.mock(
   'express-rate-limit',
   () => () => (_req: unknown, _res: unknown, next: () => void) => next(),

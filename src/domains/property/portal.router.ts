@@ -4,6 +4,7 @@ import { body, validationResult } from 'express-validator';
 import * as portalService from './portal.service';
 import * as photoService from './photo.service';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
+import { getHasAvatar } from '../profile/profile.service';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 
 export const portalRouter = Router();
@@ -27,7 +28,8 @@ portalRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/agent/portal-panels', { portalListings, listingId });
       }
-      res.render('pages/agent/portals', { portalListings, listingId });
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/agent/portals', { pageTitle: 'Portals', user, hasAvatar, portalListings, listingId });
     } catch (err) {
       next(err);
     }

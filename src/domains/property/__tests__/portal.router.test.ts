@@ -5,6 +5,7 @@ import { portalRouter } from '../portal.router';
 import * as portalService from '../portal.service';
 
 jest.mock('../portal.service');
+jest.mock('../../profile/profile.service', () => ({ getHasAvatar: jest.fn().mockResolvedValue(false) }));
 jest.mock(
   'express-rate-limit',
   () => () => (_req: unknown, _res: unknown, next: () => void) => next(),

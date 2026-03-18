@@ -1,7 +1,4 @@
-import type {
-  FinancialCalculationInput,
-  FinancialCalculationOutput,
-} from './financial.types';
+import type { FinancialCalculationInput, FinancialCalculationOutput } from './financial.types';
 import { getResaleLevy } from './resale-levy';
 
 const DEFAULT_LEGAL_FEES = 2500;
@@ -25,16 +22,15 @@ export function calculateNetProceeds(
   const warnings: string[] = [];
 
   const ownerCpfRefunds = input.ownerCpfs.map((o) => o.cpfRefund);
-  const totalCpfRefund = Math.round(
-    ownerCpfRefunds.reduce((sum, r) => sum + r, 0) * 100,
-  ) / 100;
+  const totalCpfRefund = Math.round(ownerCpfRefunds.reduce((sum, r) => sum + r, 0) * 100) / 100;
 
   const resaleLevy = getResaleLevy(input.flatType, input.subsidyType, input.isFirstTimer);
   const legalFees = input.legalFeesEstimate ?? DEFAULT_LEGAL_FEES;
 
-  const totalDeductions = Math.round(
-    (input.outstandingLoan + totalCpfRefund + resaleLevy + commission + legalFees) * 100,
-  ) / 100;
+  const totalDeductions =
+    Math.round(
+      (input.outstandingLoan + totalCpfRefund + resaleLevy + commission + legalFees) * 100,
+    ) / 100;
 
   const netCashProceeds = Math.round((input.salePrice - totalDeductions) * 100) / 100;
 

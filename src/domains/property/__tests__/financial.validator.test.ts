@@ -33,7 +33,7 @@ describe('validateCalculationInput', () => {
   });
 
   it('throws ValidationError when no CPF refund provided', () => {
-    const { cpfRefund1, ...withoutCpf } = base;
+    const { cpfRefund1: _cpfRefund1, ...withoutCpf } = base;
     expect(() => validateCalculationInput(withoutCpf)).toThrow(ValidationError);
   });
 
@@ -44,7 +44,7 @@ describe('validateCalculationInput', () => {
   });
 
   it('throws ValidationError when salePrice is missing', () => {
-    const { salePrice, ...withoutPrice } = base;
+    const { salePrice: _salePrice, ...withoutPrice } = base;
     expect(() => validateCalculationInput(withoutPrice)).toThrow(ValidationError);
   });
 

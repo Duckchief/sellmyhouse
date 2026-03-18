@@ -673,8 +673,24 @@ describe('updateSetting', () => {
 describe('getSettingsGrouped', () => {
   it('assigns inputType cron to market_content_schedule and text to others', async () => {
     mockSettingsService.findAll.mockResolvedValueOnce([
-      { id: '1', key: 'market_content_schedule', value: '0 8 * * 1', description: 'desc', updatedByAgentId: null, updatedAt: new Date(), createdAt: new Date() },
-      { id: '2', key: 'maintenance_mode', value: 'false', description: 'desc', updatedByAgentId: null, updatedAt: new Date(), createdAt: new Date() },
+      {
+        id: '1',
+        key: 'market_content_schedule',
+        value: '0 8 * * 1',
+        description: 'desc',
+        updatedByAgentId: null,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      },
+      {
+        id: '2',
+        key: 'maintenance_mode',
+        value: 'false',
+        description: 'desc',
+        updatedByAgentId: null,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      },
     ]);
 
     const groups = await adminService.getSettingsGrouped();

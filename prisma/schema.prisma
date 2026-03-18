@@ -332,6 +332,7 @@ model Agent {
   passwordResetToken        String?                @map("password_reset_token")
   passwordResetExpiry       DateTime?              @map("password_reset_expiry")
   notificationPreference    NotificationPreference @default(whatsapp_and_email) @map("notification_preference")
+  avatarPath                String?                @map("avatar_path")
   createdAt                 DateTime               @default(now()) @map("created_at")
   updatedAt                 DateTime               @updatedAt @map("updated_at")
 

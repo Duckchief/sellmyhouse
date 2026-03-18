@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --color-surface:     #fafaf7;
+    --color-surface-alt: #f0efe9;
+    --color-panel:       #ffffff;
+  }
+  .dark {
+    --color-surface:     #111111;
+    --color-surface-alt: #161616;
+    --color-panel:       #1e1e1e;
+  }
+}
+
 @layer utilities {
   @keyframes red-throb {
     0%   { background-color: #ef4444; transform: scale(1); }    /* red-500 */
@@ -27,10 +40,12 @@
     @apply border border-accent text-accent px-4 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-white transition;
   }
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-accent;
+    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm
+           focus:outline-none focus:ring-2 focus:ring-accent
+           bg-white dark:bg-panel text-gray-900 dark:text-gray-100;
   }
   .card {
-    @apply bg-white rounded-lg border border-gray-200 shadow-sm p-6;
+    @apply bg-white dark:bg-panel rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6;
   }
   .info-grid {
     @apply grid grid-cols-1 md:grid-cols-2 gap-6 mb-6;
@@ -39,6 +54,6 @@
     @apply mb-6;
   }
   .page-section-title {
-    @apply text-lg font-bold text-gray-900 mb-4;
+    @apply text-lg font-bold text-gray-900 dark:text-gray-100 mb-4;
   }
 }

@@ -2,6 +2,7 @@ import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: ['./src/views/**/*.njk', './src/views/**/*.html'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -11,9 +12,10 @@ const config: Config = {
           dark: '#a8432f',
         },
         bg: {
-          DEFAULT: '#fafaf7',
-          alt: '#f0efe9',
+          DEFAULT: 'var(--color-surface)',
+          alt: 'var(--color-surface-alt)',
         },
+        panel: 'var(--color-panel)',
       },
     },
   },

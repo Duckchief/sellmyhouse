@@ -5,39 +5,39 @@
 {% include "partials/shared/page-header.njk" %}
 
 {% set stageList = [
-  { value: 'lead',      label: 'Lead',      color: 'border-blue-500',   tooltip: 'New enquiry received. Not yet contacted or assigned to an agent' },
-  { value: 'engaged',   label: 'Engaged',   color: 'border-yellow-500', tooltip: 'In active consultation. EAA being prepared or signed' },
-  { value: 'active',    label: 'Active',    color: 'border-green-500',  tooltip: 'Property listed and transaction in progress. Viewings, offers, OTP' },
-  { value: 'completed', label: 'Completed', color: 'border-purple-500', tooltip: 'Transaction closed. Commission paid' },
-  { value: 'archived',  label: 'Archived',  color: 'border-gray-400',   tooltip: 'Case closed without a completed transaction, or past retention period' }
+  { value: 'lead',      label: 'Lead',      bg: 'bg-blue-50',   ring: 'ring-blue-400',   countColor: 'text-blue-700',   tooltip: 'New enquiry received. Not yet contacted or assigned to an agent' },
+  { value: 'engaged',   label: 'Engaged',   bg: 'bg-yellow-50', ring: 'ring-yellow-400', countColor: 'text-yellow-700', tooltip: 'In active consultation. EAA being prepared or signed' },
+  { value: 'active',    label: 'Active',    bg: 'bg-green-50',  ring: 'ring-green-400',  countColor: 'text-green-700',  tooltip: 'Property listed and transaction in progress. Viewings, offers, OTP' },
+  { value: 'completed', label: 'Completed', bg: 'bg-gray-50',   ring: 'ring-gray-400',   countColor: 'text-gray-700',   tooltip: 'Transaction closed. Commission paid' },
+  { value: 'archived',  label: 'Archived',  bg: 'bg-red-50',    ring: 'ring-red-400',    countColor: 'text-red-700',    tooltip: 'Case closed without a completed transaction, or past retention period' }
 ] %}
 
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
   {# All card #}
   <a href="/admin/pipeline"
-     class="card border-t-4 relative {% if not stage %}border-accent ring-2 ring-accent/20{% else %}border-gray-200 hover:border-gray-300{% endif %}">
+     class="card border-0 relative bg-gray-50 {% if not stage %}ring-2 ring-offset-1 ring-gray-400{% else %}hover:ring-2 hover:ring-offset-1 hover:ring-gray-400{% endif %} transition">
     <div class="absolute top-2 right-2 group">
-      <span class="w-4 h-4 rounded-full bg-gray-100 text-gray-400 text-xs flex items-center justify-center cursor-default select-none">?</span>
+      <span class="w-4 h-4 rounded-full bg-white bg-opacity-60 text-gray-400 text-xs flex items-center justify-center cursor-default select-none">?</span>
       <div class="absolute bottom-full right-0 mb-2 w-48 bg-gray-900 text-white text-xs rounded px-2 py-1.5 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
         {{ "All sellers currently in your pipeline" | t }}
         <div class="absolute top-full right-2 border-4 border-transparent border-t-gray-900"></div>
       </div>
     </div>
-    <p class="text-xs font-medium text-gray-500 uppercase">{{ "All" | t }}</p>
-    <p class="text-2xl font-bold mt-1">{{ stageCounts.lead + stageCounts.engaged + stageCounts.active + stageCounts.completed + stageCounts.archived }}</p>
+    <p class="text-xs font-medium text-gray-500 uppercase text-center">{{ "All" | t }}</p>
+    <p class="text-2xl font-bold mt-1 text-center text-gray-700">{{ stageCounts.lead + stageCounts.engaged + stageCounts.active + stageCounts.completed + stageCounts.archived }}</p>
   </a>
   {% for s in stageList %}
   <a href="/admin/pipeline?stage={{ s.value }}"
-     class="card border-t-4 relative {% if stage == s.value %}{{ s.color }} ring-2 ring-offset-1{% else %}border-gray-200 hover:{{ s.color }}{% endif %}">
+     class="card border-0 relative {{ s.bg }} {% if stage == s.value %}{{ s.ring }} ring-2 ring-offset-1{% else %}hover:ring-2 hover:ring-offset-1 hover:{{ s.ring }}{% endif %} transition">
     <div class="absolute top-2 right-2 group">
-      <span class="w-4 h-4 rounded-full bg-gray-100 text-gray-400 text-xs flex items-center justify-center cursor-default select-none">?</span>
+      <span class="w-4 h-4 rounded-full bg-white bg-opacity-60 text-gray-400 text-xs flex items-center justify-center cursor-default select-none">?</span>
       <div class="absolute bottom-full right-0 mb-2 w-48 bg-gray-900 text-white text-xs rounded px-2 py-1.5 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
         {{ s.tooltip | t }}
         <div class="absolute top-full right-2 border-4 border-transparent border-t-gray-900"></div>
       </div>
     </div>
-    <p class="text-xs font-medium text-gray-500 uppercase">{{ s.label | t }}</p>
-    <p class="text-2xl font-bold mt-1">{{ stageCounts[s.value] or 0 }}</p>
+    <p class="text-xs font-medium text-gray-500 uppercase text-center">{{ s.label | t }}</p>
+    <p class="text-2xl font-bold mt-1 text-center {{ s.countColor }}">{{ stageCounts[s.value] or 0 }}</p>
   </a>
   {% endfor %}
 </div>

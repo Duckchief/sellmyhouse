@@ -115,8 +115,16 @@
 <div id="crop-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60">
   <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4">
     <h3 class="font-semibold text-gray-900 mb-4">{{ "Crop profile photo" | t }}</h3>
-    <div class="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
+    <div class="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
       <img id="crop-preview" src="" alt="" class="max-w-full">
+      {# Circular mask overlay — clips outside the circle visually #}
+      <div class="pointer-events-none absolute inset-0" style="box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); border-radius: 50%; left: 10%; top: 10%; width: 80%; height: 80%;"></div>
+    </div>
+    {# Zoom slider #}
+    <div class="flex items-center gap-3 mb-4">
+      <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+      <input id="zoom-slider" type="range" min="0" max="100" value="50" class="flex-1 accent-accent">
+      <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0zM11 8v6M8 11h6"/></svg>
     </div>
     <div class="flex gap-2">
       <button id="crop-cancel" type="button"
@@ -136,7 +144,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1/dist/cropper.min.css">
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1/dist/cropper.min.js" nonce="{{ cspNonce }}"></script>
 <script nonce="{{ cspNonce }}">
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
   var cropper = null;
 
   document.getElementById('avatar-file-input').addEventListener('change', function (e) {
@@ -154,20 +162,32 @@
     var reader = new FileReader();
     reader.onload = function (ev) {
       var img = document.getElementById('crop-preview');
-      img.src = ev.target.result;
       document.getElementById('crop-modal').classList.remove('hidden');
 
       if (cropper) { cropper.destroy(); cropper = null; }
-      cropper = new Cropper(img, {
-        aspectRatio: 1,
-        viewMode: 1,
-        dragMode: 'move',
-        autoCropArea: 1,
+
+      img.src = ev.target.result;
+      document.getElementById('zoom-slider').value = 50;
+      requestAnimationFrame(function () {
+        cropper = new Cropper(img, {
+          aspectRatio: 1,
+          viewMode: 1,
+          dragMode: 'move',
+          autoCropArea: 1,
+          zoomOnWheel: false,
+        });
       });
     };
     reader.readAsDataURL(file);
     // Reset input so same file can be re-selected
     this.value = '';
+  });
+
+  document.getElementById('zoom-slider').addEventListener('input', function () {
+    if (!cropper) return;
+    // Slider 0–100 maps to zoom ratio 0.5–3.0
+    var ratio = 0.5 + (this.value / 100) * 2.5;
+    cropper.zoomTo(ratio);
   });
 
   document.getElementById('crop-cancel').addEventListener('click', function () {
@@ -194,6 +214,6 @@
         });
     }, 'image/jpeg', 0.85);
   });
-})();
+});
 </script>
 {% endblock %}

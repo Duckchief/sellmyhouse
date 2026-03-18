@@ -33,11 +33,6 @@
       <span id="cdd-status-indicator" class="htmx-indicator absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">↻</span>
     </div>
 
-    {% if compliance.cdd.status == 'verified' %}
-    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">{{ "Verified" | t }}</span>
-    {% elif compliance.cdd.status == 'pending' %}
-    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">{{ "Pending" | t }}</span>
-    {% endif %}
   </div>
 
   {% if compliance.cdd.status == 'pending' %}

@@ -10,11 +10,9 @@
       <dt class="text-gray-500">{{ "Agent Name" | t }}</dt>
       <dd class="text-gray-700">{{ compliance.counterpartyCdd.buyerAgentName }}</dd>
     </div>
-    {% endif %}
-    {% if compliance.counterpartyCdd.buyerAgentCeaReg %}
     <div class="flex justify-between">
       <dt class="text-gray-500">{{ "CEA Reg No" | t }}</dt>
-      <dd class="text-gray-700">{{ compliance.counterpartyCdd.buyerAgentCeaReg }}</dd>
+      <dd class="text-gray-700">{{ compliance.counterpartyCdd.buyerAgentCeaReg or "—" }}</dd>
     </div>
     {% endif %}
   </dl>

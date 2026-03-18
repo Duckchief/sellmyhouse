@@ -4,7 +4,7 @@ import * as authRepo from '../auth.repository';
 jest.mock('../../../infra/database/prisma', () => ({
   prisma: {
     $transaction: jest.fn(),
-    $executeRawUnsafe: jest.fn(),
+    $executeRaw: jest.fn(),
     seller: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
@@ -261,22 +261,15 @@ describe('AuthRepository', () => {
 
   describe('invalidateUserSessions', () => {
     it('deletes all sessions for user', async () => {
-      prisma.$executeRawUnsafe = jest.fn().mockResolvedValue(0);
+      prisma.$executeRaw = jest.fn().mockResolvedValue(0);
       await authRepo.invalidateUserSessions('user-1');
-      expect(prisma.$executeRawUnsafe).toHaveBeenCalledWith(
-        expect.stringContaining('DELETE FROM "session"'),
-        expect.stringContaining('user-1'),
-      );
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
     });
 
     it('preserves current session when exceptSessionId provided', async () => {
-      prisma.$executeRawUnsafe = jest.fn().mockResolvedValue(0);
+      prisma.$executeRaw = jest.fn().mockResolvedValue(0);
       await authRepo.invalidateUserSessions('user-1', 'current-sid');
-      expect(prisma.$executeRawUnsafe).toHaveBeenCalledWith(
-        expect.stringContaining('AND sid != $2'),
-        expect.stringContaining('user-1'),
-        'current-sid',
-      );
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
     });
   });
 

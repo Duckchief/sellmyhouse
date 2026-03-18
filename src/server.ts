@@ -3,6 +3,7 @@ dotenv.config();
 
 import { createApp } from './infra/http/app';
 import { logger } from './infra/logger';
+import { getKeyProvider } from './infra/security/key-provider';
 
 // E1: Handle uncaught exceptions and unhandled rejections
 process.on('uncaughtException', (err) => {
@@ -71,6 +72,15 @@ registerJob(
 initVirusScanner().catch(() => {
   // Initialization failure is already logged inside initVirusScanner
 });
+
+// Log active key provider at startup (env or aws)
+try {
+  getKeyProvider(); // initializes singleton + validates config
+  logger.info({ keyProvider: process.env['KEY_PROVIDER'] ?? 'env' }, 'KeyProvider initialized');
+} catch (err) {
+  logger.error({ err }, 'KeyProvider initialization failed — CDD document encryption unavailable');
+  process.exit(1);
+}
 
 // Start cron jobs and server
 startJobs();

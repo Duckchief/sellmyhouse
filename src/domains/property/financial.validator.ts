@@ -19,52 +19,63 @@ const VALID_SUBSIDY_TYPES: SubsidyType[] = ['subsidised', 'non_subsidised'];
 
 const VALID_SEND_CHANNELS = ['whatsapp', 'email', 'in_app'] as const;
 
+/**
+ * Validate and parse the financial calculation form submission.
+ *
+ * CPF inputs: cpfRefund1 (required), cpfRefund2–cpfRefund4 (optional).
+ * Each is the seller's combined CPF figure (principal + accrued interest)
+ * self-reported from my.cpf.gov.sg → Home Ownership.
+ *
+ * purchaseYear is no longer accepted — the platform performs no CPF calculations.
+ */
 export function validateCalculationInput(body: Record<string, unknown>): FinancialCalculationInput {
-  const salePrice = Number(body.salePrice);
+  // Sale price
   if (!body.salePrice && body.salePrice !== 0) {
     throw new ValidationError('Sale price is required');
   }
+  const salePrice = Number(body.salePrice);
   if (isNaN(salePrice) || salePrice <= 0) {
     throw new ValidationError('Sale price must be greater than zero');
   }
 
+  // Outstanding loan
   const outstandingLoan = Number(body.outstandingLoan ?? 0);
-  if (outstandingLoan < 0) {
+  if (isNaN(outstandingLoan) || outstandingLoan < 0) {
     throw new ValidationError('Outstanding loan cannot be negative');
   }
 
+  // Flat type
   const flatType = body.flatType as string;
   if (!VALID_FLAT_TYPES.includes(flatType as FlatType)) {
     throw new ValidationError(`Invalid flat type: ${flatType}`);
   }
 
+  // Subsidy type
   const subsidyType = (body.subsidyType as string) || 'subsidised';
   if (!VALID_SUBSIDY_TYPES.includes(subsidyType as SubsidyType)) {
     throw new ValidationError(`Invalid subsidy type: ${subsidyType}`);
   }
 
-  // ownerCpfs: array of { cpfRefund: number } — seller-provided from my.cpf.gov.sg
-  const rawOwnerCpfs = body.ownerCpfs;
-  let ownerCpfs: CpfOwnerInput[];
-
-  if (Array.isArray(rawOwnerCpfs) && rawOwnerCpfs.length > 0) {
-    if (rawOwnerCpfs.length > 4) {
-      throw new ValidationError('ownerCpfs may not have more than 4 entries');
+  // CPF owner inputs — cpfRefund1 required, cpfRefund2–4 optional
+  const ownerCpfs: CpfOwnerInput[] = [];
+  for (let i = 1; i <= 4; i++) {
+    const raw = body[`cpfRefund${i}`];
+    if (raw === undefined || raw === null || raw === '') {
+      if (i === 1) throw new ValidationError('CPF refund for Owner 1 is required');
+      break; // owners are contiguous — stop at first gap
     }
-    ownerCpfs = rawOwnerCpfs.map((entry: unknown, idx: number) => {
-      const cpfRefund = Number((entry as Record<string, unknown>).cpfRefund ?? 0);
-      if (isNaN(cpfRefund) || cpfRefund < 0) {
-        throw new ValidationError(`ownerCpfs[${idx}].cpfRefund must be a non-negative number`);
-      }
-      return { cpfRefund };
-    });
-  } else {
-    // Default: single owner with zero CPF refund
-    ownerCpfs = [{ cpfRefund: 0 }];
+    const value = Number(raw);
+    if (isNaN(value) || value < 0) {
+      throw new ValidationError(`CPF refund for Owner ${i} must be a non-negative number`);
+    }
+    ownerCpfs.push({ cpfRefund: value });
   }
 
+  // Legal fees
   const legalFeesEstimate =
-    body.legalFeesEstimate !== undefined ? Number(body.legalFeesEstimate) : undefined;
+    body.legalFeesEstimate !== undefined && body.legalFeesEstimate !== ''
+      ? Number(body.legalFeesEstimate)
+      : undefined;
 
   return {
     salePrice,

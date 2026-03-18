@@ -8,7 +8,7 @@ import { NotFoundError, ValidationError } from '../shared/errors';
 import type { ProfileView } from './profile.types';
 
 const AVATAR_DIR = path.resolve('uploads/avatars');
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_SIZE = 2 * 1024 * 1024; // 2MB
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/jpg']);
 
 export async function getProfile(agentId: string): Promise<ProfileView> {
@@ -22,7 +22,7 @@ export async function uploadAvatar(agentId: string, file: Express.Multer.File): 
     throw new ValidationError('Only JPEG and PNG images are allowed');
   }
   if (file.size > MAX_SIZE) {
-    throw new ValidationError('Avatar must be under 5MB');
+    throw new ValidationError('File too large. Maximum size is 2MB.');
   }
 
   await fs.mkdir(AVATAR_DIR, { recursive: true });

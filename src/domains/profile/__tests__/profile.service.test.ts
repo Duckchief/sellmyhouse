@@ -53,10 +53,10 @@ describe('ProfileService', () => {
       );
     });
 
-    it('rejects files over 5MB', async () => {
-      const bigFile = { ...mockFile, size: 6 * 1024 * 1024 } as Express.Multer.File;
+    it('rejects files over 2MB', async () => {
+      const bigFile = { ...mockFile, size: 3 * 1024 * 1024 } as Express.Multer.File;
       await expect(service.uploadAvatar('agent1', bigFile)).rejects.toThrow(
-        'Avatar must be under 5MB',
+        'File too large. Maximum size is 2MB.',
       );
     });
 

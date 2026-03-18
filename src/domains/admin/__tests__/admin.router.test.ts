@@ -548,9 +548,7 @@ describe('POST /admin/maintenance/toggle', () => {
 
   it('returns 200 for HTMX request', async () => {
     const app = makeApp();
-    const res = await request(app)
-      .post('/admin/maintenance/toggle')
-      .set('hx-request', 'true');
+    const res = await request(app).post('/admin/maintenance/toggle').set('hx-request', 'true');
     expect(res.status).toBe(200);
     expect(mockAdminService.getMaintenanceSettings).toHaveBeenCalled();
   });
@@ -591,14 +589,9 @@ describe('POST /admin/maintenance/eta', () => {
 
   it('redirects for non-HTMX request', async () => {
     const app = makeApp();
-    const res = await request(app)
-      .post('/admin/maintenance/eta')
-      .send('eta=2026-03-19T10%3A00');
+    const res = await request(app).post('/admin/maintenance/eta').send('eta=2026-03-19T10%3A00');
     expect(res.status).toBe(302);
-    expect(mockAdminService.setMaintenanceEta).toHaveBeenCalledWith(
-      '2026-03-19T10:00',
-      'admin-1',
-    );
+    expect(mockAdminService.setMaintenanceEta).toHaveBeenCalledWith('2026-03-19T10:00', 'admin-1');
   });
 
   it('returns 200 Saved for HTMX request', async () => {

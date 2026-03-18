@@ -57,7 +57,12 @@ describe('Financial Engine — Integration', () => {
           isFirstTimer: false,
           legalFeesEstimate: 2500,
         },
-        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995, cpfDisclaimerShownAt: new Date().toISOString() },
+        metadata: {
+          flatType: '4 ROOM',
+          town: 'TAMPINES',
+          leaseCommenceDate: 1995,
+          cpfDisclaimerShownAt: new Date().toISOString(),
+        },
       });
 
       expect(report.id).toBeDefined();
@@ -91,7 +96,12 @@ describe('Financial Engine — Integration', () => {
           isFirstTimer: false,
           legalFeesEstimate: 2500,
         },
-        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995, cpfDisclaimerShownAt: new Date().toISOString() },
+        metadata: {
+          flatType: '4 ROOM',
+          town: 'TAMPINES',
+          leaseCommenceDate: 1995,
+          cpfDisclaimerShownAt: new Date().toISOString(),
+        },
       };
 
       const report1 = await financialService.calculateAndCreateReport(input);
@@ -176,7 +186,12 @@ describe('Financial Engine — Integration', () => {
           subsidyType: 'subsidised',
           isFirstTimer: false,
         },
-        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995, cpfDisclaimerShownAt: new Date().toISOString() },
+        metadata: {
+          flatType: '4 ROOM',
+          town: 'TAMPINES',
+          leaseCommenceDate: 1995,
+          cpfDisclaimerShownAt: new Date().toISOString(),
+        },
       });
 
       const logs = await testPrisma.auditLog.findMany({

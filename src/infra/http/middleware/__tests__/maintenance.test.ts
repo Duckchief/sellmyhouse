@@ -67,6 +67,28 @@ describe('maintenanceMiddleware', () => {
     expect(res.render).not.toHaveBeenCalled();
   });
 
+  it('passes through /health even when maintenance is on', async () => {
+    mockSettings.get.mockResolvedValue('true');
+    const req = makeReq({ path: '/health' }) as Request;
+    const res = makeRes() as Response;
+
+    await maintenanceMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalledWith();
+    expect(res.render).not.toHaveBeenCalled();
+  });
+
+  it('passes through webhook paths even when maintenance is on', async () => {
+    mockSettings.get.mockResolvedValue('true');
+    const req = makeReq({ path: '/api/webhook/whatsapp' }) as Request;
+    const res = makeRes() as Response;
+
+    await maintenanceMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalledWith();
+    expect(res.render).not.toHaveBeenCalled();
+  });
+
   it('passes through for admin role', async () => {
     mockSettings.get.mockResolvedValue('true');
     const req = makeReq({

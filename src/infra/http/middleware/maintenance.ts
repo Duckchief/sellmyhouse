@@ -13,8 +13,12 @@ export async function maintenanceMiddleware(
       return next();
     }
 
-    // Admin routes always bypass
-    if (req.path.startsWith('/admin')) {
+    // Admin, health, and webhook routes always bypass
+    if (
+      req.path === '/health' ||
+      req.path.startsWith('/admin') ||
+      req.path.startsWith('/api/webhook')
+    ) {
       return next();
     }
 

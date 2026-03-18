@@ -234,6 +234,19 @@ describe('GET /admin/content/testimonials/:id', () => {
     const res = await request(app).get('/admin/content/testimonials/bad-id');
     expect(res.status).toBe(404);
   });
+
+  it('redirects to list on non-HTMX request', async () => {
+    jest.mocked(contentService.getTestimonialById).mockResolvedValue({
+      id: 't-1',
+      clientName: 'Mary L.',
+      status: 'approved',
+    } as any);
+
+    const app = makeApp();
+    const res = await request(app).get('/admin/content/testimonials/t-1');
+    // No HX-Request header — should redirect
+    expect(res.status).toBe(302);
+  });
 });
 
 describe('POST /admin/content/testimonials/:id/approve — HTMX', () => {

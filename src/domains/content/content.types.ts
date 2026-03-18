@@ -92,8 +92,16 @@ export type TestimonialStatus = 'pending_submission' | 'pending_review' | 'appro
 export interface TestimonialSubmitInput {
   content: string;
   rating: number;
-  sellerName: string;
-  sellerTown: string;
+  clientName: string;
+  clientTown: string;
+}
+
+export interface CreateManualTestimonialInput {
+  clientName: string;
+  clientTown: string;
+  rating: number;
+  content: string;
+  source?: string;
 }
 
 // ─── Referrals ────────────────────────────────────────────────────────────────

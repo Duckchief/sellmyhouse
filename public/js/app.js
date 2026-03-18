@@ -182,6 +182,14 @@
       if (testimonialBackdrop) testimonialBackdrop.classList.add('hidden');
     }
 
+    if (action === 'open-testimonial-drawer') {
+      if (e.target.closest('.no-row-click')) return;
+      var url = el.dataset.testimonialUrl;
+      if (url) {
+        htmx.ajax('GET', url, { target: '#testimonial-drawer-content', swap: 'innerHTML' });
+      }
+    }
+
     if (action === 'close-market-content-panel') {
       var mcPanel = document.getElementById('market-content-panel');
       var mcBackdrop = document.getElementById('market-content-backdrop');

@@ -1046,6 +1046,29 @@ adminRouter.get(
   },
 );
 
+// GET /admin/content/market/:id — full-page detail view
+adminRouter.get(
+  '/admin/content/market/:id',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const record = await contentService.getMarketContentById(req.params['id'] as string);
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
+      return res.render('pages/admin/market-content-detail', {
+        pageTitle: 'Market Content Detail',
+        user,
+        hasAvatar,
+        record,
+        statusColors: MARKET_CONTENT_STATUS_COLORS,
+        currentPath: '/admin/content/market',
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 // GET /admin/content/market/:id/detail — HTMX slide-out panel
 adminRouter.get(
   '/admin/content/market/:id/detail',

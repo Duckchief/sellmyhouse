@@ -56,8 +56,8 @@
 </div>
 
 {% if record.status == 'pending_review' %}
-<div class="p-4 border-t border-gray-200 space-y-3">
-  <form hx-post="/admin/content/market/{{ record.id }}/approve"
+<div class="p-4 border-t border-gray-200 flex gap-3">
+  <form class="flex-1" hx-post="/admin/content/market/{{ record.id }}/approve"
         hx-target="#market-content-row-{{ record.id }}"
         hx-swap="outerHTML">
     <button type="submit"
@@ -65,7 +65,7 @@
       {{ "Approve" | t }}
     </button>
   </form>
-  <form hx-post="/admin/content/market/{{ record.id }}/reject"
+  <form class="flex-1" hx-post="/admin/content/market/{{ record.id }}/reject"
         hx-target="#market-content-row-{{ record.id }}"
         hx-swap="outerHTML">
     <button type="submit"

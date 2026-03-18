@@ -1,0 +1,12 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}{{ "Market Content Detail" | t }} — Admin{% endblock %}
+
+{% block content %}
+{% set pageTitle = "Market Content Detail" %}
+{% include "partials/shared/page-header.njk" %}
+
+<div class="bg-white rounded shadow divide-y divide-gray-200">
+  {% include "partials/admin/market-content-detail-panel.njk" %}
+</div>
+{% endblock %}

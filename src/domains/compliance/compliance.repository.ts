@@ -830,7 +830,7 @@ export async function addCddDocument(cddRecordId: string, doc: CddDocument): Pro
     where: { id: cddRecordId },
     select: { documents: true },
   });
-  const existing = ((record?.documents as unknown) as CddDocument[]) ?? [];
+  const existing = (record?.documents as unknown as CddDocument[]) ?? [];
   await prisma.cddRecord.update({
     where: { id: cddRecordId },
     data: { documents: [...existing, doc] as unknown as Prisma.InputJsonValue },
@@ -845,7 +845,7 @@ export async function removeCddDocument(
     where: { id: cddRecordId },
     select: { documents: true },
   });
-  const existing = ((record?.documents as unknown) as CddDocument[]) ?? [];
+  const existing = (record?.documents as unknown as CddDocument[]) ?? [];
   const target = existing.find((d) => d.id === documentId);
   if (!target) return null;
 
@@ -867,7 +867,7 @@ export async function findCddRecordWithDocument(
     select: { verifiedByAgentId: true, documents: true },
   });
   if (!record) return null;
-  const docs = ((record.documents as unknown) as CddDocument[]) ?? [];
+  const docs = (record.documents as unknown as CddDocument[]) ?? [];
   return {
     verifiedByAgentId: record.verifiedByAgentId,
     document: docs.find((d) => d.id === documentId) ?? null,

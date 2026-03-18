@@ -152,15 +152,30 @@ describe('POST /admin/tutorials — HTMX', () => {
 
   // TDD-red: before HTMX branch, returns 302 redirect; after, returns 200 + calls getTutorialsGrouped
   it('returns 200 and calls createTutorial + getTutorialsGrouped on success', async () => {
-    const created = { id: 'new-id', title: 'New Tutorial', slug: 'new-tutorial', youtubeUrl: 'https://youtube.com/watch?v=xyz', category: 'forms', orderIndex: 1, description: null };
+    const created = {
+      id: 'new-id',
+      title: 'New Tutorial',
+      slug: 'new-tutorial',
+      youtubeUrl: 'https://youtube.com/watch?v=xyz',
+      category: 'forms',
+      orderIndex: 1,
+      description: null,
+    };
     jest.mocked(contentService.createTutorial).mockResolvedValue(created as any);
-    jest.mocked(contentService.getTutorialsGrouped).mockResolvedValue({ photography: [], forms: [created], process: [], financial: [] } as any);
+    jest
+      .mocked(contentService.getTutorialsGrouped)
+      .mockResolvedValue({ photography: [], forms: [created], process: [], financial: [] } as any);
     const app = makeApp();
     const res = await request(app)
       .post('/admin/tutorials')
       .set('hx-request', 'true')
       .type('form')
-      .send({ title: 'New Tutorial', youtubeUrl: 'https://youtube.com/watch?v=xyz', category: 'forms', activeTab: 'forms' });
+      .send({
+        title: 'New Tutorial',
+        youtubeUrl: 'https://youtube.com/watch?v=xyz',
+        category: 'forms',
+        activeTab: 'forms',
+      });
     expect(res.status).toBe(200);
     expect(contentService.createTutorial).toHaveBeenCalled();
     expect(contentService.getTutorialsGrouped).toHaveBeenCalled();
@@ -171,8 +186,13 @@ describe('POST /admin/tutorials/:id — HTMX', () => {
   // Validation error: assert getTutorialById called for re-render data, updateTutorial NOT called
   it('calls getTutorialById but not updateTutorial on validation error', async () => {
     jest.mocked(contentService.getTutorialById).mockResolvedValue({
-      id: 'tutorial-uuid-1', title: 'Old Title', slug: 'old-title',
-      youtubeUrl: 'https://youtube.com/watch?v=old', category: 'forms', orderIndex: 1, description: null,
+      id: 'tutorial-uuid-1',
+      title: 'Old Title',
+      slug: 'old-title',
+      youtubeUrl: 'https://youtube.com/watch?v=old',
+      category: 'forms',
+      orderIndex: 1,
+      description: null,
     } as any);
     const app = makeApp();
     await request(app)
@@ -185,17 +205,35 @@ describe('POST /admin/tutorials/:id — HTMX', () => {
 
   // TDD-red: before HTMX branch, returns 302; after, returns 200 + calls getTutorialsGrouped
   it('returns 200 and calls updateTutorial + getTutorialsGrouped on success', async () => {
-    const updated = { id: 'tutorial-uuid-1', title: 'Updated', slug: 'updated', youtubeUrl: 'https://youtube.com/watch?v=new', category: 'forms', orderIndex: 1, description: null };
+    const updated = {
+      id: 'tutorial-uuid-1',
+      title: 'Updated',
+      slug: 'updated',
+      youtubeUrl: 'https://youtube.com/watch?v=new',
+      category: 'forms',
+      orderIndex: 1,
+      description: null,
+    };
     jest.mocked(contentService.updateTutorial).mockResolvedValue(updated as any);
-    jest.mocked(contentService.getTutorialsGrouped).mockResolvedValue({ photography: [], forms: [updated], process: [], financial: [] } as any);
+    jest
+      .mocked(contentService.getTutorialsGrouped)
+      .mockResolvedValue({ photography: [], forms: [updated], process: [], financial: [] } as any);
     const app = makeApp();
     const res = await request(app)
       .post('/admin/tutorials/tutorial-uuid-1')
       .set('hx-request', 'true')
       .type('form')
-      .send({ title: 'Updated', youtubeUrl: 'https://youtube.com/watch?v=new', category: 'forms', activeTab: 'forms' });
+      .send({
+        title: 'Updated',
+        youtubeUrl: 'https://youtube.com/watch?v=new',
+        category: 'forms',
+        activeTab: 'forms',
+      });
     expect(res.status).toBe(200);
-    expect(contentService.updateTutorial).toHaveBeenCalledWith('tutorial-uuid-1', expect.objectContaining({ title: 'Updated' }));
+    expect(contentService.updateTutorial).toHaveBeenCalledWith(
+      'tutorial-uuid-1',
+      expect.objectContaining({ title: 'Updated' }),
+    );
     expect(contentService.getTutorialsGrouped).toHaveBeenCalled();
   });
 });

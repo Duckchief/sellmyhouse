@@ -192,11 +192,11 @@ export interface CddDocument {
   id: string;
   docType: CddDocumentType;
   label: string | null; // required when docType === 'other'
-  path: string;         // relative: cdd/{cddRecordId}/{docType}-{uuid}.enc
-  wrappedKey: string;   // base64 — data key encrypted by master key
+  path: string; // relative: cdd/{cddRecordId}/{docType}-{uuid}.enc
+  wrappedKey: string; // base64 — data key encrypted by master key
   mimeType: string;
-  sizeBytes: number;    // plaintext size (for UI display)
-  uploadedAt: string;   // ISO timestamp
+  sizeBytes: number; // plaintext size (for UI display)
+  uploadedAt: string; // ISO timestamp
   uploadedByAgentId: string;
 }
 

@@ -916,7 +916,9 @@ adminRouter.post(
       if (!errors.isEmpty()) {
         if (req.headers['hx-request']) {
           const rawTab = (req.body.activeTab as string) ?? 'photography';
-          const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? (rawTab as TutorialTab) : 'photography';
+          const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab)
+            ? (rawTab as TutorialTab)
+            : 'photography';
           return res.status(422).render('partials/admin/tutorial-form-drawer', {
             tutorial: null,
             errors: errors.array(),
@@ -957,7 +959,9 @@ adminRouter.post(
       if (err instanceof ConflictError) {
         if (req.headers['hx-request']) {
           const rawTab = (req.body.activeTab as string) ?? 'photography';
-          const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? (rawTab as TutorialTab) : 'photography';
+          const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab)
+            ? (rawTab as TutorialTab)
+            : 'photography';
           return res.status(422).render('partials/admin/tutorial-form-drawer', {
             tutorial: null,
             errors: [{ msg: err.message }],
@@ -1015,7 +1019,9 @@ adminRouter.post(
         if (req.headers['hx-request']) {
           const tutorial = await contentService.getTutorialById(req.params['id'] as string);
           const rawTab = (req.body.activeTab as string) ?? 'photography';
-          const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? (rawTab as TutorialTab) : 'photography';
+          const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab)
+            ? (rawTab as TutorialTab)
+            : 'photography';
           return res.status(422).render('partials/admin/tutorial-form-drawer', {
             tutorial,
             errors: errors.array(),
@@ -1057,7 +1063,9 @@ adminRouter.post(
       if (err instanceof ConflictError) {
         if (req.headers['hx-request']) {
           const rawTab = (req.body.activeTab as string) ?? 'photography';
-          const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? (rawTab as TutorialTab) : 'photography';
+          const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab)
+            ? (rawTab as TutorialTab)
+            : 'photography';
           return res.status(422).render('partials/admin/tutorial-form-drawer', {
             tutorial: { id: req.params['id'] as string },
             errors: [{ msg: err.message }],
@@ -1089,7 +1097,9 @@ adminRouter.post(
       await contentService.deleteTutorial(req.params['id'] as string);
       if (req.headers['hx-request']) {
         const rawTab = (req.body.activeTab as string) ?? 'photography';
-        const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? (rawTab as TutorialTab) : 'photography';
+        const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab)
+          ? (rawTab as TutorialTab)
+          : 'photography';
         const allTutorials = await contentService.getTutorialsGrouped();
         const activeItems = allTutorials[activeTab] ?? [];
         return res.render('partials/admin/tutorial-list', { tutorials: activeItems, activeTab });

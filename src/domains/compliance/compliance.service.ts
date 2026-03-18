@@ -910,11 +910,7 @@ export function findCddRecordByTransactionAndSubjectType(
 
 const MAX_CDD_DOCUMENTS = 5;
 
-function assertCddOwnership(
-  verifiedByAgentId: string,
-  agentId: string,
-  isAdmin: boolean,
-): void {
+function assertCddOwnership(verifiedByAgentId: string, agentId: string, isAdmin: boolean): void {
   if (!isAdmin && verifiedByAgentId !== agentId) {
     throw new ForbiddenError('You are not authorised to access this CDD record');
   }

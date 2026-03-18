@@ -3,7 +3,7 @@ import { localStorage } from './local-storage';
 import { getKeyProvider } from '@/infra/security/key-provider';
 
 const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 12;    // 96-bit IV — recommended for GCM
+const IV_LENGTH = 12; // 96-bit IV — recommended for GCM
 const AUTH_TAG_LENGTH = 16; // 128-bit auth tag — maximum strength
 
 export interface EncryptedSaveResult {

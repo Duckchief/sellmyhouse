@@ -549,7 +549,10 @@ describe('POST /agent/cdd-records/:cddRecordId/documents', () => {
 
     const res = await request(createTestApp({ id: 'agent-1', role: 'agent' }))
       .post('/agent/cdd-records/cdd-1/documents')
-      .attach('file', Buffer.from('fake-image'), { filename: 'nric.jpg', contentType: 'image/jpeg' })
+      .attach('file', Buffer.from('fake-image'), {
+        filename: 'nric.jpg',
+        contentType: 'image/jpeg',
+      })
       .field('docType', 'nric');
 
     expect(res.status).toBe(200);
@@ -590,15 +593,15 @@ describe('DELETE /agent/cdd-records/:cddRecordId/documents/:documentId', () => {
   it('returns 204 on successful delete', async () => {
     mockService.deleteCddDocument.mockResolvedValue(undefined);
 
-    const res = await request(createTestApp({ id: 'agent-1', role: 'agent' }))
-      .delete('/agent/cdd-records/cdd-1/documents/doc-1');
+    const res = await request(createTestApp({ id: 'agent-1', role: 'agent' })).delete(
+      '/agent/cdd-records/cdd-1/documents/doc-1',
+    );
 
     expect(res.status).toBe(204);
   });
 
   it('returns 401 when not authenticated', async () => {
-    const res = await request(createTestApp())
-      .delete('/agent/cdd-records/cdd-1/documents/doc-1');
+    const res = await request(createTestApp()).delete('/agent/cdd-records/cdd-1/documents/doc-1');
     expect(res.status).toBe(401);
   });
 });
@@ -615,8 +618,9 @@ describe('POST /agent/cdd-records/:cddRecordId/documents/:documentId/download', 
       filePath: 'cdd/cdd-1/nric-doc1.enc',
     } as never);
 
-    const res = await request(createTestApp({ id: 'agent-1', role: 'agent' }))
-      .post('/agent/cdd-records/cdd-1/documents/doc-1/download');
+    const res = await request(createTestApp({ id: 'agent-1', role: 'agent' })).post(
+      '/agent/cdd-records/cdd-1/documents/doc-1/download',
+    );
 
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('image/jpeg');
@@ -625,8 +629,9 @@ describe('POST /agent/cdd-records/:cddRecordId/documents/:documentId/download', 
   });
 
   it('returns 401 when not authenticated', async () => {
-    const res = await request(createTestApp())
-      .post('/agent/cdd-records/cdd-1/documents/doc-1/download');
+    const res = await request(createTestApp()).post(
+      '/agent/cdd-records/cdd-1/documents/doc-1/download',
+    );
     expect(res.status).toBe(401);
   });
 });

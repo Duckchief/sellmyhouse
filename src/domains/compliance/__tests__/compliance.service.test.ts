@@ -1113,11 +1113,14 @@ describe('scanRetention — CDD documents with filePaths in details', () => {
       .mockResolvedValueOnce(5) // cdd_retention_years
       .mockResolvedValueOnce(1); // consent_post_withdrawal_retention_years
 
-    const cddDocs = [
-      { path: 'cdd/cdd-1/nric-doc1.jpg.enc', id: 'doc-1', docType: 'nric' },
-    ];
+    const cddDocs = [{ path: 'cdd/cdd-1/nric-doc1.jpg.enc', id: 'doc-1', docType: 'nric' }];
     mockRepo.findCddRecordsForRetention.mockResolvedValue([
-      { id: 'cdd-1', subjectId: 'seller-1', documents: cddDocs, verifiedAt: new Date('2020-01-01') },
+      {
+        id: 'cdd-1',
+        subjectId: 'seller-1',
+        documents: cddDocs,
+        verifiedAt: new Date('2020-01-01'),
+      },
     ]);
     mockRepo.findExistingDeletionRequest.mockResolvedValue(null);
     mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr-1' } as never);

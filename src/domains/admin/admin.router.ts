@@ -992,12 +992,15 @@ adminRouter.post(
       if (err instanceof ConflictError) {
         logger.warn({ err }, 'Market content run blocked: duplicate period');
         const records = await contentService.listMarketContent();
+        const hasPendingReview = records.some((r) => r.status === 'pending_review');
         const hasAvatar = await getHasAvatar(user.id);
         return res.status(409).render('pages/admin/market-content', {
           pageTitle: 'Market Content',
           user,
           hasAvatar,
           records,
+          activeStatus: '',
+          hasPendingReview,
           error: err.message,
           currentPath: '/admin/content/market',
         });

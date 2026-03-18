@@ -14,9 +14,17 @@
           <div class="text-sm font-medium text-gray-800">{{ setting.key }}</div>
           <div class="text-xs text-gray-500">{{ setting.description }}</div>
         </div>
-        <form class="flex items-center gap-2" hx-post="/admin/settings/{{ setting.key }}" hx-target="#result-{{ setting.key }}">
-          <input type="text" name="value" value="{{ setting.value }}" class="border rounded px-2 py-1 text-sm w-48" />
-          <button type="submit" class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700">{{ "Save" | t }}</button>
+        <form
+          class="{{ 'flex flex-col items-start gap-2' if setting.inputType == 'cron' else 'flex items-center gap-2' }}"
+          hx-post="/admin/settings/{{ setting.key }}"
+          hx-target="#result-{{ setting.key }}"
+        >
+          {% if setting.inputType == 'cron' %}
+            {% include "partials/admin/cron-picker.njk" %}
+          {% else %}
+            <input type="text" name="value" value="{{ setting.value }}" class="border rounded px-2 py-1 text-sm w-48" />
+            <button type="submit" class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700">{{ "Save" | t }}</button>
+          {% endif %}
         </form>
         <div id="result-{{ setting.key }}" class="w-32 text-sm"></div>
       </div>

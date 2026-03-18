@@ -528,3 +528,105 @@ describe('PATCH /agent/sellers/:sellerId/cdd/status — lock guards', () => {
     );
   });
 });
+
+// ─── CDD Document Upload / Download / Delete ──────────────────────────────────
+
+describe('POST /agent/cdd-records/:cddRecordId/documents', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns 200 with document on successful upload', async () => {
+    mockService.uploadCddDocument.mockResolvedValue({
+      id: 'doc-1',
+      docType: 'nric',
+      label: null,
+      path: 'cdd/cdd-1/nric-doc1.enc',
+      wrappedKey: 'wrapped',
+      mimeType: 'image/jpeg',
+      sizeBytes: 5000,
+      uploadedAt: '2026-03-18T00:00:00.000Z',
+      uploadedByAgentId: 'agent-1',
+    } as never);
+
+    const res = await request(createTestApp({ id: 'agent-1', role: 'agent' }))
+      .post('/agent/cdd-records/cdd-1/documents')
+      .attach('file', Buffer.from('fake-image'), { filename: 'nric.jpg', contentType: 'image/jpeg' })
+      .field('docType', 'nric');
+
+    expect(res.status).toBe(200);
+    expect(res.body.docType).toBe('nric');
+  });
+
+  it('returns 400 when docType is invalid', async () => {
+    const res = await request(createTestApp({ id: 'agent-1', role: 'agent' }))
+      .post('/agent/cdd-records/cdd-1/documents')
+      .attach('file', Buffer.from('fake'), { filename: 'nric.jpg', contentType: 'image/jpeg' })
+      .field('docType', 'invalid-type');
+
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 401 when not authenticated', async () => {
+    const res = await request(createTestApp())
+      .post('/agent/cdd-records/cdd-1/documents')
+      .attach('file', Buffer.from('fake'), { filename: 'nric.jpg', contentType: 'image/jpeg' })
+      .field('docType', 'nric');
+
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 when role is seller', async () => {
+    const res = await request(createTestApp({ id: 'seller-1', role: 'seller' }))
+      .post('/agent/cdd-records/cdd-1/documents')
+      .attach('file', Buffer.from('fake'), { filename: 'nric.jpg', contentType: 'image/jpeg' })
+      .field('docType', 'nric');
+
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('DELETE /agent/cdd-records/:cddRecordId/documents/:documentId', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns 204 on successful delete', async () => {
+    mockService.deleteCddDocument.mockResolvedValue(undefined);
+
+    const res = await request(createTestApp({ id: 'agent-1', role: 'agent' }))
+      .delete('/agent/cdd-records/cdd-1/documents/doc-1');
+
+    expect(res.status).toBe(204);
+  });
+
+  it('returns 401 when not authenticated', async () => {
+    const res = await request(createTestApp())
+      .delete('/agent/cdd-records/cdd-1/documents/doc-1');
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('POST /agent/cdd-records/:cddRecordId/documents/:documentId/download', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns file buffer with correct Content-Type and no-store cache', async () => {
+    const fakeBuffer = Buffer.from('decrypted-nric');
+    mockService.downloadCddDocument.mockResolvedValue({
+      buffer: fakeBuffer,
+      mimeType: 'image/jpeg',
+      docType: 'nric',
+      filePath: 'cdd/cdd-1/nric-doc1.enc',
+    } as never);
+
+    const res = await request(createTestApp({ id: 'agent-1', role: 'agent' }))
+      .post('/agent/cdd-records/cdd-1/documents/doc-1/download');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('image/jpeg');
+    expect(res.headers['cache-control']).toBe('no-store');
+    expect(res.headers['content-disposition']).toContain('attachment');
+  });
+
+  it('returns 401 when not authenticated', async () => {
+    const res = await request(createTestApp())
+      .post('/agent/cdd-records/cdd-1/documents/doc-1/download');
+    expect(res.status).toBe(401);
+  });
+});

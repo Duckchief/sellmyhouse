@@ -10,6 +10,10 @@ import { errorHandler } from '../../../infra/http/middleware/error-handler';
 
 jest.mock('../agent-settings.service');
 jest.mock('../../shared/audit.service');
+jest.mock('../../profile/profile.service');
+
+const profileService = require('../../profile/profile.service');
+profileService.getHasAvatar = jest.fn().mockResolvedValue(false);
 
 function createTestApp() {
   const app = express();

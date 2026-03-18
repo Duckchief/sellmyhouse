@@ -4,8 +4,12 @@ import { reviewRouter } from '../review.router';
 import * as reviewService from '../review.service';
 
 jest.mock('../review.service');
+jest.mock('../../profile/profile.service');
 
 const mockService = reviewService as jest.Mocked<typeof reviewService>;
+const profileService = require('../../profile/profile.service');
+
+profileService.getHasAvatar = jest.fn().mockResolvedValue(false);
 
 // Minimal test app with mock auth
 function createTestApp(user?: { id: string; role: string }) {

@@ -142,8 +142,9 @@ export async function findTestimonialBySeller(sellerId: string) {
   return prisma.testimonial.findFirst({ where: { sellerId } });
 }
 
-export async function findAllTestimonials() {
+export async function findAllTestimonials(status?: string) {
   return prisma.testimonial.findMany({
+    where: status ? { status: status as import('@prisma/client').TestimonialStatus } : undefined,
     orderBy: { createdAt: 'desc' },
   });
 }

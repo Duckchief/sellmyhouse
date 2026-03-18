@@ -345,8 +345,8 @@ export async function getTestimonialById(id: string) {
   return testimonial;
 }
 
-export async function listTestimonials() {
-  return contentRepo.findAllTestimonials();
+export async function listTestimonials(status?: string) {
+  return contentRepo.findAllTestimonials(status);
 }
 
 export async function getFeaturedTestimonials() {

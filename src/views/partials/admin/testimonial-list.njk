@@ -17,6 +17,32 @@
   .featured-toggle input:checked ~ .featured-toggle__pill::after { left:18px; }
 </style>
 
+{# Status filter buttons #}
+{% set filters = [
+  { value: '',                  label: 'All' },
+  { value: 'pending_submission', label: 'Pending Submission' },
+  { value: 'pending_review',     label: 'Pending Review' },
+  { value: 'approved',           label: 'Approved' },
+  { value: 'rejected',           label: 'Rejected' }
+] %}
+<div class="flex flex-wrap gap-2 mb-4">
+  {% for f in filters %}
+  <button
+    type="button"
+    hx-get="/admin/content/testimonials{% if f.value %}?status={{ f.value }}{% endif %}"
+    hx-target="#testimonial-list"
+    hx-swap="innerHTML"
+    class="px-3 py-1 text-sm rounded border transition-colors
+      {% if activeStatus == f.value or (not activeStatus and not f.value) %}
+        border-2 border-indigo-600 text-indigo-600 font-semibold
+      {% else %}
+        border border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-600
+      {% endif %}">
+    {{ f.label | t }}
+  </button>
+  {% endfor %}
+</div>
+
 {% set statusColors = {
   pending_submission: "bg-gray-100 text-gray-700",
   pending_review: "bg-yellow-100 text-yellow-800",

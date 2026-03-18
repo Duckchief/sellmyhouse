@@ -1035,9 +1035,10 @@ adminRouter.get(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const records = await contentService.listTestimonials();
+      const activeStatus = typeof req.query['status'] === 'string' ? req.query['status'] : undefined;
+      const records = await contentService.listTestimonials(activeStatus);
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/testimonial-list', { records });
+        return res.render('partials/admin/testimonial-list', { records, activeStatus });
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
@@ -1046,6 +1047,7 @@ adminRouter.get(
         user,
         hasAvatar,
         records,
+        activeStatus,
         currentPath: '/admin/content/testimonials',
       });
     } catch (err) {

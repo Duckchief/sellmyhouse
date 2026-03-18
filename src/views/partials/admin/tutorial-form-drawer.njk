@@ -1,0 +1,151 @@
+{#
+  tutorial-form-drawer.njk
+  Slide-in drawer form for creating or editing a tutorial.
+  New:  GET /admin/tutorials/new (hx-request) → loaded into #tutorial-drawer-content
+  Edit: GET /admin/tutorials/:id/drawer      → loaded into #tutorial-drawer-content
+  On success POST: server renders partials/admin/tutorial-list into #tutorial-list
+#}
+<div class="p-6 flex flex-col gap-4 min-h-full">
+
+  <div class="flex items-center justify-between mb-2">
+    <h2 class="text-lg font-semibold text-gray-900">
+      {% if tutorial %}{{ "Edit Tutorial" | t }}{% else %}{{ "New Tutorial" | t }}{% endif %}
+    </h2>
+    <button
+      type="button"
+      data-action="close-tutorial-drawer"
+      aria-label="{{ 'Close' | t }}"
+      class="text-gray-400 hover:text-gray-600 p-1 rounded">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+      </svg>
+    </button>
+  </div>
+
+  {% if errors | length %}
+  <div class="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
+    <ul class="list-disc list-inside space-y-1">
+      {% for err in errors %}
+      <li>{{ err.msg }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form
+    hx-post="{% if tutorial %}/admin/tutorials/{{ tutorial.id }}{% else %}/admin/tutorials{% endif %}"
+    hx-target="#tutorial-list"
+    hx-swap="innerHTML"
+    class="flex flex-col gap-4">
+
+    {# Pass active tab so POST handler knows which list to render on success #}
+    <input type="hidden" name="activeTab" value="{{ activeTab }}">
+
+    <div>
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-title">
+        {{ "Title" | t }} *
+      </label>
+      <input
+        type="text"
+        id="drawer-title"
+        name="title"
+        required
+        value="{{ values.title if values else (tutorial.title if tutorial else '') }}"
+        class="input-field w-full"
+        oninput="tutorialDrawerUpdateSlug(this.value)">
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-slug">
+        {{ "Slug" | t }}
+      </label>
+      <input
+        type="text"
+        id="drawer-slug"
+        name="slug"
+        value="{{ values.slug if values else (tutorial.slug if tutorial else '') }}"
+        placeholder="{{ 'Auto-generated from title if blank' | t }}"
+        class="input-field w-full font-mono text-xs">
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-youtubeUrl">
+        {{ "YouTube URL" | t }} *
+      </label>
+      <input
+        type="url"
+        id="drawer-youtubeUrl"
+        name="youtubeUrl"
+        required
+        value="{{ values.youtubeUrl if values else (tutorial.youtubeUrl if tutorial else '') }}"
+        placeholder="https://www.youtube.com/watch?v=..."
+        class="input-field w-full">
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-category">
+        {{ "Category" | t }} *
+      </label>
+      {% set currentCategory = values.category if values else (tutorial.category if tutorial else activeTab) %}
+      <select
+        id="drawer-category"
+        name="category"
+        required
+        class="input-field w-full">
+        <option value="">{{ "Select category..." | t }}</option>
+        <option value="photography" {% if currentCategory == 'photography' %}selected{% endif %}>{{ "Photography" | t }}</option>
+        <option value="forms" {% if currentCategory == 'forms' %}selected{% endif %}>{{ "Forms" | t }}</option>
+        <option value="process" {% if currentCategory == 'process' %}selected{% endif %}>{{ "Process" | t }}</option>
+        <option value="financial" {% if currentCategory == 'financial' %}selected{% endif %}>{{ "Financial" | t }}</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-description">
+        {{ "Description" | t }}
+        <span class="text-gray-400 normal-case font-normal ml-1">{{ "(optional)" | t }}</span>
+      </label>
+      <textarea
+        id="drawer-description"
+        name="description"
+        rows="3"
+        class="input-field w-full resize-y">{{ values.description if values else (tutorial.description if tutorial else '') }}</textarea>
+    </div>
+
+    <div class="flex gap-2 pt-2">
+      <button type="submit" class="btn-primary flex-1">
+        {% if tutorial %}{{ "Save Changes" | t }}{% else %}{{ "Create Tutorial" | t }}{% endif %}
+      </button>
+      <button
+        type="button"
+        data-action="close-tutorial-drawer"
+        class="px-4 py-2 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
+        {{ "Cancel" | t }}
+      </button>
+    </div>
+  </form>
+
+  <script nonce="{{ cspNonce }}">
+    (function () {
+      var slugManuallyEdited = {{ 'true' if (tutorial and tutorial.slug) else 'false' }};
+
+      function tutorialDrawerUpdateSlug(title) {
+        if (slugManuallyEdited) return;
+        var slug = title.toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .trim()
+          .replace(/\s+/g, '-');
+        document.getElementById('drawer-slug').value = slug;
+      }
+
+      var slugInput = document.getElementById('drawer-slug');
+      if (slugInput) {
+        slugInput.addEventListener('input', function () {
+          slugManuallyEdited = true;
+        });
+      }
+
+      window.tutorialDrawerUpdateSlug = tutorialDrawerUpdateSlug;
+    })();
+  </script>
+</div>

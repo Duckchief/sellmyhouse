@@ -947,7 +947,7 @@ export async function uploadCddDocument(input: UploadCddDocumentInput): Promise<
 
   const doc: CddDocument = {
     id: docId,
-    docType: input.docType as CddDocumentType,
+    docType: input.docType,
     label: input.label ?? null,
     path: savedPath,
     wrappedKey,

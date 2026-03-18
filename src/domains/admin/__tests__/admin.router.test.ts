@@ -319,6 +319,96 @@ describe('POST /admin/content/testimonials/:id/feature — HTMX', () => {
   });
 });
 
+describe('GET /admin/content/market/:id/detail — slide-out panel', () => {
+  it('renders the detail panel partial with record and statusColors', async () => {
+    jest.mocked(contentService.getMarketContentById).mockResolvedValue({
+      id: 'mc-1',
+      period: '2026-03',
+      status: 'pending_review',
+      aiNarrative: 'Market is strong.',
+      rawData: {},
+      createdAt: new Date('2026-03-01'),
+      approvedAt: null,
+    } as any);
+
+    const app = makeApp();
+    const res = await request(app)
+      .get('/admin/content/market/mc-1/detail')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+    expect(contentService.getMarketContentById).toHaveBeenCalledWith('mc-1');
+  });
+
+  it('returns 404 for an unknown record', async () => {
+    const { NotFoundError } = await import('@/domains/shared/errors');
+    jest
+      .mocked(contentService.getMarketContentById)
+      .mockRejectedValue(new NotFoundError('MarketContent', 'bad-id'));
+
+    const app = makeApp();
+    const res = await request(app).get('/admin/content/market/bad-id/detail');
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('POST /admin/content/market/:id/approve', () => {
+  it('renders the row partial on HTMX request', async () => {
+    jest.mocked(contentService.approveMarketContent).mockResolvedValue(undefined as any);
+    jest.mocked(contentService.getMarketContentById).mockResolvedValue({
+      id: 'mc-1',
+      period: '2026-03',
+      status: 'approved',
+      rawData: {},
+    } as any);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/content/market/mc-1/approve')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+    expect(contentService.approveMarketContent).toHaveBeenCalledWith('mc-1', 'admin-1');
+    expect(contentService.getMarketContentById).toHaveBeenCalledWith('mc-1');
+  });
+
+  it('redirects to list on non-HTMX request', async () => {
+    jest.mocked(contentService.approveMarketContent).mockResolvedValue(undefined as any);
+
+    const app = makeApp();
+    const res = await request(app).post('/admin/content/market/mc-1/approve');
+    expect(res.status).toBe(302);
+    expect(res.headers['location']).toBe('/admin/content/market');
+  });
+});
+
+describe('POST /admin/content/market/:id/reject', () => {
+  it('renders the row partial on HTMX request', async () => {
+    jest.mocked(contentService.rejectMarketContent).mockResolvedValue(undefined as any);
+    jest.mocked(contentService.getMarketContentById).mockResolvedValue({
+      id: 'mc-1',
+      period: '2026-03',
+      status: 'rejected',
+      rawData: {},
+    } as any);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/content/market/mc-1/reject')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+    expect(contentService.rejectMarketContent).toHaveBeenCalledWith('mc-1');
+    expect(contentService.getMarketContentById).toHaveBeenCalledWith('mc-1');
+  });
+
+  it('redirects to list on non-HTMX request', async () => {
+    jest.mocked(contentService.rejectMarketContent).mockResolvedValue(undefined as any);
+
+    const app = makeApp();
+    const res = await request(app).post('/admin/content/market/mc-1/reject');
+    expect(res.status).toBe(302);
+    expect(res.headers['location']).toBe('/admin/content/market');
+  });
+});
+
 describe('GET /admin/dashboard — preset param', () => {
   beforeEach(() => {
     mockAdminService.getAnalytics.mockResolvedValue({

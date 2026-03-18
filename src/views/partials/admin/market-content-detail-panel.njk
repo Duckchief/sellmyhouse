@@ -68,9 +68,6 @@
   <form hx-post="/admin/content/market/{{ record.id }}/reject"
         hx-target="#market-content-row-{{ record.id }}"
         hx-swap="outerHTML">
-    <textarea name="reviewNotes" rows="2"
-      class="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none mb-2"
-      placeholder="{{ 'Rejection notes (optional)...' | t }}"></textarea>
     <button type="submit"
       class="w-full bg-red-600 text-white py-2 rounded font-medium hover:bg-red-700">
       {{ "Reject" | t }}

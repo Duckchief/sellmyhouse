@@ -292,6 +292,7 @@ export async function issueTestimonialToken(
     id: createId(),
     sellerId,
     transactionId,
+    clientType: 'seller',
     clientName: formatDisplayName(sellerName),
     clientTown: sellerTown,
     submissionToken: token,

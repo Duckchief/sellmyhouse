@@ -11,9 +11,10 @@
 <table class="w-full text-sm">
   <thead>
     <tr class="text-left text-gray-500 border-b">
-      <th class="pb-2 pr-4">{{ "Seller" | t }}</th>
+      <th class="pb-2 pr-4">{{ "Client" | t }}</th>
       <th class="pb-2 pr-4">{{ "Town" | t }}</th>
       <th class="pb-2 pr-4">{{ "Rating" | t }}</th>
+      <th class="pb-2 pr-4">{{ "Source" | t }}</th>
       <th class="pb-2 pr-4">{{ "Status" | t }}</th>
       <th class="pb-2 pr-4">{{ "Featured" | t }}</th>
       <th class="pb-2"></th>
@@ -22,9 +23,17 @@
   <tbody>
     {% for record in records %}
     <tr class="border-b last:border-0 hover:bg-gray-50">
-      <td class="py-2 pr-4">{{ record.sellerName }}</td>
-      <td class="py-2 pr-4 text-gray-500 text-xs">{{ record.sellerTown }}</td>
+      <td class="py-2 pr-4">{{ record.clientName }}</td>
+      <td class="py-2 pr-4 text-gray-500 text-xs">{{ record.clientTown }}</td>
       <td class="py-2 pr-4">{{ record.rating }}★</td>
+      <td class="py-2 pr-4">
+        {% if record.isManual %}
+        <span class="px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">{{ "Manual" | t }}</span>
+        {% if record.source %}<span class="ml-1 text-gray-500 text-xs">{{ record.source }}</span>{% endif %}
+        {% else %}
+        <span class="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{{ "Seller" | t }}</span>
+        {% endif %}
+      </td>
       <td class="py-2 pr-4">
         <span class="px-2 py-0.5 rounded text-xs font-medium {{ statusColors[record.status] }}">
           {{ record.status | replace('_', ' ') }}

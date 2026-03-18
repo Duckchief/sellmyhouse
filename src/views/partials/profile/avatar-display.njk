@@ -1,0 +1,40 @@
+{# src/views/partials/profile/avatar-display.njk #}
+{# Variables: user (AuthenticatedUser), hasAvatar (bool) #}
+<div id="avatar-display" class="flex items-center gap-4">
+  {%- if hasAvatar %}
+    <img
+      src="/profile/avatar/{{ user.id }}"
+      alt="{{ 'Profile photo' | t }}"
+      class="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+    >
+  {%- else %}
+    {%- set initials = (user.name.split(' ')[0][0] + (user.name.split(' ')[-1][0] if user.name.split(' ') | length > 1 else user.name.split(' ')[0][0])) | upper %}
+    <div class="w-16 h-16 rounded-full bg-accent flex items-center justify-center text-white text-xl font-bold select-none">
+      {{ initials }}
+    </div>
+  {%- endif %}
+  <div class="flex flex-col gap-1">
+    <label for="avatar-file-input" class="cursor-pointer px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded border border-gray-200 text-gray-700">
+      {{ "Upload photo" | t }}
+    </label>
+    {%- if hasAvatar %}
+      <button
+        hx-delete="/profile/avatar"
+        hx-target="#avatar-display"
+        hx-swap="outerHTML"
+        hx-confirm="{{ 'Remove your profile photo?' | t }}"
+        class="px-3 py-1.5 text-sm bg-white hover:bg-red-50 rounded border border-red-200 text-red-600"
+      >
+        {{ "Remove" | t }}
+      </button>
+    {%- endif %}
+  </div>
+</div>
+{# Hidden file input — triggered by the Upload label #}
+<input
+  id="avatar-file-input"
+  type="file"
+  accept="image/jpeg,image/png"
+  class="hidden"
+  aria-label="{{ 'Upload profile photo' | t }}"
+>

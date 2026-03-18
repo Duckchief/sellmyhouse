@@ -1,0 +1,191 @@
+{# src/views/pages/profile/index.njk #}
+{% extends "layouts/agent.njk" %}
+{% from "partials/shared/icons.njk" import icon %}
+
+{% block title %}{{ "Profile — SellMyHomeNow.sg" | t }}{% endblock %}
+
+{% block content %}
+<div class="max-w-lg space-y-6">
+  <div>
+    <h1 class="font-bold text-2xl text-gray-900">{{ "Profile" | t }}</h1>
+    <p class="text-gray-500 text-sm mt-1">{{ "Your account information and security settings" | t }}</p>
+  </div>
+
+  {# Account Information #}
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+    <div class="px-6 py-4 border-b border-gray-100">
+      <h2 class="font-semibold text-gray-900 flex items-center gap-2">
+        {{ icon('user') }}{{ "Account Information" | t }}
+      </h2>
+      <p class="text-xs text-gray-500 mt-0.5">{{ "Your basic account details" | t }}</p>
+    </div>
+    <div class="px-6 py-4 space-y-5">
+
+      {# Profile photo #}
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">{{ "Profile photo" | t }}</p>
+        {% include "partials/profile/avatar-display.njk" %}
+      </div>
+
+      {# Email #}
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">{{ "Email" | t }}</p>
+        <p class="font-medium text-gray-900">{{ profile.email }}</p>
+      </div>
+
+      {# Role #}
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">{{ "Role" | t }}</p>
+        {% if profile.role == 'admin' %}
+          <span class="inline-block text-xs font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{{ "Admin" | t }}</span>
+        {% else %}
+          <span class="inline-block text-xs font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{{ "Agent" | t }}</span>
+        {% endif %}
+      </div>
+
+      {# Member since #}
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">{{ "Member since" | t }}</p>
+        <p class="font-medium text-gray-900">{{ profile.createdAt | date("d MMM yyyy") }}</p>
+      </div>
+
+      {# Two-Factor Authentication #}
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">{{ "Two-Factor Authentication" | t }}</p>
+        {% if profile.twoFactorEnabled %}
+          <div class="flex items-center gap-2">
+            {{ icon('shield-check') }}
+            <span class="font-medium text-gray-900">{{ "Enabled" | t }}</span>
+            <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{{ "Active" | t }}</span>
+          </div>
+        {% else %}
+          <div class="flex items-center gap-2">
+            {{ icon('shield') }}
+            <span class="font-medium text-gray-900">{{ "Not enabled" | t }}</span>
+            <a href="/auth/2fa/setup" class="text-xs text-accent hover:underline ml-1">{{ "Set up →" | t }}</a>
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+  {# Change Password #}
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+    <div class="px-6 py-4 border-b border-gray-100">
+      <h2 class="font-semibold text-gray-900">{{ "Change Password" | t }}</h2>
+      <p class="text-xs text-gray-500 mt-0.5">{{ "Use at least 8 characters" | t }}</p>
+    </div>
+    <div class="px-6 py-4">
+      <form
+        hx-post="/profile/password"
+        hx-target="#password-result"
+        hx-swap="outerHTML"
+        data-action="check-passwords"
+        class="space-y-4"
+      >
+        <div class="space-y-1">
+          <label for="currentPassword" class="text-sm text-gray-700">{{ "Current password" | t }}</label>
+          <input id="currentPassword" name="currentPassword" type="password" required
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50">
+        </div>
+        <div class="space-y-1">
+          <label for="password" class="text-sm text-gray-700">{{ "New password" | t }}</label>
+          <input id="password" name="newPassword" type="password" required minlength="8"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50">
+        </div>
+        <div class="space-y-1">
+          <label for="confirmPassword" class="text-sm text-gray-700">{{ "Confirm new password" | t }}</label>
+          <input id="confirmPassword" name="confirmPassword" type="password" required minlength="8"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50">
+        </div>
+        <p id="password-mismatch" class="text-sm text-red-600 hidden">{{ "Passwords do not match" | t }}</p>
+        <div id="password-result"></div>
+        <button type="submit"
+          class="w-full bg-accent hover:bg-accent-dark text-white font-medium text-sm py-2 rounded-lg transition-colors">
+          {{ "Update Password" | t }}
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+{# Cropper.js avatar crop modal #}
+<div id="crop-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+  <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4">
+    <h3 class="font-semibold text-gray-900 mb-4">{{ "Crop profile photo" | t }}</h3>
+    <div class="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
+      <img id="crop-preview" src="" alt="" class="max-w-full">
+    </div>
+    <div class="flex gap-2">
+      <button id="crop-cancel" type="button"
+        class="flex-1 py-2 text-sm border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50">
+        {{ "Cancel" | t }}
+      </button>
+      <button id="crop-save" type="button"
+        class="flex-1 py-2 text-sm bg-accent text-white rounded-lg hover:bg-accent-dark">
+        {{ "Save" | t }}
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1/dist/cropper.min.css">
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1/dist/cropper.min.js" nonce="{{ cspNonce }}"></script>
+<script nonce="{{ cspNonce }}">
+(function () {
+  var cropper = null;
+
+  document.getElementById('avatar-file-input').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      var img = document.getElementById('crop-preview');
+      img.src = ev.target.result;
+      document.getElementById('crop-modal').classList.remove('hidden');
+
+      if (cropper) { cropper.destroy(); cropper = null; }
+      cropper = new Cropper(img, {
+        aspectRatio: 1,
+        viewMode: 1,
+        dragMode: 'move',
+        autoCropArea: 1,
+      });
+    };
+    reader.readAsDataURL(file);
+    // Reset input so same file can be re-selected
+    this.value = '';
+  });
+
+  document.getElementById('crop-cancel').addEventListener('click', function () {
+    document.getElementById('crop-modal').classList.add('hidden');
+    if (cropper) { cropper.destroy(); cropper = null; }
+  });
+
+  document.getElementById('crop-save').addEventListener('click', function () {
+    if (!cropper) return;
+    cropper.getCroppedCanvas({ width: 256, height: 256 }).toBlob(function (blob) {
+      var formData = new FormData();
+      formData.append('avatar', blob, 'avatar.jpg');
+
+      fetch('/profile/avatar', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+      })
+        .then(function (res) { return res.text(); })
+        .then(function (html) {
+          document.getElementById('avatar-display').outerHTML = html;
+          document.getElementById('crop-modal').classList.add('hidden');
+          if (cropper) { cropper.destroy(); cropper = null; }
+        });
+    }, 'image/jpeg', 0.85);
+  });
+})();
+</script>
+{% endblock %}

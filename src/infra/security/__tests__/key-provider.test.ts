@@ -1,9 +1,8 @@
-import crypto from 'crypto';
-
-// Set ENCRYPTION_KEY before importing the module
-process.env['ENCRYPTION_KEY'] = crypto.randomBytes(32).toString('hex');
+// Fixed test key — deterministic across runs. Never use in production.
+process.env['ENCRYPTION_KEY'] = 'c'.repeat(64); // 32 bytes of 0xCC
 
 import { EnvKeyProvider, setKeyProvider, getKeyProvider } from '../key-provider';
+import crypto from 'crypto';
 
 beforeEach(() => {
   setKeyProvider(null);
@@ -27,7 +26,7 @@ describe('EnvKeyProvider', () => {
 
   it('unwrapKey with wrong token throws', async () => {
     const provider = new EnvKeyProvider();
-    await expect(provider.unwrapKey('bad:token:here')).rejects.toThrow();
+    await expect(provider.unwrapKey('bad:token:here')).rejects.toThrow('Failed to unwrap key');
   });
 });
 
@@ -44,5 +43,13 @@ describe('getKeyProvider / setKeyProvider', () => {
     expect(getKeyProvider()).toBe(stub);
     setKeyProvider(null);
     expect(getKeyProvider()).toBeInstanceOf(EnvKeyProvider);
+  });
+
+  it('getKeyProvider throws if ENCRYPTION_KEY is missing when using env provider', () => {
+    const saved = process.env['ENCRYPTION_KEY'];
+    delete process.env['ENCRYPTION_KEY'];
+    delete process.env['KEY_PROVIDER'];
+    expect(() => getKeyProvider()).toThrow('ENCRYPTION_KEY');
+    process.env['ENCRYPTION_KEY'] = saved!;
   });
 });

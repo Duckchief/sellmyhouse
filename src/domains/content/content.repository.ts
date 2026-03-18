@@ -160,22 +160,30 @@ export async function createTestimonial(input: {
   id: string;
   sellerId: string;
   transactionId: string;
-  sellerName: string;
-  sellerTown: string;
+  clientName: string;
+  clientTown: string;
   submissionToken: string;
   tokenExpiresAt: Date;
+  clientType?: 'seller' | 'buyer';
 }) {
-  return prisma.testimonial.create({
-    data: {
-      id: input.id,
-      sellerId: input.sellerId,
-      transactionId: input.transactionId,
-      clientName: input.sellerName,
-      clientTown: input.sellerTown,
-      submissionToken: input.submissionToken,
-      tokenExpiresAt: input.tokenExpiresAt,
-    },
-  });
+  return prisma.testimonial.create({ data: input });
+}
+
+export async function createManualTestimonial(input: {
+  id: string;
+  clientName: string;
+  clientTown: string;
+  rating: number;
+  content: string;
+  source?: string | null;
+  isManual: true;
+  status: 'pending_review';
+  createdByAgentId: string;
+  sellerId: null;
+  buyerId: null;
+  transactionId: null;
+}) {
+  return prisma.testimonial.create({ data: input });
 }
 
 export async function updateTestimonialSubmission(
@@ -183,8 +191,8 @@ export async function updateTestimonialSubmission(
   data: {
     content: string;
     rating: number;
-    sellerName: string;
-    sellerTown: string;
+    clientName: string;
+    clientTown: string;
     status: 'pending_review';
   },
 ) {

@@ -5,7 +5,11 @@ import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as auditService from '@/domains/shared/audit.service';
 import { NotFoundError, ConflictError, ValidationError } from '@/domains/shared/errors';
 import type { VideoTutorial, MarketContent, Testimonial, Referral } from '@prisma/client';
-import type { HdbTransactionPartial, TestimonialSubmitInput } from './content.types';
+import type {
+  HdbTransactionPartial,
+  TestimonialSubmitInput,
+  CreateManualTestimonialInput,
+} from './content.types';
 
 jest.mock('./content.repository');
 jest.mock('@/domains/shared/ai/ai.facade', () => {
@@ -492,6 +496,53 @@ describe('formatDisplayName', () => {
 
   it('returns single-word name unchanged', () => {
     expect(contentService.formatDisplayName('Priya')).toBe('Priya');
+  });
+});
+
+describe('createManualTestimonial', () => {
+  it('creates testimonial with isManual true and pending_review status', async () => {
+    const input: CreateManualTestimonialInput = {
+      clientName: 'Mary L.',
+      clientTown: 'Bishan',
+      rating: 5,
+      content: 'Excellent service from start to finish.',
+      source: 'Google',
+    };
+    const mockRecord = {
+      id: 'test-id',
+      clientName: 'Mary L.',
+      clientTown: 'Bishan',
+      rating: 5,
+      content: 'Excellent service from start to finish.',
+      source: 'Google',
+      isManual: true,
+      status: 'pending_review',
+      createdByAgentId: 'agent-1',
+      sellerId: null,
+      buyerId: null,
+      transactionId: null,
+    };
+    mockedRepo.createManualTestimonial.mockResolvedValue(mockRecord as any);
+
+    const result = await contentService.createManualTestimonial('agent-1', input);
+
+    expect(mockedRepo.createManualTestimonial).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isManual: true,
+        status: 'pending_review',
+        createdByAgentId: 'agent-1',
+        sellerId: null,
+        buyerId: null,
+        transactionId: null,
+        clientName: 'Mary L.',
+        clientTown: 'Bishan',
+        rating: 5,
+        content: 'Excellent service from start to finish.',
+        source: 'Google',
+      }),
+    );
+    expect(result.isManual).toBe(true);
+    expect(result.status).toBe('pending_review');
   });
 });
 

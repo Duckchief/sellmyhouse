@@ -291,8 +291,8 @@ export async function issueTestimonialToken(
     id: createId(),
     sellerId,
     transactionId,
-    sellerName: formatDisplayName(sellerName),
-    sellerTown,
+    clientName: formatDisplayName(sellerName),
+    clientTown: sellerTown,
     submissionToken: token,
     tokenExpiresAt,
   });
@@ -310,8 +310,8 @@ export async function submitTestimonial(token: string, input: TestimonialSubmitI
   return contentRepo.updateTestimonialSubmission(testimonial.id, {
     content: input.content,
     rating: input.rating,
-    sellerName: input.clientName,
-    sellerTown: input.clientTown,
+    clientName: input.clientName,
+    clientTown: input.clientTown,
     status: 'pending_review' as const,
   });
 }

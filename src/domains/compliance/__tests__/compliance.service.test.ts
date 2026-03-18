@@ -1096,3 +1096,42 @@ describe('deleteCddDocument', () => {
     expect(mockEncryptedStorage.delete).not.toHaveBeenCalled();
   });
 });
+
+describe('scanRetention — CDD documents with filePaths in details', () => {
+  it('includes filePaths from documents JSON in flagged deletion request details', async () => {
+    // Minimal mock setup — just enough to reach CDD section
+    mockRepo.findLeadsForRetention.mockResolvedValue([]);
+    mockRepo.findServiceWithdrawnForDeletion.mockResolvedValue([]);
+    mockRepo.findTransactionsForRetention.mockResolvedValue([]);
+    mockRepo.findConsentRecordsForDeletion.mockResolvedValue([]);
+    mockRepo.findStaleCorrectionRequests.mockResolvedValue([]);
+    mockRepo.findVerifiedViewersForRetention.mockResolvedValue([]);
+    mockRepo.findBuyersForRetention.mockResolvedValue([]);
+    mockSettings.getNumber
+      .mockResolvedValueOnce(12) // lead_retention_months
+      .mockResolvedValueOnce(5) // transaction_retention_years
+      .mockResolvedValueOnce(5) // cdd_retention_years
+      .mockResolvedValueOnce(1); // consent_post_withdrawal_retention_years
+
+    const cddDocs = [
+      { path: 'cdd/cdd-1/nric-doc1.jpg.enc', id: 'doc-1', docType: 'nric' },
+    ];
+    mockRepo.findCddRecordsForRetention.mockResolvedValue([
+      { id: 'cdd-1', subjectId: 'seller-1', documents: cddDocs, verifiedAt: new Date('2020-01-01') },
+    ]);
+    mockRepo.findExistingDeletionRequest.mockResolvedValue(null);
+    mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr-1' } as never);
+
+    await complianceService.scanRetention();
+
+    expect(mockRepo.createDeletionRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetType: 'cdd_documents',
+        targetId: 'cdd-1',
+        details: expect.objectContaining({
+          filePaths: ['cdd/cdd-1/nric-doc1.jpg.enc'],
+        }),
+      }),
+    );
+  });
+});

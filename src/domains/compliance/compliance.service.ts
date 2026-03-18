@@ -440,6 +440,9 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
   cddCutoff.setFullYear(cddCutoff.getFullYear() - cddRetentionYears);
   const oldCddRecords = await complianceRepo.findCddRecordsForRetention(cddCutoff);
   for (const cdd of oldCddRecords) {
+    const docs = (cdd.documents as { path?: string }[] | null) ?? [];
+    const filePaths = docs.map((d) => d.path).filter((p): p is string => !!p);
+
     await flagIfNew(
       'cdd_documents',
       cdd.id,
@@ -449,6 +452,7 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
       {
         subjectId: cdd.subjectId,
         verifiedAt: cdd.verifiedAt,
+        filePaths,
       },
     );
   }

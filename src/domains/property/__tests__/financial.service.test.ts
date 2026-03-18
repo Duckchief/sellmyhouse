@@ -64,7 +64,12 @@ describe('financial.service', () => {
         sellerId: 'seller-1',
         propertyId: 'property-1',
         calculationInput: sampleInput,
-        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995, cpfDisclaimerShownAt: '2026-03-18T00:00:00.000Z' },
+        metadata: {
+          flatType: '4 ROOM',
+          town: 'TAMPINES',
+          leaseCommenceDate: 1995,
+          cpfDisclaimerShownAt: '2026-03-18T00:00:00.000Z',
+        },
       });
 
       expect(mockSettings.getCommission).toHaveBeenCalled();
@@ -98,7 +103,12 @@ describe('financial.service', () => {
         sellerId: 'seller-1',
         propertyId: 'property-1',
         calculationInput: sampleInput,
-        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995, cpfDisclaimerShownAt: '2026-03-18T00:00:00.000Z' },
+        metadata: {
+          flatType: '4 ROOM',
+          town: 'TAMPINES',
+          leaseCommenceDate: 1995,
+          cpfDisclaimerShownAt: '2026-03-18T00:00:00.000Z',
+        },
       });
 
       expect(mockRepo.create).toHaveBeenCalledWith(expect.objectContaining({ version: 4 }));
@@ -115,7 +125,12 @@ describe('financial.service', () => {
         sellerId: 'seller-1',
         propertyId: 'property-1',
         calculationInput: sampleInput,
-        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995, cpfDisclaimerShownAt: '2026-03-18T00:00:00.000Z' },
+        metadata: {
+          flatType: '4 ROOM',
+          town: 'TAMPINES',
+          leaseCommenceDate: 1995,
+          cpfDisclaimerShownAt: '2026-03-18T00:00:00.000Z',
+        },
       });
 
       expect(mockSettings.getCommission).toHaveBeenCalled();
@@ -383,4 +398,29 @@ describe('financial.service', () => {
     });
   });
 
+  describe('getReportForSeller', () => {
+    it('returns report when seller owns it', async () => {
+      const report = { id: 'report-1', sellerId: 'seller-1' } as unknown as FinancialReport;
+      mockRepo.findById.mockResolvedValue(report);
+      const result = await financialService.getReportForSeller('report-1', 'seller-1');
+      expect(result).toEqual(report);
+    });
+
+    it('throws NotFoundError when report does not exist', async () => {
+      mockRepo.findById.mockResolvedValue(null);
+      await expect(financialService.getReportForSeller('x', 'seller-1')).rejects.toThrow(
+        'not found',
+      );
+    });
+
+    it('throws ForbiddenError when seller does not own the report', async () => {
+      mockRepo.findById.mockResolvedValue({
+        id: 'report-1',
+        sellerId: 'other-seller',
+      } as unknown as FinancialReport);
+      await expect(financialService.getReportForSeller('report-1', 'seller-1')).rejects.toThrow(
+        'do not own',
+      );
+    });
+  });
 });

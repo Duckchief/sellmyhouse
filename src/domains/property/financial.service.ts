@@ -174,7 +174,6 @@ export async function getReportForSeller(reportId: string, sellerId: string) {
   return report;
 }
 
-
 export async function getReportsForSeller(sellerId: string) {
   return financialRepo.findAllForSeller(sellerId);
 }

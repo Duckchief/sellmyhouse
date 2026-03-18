@@ -98,7 +98,6 @@ financialRouter.get(
   },
 );
 
-
 // Agent routes — require agent or admin role with 2FA
 financialRouter.post(
   '/api/v1/financial/report/:id/approve',

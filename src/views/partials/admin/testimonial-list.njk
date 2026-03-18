@@ -17,7 +17,6 @@
       <th class="pb-2 pr-4">{{ "Source" | t }}</th>
       <th class="pb-2 pr-4">{{ "Status" | t }}</th>
       <th class="pb-2 pr-4">{{ "Featured" | t }}</th>
-      <th class="pb-2"></th>
     </tr>
   </thead>
   <tbody>
@@ -57,20 +56,7 @@
         </form>
         {% endif %}
       </td>
-      <td class="py-2 text-right flex gap-2 justify-end" onclick="event.stopPropagation()">
-        {% if record.status == 'pending_review' %}
-        <form method="POST" action="/admin/content/testimonials/{{ record.id }}/approve" class="inline">
-          <button type="submit" class="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700">
-            {{ "Approve" | t }}
-          </button>
-        </form>
-        <form method="POST" action="/admin/content/testimonials/{{ record.id }}/reject" class="inline">
-          <button type="submit" class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">
-            {{ "Reject" | t }}
-          </button>
-        </form>
-        {% endif %}
-      </td>
+
     </tr>
     {% endfor %}
   </tbody>

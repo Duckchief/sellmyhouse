@@ -31,6 +31,7 @@ import { transactionRouter } from '../../domains/transaction/transaction.router'
 import { testimonialRouter } from '../../domains/content/testimonial.router';
 import { referralTrackingMiddleware } from './middleware/referral-tracking';
 import { maintenanceMiddleware } from './middleware/maintenance';
+import { csrfProtection, injectCsrfToken } from './middleware/csrf';
 import { dateFilter } from './filters/date.filter';
 
 function validateEnv() {
@@ -151,6 +152,10 @@ export function createApp() {
   configurePassport();
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // CSRF protection — after session so cookie can be set; before routes
+  app.use(csrfProtection);
+  app.use(injectCsrfToken);
 
   // Maintenance mode — after auth so req.user is populated
   app.use(maintenanceMiddleware);

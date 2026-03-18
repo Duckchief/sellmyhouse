@@ -17,6 +17,7 @@
     {% endif %}
 
     <form method="POST" action="/testimonial/{{ token }}" class="space-y-4">
+      <input type="hidden" name="_csrf" value="{{ csrfToken }}">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Your Name" | t }}</label>
         <input type="text" name="clientName" value="{{ values.clientName if values else testimonial.clientName }}"

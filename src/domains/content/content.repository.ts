@@ -63,8 +63,9 @@ export async function findMarketContentByPeriod(period: string) {
   });
 }
 
-export async function findAllMarketContent() {
+export async function findAllMarketContent(status?: string) {
   return prisma.marketContent.findMany({
+    where: status ? { status: status as import('@prisma/client').MarketContentStatus } : undefined,
     orderBy: { createdAt: 'desc' },
     take: 50,
   });

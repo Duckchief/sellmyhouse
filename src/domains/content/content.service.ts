@@ -250,8 +250,8 @@ export async function generateMarketContent(period: string) {
   });
 }
 
-export async function listMarketContent() {
-  return contentRepo.findAllMarketContent();
+export async function listMarketContent(status?: string) {
+  return contentRepo.findAllMarketContent(status);
 }
 
 export async function getMarketContentById(id: string) {

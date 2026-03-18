@@ -30,6 +30,7 @@ import { portalRouter } from '../../domains/property/portal.router';
 import { transactionRouter } from '../../domains/transaction/transaction.router';
 import { testimonialRouter } from '../../domains/content/testimonial.router';
 import { referralTrackingMiddleware } from './middleware/referral-tracking';
+import { maintenanceMiddleware } from './middleware/maintenance';
 import { dateFilter } from './filters/date.filter';
 
 function validateEnv() {
@@ -150,6 +151,9 @@ export function createApp() {
   configurePassport();
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Maintenance mode — after auth so req.user is populated
+  app.use(maintenanceMiddleware);
 
   // Request logging (skip in test)
   if (process.env.NODE_ENV !== 'test') {

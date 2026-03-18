@@ -52,6 +52,7 @@ export interface SettingWithMeta {
   value: string;
   description: string;
   updatedAt: Date;
+  inputType: 'text' | 'cron';
 }
 
 export interface AnalyticsData {

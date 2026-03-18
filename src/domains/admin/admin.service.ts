@@ -417,6 +417,8 @@ export async function getSettingsGrouped(): Promise<SettingGroup[]> {
   const all = await settingsService.findAll();
   const map = new Map(all.map((s) => [s.key, s]));
 
+  const CRON_KEYS = new Set(['market_content_schedule']);
+
   const group = (label: string, keys: string[]): SettingGroup => ({
     label,
     settings: keys
@@ -428,6 +430,7 @@ export async function getSettingsGrouped(): Promise<SettingGroup[]> {
               value: s.value,
               description: s.description,
               updatedAt: s.updatedAt,
+              inputType: CRON_KEYS.has(k) ? 'cron' : 'text',
             } satisfies SettingWithMeta)
           : null;
       })

@@ -39,9 +39,7 @@ describe('ProfileRouter — unauthenticated redirects', () => {
   });
 
   it('GET /profile/avatar/:agentId redirects to /auth/login when not authenticated', async () => {
-    const res = await request(app)
-      .get('/profile/avatar/agent123456789')
-      .set('Accept', 'text/html');
+    const res = await request(app).get('/profile/avatar/agent123456789').set('Accept', 'text/html');
     expect(res.status).toBe(302);
     expect(res.headers.location).toMatch(/\/auth\/login/);
   });

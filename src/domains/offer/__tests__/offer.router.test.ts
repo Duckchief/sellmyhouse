@@ -5,7 +5,9 @@ import { offerRouter } from '../offer.router';
 import * as offerService from '../offer.service';
 
 jest.mock('../offer.service');
-jest.mock('../../profile/profile.service', () => ({ getHasAvatar: jest.fn().mockResolvedValue(false) }));
+jest.mock('../../profile/profile.service', () => ({
+  getHasAvatar: jest.fn().mockResolvedValue(false),
+}));
 jest.mock(
   'express-rate-limit',
   () => () => (_req: unknown, _res: unknown, next: () => void) => next(),

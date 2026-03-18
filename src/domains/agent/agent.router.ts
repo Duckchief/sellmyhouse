@@ -45,7 +45,14 @@ agentRouter.get(
         return res.render('partials/agent/pipeline-overview', { overview, currentStage });
       }
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/agent/dashboard', { pageTitle: 'Dashboard', user, hasAvatar, overview, repeatViewers, currentStage });
+      res.render('pages/agent/dashboard', {
+        pageTitle: 'Dashboard',
+        user,
+        hasAvatar,
+        overview,
+        repeatViewers,
+        currentStage,
+      });
     } catch (err) {
       next(err);
     }

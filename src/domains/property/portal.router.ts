@@ -29,7 +29,13 @@ portalRouter.get(
         return res.render('partials/agent/portal-panels', { portalListings, listingId });
       }
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/agent/portals', { pageTitle: 'Portals', user, hasAvatar, portalListings, listingId });
+      res.render('pages/agent/portals', {
+        pageTitle: 'Portals',
+        user,
+        hasAvatar,
+        portalListings,
+        listingId,
+      });
     } catch (err) {
       next(err);
     }

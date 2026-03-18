@@ -113,7 +113,12 @@ export function createApp() {
             'https://cdn.jsdelivr.net',
             (req, res) => `'nonce-${(res as express.Response).locals.cspNonce}'`,
           ],
-          styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            'fonts.googleapis.com',
+            'https://cdn.jsdelivr.net',
+          ],
           fontSrc: ["'self'", 'fonts.gstatic.com'],
           imgSrc: ["'self'", 'data:', 'blob:'],
           connectSrc: ["'self'"],
@@ -165,7 +170,7 @@ export function createApp() {
   app.use(leadRouter);
   app.use(authRouter);
   app.use(agentSettingsRouter);
-  app.use(profileRouter);          // ← profile routes
+  app.use(profileRouter); // ← profile routes
   app.use('/api', apiRateLimiter);
   app.use(notificationRouter);
   app.use(sellerRouter);

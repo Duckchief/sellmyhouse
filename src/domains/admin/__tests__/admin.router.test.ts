@@ -195,9 +195,7 @@ describe('POST /admin/content/testimonials — manual testimonial creation', () 
 describe('GET /admin/content/testimonials/new — drawer form partial', () => {
   it('returns 200 with drawer form content', async () => {
     const app = makeApp();
-    const res = await request(app)
-      .get('/admin/content/testimonials/new')
-      .set('HX-Request', 'true');
+    const res = await request(app).get('/admin/content/testimonials/new').set('HX-Request', 'true');
     expect(res.status).toBe(200);
   });
 });
@@ -217,18 +215,16 @@ describe('GET /admin/content/testimonials/:id', () => {
     } as any);
 
     const app = makeApp();
-    const res = await request(app)
-      .get('/admin/content/testimonials/t-1')
-      .set('HX-Request', 'true');
+    const res = await request(app).get('/admin/content/testimonials/t-1').set('HX-Request', 'true');
     expect(res.status).toBe(200);
     expect(contentService.getTestimonialById).toHaveBeenCalledWith('t-1');
   });
 
   it('returns 404 for an unknown testimonial', async () => {
     const { NotFoundError } = await import('@/domains/shared/errors');
-    jest.mocked(contentService.getTestimonialById).mockRejectedValue(
-      new NotFoundError('Testimonial', 'bad-id'),
-    );
+    jest
+      .mocked(contentService.getTestimonialById)
+      .mockRejectedValue(new NotFoundError('Testimonial', 'bad-id'));
 
     const app = makeApp();
     const res = await request(app).get('/admin/content/testimonials/bad-id');

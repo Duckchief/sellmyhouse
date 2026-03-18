@@ -34,7 +34,13 @@ offerRouter.get(
         return res.render('partials/agent/offer-chain', { offers, propertyId });
       }
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/agent/offers', { pageTitle: 'Offers', user, hasAvatar, offers, propertyId });
+      res.render('pages/agent/offers', {
+        pageTitle: 'Offers',
+        user,
+        hasAvatar,
+        offers,
+        propertyId,
+      });
     } catch (err) {
       next(err);
     }

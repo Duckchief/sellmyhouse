@@ -38,7 +38,14 @@ adminRouter.get(
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/admin/dashboard', { pageTitle: 'Dashboard', user, hasAvatar, analytics, filter, currentPath: '/admin/dashboard' });
+      res.render('pages/admin/dashboard', {
+        pageTitle: 'Dashboard',
+        user,
+        hasAvatar,
+        analytics,
+        filter,
+        currentPath: '/admin/dashboard',
+      });
     } catch (err) {
       next(err);
     }
@@ -91,7 +98,14 @@ adminRouter.get(
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/admin/leads', { pageTitle: 'Leads', user, hasAvatar, unassigned, all, currentPath: '/admin/leads' });
+      res.render('pages/admin/leads', {
+        pageTitle: 'Leads',
+        user,
+        hasAvatar,
+        unassigned,
+        all,
+        currentPath: '/admin/leads',
+      });
     } catch (err) {
       next(err);
     }
@@ -112,7 +126,14 @@ adminRouter.get(
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/admin/review-queue', { pageTitle: 'Review Queue', user, hasAvatar, queue, activeTab, currentPath: '/admin/review' });
+      res.render('pages/admin/review-queue', {
+        pageTitle: 'Review Queue',
+        user,
+        hasAvatar,
+        queue,
+        activeTab,
+        currentPath: '/admin/review',
+      });
     } catch (err) {
       next(err);
     }
@@ -174,7 +195,14 @@ adminRouter.get(
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/admin/audit-log', { pageTitle: 'Audit Log', user, hasAvatar, result, filter, currentPath: '/admin/audit' });
+      res.render('pages/admin/audit-log', {
+        pageTitle: 'Audit Log',
+        user,
+        hasAvatar,
+        result,
+        filter,
+        currentPath: '/admin/audit',
+      });
     } catch (err) {
       next(err);
     }
@@ -228,7 +256,13 @@ adminRouter.get(
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/admin/team', { pageTitle: 'Team', user, hasAvatar, team, currentPath: '/admin/team' });
+      res.render('pages/admin/team', {
+        pageTitle: 'Team',
+        user,
+        hasAvatar,
+        team,
+        currentPath: '/admin/team',
+      });
     } catch (err) {
       next(err);
     }
@@ -392,7 +426,14 @@ adminRouter.get(
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/admin/sellers', { pageTitle: 'Sellers', user, hasAvatar, result, team, currentPath: '/admin/sellers' });
+      res.render('pages/admin/sellers', {
+        pageTitle: 'Sellers',
+        user,
+        hasAvatar,
+        result,
+        team,
+        currentPath: '/admin/sellers',
+      });
     } catch (err) {
       next(err);
     }
@@ -407,7 +448,12 @@ adminRouter.get(
       const detail = await adminService.getAdminSellerDetail(req.params['id'] as string);
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/admin/seller-detail', { pageTitle: 'Seller Detail', user, hasAvatar, detail });
+      res.render('pages/admin/seller-detail', {
+        pageTitle: 'Seller Detail',
+        user,
+        hasAvatar,
+        detail,
+      });
     } catch (err) {
       next(err);
     }
@@ -506,7 +552,13 @@ adminRouter.get(
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/admin/settings', { pageTitle: 'Settings', user, hasAvatar, groups, currentPath: '/admin/settings' });
+      res.render('pages/admin/settings', {
+        pageTitle: 'Settings',
+        user,
+        hasAvatar,
+        groups,
+        currentPath: '/admin/settings',
+      });
     } catch (err) {
       next(err);
     }
@@ -561,7 +613,13 @@ adminRouter.get(
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/admin/hdb', { pageTitle: 'HDB', user, hasAvatar, status, currentPath: '/admin/hdb' });
+      res.render('pages/admin/hdb', {
+        pageTitle: 'HDB',
+        user,
+        hasAvatar,
+        status,
+        currentPath: '/admin/hdb',
+      });
     } catch (err) {
       next(err);
     }
@@ -1035,13 +1093,18 @@ adminRouter.get(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const activeStatus = typeof req.query['status'] === 'string' ? req.query['status'] : undefined;
+      const activeStatus =
+        typeof req.query['status'] === 'string' ? req.query['status'] : undefined;
       const [records, hasPendingReview] = await Promise.all([
         contentService.listTestimonials(activeStatus),
         contentService.hasPendingReviewTestimonials(),
       ]);
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/testimonial-list', { records, activeStatus, hasPendingReview });
+        return res.render('partials/admin/testimonial-list', {
+          records,
+          activeStatus,
+          hasPendingReview,
+        });
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
@@ -1091,7 +1154,11 @@ adminRouter.post(
           contentService.listTestimonials('pending_review'),
           contentService.hasPendingReviewTestimonials(),
         ]);
-        return res.render('partials/admin/testimonial-list', { records, activeStatus: 'pending_review', hasPendingReview });
+        return res.render('partials/admin/testimonial-list', {
+          records,
+          activeStatus: 'pending_review',
+          hasPendingReview,
+        });
       }
       return res.redirect('/admin/content/testimonials');
     } catch (err) {

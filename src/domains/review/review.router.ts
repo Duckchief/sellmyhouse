@@ -29,7 +29,13 @@ reviewRouter.get(
         return res.render('partials/agent/review-queue', { queue, activeTab });
       }
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/agent/reviews', { pageTitle: 'Reviews', user, hasAvatar, queue, activeTab });
+      res.render('pages/agent/reviews', {
+        pageTitle: 'Reviews',
+        user,
+        hasAvatar,
+        queue,
+        activeTab,
+      });
     } catch (err) {
       next(err);
     }

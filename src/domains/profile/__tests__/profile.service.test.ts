@@ -35,7 +35,9 @@ describe('ProfileService', () => {
 
     it('throws NotFoundError when agent does not exist', async () => {
       repo.findAgentById = jest.fn().mockResolvedValue(null);
-      await expect(service.getProfile('nonexistent')).rejects.toThrow('Agent not found: nonexistent');
+      await expect(service.getProfile('nonexistent')).rejects.toThrow(
+        'Agent not found: nonexistent',
+      );
     });
   });
 
@@ -128,9 +130,9 @@ describe('ProfileService', () => {
     });
 
     it('throws ValidationError when new password is under 8 chars', async () => {
-      await expect(
-        service.changePassword('agent1', 'current', 'short', 'short'),
-      ).rejects.toThrow('Password must be at least 8 characters');
+      await expect(service.changePassword('agent1', 'current', 'short', 'short')).rejects.toThrow(
+        'Password must be at least 8 characters',
+      );
     });
 
     it('throws ValidationError when current password is wrong', async () => {
@@ -155,7 +157,9 @@ describe('ProfileService', () => {
 
   describe('getHasAvatar', () => {
     it('returns true when agent has avatarPath', async () => {
-      repo.findAgentById = jest.fn().mockResolvedValue({ ...mockAgent, avatarPath: '/some/path.jpg' });
+      repo.findAgentById = jest
+        .fn()
+        .mockResolvedValue({ ...mockAgent, avatarPath: '/some/path.jpg' });
       const result = await service.getHasAvatar('agent1');
       expect(result).toBe(true);
     });

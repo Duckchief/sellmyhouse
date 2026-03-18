@@ -2,7 +2,11 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
-import { requireAuth, requireRole, requireTwoFactor } from '../../infra/http/middleware/require-auth';
+import {
+  requireAuth,
+  requireRole,
+  requireTwoFactor,
+} from '../../infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import * as service from './profile.service';
 import { avatarUpload } from './profile.multer';
@@ -20,9 +24,7 @@ profileRouter.get(
       const user = req.user as AuthenticatedUser;
       const profile = await service.getProfile(user.id);
       const template =
-        user.role === 'admin'
-          ? 'pages/profile/index-admin.njk'
-          : 'pages/profile/index.njk';
+        user.role === 'admin' ? 'pages/profile/index-admin.njk' : 'pages/profile/index.njk';
 
       res.render(template, {
         pageTitle: 'Profile',

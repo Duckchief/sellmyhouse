@@ -76,10 +76,3 @@ export async function markSent(id: string, channel: string) {
     },
   });
 }
-
-export async function acknowledgeDisclaimer(id: string) {
-  return prisma.financialReport.update({
-    where: { id },
-    data: { disclaimerAcknowledgedAt: new Date() },
-  });
-}

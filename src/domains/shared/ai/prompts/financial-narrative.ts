@@ -21,23 +21,10 @@ export function buildFinancialNarrativePrompt(
   sections.push(`- Sale Price: $${formatCurrency(output.salePrice)}`);
   sections.push(`- Outstanding Loan: $${formatCurrency(output.outstandingLoan)}`);
 
-  // Owner 1 CPF
-  sections.push(
-    `- Owner 1 CPF Refund: $${formatCurrency(output.owner1Cpf.totalRefund)} (OA used: $${formatCurrency(output.owner1Cpf.oaUsed)}, accrued interest: $${formatCurrency(output.owner1Cpf.accruedInterest)})`,
-  );
-  if (output.owner1Cpf.isEstimated) {
-    sections.push(`  (Note: Owner 1 CPF usage was estimated — actual figures may differ)`);
-  }
-
-  // Owner 2 CPF (joint owner)
-  if (output.owner2Cpf) {
-    sections.push(
-      `- Owner 2 CPF Refund: $${formatCurrency(output.owner2Cpf.totalRefund)} (OA used: $${formatCurrency(output.owner2Cpf.oaUsed)}, accrued interest: $${formatCurrency(output.owner2Cpf.accruedInterest)})`,
-    );
-    if (output.owner2Cpf.isEstimated) {
-      sections.push(`  (Note: Owner 2 CPF usage was estimated — actual figures may differ)`);
-    }
-  }
+  // CPF refunds per owner (seller-provided figures)
+  output.ownerCpfRefunds.forEach((refund, idx) => {
+    sections.push(`- Owner ${idx + 1} CPF Refund: $${formatCurrency(refund)}`);
+  });
 
   sections.push(`- Total CPF Refund: $${formatCurrency(output.totalCpfRefund)}`);
   sections.push(`- Resale Levy: $${formatCurrency(output.resaleLevy)}`);
@@ -61,13 +48,9 @@ export function buildFinancialNarrativePrompt(
     '- End with a disclaimer: "This is an estimate only and does not constitute financial advice. Please refer to CPF Board (my.cpf.gov.sg) and HDB (hdb.gov.sg) for exact figures."',
   );
   sections.push('- Do NOT provide financial advice or make recommendations');
-  sections.push('- Do NOT use technical jargon — explain terms like "accrued interest" simply');
-
-  if (output.owner1Cpf.isEstimated || output.owner2Cpf?.isEstimated) {
-    sections.push(
-      '- Clearly note which CPF figures are estimated and direct the seller to check my.cpf.gov.sg for actual amounts',
-    );
-  }
+  sections.push(
+    '- Note that CPF refund figures were provided by the seller from my.cpf.gov.sg and may not reflect the final amount',
+  );
 
   return sections.join('\n');
 }

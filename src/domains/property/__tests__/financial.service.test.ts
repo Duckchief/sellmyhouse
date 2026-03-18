@@ -34,7 +34,7 @@ const mockNotification = notificationService as jest.Mocked<typeof notificationS
 const sampleInput: FinancialCalculationInput = {
   salePrice: 500000,
   outstandingLoan: 200000,
-  owner1Cpf: { oaUsed: 100000, purchaseYear: 2016 },
+  ownerCpfs: [{ cpfRefund: 128000 }],
   flatType: '4 ROOM',
   subsidyType: 'subsidised',
   isFirstTimer: false,
@@ -64,7 +64,12 @@ describe('financial.service', () => {
         sellerId: 'seller-1',
         propertyId: 'property-1',
         calculationInput: sampleInput,
-        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995 },
+        metadata: {
+          flatType: '4 ROOM',
+          town: 'TAMPINES',
+          leaseCommenceDate: 1995,
+          cpfDisclaimerShownAt: '2026-03-18T00:00:00.000Z',
+        },
       });
 
       expect(mockSettings.getCommission).toHaveBeenCalled();
@@ -98,7 +103,12 @@ describe('financial.service', () => {
         sellerId: 'seller-1',
         propertyId: 'property-1',
         calculationInput: sampleInput,
-        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995 },
+        metadata: {
+          flatType: '4 ROOM',
+          town: 'TAMPINES',
+          leaseCommenceDate: 1995,
+          cpfDisclaimerShownAt: '2026-03-18T00:00:00.000Z',
+        },
       });
 
       expect(mockRepo.create).toHaveBeenCalledWith(expect.objectContaining({ version: 4 }));
@@ -115,7 +125,12 @@ describe('financial.service', () => {
         sellerId: 'seller-1',
         propertyId: 'property-1',
         calculationInput: sampleInput,
-        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995 },
+        metadata: {
+          flatType: '4 ROOM',
+          town: 'TAMPINES',
+          leaseCommenceDate: 1995,
+          cpfDisclaimerShownAt: '2026-03-18T00:00:00.000Z',
+        },
       });
 
       expect(mockSettings.getCommission).toHaveBeenCalled();
@@ -133,18 +148,13 @@ describe('financial.service', () => {
           outputs: {
             salePrice: 500000,
             outstandingLoan: 200000,
-            owner1Cpf: {
-              oaUsed: 100000,
-              accruedInterest: 28008,
-              totalRefund: 128008,
-              isEstimated: false,
-            },
-            totalCpfRefund: 128008,
+            ownerCpfRefunds: [128000],
+            totalCpfRefund: 128000,
             resaleLevy: 40000,
             commission: 1633.91,
             legalFees: 2500,
-            totalDeductions: 372141.91,
-            netCashProceeds: 127858.09,
+            totalDeductions: 372133.91,
+            netCashProceeds: 127866.09,
             warnings: [],
           },
           metadata: { town: 'TAMPINES', flatType: '4 ROOM' },
@@ -188,18 +198,13 @@ describe('financial.service', () => {
           outputs: {
             salePrice: 500000,
             outstandingLoan: 200000,
-            owner1Cpf: {
-              oaUsed: 100000,
-              accruedInterest: 28008,
-              totalRefund: 128008,
-              isEstimated: false,
-            },
-            totalCpfRefund: 128008,
+            ownerCpfRefunds: [128000],
+            totalCpfRefund: 128000,
             resaleLevy: 40000,
             commission: 1633.91,
             legalFees: 2500,
-            totalDeductions: 372141.91,
-            netCashProceeds: 127858.09,
+            totalDeductions: 372133.91,
+            netCashProceeds: 127866.09,
             warnings: [],
           },
           metadata: { town: 'TAMPINES', flatType: '4 ROOM' },
@@ -234,18 +239,13 @@ describe('financial.service', () => {
           outputs: {
             salePrice: 500000,
             outstandingLoan: 200000,
-            owner1Cpf: {
-              oaUsed: 100000,
-              accruedInterest: 28008,
-              totalRefund: 128008,
-              isEstimated: false,
-            },
-            totalCpfRefund: 128008,
+            ownerCpfRefunds: [128000],
+            totalCpfRefund: 128000,
             resaleLevy: 40000,
             commission: 1633.91,
             legalFees: 2500,
-            totalDeductions: 372141.91,
-            netCashProceeds: 127858.09,
+            totalDeductions: 372133.91,
+            netCashProceeds: 127866.09,
             warnings: [],
           },
           metadata: { town: 'TAMPINES', flatType: '4 ROOM' },
@@ -398,64 +398,29 @@ describe('financial.service', () => {
     });
   });
 
-  describe('acknowledgeDisclaimer', () => {
-    it('sets disclaimerAcknowledgedAt and writes audit log', async () => {
-      const now = new Date();
-      const report = {
-        id: 'report-1',
-        sellerId: 'seller-1',
-        disclaimerAcknowledgedAt: null,
-      } as unknown as FinancialReport;
-      const updated = { ...report, disclaimerAcknowledgedAt: now } as unknown as FinancialReport;
+  describe('getReportForSeller', () => {
+    it('returns report when seller owns it', async () => {
+      const report = { id: 'report-1', sellerId: 'seller-1' } as unknown as FinancialReport;
       mockRepo.findById.mockResolvedValue(report);
-      mockRepo.acknowledgeDisclaimer.mockResolvedValue(updated);
-
-      const result = await financialService.acknowledgeDisclaimer('report-1', 'seller-1');
-
-      expect(mockRepo.acknowledgeDisclaimer).toHaveBeenCalledWith('report-1');
-      expect(mockAudit.log).toHaveBeenCalledWith(
-        expect.objectContaining({
-          action: 'financial_report.disclaimer_acknowledged',
-          entityType: 'financial_report',
-          entityId: 'report-1',
-          details: expect.objectContaining({ sellerId: 'seller-1' }),
-        }),
-      );
-      expect(result).toEqual(updated);
+      const result = await financialService.getReportForSeller('report-1', 'seller-1');
+      expect(result).toEqual(report);
     });
 
-    it('is idempotent: returns existing report without re-writing if already acknowledged', async () => {
-      const report = {
-        id: 'report-1',
-        sellerId: 'seller-1',
-        disclaimerAcknowledgedAt: new Date('2026-01-01'),
-      } as unknown as FinancialReport;
-      mockRepo.findById.mockResolvedValue(report);
-
-      const result = await financialService.acknowledgeDisclaimer('report-1', 'seller-1');
-
-      expect(mockRepo.acknowledgeDisclaimer).not.toHaveBeenCalled();
-      expect(mockAudit.log).not.toHaveBeenCalled();
-      expect(result).toEqual(report);
+    it('throws NotFoundError when report does not exist', async () => {
+      mockRepo.findById.mockResolvedValue(null);
+      await expect(financialService.getReportForSeller('x', 'seller-1')).rejects.toThrow(
+        'not found',
+      );
     });
 
     it('throws ForbiddenError when seller does not own the report', async () => {
       mockRepo.findById.mockResolvedValue({
         id: 'report-1',
         sellerId: 'other-seller',
-        disclaimerAcknowledgedAt: null,
       } as unknown as FinancialReport);
-
-      await expect(financialService.acknowledgeDisclaimer('report-1', 'seller-1')).rejects.toThrow(
+      await expect(financialService.getReportForSeller('report-1', 'seller-1')).rejects.toThrow(
         'do not own',
       );
-    });
-
-    it('throws NotFoundError when report does not exist', async () => {
-      mockRepo.findById.mockResolvedValue(null);
-      await expect(
-        financialService.acknowledgeDisclaimer('nonexistent', 'seller-1'),
-      ).rejects.toThrow('not found');
     });
   });
 });

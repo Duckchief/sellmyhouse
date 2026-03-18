@@ -10,17 +10,22 @@
 
 <div class="flex min-h-screen pt-16">
   <aside id="sidebar" class="hidden md:flex w-64 bg-ink text-white p-4 flex-col flex-shrink-0 fixed md:static top-16 bottom-0 md:top-auto md:bottom-auto left-0 z-50">
-    <div class="text-lg font-bold mb-6">{{ "Agent Portal" | t }}</div>
+    <div class="sidebar-header flex items-center mb-6 min-w-0">
+      <div class="sidebar-title text-lg font-bold flex-1 min-w-0">{{ "Agent Portal" | t }}</div>
+      <button class="sidebar-toggle hidden md:flex items-center justify-center p-1 rounded hover:bg-white/10 text-white/60 hover:text-white flex-shrink-0" title="{{ 'Toggle sidebar' | t }}" data-action="toggle-sidebar-collapse" aria-label="{{ 'Toggle sidebar' | t }}">
+        {{ icon('panel-left') }}
+      </button>
+    </div>
     <nav class="space-y-1 flex-1">
-      <a href="/agent/dashboard" class="flex items-center gap-2 px-3 py-2 rounded text-sm {% if currentPath == '/agent/dashboard' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('home') }}{{ "Dashboard" | t }}</a>
-      <div class="border-t border-white/10 my-2"></div>
-      <a href="/agent/leads" class="flex items-center gap-2 px-3 py-2 rounded text-sm {% if currentPath == '/agent/leads' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('user-plus') }}{{ "Leads" | t }}</a>
-      <a href="/agent/sellers" class="flex items-center gap-2 px-3 py-2 rounded text-sm {% if currentPath == '/agent/sellers' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('users') }}{{ "Sellers" | t }}</a>
-      <a href="/agent/reviews" class="flex items-center gap-2 px-3 py-2 rounded text-sm {% if currentPath == '/agent/reviews' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('clipboard-document-check') }}{{ "Reviews" | t }}
-        {% if pendingReviewCount %}<span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{{ pendingReviewCount }}</span>{% endif %}
+      <a href="/agent/dashboard" title="{{ 'Dashboard' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/agent/dashboard' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('home') }}<span class="sidebar-tooltip">{{ "Dashboard" | t }}</span><span class="sidebar-label">{{ "Dashboard" | t }}</span></a>
+      <div class="sidebar-divider border-t border-white/10 my-2"></div>
+      <a href="/agent/leads" title="{{ 'Leads' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/agent/leads' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('user-plus') }}<span class="sidebar-tooltip">{{ "Leads" | t }}</span><span class="sidebar-label">{{ "Leads" | t }}</span></a>
+      <a href="/agent/sellers" title="{{ 'Sellers' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/agent/sellers' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('users') }}<span class="sidebar-tooltip">{{ "Sellers" | t }}</span><span class="sidebar-label">{{ "Sellers" | t }}</span></a>
+      <a href="/agent/reviews" title="{{ 'Reviews' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/agent/reviews' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('clipboard-document-check') }}<span class="sidebar-tooltip">{{ "Reviews" | t }}</span><span class="sidebar-label">{{ "Reviews" | t }}</span>
+        {% if pendingReviewCount %}<span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">{{ pendingReviewCount }}</span>{% endif %}
       </a>
-      <div class="border-t border-white/10 my-2"></div>
-      <a href="/agent/settings" class="flex items-center gap-2 px-3 py-2 rounded text-sm {% if currentPath == '/agent/settings' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('cog-6-tooth') }}{{ "Settings" | t }}</a>
+      <div class="sidebar-divider border-t border-white/10 my-2"></div>
+      <a href="/agent/settings" title="{{ 'Settings' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/agent/settings' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('cog-6-tooth') }}<span class="sidebar-tooltip">{{ "Settings" | t }}</span><span class="sidebar-label">{{ "Settings" | t }}</span></a>
     </nav>
     {# Sidebar footer: logout link removed — logout is now in the top-right header dropdown #}
   </aside>

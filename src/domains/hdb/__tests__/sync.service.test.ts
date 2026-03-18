@@ -38,6 +38,7 @@ describe('HdbSyncService', () => {
         result: {
           records: [
             {
+              _id: 1,
               month: '2024-02',
               town: 'TAMPINES',
               flat_type: '4 ROOM',
@@ -51,6 +52,7 @@ describe('HdbSyncService', () => {
               resale_price: '500000',
             },
             {
+              _id: 2,
               month: '2024-03',
               town: 'ANG MO KIO',
               flat_type: '3 ROOM',
@@ -103,6 +105,7 @@ describe('HdbSyncService', () => {
         result: {
           records: [
             {
+              _id: 3,
               month: '2024-01',
               town: 'TAMPINES',
               flat_type: '4 ROOM',
@@ -143,6 +146,59 @@ describe('HdbSyncService', () => {
 
     expect(result.recordsAdded).toBe(0);
     expect(mockedAxios.get).not.toHaveBeenCalled();
+  });
+
+  it('picks up new records added to the same month', async () => {
+    mockRepo.getLatestMonth.mockResolvedValue('2026-03');
+    mockRepo.countTransactions.mockResolvedValue(500);
+    mockRepo.createManyTransactions.mockResolvedValue(1);
+    mockRepo.createSyncLog.mockResolvedValue({
+      id: 'sync-5',
+      syncedAt: new Date(),
+      recordsAdded: 1,
+      recordsTotal: 501,
+      source: 'd_8b84c4ee58e3cfc0ece0d773c8ca6abc',
+      status: 'success',
+      error: null,
+      createdAt: new Date(),
+    });
+
+    mockedAxios.get.mockResolvedValue({
+      data: {
+        result: {
+          records: [
+            {
+              _id: 99,
+              month: '2026-03',
+              town: 'YISHUN',
+              flat_type: 'EXECUTIVE',
+              block: '789',
+              street_name: 'YISHUN AVE 4',
+              storey_range: '10 TO 12',
+              floor_area_sqm: '146',
+              flat_model: 'Maisonette',
+              lease_commence_date: '1988',
+              remaining_lease: '62 years',
+              resale_price: '850000',
+            },
+          ],
+          total: 1,
+        },
+      },
+    });
+
+    const result = await service.sync();
+
+    expect(result.recordsAdded).toBe(1);
+    expect(mockRepo.createManyTransactions).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: '99',
+          town: 'YISHUN',
+          source: 'datagov_sync',
+        }),
+      ]),
+    );
   });
 
   it('logs failure when API errors', async () => {

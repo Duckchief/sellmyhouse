@@ -19,56 +19,68 @@ const VALID_SUBSIDY_TYPES: SubsidyType[] = ['subsidised', 'non_subsidised'];
 
 const VALID_SEND_CHANNELS = ['whatsapp', 'email', 'in_app'] as const;
 
+/**
+ * Validate and parse the financial calculation form submission.
+ *
+ * CPF inputs: cpfRefund1 (required), cpfRefund2–cpfRefund4 (optional).
+ * Each is the seller's combined CPF figure (principal + accrued interest)
+ * self-reported from my.cpf.gov.sg → Home Ownership.
+ *
+ * purchaseYear is no longer accepted — the platform performs no CPF calculations.
+ */
 export function validateCalculationInput(body: Record<string, unknown>): FinancialCalculationInput {
-  const salePrice = Number(body.salePrice);
+  // Sale price
   if (!body.salePrice && body.salePrice !== 0) {
     throw new ValidationError('Sale price is required');
   }
+  const salePrice = Number(body.salePrice);
   if (isNaN(salePrice) || salePrice <= 0) {
     throw new ValidationError('Sale price must be greater than zero');
   }
 
+  // Outstanding loan
   const outstandingLoan = Number(body.outstandingLoan ?? 0);
-  if (outstandingLoan < 0) {
+  if (isNaN(outstandingLoan) || outstandingLoan < 0) {
     throw new ValidationError('Outstanding loan cannot be negative');
   }
 
+  // Flat type
   const flatType = body.flatType as string;
   if (!VALID_FLAT_TYPES.includes(flatType as FlatType)) {
     throw new ValidationError(`Invalid flat type: ${flatType}`);
   }
 
+  // Subsidy type
   const subsidyType = (body.subsidyType as string) || 'subsidised';
   if (!VALID_SUBSIDY_TYPES.includes(subsidyType as SubsidyType)) {
     throw new ValidationError(`Invalid subsidy type: ${subsidyType}`);
   }
 
-  // CPF: accept null, "unknown", or a number
-  const cpfOaUsed = parseCpfInput(body.cpfOaUsed);
-  const purchaseYear = Number(body.purchaseYear) || new Date().getFullYear();
-
-  const owner1Cpf: CpfOwnerInput = {
-    oaUsed: cpfOaUsed,
-    purchaseYear,
-  };
-
-  // Joint owner (optional)
-  let owner2Cpf: CpfOwnerInput | undefined;
-  if (body.jointOwnerCpfOaUsed !== undefined || body.jointOwnerPurchaseYear !== undefined) {
-    owner2Cpf = {
-      oaUsed: parseCpfInput(body.jointOwnerCpfOaUsed),
-      purchaseYear: Number(body.jointOwnerPurchaseYear) || purchaseYear,
-    };
+  // CPF owner inputs — cpfRefund1 required, cpfRefund2–4 optional
+  const ownerCpfs: CpfOwnerInput[] = [];
+  for (let i = 1; i <= 4; i++) {
+    const raw = body[`cpfRefund${i}`];
+    if (raw === undefined || raw === null || raw === '') {
+      if (i === 1) throw new ValidationError('CPF refund for Owner 1 is required');
+      break; // owners are contiguous — stop at first gap
+    }
+    const value = Number(raw);
+    if (isNaN(value) || value < 0) {
+      throw new ValidationError(`CPF refund for Owner ${i} must be a non-negative number`);
+    }
+    ownerCpfs.push({ cpfRefund: value });
   }
 
+  // Legal fees
   const legalFeesEstimate =
-    body.legalFeesEstimate !== undefined ? Number(body.legalFeesEstimate) : undefined;
+    body.legalFeesEstimate !== undefined && body.legalFeesEstimate !== ''
+      ? Number(body.legalFeesEstimate)
+      : undefined;
 
   return {
     salePrice,
     outstandingLoan,
-    owner1Cpf,
-    owner2Cpf,
+    ownerCpfs,
     flatType: flatType as FlatType,
     subsidyType: subsidyType as SubsidyType,
     isFirstTimer: body.isFirstTimer === true || body.isFirstTimer === 'true',
@@ -90,15 +102,4 @@ export function validateSendInput(body: Record<string, unknown>): {
     throw new ValidationError(`Invalid channel: ${channel}`);
   }
   return { channel: channel as 'whatsapp' | 'email' | 'in_app' };
-}
-
-function parseCpfInput(value: unknown): number | null {
-  if (value === null || value === undefined || value === 'unknown' || value === '') {
-    return null;
-  }
-  const num = Number(value);
-  if (isNaN(num) || num < 0) {
-    throw new ValidationError('CPF OA used must be a non-negative number or "unknown"');
-  }
-  return num;
 }

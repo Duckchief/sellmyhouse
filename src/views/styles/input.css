@@ -57,3 +57,117 @@
     @apply text-lg font-bold text-gray-900 dark:text-gray-100 mb-4;
   }
 }
+
+/* ── Sidebar collapse ───────────────────────────────────────────── */
+#sidebar {
+  transition: width 200ms ease;
+  overflow: hidden;
+}
+
+/* Desktop only: collapse to 44px icon rail */
+@media (min-width: 768px) {
+  #sidebar.sidebar-collapsed {
+    width: 2.75rem; /* 44px */
+  }
+}
+
+/* Mobile safety: never collapse on small screens (preserves hamburger layout) */
+@media (max-width: 767px) {
+  #sidebar.sidebar-collapsed {
+    width: 16rem;
+  }
+}
+
+#sidebar .sidebar-label {
+  opacity: 1;
+  max-width: 200px;
+  transition: opacity 150ms ease, max-width 150ms ease;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#sidebar.sidebar-collapsed .sidebar-label {
+  opacity: 0;
+  max-width: 0;
+}
+
+#sidebar .sidebar-title {
+  transition: opacity 150ms ease, max-width 150ms ease;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+#sidebar.sidebar-collapsed .sidebar-title {
+  opacity: 0;
+  max-width: 0;
+  pointer-events: none;
+}
+
+#sidebar .sidebar-toggle {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+#sidebar.sidebar-collapsed .sidebar-toggle {
+  margin-left: 0;
+}
+
+/* Collapsed header: centre the toggle button in the 44px rail */
+#sidebar.sidebar-collapsed .sidebar-header {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Collapsed nav links: centre the icon in the 44px rail */
+#sidebar.sidebar-collapsed nav a {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+  gap: 0;
+  border-left-width: 0;
+}
+
+/* Collapsed dividers: narrow centred rule */
+#sidebar.sidebar-collapsed .sidebar-divider {
+  width: 24px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#sidebar.sidebar-collapsed .sidebar-section-label {
+  display: none;
+}
+
+/* Sidebar tooltips */
+#sidebar nav a {
+  position: relative;
+}
+
+#sidebar nav a .sidebar-tooltip {
+  display: none;
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #111827;
+  color: #f9fafb;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  pointer-events: none;
+}
+
+#sidebar.sidebar-settled.sidebar-collapsed nav a:hover .sidebar-tooltip {
+  display: block;
+}
+
+/* Allow tooltips to overflow the 44px rail once transition is complete */
+#sidebar.sidebar-settled {
+  overflow: visible;
+}

@@ -77,3 +77,15 @@ export async function findInactiveSellers(inactiveDays: number) {
     },
   });
 }
+
+/**
+ * Record that this seller was served the CPF disclaimer form.
+ * Called on GET /seller/financial/form — provides server-side proof
+ * the disclaimer was shown before any calculation is submitted.
+ */
+export async function recordCpfDisclaimerShown(id: string): Promise<void> {
+  await prisma.seller.update({
+    where: { id },
+    data: { cpfDisclaimerShownAt: new Date() },
+  });
+}

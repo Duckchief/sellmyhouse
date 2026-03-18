@@ -2,6 +2,7 @@
 import { prisma, createId } from '@/infra/database/prisma';
 import { SellerStatus } from '@prisma/client';
 import type { TeamMember, AgentCreateInput, HdbDataStatus, HdbSyncRecord } from './admin.types';
+import type { SettingRecord } from '@/domains/shared/settings.types';
 
 // ─── Agent Queries ───────────────────────────────────────────
 
@@ -477,5 +478,19 @@ export async function findSellerDetailForAdmin(id: string) {
         select: { id: true, consentWithdrawnAt: true, createdAt: true },
       },
     },
+  });
+}
+
+// ─── Settings ────────────────────────────────────────────────
+
+export async function upsertSetting(
+  key: string,
+  value: string,
+  agentId: string,
+): Promise<SettingRecord> {
+  return prisma.systemSetting.upsert({
+    where: { key },
+    update: { value, updatedByAgentId: agentId },
+    create: { id: createId(), key, value, description: '', updatedByAgentId: agentId },
   });
 }

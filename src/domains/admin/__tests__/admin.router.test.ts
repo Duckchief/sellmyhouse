@@ -510,3 +510,97 @@ describe('GET /admin/dashboard — preset param', () => {
     );
   });
 });
+
+describe('GET /admin/maintenance', () => {
+  beforeEach(() => {
+    mockAdminService.getMaintenanceSettings.mockResolvedValue({
+      isOn: false,
+      message: '',
+      eta: '',
+    });
+  });
+
+  it('returns 200 and calls getMaintenanceSettings', async () => {
+    const app = makeApp();
+    const res = await request(app).get('/admin/maintenance');
+    expect(res.status).toBe(200);
+    expect(mockAdminService.getMaintenanceSettings).toHaveBeenCalled();
+  });
+});
+
+describe('POST /admin/maintenance/toggle', () => {
+  beforeEach(() => {
+    mockAdminService.toggleMaintenanceMode.mockResolvedValue(true);
+    mockAdminService.getMaintenanceSettings.mockResolvedValue({
+      isOn: true,
+      message: '',
+      eta: '',
+    });
+  });
+
+  it('redirects to /admin/maintenance for non-HTMX request', async () => {
+    const app = makeApp();
+    const res = await request(app).post('/admin/maintenance/toggle');
+    expect(res.status).toBe(302);
+    expect(res.headers['location']).toBe('/admin/maintenance');
+    expect(mockAdminService.toggleMaintenanceMode).toHaveBeenCalledWith('admin-1');
+  });
+
+  it('returns 200 for HTMX request', async () => {
+    const app = makeApp();
+    const res = await request(app).post('/admin/maintenance/toggle').set('hx-request', 'true');
+    expect(res.status).toBe(200);
+    expect(mockAdminService.getMaintenanceSettings).toHaveBeenCalled();
+  });
+});
+
+describe('POST /admin/maintenance/message', () => {
+  beforeEach(() => {
+    mockAdminService.setMaintenanceMessage.mockResolvedValue(undefined);
+  });
+
+  it('redirects for non-HTMX request', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/maintenance/message')
+      .send('message=System+upgrade');
+    expect(res.status).toBe(302);
+    expect(mockAdminService.setMaintenanceMessage).toHaveBeenCalledWith(
+      'System upgrade',
+      'admin-1',
+    );
+  });
+
+  it('returns 200 Saved for HTMX request', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/maintenance/message')
+      .set('hx-request', 'true')
+      .send('message=Upgrading+system');
+    expect(res.status).toBe(200);
+    expect(res.text).toBe('Saved');
+  });
+});
+
+describe('POST /admin/maintenance/eta', () => {
+  beforeEach(() => {
+    mockAdminService.setMaintenanceEta.mockResolvedValue(undefined);
+  });
+
+  it('redirects for non-HTMX request', async () => {
+    const app = makeApp();
+    const res = await request(app).post('/admin/maintenance/eta').send('eta=2026-03-19T10%3A00');
+    expect(res.status).toBe(302);
+    expect(mockAdminService.setMaintenanceEta).toHaveBeenCalledWith('2026-03-19T10:00', 'admin-1');
+  });
+
+  it('returns 200 Saved for HTMX request', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/maintenance/eta')
+      .set('hx-request', 'true')
+      .send('eta=2026-03-19T10%3A00');
+    expect(res.status).toBe(200);
+    expect(res.text).toBe('Saved');
+  });
+});

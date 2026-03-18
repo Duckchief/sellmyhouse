@@ -400,8 +400,8 @@ describe('POST /testimonial/:token — submit', () => {
       .send({
         content: 'Excellent service!',
         rating: '5',
-        sellerName: 'John T.',
-        sellerTown: 'Tampines',
+        clientName: 'John T.',
+        clientTown: 'Tampines',
       });
 
     expect(res.status).toBe(302);

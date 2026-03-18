@@ -18,9 +18,8 @@ import type {
 
 export async function calculateAndCreateReport(input: CreateReportInput) {
   const commission = await settingsService.getCommission();
-  const currentYear = new Date().getFullYear();
 
-  const outputs = calculateNetProceeds(input.calculationInput, commission.total, currentYear);
+  const outputs = calculateNetProceeds(input.calculationInput, commission.total);
 
   // Determine version
   const latest = await financialRepo.findLatestForProperty(input.sellerId, input.propertyId);
@@ -173,26 +172,6 @@ export async function getReportForSeller(reportId: string, sellerId: string) {
   if (!report) throw new NotFoundError('FinancialReport', reportId);
   if (report.sellerId !== sellerId) throw new ForbiddenError('You do not own this report');
   return report;
-}
-
-export async function acknowledgeDisclaimer(reportId: string, sellerId: string) {
-  const report = await financialRepo.findById(reportId);
-  if (!report) throw new NotFoundError('FinancialReport', reportId);
-  if (report.sellerId !== sellerId) throw new ForbiddenError('You do not own this report');
-
-  // Idempotent: if already acknowledged, return as-is
-  if (report.disclaimerAcknowledgedAt) return report;
-
-  const updated = await financialRepo.acknowledgeDisclaimer(reportId);
-
-  await auditService.log({
-    action: 'financial_report.disclaimer_acknowledged',
-    entityType: 'financial_report',
-    entityId: reportId,
-    details: { sellerId, acknowledgedAt: updated.disclaimerAcknowledgedAt },
-  });
-
-  return updated;
 }
 
 export async function getReportsForSeller(sellerId: string) {

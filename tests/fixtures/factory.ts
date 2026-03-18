@@ -408,8 +408,6 @@ export const factory = {
     status?: 'pending_submission' | 'pending_review' | 'approved' | 'rejected';
     content?: string | null;
     rating?: number | null;
-    sellerName?: string;
-    sellerTown?: string;
     clientName?: string;
     clientTown?: string;
     submissionToken?: string;
@@ -420,19 +418,19 @@ export const factory = {
     return testPrisma.testimonial.create({
       data: {
         id: createId(),
-        sellerId: overrides.sellerId,
-        transactionId: overrides.transactionId,
+        seller: { connect: { id: overrides.sellerId } },
+        transaction: { connect: { id: overrides.transactionId } },
         status: overrides.status ?? 'pending_submission',
         content: overrides.content ?? null,
         rating: overrides.rating ?? null,
-        sellerName: overrides.sellerName ?? 'John T.',
-        sellerTown: overrides.sellerTown ?? 'Tampines',
         clientName: overrides.clientName ?? 'John T.',
         clientTown: overrides.clientTown ?? 'Tampines',
         submissionToken: overrides.submissionToken ?? createId(),
         tokenExpiresAt: overrides.tokenExpiresAt ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         displayOnWebsite: overrides.displayOnWebsite ?? false,
-        approvedByAgentId: overrides.approvedByAgentId,
+        ...(overrides.approvedByAgentId
+          ? { approvedByAgent: { connect: { id: overrides.approvedByAgentId } } }
+          : {}),
       },
     });
   },

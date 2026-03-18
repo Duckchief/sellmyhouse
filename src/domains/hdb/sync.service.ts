@@ -19,6 +19,7 @@ function delay(ms: number): Promise<void> {
 }
 
 interface ApiRecord {
+  _id: number;
   month: string;
   town: string;
   flat_type: string;
@@ -34,7 +35,7 @@ interface ApiRecord {
 
 function mapApiRecord(record: ApiRecord) {
   return {
-    id: createId(),
+    id: String(record._id),
     month: record.month,
     town: record.town,
     flatType: record.flat_type === 'MULTI GENERATION' ? 'MULTI-GENERATION' : record.flat_type,
@@ -91,7 +92,7 @@ export class HdbSyncService {
 
         // Filter to only new records
         const newRecords = latestMonth
-          ? records.filter((r: ApiRecord) => r.month > latestMonth)
+          ? records.filter((r: ApiRecord) => r.month >= latestMonth)
           : records;
 
         // Early exit: sorted newest-first

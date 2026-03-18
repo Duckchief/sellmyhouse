@@ -463,6 +463,54 @@ export async function getSettingsGrouped(): Promise<SettingGroup[]> {
   ];
 }
 
+// ─── Maintenance Mode ─────────────────────────────────────────
+
+export interface MaintenanceSettings {
+  isOn: boolean;
+  message: string;
+  eta: string;
+}
+
+export async function getMaintenanceSettings(): Promise<MaintenanceSettings> {
+  const mode = await settingsService.get('maintenance_mode', 'false');
+  if (mode !== 'true') {
+    return { isOn: false, message: '', eta: '' };
+  }
+  const [message, eta] = await Promise.all([
+    settingsService.get('maintenance_message', ''),
+    settingsService.get('maintenance_eta', ''),
+  ]);
+  return { isOn: true, message, eta };
+}
+
+export async function toggleMaintenanceMode(agentId: string): Promise<boolean> {
+  const current = await settingsService.get('maintenance_mode', 'false');
+  const next = current === 'true' ? 'false' : 'true';
+  // adminRepo.upsertSetting is used here (not settingsService.upsert) because maintenance
+  // settings are ephemeral toggles that do not need a meaningful description string.
+  await adminRepo.upsertSetting('maintenance_mode', next, agentId);
+  await auditService.log({
+    agentId,
+    action: 'setting.changed',
+    entityType: 'setting',
+    entityId: 'maintenance_mode',
+    details: { key: 'maintenance_mode', oldValue: current, newValue: next },
+  });
+  return next === 'true';
+}
+
+export async function setMaintenanceMessage(message: string, agentId: string): Promise<void> {
+  // adminRepo.upsertSetting is used here (not settingsService.upsert) because maintenance
+  // settings are ephemeral and do not require a description field.
+  await adminRepo.upsertSetting('maintenance_message', message, agentId);
+}
+
+export async function setMaintenanceEta(eta: string, agentId: string): Promise<void> {
+  // adminRepo.upsertSetting is used here (not settingsService.upsert) because maintenance
+  // settings are ephemeral and do not require a description field.
+  await adminRepo.upsertSetting('maintenance_eta', eta, agentId);
+}
+
 // ─── HDB Management ──────────────────────────────────────────
 
 export async function getHdbStatus(): Promise<HdbDataStatus> {

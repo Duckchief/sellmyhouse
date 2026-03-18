@@ -860,6 +860,13 @@ adminRouter.get(
       const VALID_CATEGORIES = ['photography', 'forms', 'process', 'financial'];
       const rawCategory = req.query['category'] as string | undefined;
       const preselectedCategory = VALID_CATEGORIES.includes(rawCategory ?? '') ? rawCategory : '';
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/tutorial-form-drawer', {
+          tutorial: null,
+          errors: [],
+          activeTab: preselectedCategory || 'photography',
+        });
+      }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
       return res.render('pages/admin/tutorial-form', {
@@ -877,6 +884,27 @@ adminRouter.get(
   },
 );
 
+adminRouter.get(
+  '/admin/tutorials/:id/drawer',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const tutorial = await contentService.getTutorialById(req.params['id'] as string);
+      const rawTab = req.query['tab'] as string | undefined;
+      const activeTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab)
+        ? (rawTab as TutorialTab)
+        : tutorial.category;
+      return res.render('partials/admin/tutorial-form-drawer', {
+        tutorial,
+        errors: [],
+        activeTab,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 adminRouter.post(
   '/admin/tutorials',
   ...adminAuth,
@@ -886,6 +914,16 @@ adminRouter.post(
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        if (req.headers['hx-request']) {
+          const rawTab = (req.body.activeTab as string) ?? 'photography';
+          const activeTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? rawTab : 'photography';
+          return res.status(400).render('partials/admin/tutorial-form-drawer', {
+            tutorial: null,
+            errors: errors.array(),
+            values: req.body,
+            activeTab,
+          });
+        }
         const hasAvatar = await getHasAvatar(user.id);
         return res.status(400).render('pages/admin/tutorial-form', {
           pageTitle: 'New Tutorial',
@@ -905,9 +943,28 @@ adminRouter.post(
         category: req.body.category as 'photography' | 'forms' | 'process' | 'financial',
         orderIndex: req.body.orderIndex !== undefined ? Number(req.body.orderIndex) : 0,
       });
+      if (req.headers['hx-request']) {
+        const rawTab = (req.body.activeTab as string) ?? 'photography';
+        const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab)
+          ? (rawTab as TutorialTab)
+          : 'photography';
+        const allTutorials = await contentService.getTutorialsGrouped();
+        const activeItems = allTutorials[activeTab] ?? [];
+        return res.render('partials/admin/tutorial-list', { tutorials: activeItems, activeTab });
+      }
       return res.redirect('/admin/tutorials');
     } catch (err) {
       if (err instanceof ConflictError) {
+        if (req.headers['hx-request']) {
+          const rawTab = (req.body.activeTab as string) ?? 'photography';
+          const activeTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? rawTab : 'photography';
+          return res.status(409).render('partials/admin/tutorial-form-drawer', {
+            tutorial: null,
+            errors: [{ msg: err.message }],
+            values: req.body,
+            activeTab,
+          });
+        }
         const hasAvatar = await getHasAvatar(user.id);
         return res.status(409).render('pages/admin/tutorial-form', {
           pageTitle: 'New Tutorial',
@@ -955,6 +1012,17 @@ adminRouter.post(
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        if (req.headers['hx-request']) {
+          const tutorial = await contentService.getTutorialById(req.params['id'] as string);
+          const rawTab = (req.body.activeTab as string) ?? 'photography';
+          const activeTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? rawTab : 'photography';
+          return res.status(400).render('partials/admin/tutorial-form-drawer', {
+            tutorial,
+            errors: errors.array(),
+            values: req.body,
+            activeTab,
+          });
+        }
         const tutorial = await contentService.getTutorialById(req.params['id'] as string);
         const hasAvatar = await getHasAvatar(user.id);
         return res.status(400).render('pages/admin/tutorial-form', {
@@ -975,9 +1043,28 @@ adminRouter.post(
         category: req.body.category as 'photography' | 'forms' | 'process' | 'financial',
         orderIndex: req.body.orderIndex !== undefined ? Number(req.body.orderIndex) : undefined,
       });
+      if (req.headers['hx-request']) {
+        const rawTab = (req.body.activeTab as string) ?? 'photography';
+        const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab)
+          ? (rawTab as TutorialTab)
+          : 'photography';
+        const allTutorials = await contentService.getTutorialsGrouped();
+        const activeItems = allTutorials[activeTab] ?? [];
+        return res.render('partials/admin/tutorial-list', { tutorials: activeItems, activeTab });
+      }
       return res.redirect('/admin/tutorials');
     } catch (err) {
       if (err instanceof ConflictError) {
+        if (req.headers['hx-request']) {
+          const rawTab = (req.body.activeTab as string) ?? 'photography';
+          const activeTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? rawTab : 'photography';
+          return res.status(409).render('partials/admin/tutorial-form-drawer', {
+            tutorial: { id: req.params['id'] as string },
+            errors: [{ msg: err.message }],
+            values: req.body,
+            activeTab,
+          });
+        }
         const hasAvatar = await getHasAvatar(user.id);
         return res.status(409).render('pages/admin/tutorial-form', {
           pageTitle: 'Edit Tutorial',

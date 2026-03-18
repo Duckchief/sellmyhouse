@@ -159,6 +159,7 @@ describe('POST /admin/tutorials — HTMX', () => {
     const res = await request(app)
       .post('/admin/tutorials')
       .set('hx-request', 'true')
+      .type('form')
       .send({ title: 'New Tutorial', youtubeUrl: 'https://youtube.com/watch?v=xyz', category: 'forms', activeTab: 'forms' });
     expect(res.status).toBe(200);
     expect(contentService.createTutorial).toHaveBeenCalled();
@@ -191,6 +192,7 @@ describe('POST /admin/tutorials/:id — HTMX', () => {
     const res = await request(app)
       .post('/admin/tutorials/tutorial-uuid-1')
       .set('hx-request', 'true')
+      .type('form')
       .send({ title: 'Updated', youtubeUrl: 'https://youtube.com/watch?v=new', category: 'forms', activeTab: 'forms' });
     expect(res.status).toBe(200);
     expect(contentService.updateTutorial).toHaveBeenCalledWith('tutorial-uuid-1', expect.objectContaining({ title: 'Updated' }));

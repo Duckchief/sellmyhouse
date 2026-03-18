@@ -420,8 +420,8 @@ export const factory = {
     return testPrisma.testimonial.create({
       data: {
         id: createId(),
-        sellerId: overrides.sellerId,
-        transactionId: overrides.transactionId,
+        seller: { connect: { id: overrides.sellerId } },
+        transaction: { connect: { id: overrides.transactionId } },
         status: overrides.status ?? 'pending_submission',
         content: overrides.content ?? null,
         rating: overrides.rating ?? null,
@@ -432,7 +432,9 @@ export const factory = {
         submissionToken: overrides.submissionToken ?? createId(),
         tokenExpiresAt: overrides.tokenExpiresAt ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         displayOnWebsite: overrides.displayOnWebsite ?? false,
-        approvedByAgentId: overrides.approvedByAgentId,
+        ...(overrides.approvedByAgentId
+          ? { approvedByAgent: { connect: { id: overrides.approvedByAgentId } } }
+          : {}),
       },
     });
   },

@@ -75,8 +75,8 @@ describe('Phase 1A Schema', () => {
     const testimonial = await testPrisma.testimonial.create({
       data: {
         id: createId(),
-        sellerId: seller.id,
-        transactionId: transaction.id,
+        seller: { connect: { id: seller.id } },
+        transaction: { connect: { id: transaction.id } },
         sellerName: 'John T.',
         sellerTown: 'Tampines',
         clientName: 'John T.',

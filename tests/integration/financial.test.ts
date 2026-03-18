@@ -51,13 +51,13 @@ describe('Financial Engine — Integration', () => {
         calculationInput: {
           salePrice: 500000,
           outstandingLoan: 200000,
-          owner1Cpf: { oaUsed: 100000, purchaseYear: 2016 },
+          ownerCpfs: [{ cpfRefund: 100000 }],
           flatType: '4 ROOM',
           subsidyType: 'subsidised',
           isFirstTimer: false,
           legalFeesEstimate: 2500,
         },
-        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995 },
+        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995, cpfDisclaimerShownAt: new Date().toISOString() },
       });
 
       expect(report.id).toBeDefined();
@@ -85,13 +85,13 @@ describe('Financial Engine — Integration', () => {
         calculationInput: {
           salePrice: 500000,
           outstandingLoan: 200000,
-          owner1Cpf: { oaUsed: 100000, purchaseYear: 2016 },
+          ownerCpfs: [{ cpfRefund: 100000 }],
           flatType: '4 ROOM' as const,
           subsidyType: 'subsidised' as const,
           isFirstTimer: false,
           legalFeesEstimate: 2500,
         },
-        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995 },
+        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995, cpfDisclaimerShownAt: new Date().toISOString() },
       };
 
       const report1 = await financialService.calculateAndCreateReport(input);
@@ -171,12 +171,12 @@ describe('Financial Engine — Integration', () => {
         calculationInput: {
           salePrice: 500000,
           outstandingLoan: 200000,
-          owner1Cpf: { oaUsed: 100000, purchaseYear: 2016 },
+          ownerCpfs: [{ cpfRefund: 100000 }],
           flatType: '4 ROOM',
           subsidyType: 'subsidised',
           isFirstTimer: false,
         },
-        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995 },
+        metadata: { flatType: '4 ROOM', town: 'TAMPINES', leaseCommenceDate: 1995, cpfDisclaimerShownAt: new Date().toISOString() },
       });
 
       const logs = await testPrisma.auditLog.findMany({

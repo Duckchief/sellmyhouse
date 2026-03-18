@@ -1036,9 +1036,12 @@ adminRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const activeStatus = typeof req.query['status'] === 'string' ? req.query['status'] : undefined;
-      const records = await contentService.listTestimonials(activeStatus);
+      const [records, hasPendingReview] = await Promise.all([
+        contentService.listTestimonials(activeStatus),
+        contentService.hasPendingReviewTestimonials(),
+      ]);
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/testimonial-list', { records, activeStatus });
+        return res.render('partials/admin/testimonial-list', { records, activeStatus, hasPendingReview });
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
@@ -1048,6 +1051,7 @@ adminRouter.get(
         hasAvatar,
         records,
         activeStatus,
+        hasPendingReview,
         currentPath: '/admin/content/testimonials',
       });
     } catch (err) {
@@ -1083,8 +1087,11 @@ adminRouter.post(
       });
 
       if (req.headers['hx-request']) {
-        const records = await contentService.listTestimonials();
-        return res.render('partials/admin/testimonial-list', { records });
+        const [records, hasPendingReview] = await Promise.all([
+          contentService.listTestimonials(),
+          contentService.hasPendingReviewTestimonials(),
+        ]);
+        return res.render('partials/admin/testimonial-list', { records, hasPendingReview });
       }
       return res.redirect('/admin/content/testimonials');
     } catch (err) {
@@ -1118,8 +1125,11 @@ adminRouter.post(
       const user = req.user as AuthenticatedUser;
       await contentService.approveTestimonial(req.params['id'] as string, user.id);
       if (req.headers['hx-request']) {
-        const records = await contentService.listTestimonials();
-        return res.render('partials/admin/testimonial-list', { records });
+        const [records, hasPendingReview] = await Promise.all([
+          contentService.listTestimonials(),
+          contentService.hasPendingReviewTestimonials(),
+        ]);
+        return res.render('partials/admin/testimonial-list', { records, hasPendingReview });
       }
       return res.redirect('/admin/content/testimonials');
     } catch (err) {
@@ -1136,8 +1146,11 @@ adminRouter.post(
       const user = req.user as AuthenticatedUser;
       await contentService.rejectTestimonial(req.params['id'] as string, user.id);
       if (req.headers['hx-request']) {
-        const records = await contentService.listTestimonials();
-        return res.render('partials/admin/testimonial-list', { records });
+        const [records, hasPendingReview] = await Promise.all([
+          contentService.listTestimonials(),
+          contentService.hasPendingReviewTestimonials(),
+        ]);
+        return res.render('partials/admin/testimonial-list', { records, hasPendingReview });
       }
       return res.redirect('/admin/content/testimonials');
     } catch (err) {
@@ -1188,8 +1201,11 @@ adminRouter.post(
       const display = req.body.displayOnWebsite === 'true';
       await contentService.featureTestimonial(req.params['id'] as string, display);
       if (req.headers['hx-request']) {
-        const records = await contentService.listTestimonials();
-        return res.render('partials/admin/testimonial-list', { records });
+        const [records, hasPendingReview] = await Promise.all([
+          contentService.listTestimonials(),
+          contentService.hasPendingReviewTestimonials(),
+        ]);
+        return res.render('partials/admin/testimonial-list', { records, hasPendingReview });
       }
       return res.redirect('/admin/content/testimonials');
     } catch (err) {

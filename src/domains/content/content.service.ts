@@ -349,6 +349,11 @@ export async function listTestimonials(status?: string) {
   return contentRepo.findAllTestimonials(status);
 }
 
+export async function hasPendingReviewTestimonials(): Promise<boolean> {
+  const count = await contentRepo.countTestimonialsByStatus('pending_review');
+  return count > 0;
+}
+
 export async function getFeaturedTestimonials() {
   return contentRepo.findFeaturedTestimonials();
 }

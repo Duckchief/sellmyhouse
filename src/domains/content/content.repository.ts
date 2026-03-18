@@ -149,6 +149,12 @@ export async function findAllTestimonials(status?: string) {
   });
 }
 
+export async function countTestimonialsByStatus(status: string): Promise<number> {
+  return prisma.testimonial.count({
+    where: { status: status as import('@prisma/client').TestimonialStatus },
+  });
+}
+
 export async function findFeaturedTestimonials() {
   return prisma.testimonial.findMany({
     where: { status: 'approved', displayOnWebsite: true },

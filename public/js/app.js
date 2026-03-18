@@ -182,6 +182,16 @@
       if (testimonialBackdrop) testimonialBackdrop.classList.add('hidden');
     }
 
+    if (action === 'close-market-content-panel') {
+      var mcPanel = document.getElementById('market-content-panel');
+      var mcBackdrop = document.getElementById('market-content-backdrop');
+      if (mcPanel) {
+        mcPanel.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
+        mcPanel.setAttribute('aria-hidden', 'true');
+      }
+      if (mcBackdrop) mcBackdrop.classList.add('hidden');
+    }
+
     // Referral table: toggle the pre-composed message expansion row
     if (action === 'toggle-referral-message') {
       var msgRow = document.getElementById(el.dataset.target);
@@ -332,6 +342,27 @@
         drawer.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
         drawer.setAttribute('aria-hidden', 'true');
         var backdrop2 = document.getElementById('testimonial-drawer-backdrop');
+        if (backdrop2) backdrop2.classList.add('hidden');
+      }
+    }
+  });
+
+  // ── HTMX: market content panel show/hide ──────────────────────
+  document.addEventListener('htmx:afterRequest', function (e) {
+    var panel = document.getElementById('market-content-panel');
+    if (panel) {
+      // Show panel when detail content loads into it
+      if (e.detail.target && e.detail.target.id === 'market-content-detail-content' && e.detail.successful) {
+        panel.classList.remove('translate-x-full', 'opacity-0', 'pointer-events-none');
+        panel.removeAttribute('aria-hidden');
+        var backdrop = document.getElementById('market-content-backdrop');
+        if (backdrop) backdrop.classList.remove('hidden');
+      }
+      // Hide panel after approve/reject (form inside the panel fires the request)
+      if (e.detail.elt && e.detail.elt.closest && e.detail.elt.closest('#market-content-panel') && e.detail.successful) {
+        panel.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
+        panel.setAttribute('aria-hidden', 'true');
+        var backdrop2 = document.getElementById('market-content-backdrop');
         if (backdrop2) backdrop2.classList.add('hidden');
       }
     }

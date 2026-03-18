@@ -1025,21 +1025,21 @@ adminRouter.get(
   },
 );
 
+// GET /admin/content/market/:id/detail — HTMX slide-out panel
 adminRouter.get(
-  '/admin/content/market/:id',
+  '/admin/content/market/:id/detail',
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const record = await contentService.getMarketContentById(req.params['id'] as string);
-      const user = req.user as AuthenticatedUser;
-      const hasAvatar = await getHasAvatar(user.id);
-      return res.render('pages/admin/market-content-detail', {
-        pageTitle: 'Market Content',
-        user,
-        hasAvatar,
-        record,
-        currentPath: '/admin/content/market',
-      });
+      const statusColors: Record<string, string> = {
+        ai_generated: 'bg-gray-100 text-gray-700',
+        pending_review: 'bg-yellow-100 text-yellow-800',
+        approved: 'bg-green-100 text-green-800',
+        rejected: 'bg-red-100 text-red-700',
+        published: 'bg-blue-100 text-blue-800',
+      };
+      return res.render('partials/admin/market-content-detail-panel', { record, statusColors });
     } catch (err) {
       return next(err);
     }
@@ -1052,7 +1052,19 @@ adminRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      await contentService.approveMarketContent(req.params['id'] as string, user.id);
+      const id = req.params['id'] as string;
+      await contentService.approveMarketContent(id, user.id);
+      if (req.headers['hx-request']) {
+        const record = await contentService.getMarketContentById(id);
+        const statusColors: Record<string, string> = {
+          ai_generated: 'bg-gray-100 text-gray-700',
+          pending_review: 'bg-yellow-100 text-yellow-800',
+          approved: 'bg-green-100 text-green-800',
+          rejected: 'bg-red-100 text-red-700',
+          published: 'bg-blue-100 text-blue-800',
+        };
+        return res.render('partials/admin/market-content-row', { record, statusColors });
+      }
       return res.redirect('/admin/content/market');
     } catch (err) {
       return next(err);
@@ -1065,7 +1077,19 @@ adminRouter.post(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await contentService.rejectMarketContent(req.params['id'] as string);
+      const id = req.params['id'] as string;
+      await contentService.rejectMarketContent(id);
+      if (req.headers['hx-request']) {
+        const record = await contentService.getMarketContentById(id);
+        const statusColors: Record<string, string> = {
+          ai_generated: 'bg-gray-100 text-gray-700',
+          pending_review: 'bg-yellow-100 text-yellow-800',
+          approved: 'bg-green-100 text-green-800',
+          rejected: 'bg-red-100 text-red-700',
+          published: 'bg-blue-100 text-blue-800',
+        };
+        return res.render('partials/admin/market-content-row', { record, statusColors });
+      }
       return res.redirect('/admin/content/market');
     } catch (err) {
       return next(err);

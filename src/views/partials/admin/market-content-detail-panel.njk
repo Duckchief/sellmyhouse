@@ -1,0 +1,80 @@
+<div class="p-4 border-b border-gray-200">
+  <div class="font-bold text-gray-900">{{ record.period }}</div>
+  <div class="text-sm text-gray-500 mt-1">
+    <span class="px-2 py-0.5 rounded text-xs font-medium {{ statusColors[record.status] }}">
+      {{ record.status | replace('_', ' ') }}
+    </span>
+    <span class="ml-2">{{ record.createdAt | date("D MMM YYYY") if record.createdAt }}</span>
+  </div>
+</div>
+
+<div class="flex-1 overflow-y-auto p-4 space-y-4">
+  {% if record.aiNarrative %}
+  <div>
+    <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2">{{ "Narrative" | t }}</h4>
+    <p class="text-sm text-gray-700 bg-gray-50 rounded p-3">{{ record.aiNarrative }}</p>
+  </div>
+  {% endif %}
+
+  {% if record.tiktokFormat %}
+  <div>
+    <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2">
+      {{ "TikTok" | t }} <span class="text-gray-400 font-normal normal-case">≤ 150 chars</span>
+    </h4>
+    <p class="text-sm text-gray-700 bg-gray-50 rounded p-3 font-mono whitespace-pre-wrap">{{ record.tiktokFormat }}</p>
+  </div>
+  {% endif %}
+
+  {% if record.instagramFormat %}
+  <div>
+    <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2">
+      {{ "Instagram" | t }} <span class="text-gray-400 font-normal normal-case">≤ 300 chars</span>
+    </h4>
+    <p class="text-sm text-gray-700 bg-gray-50 rounded p-3 font-mono whitespace-pre-wrap">{{ record.instagramFormat }}</p>
+  </div>
+  {% endif %}
+
+  {% if record.linkedinFormat %}
+  <div>
+    <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2">
+      {{ "LinkedIn" | t }} <span class="text-gray-400 font-normal normal-case">≤ 700 chars</span>
+    </h4>
+    <p class="text-sm text-gray-700 bg-gray-50 rounded p-3 font-mono whitespace-pre-wrap">{{ record.linkedinFormat }}</p>
+  </div>
+  {% endif %}
+
+  <div>
+    <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2">{{ "Raw Aggregation Data" | t }}</h4>
+    <pre class="text-xs bg-gray-50 rounded p-3 overflow-auto">{{ record.rawData | dump(2) }}</pre>
+  </div>
+
+  {% if record.approvedAt %}
+  <p class="text-xs text-gray-400">
+    {{ "Approved" | t }} {{ record.approvedAt | date("D MMM YYYY HH:mm") }}
+  </p>
+  {% endif %}
+</div>
+
+{% if record.status == 'pending_review' %}
+<div class="p-4 border-t border-gray-200 space-y-3">
+  <form hx-post="/admin/content/market/{{ record.id }}/approve"
+        hx-target="#market-content-row-{{ record.id }}"
+        hx-swap="outerHTML">
+    <button type="submit"
+      class="w-full bg-green-600 text-white py-2 rounded font-medium hover:bg-green-700">
+      {{ "Approve" | t }}
+    </button>
+  </form>
+  <form hx-post="/admin/content/market/{{ record.id }}/reject"
+        hx-target="#market-content-row-{{ record.id }}"
+        hx-swap="outerHTML">
+    <textarea name="reviewNotes" rows="2"
+      class="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none mb-2"
+      placeholder="{{ 'Rejection notes (optional)...' | t }}"></textarea>
+    <button type="submit"
+      class="w-full bg-red-600 text-white py-2 rounded font-medium hover:bg-red-700">
+      {{ "Reject" | t }}
+    </button>
+  </form>
+</div>
+{% endif %}

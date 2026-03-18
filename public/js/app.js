@@ -492,4 +492,112 @@
       }
     });
   });
+
+  // ── Cron Picker ────────────────────────────────────────────────
+  (function () {
+    var DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    function parseCron(expr) {
+      var defaults = { minute: 0, hour: 8, days: [1] };
+      if (!expr) return defaults;
+      var parts = expr.trim().split(/\s+/);
+      if (parts.length !== 5) return defaults;
+      var minute = parseInt(parts[0], 10);
+      var hour = parseInt(parts[1], 10);
+      if (isNaN(minute) || isNaN(hour)) return defaults;
+      var dowPart = parts[4];
+      var days = dowPart
+        .split(',')
+        .map(function (d) { return parseInt(d, 10); })
+        .filter(function (d) { return !isNaN(d) && d >= 0 && d <= 6; });
+      if (days.length === 0) days = [1];
+      return { minute: minute, hour: hour, days: days };
+    }
+
+    function generateCron(days, hour, minute) {
+      var sorted = days.slice().sort(function (a, b) { return a - b; });
+      return minute + ' ' + hour + ' * * ' + sorted.join(',');
+    }
+
+    function updateSummary(container) {
+      var activeBtns = container.querySelectorAll('.cron-day-btn[aria-pressed="true"]');
+      var days = [];
+      activeBtns.forEach(function (btn) {
+        days.push(parseInt(btn.dataset.dow, 10));
+      });
+      if (days.length === 0) days = [1]; // fallback
+
+      var hourEl = container.querySelector('.cron-hour');
+      var minuteEl = container.querySelector('.cron-minute');
+      var hour = parseInt(hourEl.value, 10);
+      var minute = parseInt(minuteEl.value, 10);
+
+      var cron = generateCron(days, hour, minute);
+      container.querySelector('.cron-value').value = cron;
+
+      var dayNames = days
+        .slice()
+        .sort(function (a, b) { return a - b; })
+        .map(function (d) { return DAY_LABELS[d]; })
+        .join(', ');
+      var hh = String(hour).padStart(2, '0');
+      var mm = String(minute).padStart(2, '0');
+      container.querySelector('.cron-summary').innerHTML =
+        '&#10003; Runs every <strong>' + dayNames + '</strong> at <strong>' + hh + ':' + mm + '</strong> SGT' +
+        ' &nbsp;&middot;&nbsp; <span style="font-family:monospace;color:#9ca3af;">' + cron + '</span>';
+    }
+
+    function initCronPicker(container) {
+      var existing = container.dataset.value || '';
+      var parsed = parseCron(existing);
+
+      // Set hour dropdown
+      var hourEl = container.querySelector('.cron-hour');
+      hourEl.value = String(parsed.hour).padStart(2, '0');
+
+      // Set minute dropdown — snap to nearest 5-min increment
+      var minuteEl = container.querySelector('.cron-minute');
+      var snapped = Math.round(parsed.minute / 5) * 5;
+      if (snapped >= 60) snapped = 55;
+      minuteEl.value = String(snapped).padStart(2, '0');
+
+      // Activate matching day buttons
+      container.querySelectorAll('.cron-day-btn').forEach(function (btn) {
+        var dow = parseInt(btn.dataset.dow, 10);
+        if (parsed.days.indexOf(dow) !== -1) {
+          btn.setAttribute('aria-pressed', 'true');
+          btn.classList.remove('bg-gray-100', 'text-gray-500');
+          btn.classList.add('bg-indigo-100', 'text-indigo-700', 'font-semibold');
+        }
+      });
+
+      // Day toggle handler
+      container.querySelectorAll('.cron-day-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var pressed = btn.getAttribute('aria-pressed') === 'true';
+          btn.setAttribute('aria-pressed', String(!pressed));
+          if (!pressed) {
+            btn.classList.remove('bg-gray-100', 'text-gray-500');
+            btn.classList.add('bg-indigo-100', 'text-indigo-700', 'font-semibold');
+          } else {
+            btn.classList.remove('bg-indigo-100', 'text-indigo-700', 'font-semibold');
+            btn.classList.add('bg-gray-100', 'text-gray-500');
+          }
+          updateSummary(container);
+        });
+      });
+
+      // Time change handlers
+      hourEl.addEventListener('change', function () { updateSummary(container); });
+      minuteEl.addEventListener('change', function () { updateSummary(container); });
+
+      // Initial summary
+      updateSummary(container);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.cron-picker').forEach(initCronPicker);
+    });
+  })();
+
 })();

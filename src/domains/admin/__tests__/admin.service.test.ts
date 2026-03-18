@@ -608,6 +608,27 @@ describe('updateSetting', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('rejects cron with out-of-range minute for market_content_schedule', async () => {
+    const { ValidationError } = await import('@/domains/shared/errors');
+    await expect(
+      adminService.updateSetting('market_content_schedule', '100 8 * * 1', 'admin-1'),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('rejects cron with out-of-range hour for market_content_schedule', async () => {
+    const { ValidationError } = await import('@/domains/shared/errors');
+    await expect(
+      adminService.updateSetting('market_content_schedule', '30 25 * * 1', 'admin-1'),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('rejects cron with trailing comma in DOW for market_content_schedule', async () => {
+    const { ValidationError } = await import('@/domains/shared/errors');
+    await expect(
+      adminService.updateSetting('market_content_schedule', '30 9 * * 1,', 'admin-1'),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
   it('saves valid value and audits with old and new values', async () => {
     mockSettingsService.findByKey.mockResolvedValue({
       id: 'id-1',

@@ -1336,3 +1336,83 @@ adminRouter.post(
     }
   },
 );
+
+// ─── Maintenance Mode ─────────────────────────────────────────
+
+adminRouter.get(
+  '/admin/maintenance',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
+      const maintenance = await adminService.getMaintenanceSettings();
+      res.render('pages/admin/maintenance', {
+        pageTitle: 'Maintenance',
+        user,
+        hasAvatar,
+        maintenance,
+        currentPath: '/admin/maintenance',
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/maintenance/toggle',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      await adminService.toggleMaintenanceMode(user.id);
+      const maintenance = await adminService.getMaintenanceSettings();
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/maintenance-status', { maintenance });
+      }
+      res.redirect('/admin/maintenance');
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/maintenance/message',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const message = (req.body.message as string) ?? '';
+      await adminService.setMaintenanceMessage(message, user.id);
+
+      if (req.headers['hx-request']) {
+        return res.status(200).send('Saved');
+      }
+      res.redirect('/admin/maintenance');
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/maintenance/eta',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const eta = (req.body.eta as string) ?? '';
+      await adminService.setMaintenanceEta(eta, user.id);
+
+      if (req.headers['hx-request']) {
+        return res.status(200).send('Saved');
+      }
+      res.redirect('/admin/maintenance');
+    } catch (err) {
+      next(err);
+    }
+  },
+);

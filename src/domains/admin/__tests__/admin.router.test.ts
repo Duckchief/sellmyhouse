@@ -366,12 +366,7 @@ describe('GET /admin/content/market — list handler', () => {
     });
     app.use(adminRouter);
     app.use(
-      (
-        err: Error & { statusCode?: number },
-        _req: Request,
-        res: Response,
-        _next: NextFunction,
-      ) => {
+      (err: Error & { statusCode?: number }, _req: Request, res: Response, _next: NextFunction) => {
         res.status(err.statusCode || 500).json({ error: err.message });
       },
     );

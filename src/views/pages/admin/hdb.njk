@@ -9,15 +9,17 @@
   <div class="page-section">
     <h2 class="page-section-title">{{ "Manual Sync" | t }}</h2>
     <div class="card">
-      {% include "partials/admin/hdb-status.njk" %}
+      <div id="hdb-stats">{% include "partials/admin/hdb-status.njk" %}</div>
       <div class="mt-4">
-        <button
-          class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-sm"
-          hx-post="/admin/hdb/sync"
-          hx-target="#sync-result"
-          hx-confirm="{{ 'Trigger a manual HDB data sync? This may take several minutes.' | t }}"
-        >{{ "Trigger Manual Sync" | t }}</button>
-        <div id="sync-result" class="mt-3"></div>
+        <div id="sync-area">
+          <button
+            class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-sm"
+            hx-post="/admin/hdb/sync"
+            hx-target="#sync-area"
+            hx-swap="outerHTML"
+            hx-confirm="{{ 'Trigger a manual HDB data sync? This may take several minutes.' | t }}"
+          >{{ "Trigger Manual Sync" | t }}</button>
+        </div>
       </div>
     </div>
   </div>

@@ -1,0 +1,33 @@
+{# partials/admin/hdb-sync-progress.njk #}
+{# Context: since (ISO timestamp string) #}
+<div id="sync-area"
+  hx-get="/admin/hdb/sync/poll?since={{ since }}"
+  hx-trigger="every 3s"
+  hx-target="this"
+  hx-swap="outerHTML">
+  <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-sm font-medium text-indigo-700">{{ "Syncing HDB data…" | t }}</span>
+      <span class="text-xs text-indigo-400">{{ "Checking for updates every 3s" | t }}</span>
+    </div>
+    <div class="bg-indigo-200 rounded-full h-2 overflow-hidden">
+      <div class="h-full w-full hdb-sync-stripe"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .hdb-sync-stripe {
+    background: repeating-linear-gradient(
+      -45deg,
+      #6366f1 0px, #6366f1 12px,
+      #818cf8 12px, #818cf8 24px
+    );
+    background-size: 34px 34px;
+    animation: hdb-stripe 0.8s linear infinite;
+  }
+  @keyframes hdb-stripe {
+    from { background-position: 0 0; }
+    to   { background-position: 34px 0; }
+  }
+</style>

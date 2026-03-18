@@ -15,6 +15,7 @@ import { NotFoundError, ConflictError } from '@/domains/shared/errors';
 import { logger } from '@/infra/logger';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import { getHasAvatar } from '../profile/profile.service';
+import { HDB_TOWNS } from '@/domains/property/property.types';
 
 export const adminRouter = Router();
 
@@ -643,12 +644,45 @@ adminRouter.post(
       const user = req.user as AuthenticatedUser;
       await adminService.triggerHdbSync(user.id);
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/team-action-result', {
-          message: 'HDB sync triggered. Data will update shortly.',
-          type: 'success',
+        return res.render('partials/admin/hdb-sync-progress', {
+          since: new Date().toISOString(),
         });
       }
       res.redirect('/admin/hdb');
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+adminRouter.get(
+  '/admin/hdb/sync/poll',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { since } = req.query as { since?: string };
+      if (!since) {
+        return res.status(400).send('Missing since param');
+      }
+      const sinceDate = new Date(since);
+      if (isNaN(sinceDate.getTime())) {
+        return res.status(400).send('Invalid since param');
+      }
+      const status = await adminService.getHdbStatus();
+
+      const syncComplete =
+        status.lastSync !== null && new Date(status.lastSync.syncedAt) > sinceDate;
+
+      if (syncComplete) {
+        return res.render('partials/admin/hdb-sync-complete', {
+          status,
+          success: status.lastSync!.status === 'success',
+          recordsAdded: status.lastSync!.recordsAdded,
+          errorMessage: status.lastSync!.error ?? null,
+        });
+      }
+
+      return res.render('partials/admin/hdb-sync-progress', { since });
     } catch (err) {
       next(err);
     }
@@ -1137,7 +1171,7 @@ adminRouter.get(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      return res.render('partials/admin/testimonial-add-drawer');
+      return res.render('partials/admin/testimonial-add-drawer', { towns: HDB_TOWNS });
     } catch (err) {
       return next(err);
     }
@@ -1191,6 +1225,7 @@ adminRouter.post(
           return res.status(422).render('partials/admin/testimonial-add-drawer', {
             errors: errors.array(),
             values: req.body,
+            towns: HDB_TOWNS,
           });
         }
         return res.redirect('/admin/content/testimonials');

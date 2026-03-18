@@ -139,6 +139,17 @@
       }
     }
 
+    // Toggle user menu dropdown open/closed
+    if (action === 'toggle-user-menu') {
+      var dropdown = document.getElementById('user-menu-dropdown');
+      var btn = document.getElementById('user-menu-btn');
+      if (dropdown) {
+        var isOpen = !dropdown.classList.contains('hidden');
+        dropdown.classList.toggle('hidden', isOpen);
+        if (btn) btn.setAttribute('aria-expanded', String(!isOpen));
+      }
+    }
+
     // Review detail panel: close and slide out to the right
     if (action === 'close-review-panel') {
       var reviewPanel = document.getElementById('review-detail-panel');
@@ -160,6 +171,16 @@
         el.textContent = isHidden ? (el.dataset.labelShow || 'View Message') : (el.dataset.labelHide || 'Hide');
       }
     }
+  });
+
+  // ── Close user menu on outside click ──────────────────────────
+  document.addEventListener('click', function (e) {
+    var dropdown = document.getElementById('user-menu-dropdown');
+    var btn = document.getElementById('user-menu-btn');
+    if (!dropdown || dropdown.classList.contains('hidden')) return;
+    if (btn && (btn === e.target || btn.contains(e.target))) return;
+    dropdown.classList.add('hidden');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
   });
 
   // ── Months slider (market report date range) ──────────────────

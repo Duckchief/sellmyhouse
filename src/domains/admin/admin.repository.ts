@@ -490,7 +490,7 @@ export async function upsertSetting(
 ): Promise<SettingRecord> {
   return prisma.systemSetting.upsert({
     where: { key },
-    update: { value, updatedByAgentId: agentId, updatedAt: new Date() },
+    update: { value, updatedByAgentId: agentId },
     create: { id: createId(), key, value, description: '', updatedByAgentId: agentId },
   });
 }

@@ -933,6 +933,12 @@ describe('toggleMaintenanceMode', () => {
       'true',
       'agent-1',
     );
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentId: 'agent-1',
+        action: 'setting.changed',
+      }),
+    );
     expect(result).toBe(true);
   });
 
@@ -946,6 +952,12 @@ describe('toggleMaintenanceMode', () => {
       'maintenance_mode',
       'false',
       'agent-1',
+    );
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentId: 'agent-1',
+        action: 'setting.changed',
+      }),
     );
     expect(result).toBe(false);
   });

@@ -10,13 +10,18 @@ jest.mock('@/infra/database/prisma', () => ({
     otp: {
       deleteMany: jest.fn(),
       findUnique: jest.fn(),
+      findMany: jest.fn(),
     },
     commissionInvoice: {
       deleteMany: jest.fn(),
       findUnique: jest.fn(),
+      findMany: jest.fn(),
     },
     transaction: {
       delete: jest.fn(),
+    },
+    property: {
+      findMany: jest.fn(),
     },
     cddRecord: {
       create: jest.fn(),
@@ -34,9 +39,10 @@ import { prisma } from '@/infra/database/prisma';
 
 const mockPrisma = prisma as jest.Mocked<typeof prisma> & {
   testimonial: { deleteMany: jest.Mock };
-  otp: { deleteMany: jest.Mock; findUnique: jest.Mock };
-  commissionInvoice: { deleteMany: jest.Mock; findUnique: jest.Mock };
+  otp: { deleteMany: jest.Mock; findUnique: jest.Mock; findMany: jest.Mock };
+  commissionInvoice: { deleteMany: jest.Mock; findUnique: jest.Mock; findMany: jest.Mock };
   transaction: { delete: jest.Mock };
+  property: { findMany: jest.Mock };
   cddRecord: {
     create: jest.Mock;
     updateMany: jest.Mock;
@@ -522,5 +528,32 @@ describe('CDD document repository functions', () => {
       const result = await complianceRepo.findCddRecordWithDocument('none', 'doc-1');
       expect(result).toBeNull();
     });
+  });
+});
+
+// ─── collectSellerFilePaths — CDD documents ───────────────────────────────────
+
+describe('collectSellerFilePaths — CDD documents', () => {
+  it('includes .enc file paths from seller CDD records', async () => {
+    const cddDocs = [
+      { path: 'cdd/cdd-1/nric-doc1.jpg.enc', wrappedKey: 'k1' },
+      { path: 'cdd/cdd-1/passport-doc2.pdf.enc', wrappedKey: 'k2' },
+    ];
+
+    // Mock the property query (returns no photos)
+    mockPrisma.property.findMany.mockResolvedValue([]);
+    // Mock OTP query (returns no paths)
+    mockPrisma.otp.findMany.mockResolvedValue([]);
+    // Mock invoice query (returns no paths)
+    mockPrisma.commissionInvoice.findMany.mockResolvedValue([]);
+    // Mock CDD query
+    mockPrisma.cddRecord.findMany.mockResolvedValue([
+      { id: 'cdd-1', documents: cddDocs },
+    ] as unknown as CddRecord[]);
+
+    const paths = await complianceRepo.collectSellerFilePaths('seller-1');
+
+    expect(paths).toContain('cdd/cdd-1/nric-doc1.jpg.enc');
+    expect(paths).toContain('cdd/cdd-1/passport-doc2.pdf.enc');
   });
 });

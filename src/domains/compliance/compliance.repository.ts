@@ -643,6 +643,18 @@ export async function collectSellerFilePaths(sellerId: string): Promise<string[]
     if (invoice.invoiceFilePath) paths.push(invoice.invoiceFilePath);
   }
 
+  // 4. CDD document .enc files (seller CDD records only)
+  const cddRecords = await prisma.cddRecord.findMany({
+    where: { subjectType: SubjectType.seller, subjectId: sellerId },
+    select: { documents: true },
+  });
+  for (const cdd of cddRecords) {
+    const docs = (cdd.documents as { path?: string }[] | null) ?? [];
+    for (const doc of docs) {
+      if (doc.path) paths.push(doc.path);
+    }
+  }
+
   return paths;
 }
 

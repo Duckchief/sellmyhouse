@@ -13,6 +13,7 @@ import { apiRateLimiter, globalRateLimiter } from './middleware/rate-limit';
 import { healthRouter } from './health.router';
 import { authRouter } from '../../domains/auth/auth.router';
 import { agentSettingsRouter } from '../../domains/agent-settings/agent-settings.router';
+import { profileRouter } from '../../domains/profile/profile.router';
 import { notificationRouter } from '../../domains/notification/notification.router';
 import { publicRouter } from '../../domains/public/public.router';
 import { leadRouter } from '../../domains/lead/lead.router';
@@ -164,6 +165,7 @@ export function createApp() {
   app.use(leadRouter);
   app.use(authRouter);
   app.use(agentSettingsRouter);
+  app.use(profileRouter);          // ← profile routes
   app.use('/api', apiRateLimiter);
   app.use(notificationRouter);
   app.use(sellerRouter);

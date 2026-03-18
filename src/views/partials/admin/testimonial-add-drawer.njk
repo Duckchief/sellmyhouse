@@ -65,10 +65,10 @@
     </div>
 
     <div>
-      <label class="block text-xs font-medium text-gray-500 uppercase mb-1">
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-rating">
         {{ "Rating" | t }}
       </label>
-      <select name="rating" required class="input-field w-full">
+      <select id="drawer-rating" name="rating" required class="input-field w-full">
         {% set ratingVal = values.rating | int if values else 0 %}
         <option value="" {% if not ratingVal %}selected{% endif %} disabled>{{ "Select rating" | t }}</option>
         {% for n in [5, 4, 3, 2, 1] %}

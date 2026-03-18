@@ -24,6 +24,8 @@ export const SETTING_VALIDATORS: Record<SettingKey, (v: string) => boolean> = {
   whatsapp_enabled: (v) => v === 'true' || v === 'false',
   email_enabled: (v) => v === 'true' || v === 'false',
   maintenance_mode: (v) => v === 'true' || v === 'false',
+  maintenance_message: (v) => v.length > 0,
+  maintenance_eta: (v) => v.length > 0,
   hdb_sync_schedule: (v) => /^[\d*,\-/\s]+$/.test(v),
   lead_retention_months: (v) => Number.isInteger(Number(v)) && Number(v) > 0,
   transaction_retention_years: (v) => Number.isInteger(Number(v)) && Number(v) >= 5,

@@ -35,7 +35,7 @@ describe('ProfileService', () => {
 
     it('throws NotFoundError when agent does not exist', async () => {
       repo.findAgentById = jest.fn().mockResolvedValue(null);
-      await expect(service.getProfile('nonexistent')).rejects.toThrow('Agent not found');
+      await expect(service.getProfile('nonexistent')).rejects.toThrow('Agent not found: nonexistent');
     });
   });
 

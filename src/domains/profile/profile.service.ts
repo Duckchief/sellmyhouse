@@ -13,7 +13,7 @@ const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/jpg']);
 
 export async function getProfile(agentId: string): Promise<ProfileView> {
   const agent = await repo.findAgentById(agentId);
-  if (!agent) throw new NotFoundError('Agent not found');
+  if (!agent) throw new NotFoundError('Agent', agentId);
   return agent as ProfileView;
 }
 
@@ -40,8 +40,14 @@ export async function deleteAvatar(agentId: string): Promise<void> {
   const agent = await repo.findAgentById(agentId);
   if (!agent?.avatarPath) return;
 
+  const resolvedPath = path.resolve(agent.avatarPath);
+  const avatarDirResolved = path.resolve(AVATAR_DIR);
+  if (!resolvedPath.startsWith(avatarDirResolved + path.sep)) {
+    throw new ValidationError('Invalid avatar path');
+  }
+
   try {
-    await fs.unlink(agent.avatarPath);
+    await fs.unlink(resolvedPath);
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
     // File already gone — still clear the DB record

@@ -6,6 +6,7 @@ import { validateAgentCreate, validateSettingUpdate, validateAssign } from './ad
 import {
   validateTutorialCreate,
   validateTutorialUpdate,
+  validateManualTestimonialCreate,
 } from '@/domains/content/content.validator';
 import * as contentService from '@/domains/content/content.service';
 import * as reviewService from '@/domains/review/review.service';
@@ -1016,6 +1017,19 @@ adminRouter.post(
 
 // ─── Testimonial Management ───────────────────────────────────────────────────
 
+// Drawer form partial for manual testimonial creation
+adminRouter.get(
+  '/admin/content/testimonials/new',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      return res.render('partials/admin/testimonial-add-drawer');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 adminRouter.get(
   '/admin/content/testimonials',
   ...adminAuth,
@@ -1034,6 +1048,43 @@ adminRouter.get(
         records,
         currentPath: '/admin/content/testimonials',
       });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/content/testimonials',
+  ...adminAuth,
+  validateManualTestimonialCreate,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        if (req.headers['hx-request']) {
+          return res.status(422).render('partials/admin/testimonial-add-drawer', {
+            errors: errors.array(),
+            values: req.body,
+          });
+        }
+        return res.redirect('/admin/content/testimonials');
+      }
+
+      const user = req.user as AuthenticatedUser;
+      await contentService.createManualTestimonial(user.id, {
+        clientName: req.body.clientName as string,
+        clientTown: req.body.clientTown as string,
+        rating: Number(req.body.rating),
+        content: req.body.content as string,
+        source: (req.body.source as string) || undefined,
+      });
+
+      if (req.headers['hx-request']) {
+        const records = await contentService.listTestimonials();
+        return res.render('partials/admin/testimonial-list', { records });
+      }
+      return res.redirect('/admin/content/testimonials');
     } catch (err) {
       return next(err);
     }

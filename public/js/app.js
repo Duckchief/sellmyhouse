@@ -193,6 +193,24 @@
       }
     }
 
+    if (action === 'close-tutorial-drawer') {
+      var tutorialDrawer = document.getElementById('tutorial-drawer-panel');
+      var tutorialBackdrop = document.getElementById('tutorial-drawer-backdrop');
+      if (tutorialDrawer) {
+        tutorialDrawer.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
+        tutorialDrawer.setAttribute('aria-hidden', 'true');
+      }
+      if (tutorialBackdrop) tutorialBackdrop.classList.add('hidden');
+    }
+
+    if (action === 'open-tutorial-drawer') {
+      if (e.target.closest('.no-row-click')) return;
+      var url = el.dataset.tutorialUrl;
+      if (url) {
+        htmx.ajax('GET', url, { target: '#tutorial-drawer-content', swap: 'innerHTML' });
+      }
+    }
+
     if (action === 'close-testimonial-drawer') {
       var testimonialDrawer = document.getElementById('testimonial-drawer-panel');
       var testimonialBackdrop = document.getElementById('testimonial-drawer-backdrop');
@@ -371,6 +389,27 @@
         drawer.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
         drawer.setAttribute('aria-hidden', 'true');
         var backdrop2 = document.getElementById('testimonial-drawer-backdrop');
+        if (backdrop2) backdrop2.classList.add('hidden');
+      }
+    }
+  });
+
+  // ── HTMX: tutorial drawer show/hide ────────────────────────────
+  document.addEventListener('htmx:afterRequest', function (e) {
+    var drawer = document.getElementById('tutorial-drawer-panel');
+    if (drawer) {
+      // Show drawer when form content loads into it
+      if (e.detail.target && e.detail.target.id === 'tutorial-drawer-content' && e.detail.successful) {
+        drawer.classList.remove('translate-x-full', 'opacity-0', 'pointer-events-none');
+        drawer.removeAttribute('aria-hidden');
+        var backdrop = document.getElementById('tutorial-drawer-backdrop');
+        if (backdrop) backdrop.classList.remove('hidden');
+      }
+      // Hide drawer after successful form POST that targets #tutorial-list
+      if (e.detail.elt && e.detail.elt.closest && e.detail.elt.closest('#tutorial-drawer-panel') && e.detail.successful && e.detail.target && e.detail.target.id === 'tutorial-list') {
+        drawer.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
+        drawer.setAttribute('aria-hidden', 'true');
+        var backdrop2 = document.getElementById('tutorial-drawer-backdrop');
         if (backdrop2) backdrop2.classList.add('hidden');
       }
     }

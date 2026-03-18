@@ -928,11 +928,7 @@ describe('toggleMaintenanceMode', () => {
 
     const result = await adminService.toggleMaintenanceMode('agent-1');
 
-    expect(mockAdminRepo.upsertSetting).toHaveBeenCalledWith(
-      'maintenance_mode',
-      'true',
-      'agent-1',
-    );
+    expect(mockAdminRepo.upsertSetting).toHaveBeenCalledWith('maintenance_mode', 'true', 'agent-1');
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({
         agentId: 'agent-1',

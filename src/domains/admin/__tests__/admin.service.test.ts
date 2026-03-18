@@ -889,3 +889,96 @@ describe('getAdminSellerDetail', () => {
     expect(result.auditLog).toHaveLength(20);
   });
 });
+
+// ─── getMaintenanceSettings ──────────────────────────────────
+
+describe('getMaintenanceSettings', () => {
+  it('returns current maintenance settings', async () => {
+    mockSettingsService.get.mockImplementation(async (key: string) => {
+      if (key === 'maintenance_mode') return 'true';
+      if (key === 'maintenance_message') return 'Upgrading system.';
+      if (key === 'maintenance_eta') return '2026-03-19T10:00:00.000Z';
+      return '';
+    });
+
+    const result = await adminService.getMaintenanceSettings();
+
+    expect(result).toEqual({
+      isOn: true,
+      message: 'Upgrading system.',
+      eta: '2026-03-19T10:00:00.000Z',
+    });
+  });
+
+  it('returns defaults when settings missing', async () => {
+    mockSettingsService.get.mockResolvedValue('false');
+
+    const result = await adminService.getMaintenanceSettings();
+
+    expect(result).toEqual({ isOn: false, message: '', eta: '' });
+  });
+});
+
+// ─── toggleMaintenanceMode ────────────────────────────────────
+
+describe('toggleMaintenanceMode', () => {
+  it('enables maintenance mode when currently off', async () => {
+    mockSettingsService.get.mockResolvedValue('false');
+    mockAdminRepo.upsertSetting.mockResolvedValue({} as any);
+
+    const result = await adminService.toggleMaintenanceMode('agent-1');
+
+    expect(mockAdminRepo.upsertSetting).toHaveBeenCalledWith(
+      'maintenance_mode',
+      'true',
+      'agent-1',
+    );
+    expect(result).toBe(true);
+  });
+
+  it('disables maintenance mode when currently on', async () => {
+    mockSettingsService.get.mockResolvedValue('true');
+    mockAdminRepo.upsertSetting.mockResolvedValue({} as any);
+
+    const result = await adminService.toggleMaintenanceMode('agent-1');
+
+    expect(mockAdminRepo.upsertSetting).toHaveBeenCalledWith(
+      'maintenance_mode',
+      'false',
+      'agent-1',
+    );
+    expect(result).toBe(false);
+  });
+});
+
+// ─── setMaintenanceMessage ───────────────────────────────────
+
+describe('setMaintenanceMessage', () => {
+  it('saves the message via upsertSetting', async () => {
+    mockAdminRepo.upsertSetting.mockResolvedValue({} as any);
+
+    await adminService.setMaintenanceMessage('System upgrade in progress.', 'agent-1');
+
+    expect(mockAdminRepo.upsertSetting).toHaveBeenCalledWith(
+      'maintenance_message',
+      'System upgrade in progress.',
+      'agent-1',
+    );
+  });
+});
+
+// ─── setMaintenanceEta ───────────────────────────────────────
+
+describe('setMaintenanceEta', () => {
+  it('saves the eta via upsertSetting', async () => {
+    mockAdminRepo.upsertSetting.mockResolvedValue({} as any);
+
+    await adminService.setMaintenanceEta('2026-03-19T10:00', 'agent-1');
+
+    expect(mockAdminRepo.upsertSetting).toHaveBeenCalledWith(
+      'maintenance_eta',
+      '2026-03-19T10:00',
+      'agent-1',
+    );
+  });
+});

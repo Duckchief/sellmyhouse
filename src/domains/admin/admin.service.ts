@@ -463,6 +463,41 @@ export async function getSettingsGrouped(): Promise<SettingGroup[]> {
   ];
 }
 
+// ─── Maintenance Mode ─────────────────────────────────────────
+
+export interface MaintenanceSettings {
+  isOn: boolean;
+  message: string;
+  eta: string;
+}
+
+export async function getMaintenanceSettings(): Promise<MaintenanceSettings> {
+  const mode = await settingsService.get('maintenance_mode', 'false');
+  if (mode !== 'true') {
+    return { isOn: false, message: '', eta: '' };
+  }
+  const [message, eta] = await Promise.all([
+    settingsService.get('maintenance_message', ''),
+    settingsService.get('maintenance_eta', ''),
+  ]);
+  return { isOn: true, message, eta };
+}
+
+export async function toggleMaintenanceMode(agentId: string): Promise<boolean> {
+  const current = await settingsService.get('maintenance_mode', 'false');
+  const next = current === 'true' ? 'false' : 'true';
+  await adminRepo.upsertSetting('maintenance_mode', next, agentId);
+  return next === 'true';
+}
+
+export async function setMaintenanceMessage(message: string, agentId: string): Promise<void> {
+  await adminRepo.upsertSetting('maintenance_message', message, agentId);
+}
+
+export async function setMaintenanceEta(eta: string, agentId: string): Promise<void> {
+  await adminRepo.upsertSetting('maintenance_eta', eta, agentId);
+}
+
 // ─── HDB Management ──────────────────────────────────────────
 
 export async function getHdbStatus(): Promise<HdbDataStatus> {

@@ -28,9 +28,7 @@ financialRouter.post(
       // from bypassing the disclaimer entirely.
       const seller = await sellerService.findById(user.id);
       if (!seller?.cpfDisclaimerShownAt) {
-        throw new ForbiddenError(
-          'Please load the financial calculator form before submitting.',
-        );
+        throw new ForbiddenError('Please load the financial calculator form before submitting.');
       }
 
       const input = validateCalculationInput(req.body);

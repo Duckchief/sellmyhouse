@@ -905,4 +905,17 @@ describe('rejectTestimonial — seller notification', () => {
 
     expect(mockedNotification.send).toHaveBeenCalledWith(expect.anything(), 'system');
   });
+
+  it('does not send notification when sellerId is null (manual testimonial)', async () => {
+    mockedRepo.updateTestimonialStatus.mockResolvedValue({
+      id: 't-2',
+      sellerId: null,
+      status: 'rejected',
+    } as unknown as Testimonial);
+
+    await contentService.rejectTestimonial('t-2', 'agent-1');
+    await Promise.resolve();
+
+    expect(mockedNotification.send).not.toHaveBeenCalled();
+  });
 });

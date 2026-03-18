@@ -1185,6 +1185,10 @@ adminRouter.post(
     try {
       const display = req.body.displayOnWebsite === 'true';
       await contentService.featureTestimonial(req.params['id'] as string, display);
+      if (req.headers['hx-request']) {
+        const records = await contentService.listTestimonials();
+        return res.render('partials/admin/testimonial-list', { records });
+      }
       return res.redirect('/admin/content/testimonials');
     } catch (err) {
       return next(err);

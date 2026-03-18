@@ -293,6 +293,33 @@ describe('POST /admin/content/testimonials/:id/reject — HTMX', () => {
   });
 });
 
+describe('POST /admin/content/testimonials/:id/feature — HTMX', () => {
+  it('returns 200 with list partial on HTMX request', async () => {
+    jest.mocked(contentService.featureTestimonial).mockResolvedValue(undefined as any);
+    jest.mocked(contentService.listTestimonials).mockResolvedValue([]);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/content/testimonials/t-1/feature')
+      .send('displayOnWebsite=true')
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+    expect(contentService.featureTestimonial).toHaveBeenCalledWith('t-1', true);
+  });
+
+  it('still redirects on non-HTMX request', async () => {
+    jest.mocked(contentService.featureTestimonial).mockResolvedValue(undefined as any);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/content/testimonials/t-1/feature')
+      .send('displayOnWebsite=false')
+      .set('Content-Type', 'application/x-www-form-urlencoded');
+    expect(res.status).toBe(302);
+  });
+});
+
 describe('GET /admin/dashboard — preset param', () => {
   beforeEach(() => {
     mockAdminService.getAnalytics.mockResolvedValue({

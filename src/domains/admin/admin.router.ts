@@ -15,6 +15,7 @@ import { NotFoundError, ConflictError } from '@/domains/shared/errors';
 import { logger } from '@/infra/logger';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import { getHasAvatar } from '../profile/profile.service';
+import { HDB_TOWNS } from '@/domains/property/property.types';
 
 export const adminRouter = Router();
 
@@ -1137,7 +1138,7 @@ adminRouter.get(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      return res.render('partials/admin/testimonial-add-drawer');
+      return res.render('partials/admin/testimonial-add-drawer', { towns: HDB_TOWNS });
     } catch (err) {
       return next(err);
     }
@@ -1191,6 +1192,7 @@ adminRouter.post(
           return res.status(422).render('partials/admin/testimonial-add-drawer', {
             errors: errors.array(),
             values: req.body,
+            towns: HDB_TOWNS,
           });
         }
         return res.redirect('/admin/content/testimonials');

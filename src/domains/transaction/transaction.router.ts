@@ -13,6 +13,7 @@ import {
   validateSendInvoice,
 } from './transaction.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
+import { getHasAvatar } from '../profile/profile.service';
 import { localStorage } from '@/infra/storage/local-storage';
 import * as auditService from '@/domains/shared/audit.service';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
@@ -59,12 +60,14 @@ transactionRouter.get(
   ...agentAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const user = req.user as AuthenticatedUser;
       const tx = await txService.getTransaction(req.params['id'] as string);
 
       if (req.headers['hx-request']) {
         return res.render('partials/agent/transaction-detail', { tx });
       }
-      res.render('pages/agent/transaction', { tx });
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/agent/transaction', { pageTitle: 'Transaction', user, hasAvatar, tx });
     } catch (err) {
       next(err);
     }

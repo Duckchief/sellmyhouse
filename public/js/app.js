@@ -20,6 +20,15 @@
     if (el) el.value = Date.now().toString();
   })();
 
+  // ── Dark mode: system preference live listener ─────────────────
+  (function () {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+      if (!localStorage.getItem('theme')) {
+        document.documentElement.classList.toggle('dark', e.matches);
+      }
+    });
+  })();
+
   // ── Click event delegation ─────────────────────────────────────
   document.addEventListener('click', function (e) {
     var el = e.target.closest('[data-action]');
@@ -139,6 +148,17 @@
       }
     }
 
+    // Toggle user menu dropdown open/closed
+    if (action === 'toggle-user-menu') {
+      var dropdown = document.getElementById('user-menu-dropdown');
+      var btn = document.getElementById('user-menu-btn');
+      if (dropdown) {
+        var isOpen = !dropdown.classList.contains('hidden');
+        dropdown.classList.toggle('hidden', isOpen);
+        if (btn) btn.setAttribute('aria-expanded', String(!isOpen));
+      }
+    }
+
     // Review detail panel: close and slide out to the right
     if (action === 'close-review-panel') {
       var reviewPanel = document.getElementById('review-detail-panel');
@@ -152,6 +172,16 @@
       }
     }
 
+    if (action === 'close-testimonial-drawer') {
+      var testimonialDrawer = document.getElementById('testimonial-drawer-panel');
+      var testimonialBackdrop = document.getElementById('testimonial-drawer-backdrop');
+      if (testimonialDrawer) {
+        testimonialDrawer.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
+        testimonialDrawer.setAttribute('aria-hidden', 'true');
+      }
+      if (testimonialBackdrop) testimonialBackdrop.classList.add('hidden');
+    }
+
     // Referral table: toggle the pre-composed message expansion row
     if (action === 'toggle-referral-message') {
       var msgRow = document.getElementById(el.dataset.target);
@@ -160,6 +190,22 @@
         el.textContent = isHidden ? (el.dataset.labelShow || 'View Message') : (el.dataset.labelHide || 'Hide');
       }
     }
+
+    // Toggle dark mode
+    if (action === 'toggle-dark-mode') {
+      var isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
+  });
+
+  // ── Close user menu on outside click ──────────────────────────
+  document.addEventListener('click', function (e) {
+    var dropdown = document.getElementById('user-menu-dropdown');
+    var btn = document.getElementById('user-menu-btn');
+    if (!dropdown || dropdown.classList.contains('hidden')) return;
+    if (btn && (btn === e.target || btn.contains(e.target))) return;
+    dropdown.classList.add('hidden');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
   });
 
   // ── Months slider (market report date range) ──────────────────
@@ -265,6 +311,27 @@
         panel.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
         panel.setAttribute('aria-hidden', 'true');
         var backdrop2 = document.getElementById('review-detail-backdrop');
+        if (backdrop2) backdrop2.classList.add('hidden');
+      }
+    }
+  });
+
+  // ── HTMX: testimonial drawer show/hide ──────────────────────
+  document.addEventListener('htmx:afterRequest', function (e) {
+    var drawer = document.getElementById('testimonial-drawer-panel');
+    if (drawer) {
+      // Show drawer when form content loads into it
+      if (e.detail.target && e.detail.target.id === 'testimonial-drawer-content' && e.detail.successful) {
+        drawer.classList.remove('translate-x-full', 'opacity-0', 'pointer-events-none');
+        drawer.removeAttribute('aria-hidden');
+        var backdrop = document.getElementById('testimonial-drawer-backdrop');
+        if (backdrop) backdrop.classList.remove('hidden');
+      }
+      // Hide drawer and refresh list after successful form POST
+      if (e.detail.elt && e.detail.elt.closest && e.detail.elt.closest('#testimonial-drawer-panel') && e.detail.successful && e.detail.target && e.detail.target.id === 'testimonial-list') {
+        drawer.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
+        drawer.setAttribute('aria-hidden', 'true');
+        var backdrop2 = document.getElementById('testimonial-drawer-backdrop');
         if (backdrop2) backdrop2.classList.add('hidden');
       }
     }

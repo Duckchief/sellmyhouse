@@ -19,12 +19,12 @@
     <form method="POST" action="/testimonial/{{ token }}" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Your Name" | t }}</label>
-        <input type="text" name="sellerName" value="{{ values.sellerName if values else testimonial.sellerName }}"
+        <input type="text" name="clientName" value="{{ values.clientName if values else testimonial.clientName }}"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Town" | t }}</label>
-        <input type="text" name="sellerTown" value="{{ values.sellerTown if values else testimonial.sellerTown }}"
+        <input type="text" name="clientTown" value="{{ values.clientTown if values else testimonial.clientTown }}"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
       </div>
       <div>

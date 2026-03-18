@@ -14,6 +14,7 @@ import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middlew
 import { ValidationError } from '@/domains/shared/errors';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import type { SellerListFilter } from './agent.types';
+import { getHasAvatar } from '../profile/profile.service';
 
 export const agentRouter = Router();
 
@@ -43,7 +44,15 @@ agentRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/agent/pipeline-overview', { overview, currentStage });
       }
-      res.render('pages/agent/dashboard', { overview, repeatViewers, currentStage });
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/agent/dashboard', {
+        pageTitle: 'Dashboard',
+        user,
+        hasAvatar,
+        overview,
+        repeatViewers,
+        currentStage,
+      });
     } catch (err) {
       next(err);
     }
@@ -78,7 +87,8 @@ agentRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/agent/lead-queue', { unassigned, all });
       }
-      res.render('pages/agent/leads', { unassigned, all });
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/agent/leads', { pageTitle: 'Leads', user, hasAvatar, unassigned, all });
     } catch (err) {
       next(err);
     }
@@ -114,7 +124,8 @@ agentRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/agent/seller-list', { result });
       }
-      res.render('pages/agent/sellers', { result });
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/agent/sellers', { pageTitle: 'Sellers', user, hasAvatar, result });
     } catch (err) {
       next(err);
     }
@@ -143,7 +154,11 @@ agentRouter.get(
       );
       const isAdmin = user.role === 'admin';
 
+      const hasAvatar = await getHasAvatar(user.id);
       res.render('pages/agent/seller-detail', {
+        pageTitle: 'Seller Detail',
+        user,
+        hasAvatar,
         seller,
         compliance,
         notifications,
@@ -251,8 +266,13 @@ agentRouter.get(
   ...agentAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const user = req.user as AuthenticatedUser;
       const requests = await agentRepo.getPendingCorrectionRequests();
+      const hasAvatar = await getHasAvatar(user.id);
       return res.render('pages/agent/correction-requests', {
+        pageTitle: 'Data Corrections',
+        user,
+        hasAvatar,
         requests,
         title: 'Data Correction Requests',
       });

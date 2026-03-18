@@ -9,6 +9,9 @@ import { NotFoundError, ValidationError } from '@/domains/shared/errors';
 jest.mock('../agent.service');
 jest.mock('@/domains/seller/seller.service');
 jest.mock('@/domains/seller/case-flag.service');
+jest.mock('@/domains/profile/profile.service', () => ({
+  getHasAvatar: jest.fn().mockResolvedValue(false),
+}));
 
 const mockService = agentService as jest.Mocked<typeof agentService>;
 const mockSellerService = sellerService as jest.Mocked<typeof sellerService>;

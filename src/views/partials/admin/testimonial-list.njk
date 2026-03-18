@@ -1,3 +1,54 @@
+<style>
+  .featured-toggle { display:inline-flex; align-items:center; cursor:pointer; }
+  .featured-toggle input.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+  .featured-toggle__pill {
+    position:relative; display:inline-block;
+    width:36px; height:20px; border-radius:999px;
+    background:#d1d5db; transition:background .2s;
+  }
+  .featured-toggle__pill::after {
+    content:''; position:absolute;
+    top:2px; left:2px;
+    width:16px; height:16px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2);
+    transition:left .2s;
+  }
+  .featured-toggle input:checked ~ .featured-toggle__pill { background:#16a34a; }
+  .featured-toggle input:checked ~ .featured-toggle__pill::after { left:18px; }
+  @keyframes throb-review {
+    0%, 100% { transform: scale(1);   background-color: #fefce8; border-color: #fde047; color: #a16207; }
+    50%       { transform: scale(1.1); background-color: #fde047; border-color: #ca8a04; color: #78350f; }
+  }
+  .throb-review { animation: throb-review 1.4s ease-in-out infinite; }
+</style>
+
+{# Status filter buttons #}
+{% set filters = [
+  { value: '',                   label: 'All',                activeClass: 'border-2 border-indigo-600 text-indigo-600 bg-indigo-50 font-semibold',   inactiveClass: 'border border-indigo-200 text-indigo-400 hover:border-indigo-400 hover:text-indigo-600' },
+  { value: 'pending_submission', label: 'Pending Submission', activeClass: 'border-2 border-gray-500 text-gray-700 bg-gray-100 font-semibold',         inactiveClass: 'border border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-600' },
+  { value: 'pending_review',     label: 'Pending Review',     activeClass: 'border-2 border-yellow-500 text-yellow-800 bg-yellow-50 font-semibold',    inactiveClass: 'border border-yellow-300 text-yellow-500 hover:border-yellow-400 hover:text-yellow-700', throb: true },
+  { value: 'approved',           label: 'Approved',           activeClass: 'border-2 border-green-600 text-green-800 bg-green-50 font-semibold',       inactiveClass: 'border border-green-300 text-green-500 hover:border-green-500 hover:text-green-700' },
+  { value: 'rejected',           label: 'Rejected',           activeClass: 'border-2 border-red-500 text-red-700 bg-red-50 font-semibold',             inactiveClass: 'border border-red-200 text-red-400 hover:border-red-400 hover:text-red-600' }
+] %}
+<div class="flex flex-wrap gap-2 mb-4">
+  {% for f in filters %}
+  <button
+    type="button"
+    hx-get="/admin/content/testimonials{% if f.value %}?status={{ f.value }}{% endif %}"
+    hx-target="#testimonial-list"
+    hx-swap="innerHTML"
+    class="px-3 py-1 text-sm rounded transition-colors
+      {% if activeStatus == f.value or (not activeStatus and not f.value) %}
+        {{ f.activeClass }}
+      {% else %}
+        {{ f.inactiveClass }}
+      {% endif %}
+      {% if f.throb and hasPendingReview %} throb-review{% endif %}">
+    {{ f.label | t }}
+  </button>
+  {% endfor %}
+</div>
+
 {% set statusColors = {
   pending_submission: "bg-gray-100 text-gray-700",
   pending_review: "bg-yellow-100 text-yellow-800",
@@ -11,49 +62,63 @@
 <table class="w-full text-sm">
   <thead>
     <tr class="text-left text-gray-500 border-b">
-      <th class="pb-2 pr-4">{{ "Seller" | t }}</th>
+      <th class="pb-2 pr-4">{{ "Client" | t }}</th>
       <th class="pb-2 pr-4">{{ "Town" | t }}</th>
       <th class="pb-2 pr-4">{{ "Rating" | t }}</th>
+      <th class="pb-2 pr-4">{{ "Source" | t }}</th>
       <th class="pb-2 pr-4">{{ "Status" | t }}</th>
       <th class="pb-2 pr-4">{{ "Featured" | t }}</th>
-      <th class="pb-2"></th>
     </tr>
   </thead>
   <tbody>
     {% for record in records %}
-    <tr class="border-b last:border-0 hover:bg-gray-50">
-      <td class="py-2 pr-4">{{ record.sellerName }}</td>
-      <td class="py-2 pr-4 text-gray-500 text-xs">{{ record.sellerTown }}</td>
-      <td class="py-2 pr-4">{{ record.rating }}★</td>
+    {% if record.status != 'pending_submission' %}
+    <tr class="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
+        hx-get="/admin/content/testimonials/{{ record.id }}"
+        hx-target="#testimonial-drawer-content"
+        hx-swap="innerHTML"
+        data-action="open-testimonial-drawer">
+    {% else %}
+    <tr class="border-b last:border-0 cursor-default">
+    {% endif %}
+      <td class="py-2 pr-4">{{ record.clientName }}</td>
+      <td class="py-2 pr-4 text-gray-500 text-xs">{{ record.clientTown }}</td>
+      <td class="py-2 pr-4 leading-none">
+        {% if record.status == 'pending_submission' %}
+          <span class="text-gray-300">★</span>
+        {% else %}
+          {% for i in range(1, record.rating + 1) %}<span class="text-amber-400">★</span>{% endfor %}
+        {% endif %}
+      </td>
+      <td class="py-2 pr-4">
+        {% if record.isManual %}
+        <span class="px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">{{ "Manual" | t }}</span>
+        {% if record.source %}<span class="ml-1 text-gray-500 text-xs">{{ record.source }}</span>{% endif %}
+        {% else %}
+        <span class="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{{ "Seller" | t }}</span>
+        {% endif %}
+      </td>
       <td class="py-2 pr-4">
         <span class="px-2 py-0.5 rounded text-xs font-medium {{ statusColors[record.status] }}">
           {{ record.status | replace('_', ' ') }}
         </span>
       </td>
-      <td class="py-2 pr-4">
+      <td class="py-2 pr-4" onclick="event.stopPropagation()">
         {% if record.status == 'approved' %}
-        <form method="POST" action="/admin/content/testimonials/{{ record.id }}/feature" class="inline">
+        <form
+          hx-post="/admin/content/testimonials/{{ record.id }}/feature"
+          hx-target="#testimonial-list"
+          hx-swap="innerHTML"
+          hx-trigger="change">
           <input type="hidden" name="displayOnWebsite" value="{{ 'false' if record.displayOnWebsite else 'true' }}">
-          <button type="submit" class="text-xs text-indigo-600 hover:underline">
-            {{ "Unfeature" | t if record.displayOnWebsite else "Feature" | t }}
-          </button>
+          <label class="featured-toggle" title="{{ 'Featured on website' | t }}">
+            <input type="checkbox" class="sr-only" {% if record.displayOnWebsite %}checked{% endif %}>
+            <span class="featured-toggle__pill"></span>
+          </label>
         </form>
         {% endif %}
       </td>
-      <td class="py-2 text-right flex gap-2 justify-end">
-        {% if record.status == 'pending_review' %}
-        <form method="POST" action="/admin/content/testimonials/{{ record.id }}/approve" class="inline">
-          <button type="submit" class="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700">
-            {{ "Approve" | t }}
-          </button>
-        </form>
-        <form method="POST" action="/admin/content/testimonials/{{ record.id }}/reject" class="inline">
-          <button type="submit" class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">
-            {{ "Reject" | t }}
-          </button>
-        </form>
-        {% endif %}
-      </td>
+
     </tr>
     {% endfor %}
   </tbody>

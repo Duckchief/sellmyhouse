@@ -3,6 +3,7 @@ import { validationResult } from 'express-validator';
 import * as reviewService from './review.service';
 import { validateEntityParams, validateRejectBody } from './review.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
+import { getHasAvatar } from '../profile/profile.service';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import type { EntityType } from './review.types';
 
@@ -27,7 +28,14 @@ reviewRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/agent/review-queue', { queue, activeTab });
       }
-      res.render('pages/agent/reviews', { queue, activeTab });
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/agent/reviews', {
+        pageTitle: 'Reviews',
+        user,
+        hasAvatar,
+        queue,
+        activeTab,
+      });
     } catch (err) {
       next(err);
     }
@@ -53,7 +61,6 @@ reviewRouter.get(
         listing_description: 'partials/agent/review-detail-listing-desc',
         listing_photos: 'partials/agent/review-detail-listing-photos',
         weekly_update: 'partials/agent/review-detail-weekly-update',
-        market_content: 'partials/agent/review-detail-market-content',
         document_checklist: 'partials/agent/review-detail-document-checklist',
       };
 

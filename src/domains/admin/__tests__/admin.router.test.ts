@@ -7,6 +7,9 @@ import * as adminService from '../admin.service';
 
 jest.mock('../../content/content.service');
 jest.mock('../admin.service');
+jest.mock('@/domains/profile/profile.service', () => ({
+  getHasAvatar: jest.fn().mockResolvedValue(false),
+}));
 
 const mockAdminService = adminService as jest.Mocked<typeof adminService>;
 
@@ -103,6 +106,216 @@ describe('GET /admin/tutorials — tab param', () => {
     const app = makeApp();
     const res = await request(app).get('/admin/tutorials?tab=forms').set('HX-Request', 'true');
     expect(res.status).toBe(200);
+  });
+});
+
+describe('POST /admin/content/testimonials — manual testimonial creation', () => {
+  const mockTestimonials = [
+    {
+      id: 't-1',
+      clientName: 'Alice Tan',
+      clientTown: 'Ang Mo Kio',
+      rating: 5,
+      content: 'Great service from start to finish.',
+      source: null,
+      status: 'approved',
+    },
+  ];
+
+  // makeApp stubs res.render to always send 200. For the 422 test we need a
+  // variant that preserves the status code set before render is called.
+  function makeAppStatusPreserving() {
+    const app = express();
+    app.use(express.urlencoded({ extended: true }));
+
+    app.use((req, _res, next) => {
+      Object.assign(req, {
+        isAuthenticated: () => true,
+        user: { id: 'admin-1', role: 'admin', twoFactorEnabled: false, twoFactorVerified: true },
+      });
+      next();
+    });
+
+    app.use((_req, res, next) => {
+      res.render = ((_view: string, _options?: object) => {
+        // Preserve whatever status was set by the route before calling render.
+        const current = res.statusCode;
+        res.status(current).send('<html></html>');
+      }) as typeof res.render;
+      next();
+    });
+
+    app.use(adminRouter);
+
+    app.use(
+      (err: Error & { statusCode?: number }, _req: Request, res: Response, _next: NextFunction) => {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      },
+    );
+
+    return app;
+  }
+
+  beforeEach(() => {
+    jest.mocked(contentService.createManualTestimonial).mockResolvedValue(undefined as any);
+    jest.mocked(contentService.listTestimonials).mockResolvedValue(mockTestimonials as any);
+  });
+
+  it('returns 200 and renders testimonial list on valid HTMX request', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/content/testimonials')
+      .set('HX-Request', 'true')
+      .type('form')
+      .send({
+        clientName: 'Alice Tan',
+        clientTown: 'Ang Mo Kio',
+        rating: '5',
+        content: 'Great service from start to finish.',
+        source: 'Google',
+      });
+    expect(res.status).toBe(200);
+    expect(contentService.createManualTestimonial).toHaveBeenCalled();
+  });
+
+  it('returns 422 when required fields are missing on HTMX request', async () => {
+    const app = makeAppStatusPreserving();
+    const res = await request(app)
+      .post('/admin/content/testimonials')
+      .set('HX-Request', 'true')
+      .type('form')
+      .send({
+        clientName: '',
+        clientTown: '',
+        rating: '',
+        content: '',
+      });
+    expect(res.status).toBe(422);
+    expect(contentService.createManualTestimonial).not.toHaveBeenCalled();
+  });
+});
+
+describe('GET /admin/content/testimonials/new — drawer form partial', () => {
+  it('returns 200 with drawer form content', async () => {
+    const app = makeApp();
+    const res = await request(app).get('/admin/content/testimonials/new').set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+  });
+});
+
+describe('GET /admin/content/testimonials/:id', () => {
+  it('returns 200 with drawer partial for a known testimonial', async () => {
+    jest.mocked(contentService.getTestimonialById).mockResolvedValue({
+      id: 't-1',
+      clientName: 'Mary L.',
+      clientTown: 'Bishan',
+      rating: 5,
+      content: 'Great service!',
+      source: null,
+      isManual: false,
+      status: 'approved',
+      displayOnWebsite: true,
+    } as any);
+
+    const app = makeApp();
+    const res = await request(app).get('/admin/content/testimonials/t-1').set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+    expect(contentService.getTestimonialById).toHaveBeenCalledWith('t-1');
+  });
+
+  it('returns 404 for an unknown testimonial', async () => {
+    const { NotFoundError } = await import('@/domains/shared/errors');
+    jest
+      .mocked(contentService.getTestimonialById)
+      .mockRejectedValue(new NotFoundError('Testimonial', 'bad-id'));
+
+    const app = makeApp();
+    const res = await request(app).get('/admin/content/testimonials/bad-id');
+    expect(res.status).toBe(404);
+  });
+
+  it('redirects to list on non-HTMX request', async () => {
+    jest.mocked(contentService.getTestimonialById).mockResolvedValue({
+      id: 't-1',
+      clientName: 'Mary L.',
+      status: 'approved',
+    } as any);
+
+    const app = makeApp();
+    const res = await request(app).get('/admin/content/testimonials/t-1');
+    // No HX-Request header — should redirect
+    expect(res.status).toBe(302);
+  });
+});
+
+describe('POST /admin/content/testimonials/:id/approve — HTMX', () => {
+  it('returns 200 with list partial on HTMX request', async () => {
+    jest.mocked(contentService.approveTestimonial).mockResolvedValue(undefined as any);
+    jest.mocked(contentService.listTestimonials).mockResolvedValue([]);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/content/testimonials/t-1/approve')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+    expect(contentService.approveTestimonial).toHaveBeenCalledWith('t-1', 'admin-1');
+  });
+
+  it('still redirects on non-HTMX request', async () => {
+    jest.mocked(contentService.approveTestimonial).mockResolvedValue(undefined as any);
+
+    const app = makeApp();
+    const res = await request(app).post('/admin/content/testimonials/t-1/approve');
+    expect(res.status).toBe(302);
+  });
+});
+
+describe('POST /admin/content/testimonials/:id/reject — HTMX', () => {
+  it('returns 200 with list partial on HTMX request', async () => {
+    jest.mocked(contentService.rejectTestimonial).mockResolvedValue(undefined as any);
+    jest.mocked(contentService.listTestimonials).mockResolvedValue([]);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/content/testimonials/t-1/reject')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+    expect(contentService.rejectTestimonial).toHaveBeenCalledWith('t-1', 'admin-1');
+  });
+
+  it('still redirects on non-HTMX request', async () => {
+    jest.mocked(contentService.rejectTestimonial).mockResolvedValue(undefined as any);
+
+    const app = makeApp();
+    const res = await request(app).post('/admin/content/testimonials/t-1/reject');
+    expect(res.status).toBe(302);
+  });
+});
+
+describe('POST /admin/content/testimonials/:id/feature — HTMX', () => {
+  it('returns 200 with list partial on HTMX request', async () => {
+    jest.mocked(contentService.featureTestimonial).mockResolvedValue(undefined as any);
+    jest.mocked(contentService.listTestimonials).mockResolvedValue([]);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/content/testimonials/t-1/feature')
+      .send('displayOnWebsite=true')
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+    expect(contentService.featureTestimonial).toHaveBeenCalledWith('t-1', true);
+  });
+
+  it('still redirects on non-HTMX request', async () => {
+    jest.mocked(contentService.featureTestimonial).mockResolvedValue(undefined as any);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/content/testimonials/t-1/feature')
+      .send('displayOnWebsite=false')
+      .set('Content-Type', 'application/x-www-form-urlencoded');
+    expect(res.status).toBe(302);
   });
 });
 

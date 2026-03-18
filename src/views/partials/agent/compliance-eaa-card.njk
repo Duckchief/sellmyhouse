@@ -1,13 +1,5 @@
 <div id="compliance-eaa-card">
-  <div class="flex items-center justify-between mb-4">
-    <span class="px-2 py-1 text-xs rounded-full
-      {% if compliance.eaa.status == 'signed' or compliance.eaa.status == 'active' %}bg-green-100 text-green-800
-      {% elif compliance.eaa.status == 'sent_to_seller' %}bg-yellow-100 text-yellow-800
-      {% elif compliance.eaa.status == 'draft' %}bg-blue-100 text-blue-800
-      {% else %}bg-gray-100 text-gray-800{% endif %}">{{ compliance.eaa.status | t }}</span>
-  </div>
-
-  {% if compliance.eaa.status == 'not_started' %}
+{% if compliance.eaa.status == 'not_started' %}
     <p class="text-sm text-gray-500 mb-4">{{ "No EAA has been created for this seller." | t }}</p>
     {% if compliance.cdd.status == 'verified' %}
       <button
@@ -86,7 +78,7 @@
     </div>
 
     {# EAA Explanation Section (Gate 4) #}
-    <div class="mt-6 pt-4 border-t">
+    <div class="mt-6 pt-4">
       <h4 class="text-sm font-semibold mb-2">{{ "EAA Explanation" | t }}</h4>
       {% if compliance.eaa.explanationConfirmedAt %}
         <dl class="space-y-1 text-sm">

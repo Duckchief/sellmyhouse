@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smhn-v1';
+const CACHE_NAME = 'smhn-v2';
 const PRECACHE_URLS = [
   '/',
   '/market-report',
@@ -33,8 +33,9 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip API requests and authenticated pages
+  // Skip API requests, authenticated pages, and cross-origin requests (CDN)
   const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/') ||
       url.pathname.startsWith('/seller/') || url.pathname.startsWith('/agent/') ||
       url.pathname.startsWith('/admin/')) {

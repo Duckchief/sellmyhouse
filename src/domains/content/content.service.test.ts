@@ -5,7 +5,11 @@ import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as auditService from '@/domains/shared/audit.service';
 import { NotFoundError, ConflictError, ValidationError } from '@/domains/shared/errors';
 import type { VideoTutorial, MarketContent, Testimonial, Referral } from '@prisma/client';
-import type { HdbTransactionPartial, TestimonialSubmitInput } from './content.types';
+import type {
+  HdbTransactionPartial,
+  TestimonialSubmitInput,
+  CreateManualTestimonialInput,
+} from './content.types';
 
 jest.mock('./content.repository');
 jest.mock('@/domains/shared/ai/ai.facade', () => {
@@ -495,12 +499,59 @@ describe('formatDisplayName', () => {
   });
 });
 
+describe('createManualTestimonial', () => {
+  it('creates testimonial with isManual true and pending_review status', async () => {
+    const input: CreateManualTestimonialInput = {
+      clientName: 'Mary L.',
+      clientTown: 'Bishan',
+      rating: 5,
+      content: 'Excellent service from start to finish.',
+      source: 'Google',
+    };
+    const mockRecord = {
+      id: 'test-id',
+      clientName: 'Mary L.',
+      clientTown: 'Bishan',
+      rating: 5,
+      content: 'Excellent service from start to finish.',
+      source: 'Google',
+      isManual: true,
+      status: 'pending_review',
+      createdByAgentId: 'agent-1',
+      sellerId: null,
+      buyerId: null,
+      transactionId: null,
+    };
+    mockedRepo.createManualTestimonial.mockResolvedValue(mockRecord as any);
+
+    const result = await contentService.createManualTestimonial('agent-1', input);
+
+    expect(mockedRepo.createManualTestimonial).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isManual: true,
+        status: 'pending_review',
+        createdByAgentId: 'agent-1',
+        sellerId: null,
+        buyerId: null,
+        transactionId: null,
+        clientName: 'Mary L.',
+        clientTown: 'Bishan',
+        rating: 5,
+        content: 'Excellent service from start to finish.',
+        source: 'Google',
+      }),
+    );
+    expect(result.isManual).toBe(true);
+    expect(result.status).toBe('pending_review');
+  });
+});
+
 describe('submitTestimonial', () => {
   const validInput: TestimonialSubmitInput = {
     content: 'Great service!',
     rating: 5,
-    sellerName: 'John Thomas',
-    sellerTown: 'Tampines',
+    clientName: 'John Thomas',
+    clientTown: 'Tampines',
   };
 
   it('throws NotFoundError when token does not exist', async () => {
@@ -806,6 +857,26 @@ describe('featureTestimonial — approved status guard', () => {
   });
 });
 
+// ─── getTestimonialById ───────────────────────────────────────────────────────
+
+describe('getTestimonialById', () => {
+  it('returns the testimonial when found', async () => {
+    const mock = { id: 't-1', clientName: 'Mary L.', status: 'approved' } as Testimonial;
+    mockedRepo.findTestimonialById.mockResolvedValue(mock);
+
+    const result = await contentService.getTestimonialById('t-1');
+
+    expect(mockedRepo.findTestimonialById).toHaveBeenCalledWith('t-1');
+    expect(result).toEqual(mock);
+  });
+
+  it('throws NotFoundError when not found', async () => {
+    mockedRepo.findTestimonialById.mockResolvedValue(null);
+
+    await expect(contentService.getTestimonialById('missing')).rejects.toThrow(NotFoundError);
+  });
+});
+
 // ─── rejectTestimonial — notification to seller ───────────────────────────────
 
 jest.mock('@/domains/notification/notification.service');
@@ -853,5 +924,18 @@ describe('rejectTestimonial — seller notification', () => {
     await Promise.resolve();
 
     expect(mockedNotification.send).toHaveBeenCalledWith(expect.anything(), 'system');
+  });
+
+  it('does not send notification when sellerId is null (manual testimonial)', async () => {
+    mockedRepo.updateTestimonialStatus.mockResolvedValue({
+      id: 't-2',
+      sellerId: null,
+      status: 'rejected',
+    } as unknown as Testimonial);
+
+    await contentService.rejectTestimonial('t-2', 'agent-1');
+    await Promise.resolve();
+
+    expect(mockedNotification.send).not.toHaveBeenCalled();
   });
 });

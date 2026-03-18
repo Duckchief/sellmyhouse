@@ -4,9 +4,25 @@
 
 {% block content %}
 {% set pageTitle = "Testimonials" %}
+{% set pageActionsHtml %}
+<button
+  hx-get="/admin/content/testimonials/new"
+  hx-target="#testimonial-drawer-content"
+  hx-swap="innerHTML"
+  class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700"
+  data-action="open-testimonial-drawer">
+  {{ "+ Add Testimonial" | t }}
+</button>
+{% endset %}
 {% include "partials/shared/page-header.njk" %}
 
 <div id="testimonial-list">
   {% include "partials/admin/testimonial-list.njk" %}
+</div>
+
+<div id="testimonial-drawer-backdrop" class="hidden fixed inset-0 z-[39]" data-action="close-testimonial-drawer"></div>
+
+<div id="testimonial-drawer-panel" class="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-40 translate-x-full opacity-0 pointer-events-none transition-all duration-300 ease-out overflow-y-auto" aria-hidden="true">
+  <div id="testimonial-drawer-content"></div>
 </div>
 {% endblock %}

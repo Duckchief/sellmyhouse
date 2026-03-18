@@ -142,9 +142,16 @@ export async function findTestimonialBySeller(sellerId: string) {
   return prisma.testimonial.findFirst({ where: { sellerId } });
 }
 
-export async function findAllTestimonials() {
+export async function findAllTestimonials(status?: string) {
   return prisma.testimonial.findMany({
+    where: status ? { status: status as import('@prisma/client').TestimonialStatus } : undefined,
     orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function countTestimonialsByStatus(status: string): Promise<number> {
+  return prisma.testimonial.count({
+    where: { status: status as import('@prisma/client').TestimonialStatus },
   });
 }
 
@@ -160,10 +167,28 @@ export async function createTestimonial(input: {
   id: string;
   sellerId: string;
   transactionId: string;
-  sellerName: string;
-  sellerTown: string;
+  clientName: string;
+  clientTown: string;
   submissionToken: string;
   tokenExpiresAt: Date;
+  clientType?: 'seller' | 'buyer';
+}) {
+  return prisma.testimonial.create({ data: input });
+}
+
+export async function createManualTestimonial(input: {
+  id: string;
+  clientName: string;
+  clientTown: string;
+  rating: number;
+  content: string;
+  source?: string | null;
+  isManual: true;
+  status: 'pending_review';
+  createdByAgentId: string;
+  sellerId: null;
+  buyerId: null;
+  transactionId: null;
 }) {
   return prisma.testimonial.create({ data: input });
 }
@@ -173,8 +198,8 @@ export async function updateTestimonialSubmission(
   data: {
     content: string;
     rating: number;
-    sellerName: string;
-    sellerTown: string;
+    clientName: string;
+    clientTown: string;
     status: 'pending_review';
   },
 ) {

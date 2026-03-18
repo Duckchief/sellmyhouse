@@ -1,0 +1,140 @@
+{#
+  testimonial-add-drawer.njk
+  Slide-in drawer form for manually creating a testimonial.
+  Used by: GET /admin/content/testimonials/new (loaded into #testimonial-drawer-content)
+  On success POST: server renders partials/admin/testimonial-list into #testimonial-list
+#}
+<div class="p-6 flex flex-col gap-4 min-h-full">
+  <div class="flex items-center justify-between mb-2">
+    <h2 class="text-lg font-semibold text-gray-900">{{ "Add Testimonial" | t }}</h2>
+    <button
+      type="button"
+      data-action="close-testimonial-drawer"
+      aria-label="{{ 'Close' | t }}"
+      class="text-gray-400 hover:text-gray-600 p-1 rounded">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+      </svg>
+    </button>
+  </div>
+
+  {% if errors | length %}
+  <div class="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
+    <ul class="list-disc list-inside space-y-1">
+      {% for err in errors %}
+      <li>{{ err.msg }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form
+    hx-post="/admin/content/testimonials"
+    hx-target="#testimonial-list"
+    hx-swap="innerHTML"
+    class="flex flex-col gap-4">
+
+    <div>
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-clientName">
+        {{ "Client Name" | t }}
+      </label>
+      <input
+        type="text"
+        id="drawer-clientName"
+        name="clientName"
+        value="{{ values.clientName if values else '' }}"
+        maxlength="100"
+        required
+        class="input-field w-full"
+        placeholder="{{ 'e.g. Mary L.' | t }}">
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-clientTown">
+        {{ "Town" | t }}
+      </label>
+      <input
+        type="text"
+        id="drawer-clientTown"
+        name="clientTown"
+        value="{{ values.clientTown if values else '' }}"
+        maxlength="100"
+        required
+        class="input-field w-full"
+        placeholder="{{ 'e.g. Bishan' | t }}">
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1">
+        {{ "Rating" | t }}
+      </label>
+      {# Pure-CSS star picker: DOM order 5→1, flex-row-reverse for visual 1→5.
+         Hovering a label highlights it + all DOM-subsequent labels (= visually lower stars).
+         Checked radio fills its label + all DOM-subsequent labels (= stars to its left). #}
+      <style>
+        .star-picker { display:flex; flex-direction:row-reverse; width:fit-content; gap:2px; }
+        .star-picker input[type=radio] { display:none; }
+        .star-picker label { font-size:1.75rem; line-height:1; cursor:pointer; color:#d1d5db; transition:color .1s; }
+        .star-picker input:checked + label,
+        .star-picker input:checked + label ~ label { color:#f59e0b; }
+        .star-picker:hover label { color:#d1d5db; }
+        .star-picker label:hover,
+        .star-picker label:hover ~ label { color:#f59e0b; }
+      </style>
+      <div class="star-picker">
+        {% set ratingVal = values.rating | int if values else 0 %}
+        {% for n in [5, 4, 3, 2, 1] %}
+        <input type="radio" id="drawer-star-{{ n }}" name="rating" value="{{ n }}"
+               {% if ratingVal == n %}checked{% endif %}>
+        <label for="drawer-star-{{ n }}" aria-label="{{ n }} {{ 'stars' | t }}">★</label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-content">
+        {{ "Testimonial Text" | t }}
+      </label>
+      <textarea
+        id="drawer-content"
+        name="content"
+        rows="5"
+        minlength="10"
+        maxlength="1000"
+        required
+        class="input-field w-full resize-y"
+        placeholder="{{ 'What did the client say?' | t }}">{{ values.content if values else '' }}</textarea>
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="drawer-source">
+        {{ "Source" | t }}
+        <span class="text-gray-400 normal-case font-normal ml-1">{{ "(optional)" | t }}</span>
+      </label>
+      <input
+        type="text"
+        id="drawer-source"
+        name="source"
+        value="{{ values.source if values else '' }}"
+        maxlength="50"
+        class="input-field w-full"
+        placeholder="{{ 'e.g. Google, WhatsApp, Phone' | t }}">
+    </div>
+
+    <div class="flex gap-2 pt-2">
+      <button type="submit" class="btn-primary flex-1">
+        {{ "Save as Pending Review" | t }}
+      </button>
+      <button
+        type="button"
+        data-action="close-testimonial-drawer"
+        class="px-4 py-2 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
+        {{ "Cancel" | t }}
+      </button>
+    </div>
+
+    <p class="text-xs text-gray-400 text-center">
+      {{ "Saved as Pending Review — approve from the list to feature on website." | t }}
+    </p>
+  </form>
+</div>

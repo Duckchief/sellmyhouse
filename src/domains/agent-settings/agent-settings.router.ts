@@ -3,6 +3,7 @@ import { validationResult } from 'express-validator';
 import * as service from './agent-settings.service';
 import { requireAuth } from '../../infra/http/middleware/require-auth';
 import { requireRole, requireTwoFactor } from '../../infra/http/middleware/require-auth';
+import { getHasAvatar } from '../profile/profile.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import type { AgentSettingKey } from './agent-settings.types';
 import { WHATSAPP_KEYS, SMTP_KEYS } from './agent-settings.types';
@@ -23,7 +24,8 @@ agentSettingsRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/agent/settings', { settings });
       }
-      res.render('pages/agent/settings', { settings });
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/agent/settings', { pageTitle: 'Settings', user, hasAvatar, settings });
     } catch (err) {
       next(err);
     }

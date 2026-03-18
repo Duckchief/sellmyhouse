@@ -25,6 +25,10 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     }
 
     if (isBrowserRequest(req)) {
+      // Redirect unauthenticated browser requests to the login page
+      if (err.statusCode === 401) {
+        return res.redirect(`/auth/login?next=${encodeURIComponent(req.originalUrl)}`);
+      }
       return res.status(err.statusCode).render('pages/error', {
         statusCode: err.statusCode,
         code: err.code,

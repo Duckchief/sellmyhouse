@@ -6,6 +6,7 @@ import { validateAgentCreate, validateSettingUpdate, validateAssign } from './ad
 import {
   validateTutorialCreate,
   validateTutorialUpdate,
+  validateManualTestimonialCreate,
 } from '@/domains/content/content.validator';
 import * as contentService from '@/domains/content/content.service';
 import * as reviewService from '@/domains/review/review.service';
@@ -13,6 +14,7 @@ import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middlew
 import { NotFoundError, ConflictError } from '@/domains/shared/errors';
 import { logger } from '@/infra/logger';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
+import { getHasAvatar } from '../profile/profile.service';
 
 export const adminRouter = Router();
 
@@ -34,7 +36,16 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/analytics', { analytics, filter });
       }
-      res.render('pages/admin/dashboard', { analytics, filter, currentPath: '/admin/dashboard' });
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/admin/dashboard', {
+        pageTitle: 'Dashboard',
+        user,
+        hasAvatar,
+        analytics,
+        filter,
+        currentPath: '/admin/dashboard',
+      });
     } catch (err) {
       next(err);
     }
@@ -56,7 +67,12 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/pipeline-table', { pipeline, stage });
       }
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
       res.render('pages/admin/pipeline', {
+        pageTitle: 'Pipeline',
+        user,
+        hasAvatar,
         pipeline,
         stageCounts,
         stage,
@@ -80,7 +96,16 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/lead-list', { unassigned, all });
       }
-      res.render('pages/admin/leads', { unassigned, all, currentPath: '/admin/leads' });
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/admin/leads', {
+        pageTitle: 'Leads',
+        user,
+        hasAvatar,
+        unassigned,
+        all,
+        currentPath: '/admin/leads',
+      });
     } catch (err) {
       next(err);
     }
@@ -99,7 +124,16 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/agent/review-queue', { queue, activeTab });
       }
-      res.render('pages/admin/review-queue', { queue, activeTab, currentPath: '/admin/review' });
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/admin/review-queue', {
+        pageTitle: 'Review Queue',
+        user,
+        hasAvatar,
+        queue,
+        activeTab,
+        currentPath: '/admin/review',
+      });
     } catch (err) {
       next(err);
     }
@@ -159,7 +193,16 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/audit-list', { result, filter });
       }
-      res.render('pages/admin/audit-log', { result, filter, currentPath: '/admin/audit' });
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/admin/audit-log', {
+        pageTitle: 'Audit Log',
+        user,
+        hasAvatar,
+        result,
+        filter,
+        currentPath: '/admin/audit',
+      });
     } catch (err) {
       next(err);
     }
@@ -184,7 +227,12 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/notification-list', { result, filter });
       }
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
       res.render('pages/admin/notifications', {
+        pageTitle: 'Notifications',
+        user,
+        hasAvatar,
         result,
         filter,
         currentPath: '/admin/notifications',
@@ -206,7 +254,15 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/team-list', { team });
       }
-      res.render('pages/admin/team', { team, currentPath: '/admin/team' });
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/admin/team', {
+        pageTitle: 'Team',
+        user,
+        hasAvatar,
+        team,
+        currentPath: '/admin/team',
+      });
     } catch (err) {
       next(err);
     }
@@ -330,7 +386,12 @@ adminRouter.get(
       ]);
       const agent = team.find((a) => a.id === req.params['id']);
       if (!agent) throw new NotFoundError('Agent', req.params['id'] as string);
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
       res.render('pages/admin/team-pipeline', {
+        pageTitle: 'Team Pipeline',
+        user,
+        hasAvatar,
         agent,
         sellers: sellersResult.sellers,
         sellersTotal: sellersResult.total,
@@ -363,7 +424,16 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/seller-list', { result, team });
       }
-      res.render('pages/admin/sellers', { result, team, currentPath: '/admin/sellers' });
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/admin/sellers', {
+        pageTitle: 'Sellers',
+        user,
+        hasAvatar,
+        result,
+        team,
+        currentPath: '/admin/sellers',
+      });
     } catch (err) {
       next(err);
     }
@@ -376,7 +446,14 @@ adminRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const detail = await adminService.getAdminSellerDetail(req.params['id'] as string);
-      res.render('pages/admin/seller-detail', { detail });
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/admin/seller-detail', {
+        pageTitle: 'Seller Detail',
+        user,
+        hasAvatar,
+        detail,
+      });
     } catch (err) {
       next(err);
     }
@@ -473,7 +550,15 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/settings-form', { groups });
       }
-      res.render('pages/admin/settings', { groups, currentPath: '/admin/settings' });
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/admin/settings', {
+        pageTitle: 'Settings',
+        user,
+        hasAvatar,
+        groups,
+        currentPath: '/admin/settings',
+      });
     } catch (err) {
       next(err);
     }
@@ -526,7 +611,15 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/hdb-status', { status });
       }
-      res.render('pages/admin/hdb', { status, currentPath: '/admin/hdb' });
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/admin/hdb', {
+        pageTitle: 'HDB',
+        user,
+        hasAvatar,
+        status,
+        currentPath: '/admin/hdb',
+      });
     } catch (err) {
       next(err);
     }
@@ -580,7 +673,12 @@ adminRouter.get(
         return res.render('partials/admin/compliance/deletion-queue-list', { requests });
       }
 
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
       return res.render('pages/admin/compliance/deletion-queue', {
+        pageTitle: 'Deletion Queue',
+        user,
+        hasAvatar,
         requests,
         title: 'Data Deletion Queue',
         currentPath: '/admin/compliance/deletion-queue',
@@ -694,7 +792,12 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/tutorial-list', { tutorials: activeItems, activeTab });
       }
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
       return res.render('pages/admin/tutorials', {
+        pageTitle: 'Tutorials',
+        user,
+        hasAvatar,
         tutorials: activeItems,
         activeTab,
         tabCounts,
@@ -714,7 +817,12 @@ adminRouter.get(
       const VALID_CATEGORIES = ['photography', 'forms', 'process', 'financial'];
       const rawCategory = req.query['category'] as string | undefined;
       const preselectedCategory = VALID_CATEGORIES.includes(rawCategory ?? '') ? rawCategory : '';
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
       return res.render('pages/admin/tutorial-form', {
+        pageTitle: 'New Tutorial',
+        user,
+        hasAvatar,
         tutorial: null,
         errors: [],
         preselectedCategory,
@@ -731,10 +839,15 @@ adminRouter.post(
   ...adminAuth,
   ...validateTutorialCreate,
   async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user as AuthenticatedUser;
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        const hasAvatar = await getHasAvatar(user.id);
         return res.status(400).render('pages/admin/tutorial-form', {
+          pageTitle: 'New Tutorial',
+          user,
+          hasAvatar,
           tutorial: null,
           errors: errors.array(),
           values: req.body,
@@ -752,7 +865,11 @@ adminRouter.post(
       return res.redirect('/admin/tutorials');
     } catch (err) {
       if (err instanceof ConflictError) {
+        const hasAvatar = await getHasAvatar(user.id);
         return res.status(409).render('pages/admin/tutorial-form', {
+          pageTitle: 'New Tutorial',
+          user,
+          hasAvatar,
           tutorial: null,
           errors: [{ msg: err.message }],
           values: req.body,
@@ -770,7 +887,12 @@ adminRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const tutorial = await contentService.getTutorialById(req.params['id'] as string);
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
       return res.render('pages/admin/tutorial-form', {
+        pageTitle: 'Edit Tutorial',
+        user,
+        hasAvatar,
         tutorial,
         errors: [],
         currentPath: '/admin/tutorials',
@@ -786,11 +908,16 @@ adminRouter.post(
   ...adminAuth,
   ...validateTutorialUpdate,
   async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user as AuthenticatedUser;
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         const tutorial = await contentService.getTutorialById(req.params['id'] as string);
+        const hasAvatar = await getHasAvatar(user.id);
         return res.status(400).render('pages/admin/tutorial-form', {
+          pageTitle: 'Edit Tutorial',
+          user,
+          hasAvatar,
           tutorial,
           errors: errors.array(),
           values: req.body,
@@ -808,7 +935,11 @@ adminRouter.post(
       return res.redirect('/admin/tutorials');
     } catch (err) {
       if (err instanceof ConflictError) {
+        const hasAvatar = await getHasAvatar(user.id);
         return res.status(409).render('pages/admin/tutorial-form', {
+          pageTitle: 'Edit Tutorial',
+          user,
+          hasAvatar,
           tutorial: { id: req.params['id'] as string },
           errors: [{ msg: err.message }],
           values: req.body,
@@ -840,6 +971,7 @@ adminRouter.post(
   '/admin/content/market/run',
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user as AuthenticatedUser;
     try {
       const period = contentService.getIsoWeekPeriod();
       const result = await contentService.generateMarketContent(period);
@@ -851,7 +983,11 @@ adminRouter.post(
       if (err instanceof ConflictError) {
         logger.warn({ err }, 'Market content run blocked: duplicate period');
         const records = await contentService.listMarketContent();
+        const hasAvatar = await getHasAvatar(user.id);
         return res.status(409).render('pages/admin/market-content', {
+          pageTitle: 'Market Content',
+          user,
+          hasAvatar,
           records,
           error: err.message,
           currentPath: '/admin/content/market',
@@ -873,7 +1009,12 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/market-content-list', { records });
       }
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
       return res.render('pages/admin/market-content', {
+        pageTitle: 'Market Content',
+        user,
+        hasAvatar,
         records,
         error: notice,
         currentPath: '/admin/content/market',
@@ -890,7 +1031,12 @@ adminRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const record = await contentService.getMarketContentById(req.params['id'] as string);
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
       return res.render('pages/admin/market-content-detail', {
+        pageTitle: 'Market Content',
+        user,
+        hasAvatar,
         record,
         currentPath: '/admin/content/market',
       });
@@ -929,19 +1075,109 @@ adminRouter.post(
 
 // ─── Testimonial Management ───────────────────────────────────────────────────
 
+// Drawer form partial for manual testimonial creation
+adminRouter.get(
+  '/admin/content/testimonials/new',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      return res.render('partials/admin/testimonial-add-drawer');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 adminRouter.get(
   '/admin/content/testimonials',
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const records = await contentService.listTestimonials();
+      const activeStatus =
+        typeof req.query['status'] === 'string' ? req.query['status'] : undefined;
+      const [records, hasPendingReview] = await Promise.all([
+        contentService.listTestimonials(activeStatus),
+        contentService.hasPendingReviewTestimonials(),
+      ]);
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/testimonial-list', { records });
+        return res.render('partials/admin/testimonial-list', {
+          records,
+          activeStatus,
+          hasPendingReview,
+        });
       }
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
       return res.render('pages/admin/testimonials', {
+        pageTitle: 'Testimonials',
+        user,
+        hasAvatar,
         records,
+        activeStatus,
+        hasPendingReview,
         currentPath: '/admin/content/testimonials',
       });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/content/testimonials',
+  ...adminAuth,
+  ...validateManualTestimonialCreate,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        if (req.headers['hx-request']) {
+          return res.status(422).render('partials/admin/testimonial-add-drawer', {
+            errors: errors.array(),
+            values: req.body,
+          });
+        }
+        return res.redirect('/admin/content/testimonials');
+      }
+
+      const user = req.user as AuthenticatedUser;
+      await contentService.createManualTestimonial(user.id, {
+        clientName: req.body.clientName as string,
+        clientTown: req.body.clientTown as string,
+        rating: Number(req.body.rating),
+        content: req.body.content as string,
+        source: (req.body.source as string) || undefined,
+      });
+
+      if (req.headers['hx-request']) {
+        const [records, hasPendingReview] = await Promise.all([
+          contentService.listTestimonials('pending_review'),
+          contentService.hasPendingReviewTestimonials(),
+        ]);
+        return res.render('partials/admin/testimonial-list', {
+          records,
+          activeStatus: 'pending_review',
+          hasPendingReview,
+        });
+      }
+      return res.redirect('/admin/content/testimonials');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// Detail drawer partial — loads testimonial into the slide-in drawer
+adminRouter.get(
+  '/admin/content/testimonials/:id',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const record = await contentService.getTestimonialById(req.params['id'] as string);
+      if (!req.headers['hx-request']) {
+        return res.redirect('/admin/content/testimonials');
+      }
+      return res.render('partials/admin/testimonial-detail-drawer', { record });
     } catch (err) {
       return next(err);
     }
@@ -955,6 +1191,13 @@ adminRouter.post(
     try {
       const user = req.user as AuthenticatedUser;
       await contentService.approveTestimonial(req.params['id'] as string, user.id);
+      if (req.headers['hx-request']) {
+        const [records, hasPendingReview] = await Promise.all([
+          contentService.listTestimonials(),
+          contentService.hasPendingReviewTestimonials(),
+        ]);
+        return res.render('partials/admin/testimonial-list', { records, hasPendingReview });
+      }
       return res.redirect('/admin/content/testimonials');
     } catch (err) {
       return next(err);
@@ -969,6 +1212,13 @@ adminRouter.post(
     try {
       const user = req.user as AuthenticatedUser;
       await contentService.rejectTestimonial(req.params['id'] as string, user.id);
+      if (req.headers['hx-request']) {
+        const [records, hasPendingReview] = await Promise.all([
+          contentService.listTestimonials(),
+          contentService.hasPendingReviewTestimonials(),
+        ]);
+        return res.render('partials/admin/testimonial-list', { records, hasPendingReview });
+      }
       return res.redirect('/admin/content/testimonials');
     } catch (err) {
       return next(err);
@@ -992,7 +1242,12 @@ adminRouter.get(
       if (req.headers['hx-request']) {
         return res.render('partials/admin/referral-funnel', { funnel, topReferrers, baseUrl });
       }
+      const user = req.user as AuthenticatedUser;
+      const hasAvatar = await getHasAvatar(user.id);
       return res.render('pages/admin/referrals', {
+        pageTitle: 'Referrals',
+        user,
+        hasAvatar,
         records,
         funnel,
         topReferrers,
@@ -1012,6 +1267,13 @@ adminRouter.post(
     try {
       const display = req.body.displayOnWebsite === 'true';
       await contentService.featureTestimonial(req.params['id'] as string, display);
+      if (req.headers['hx-request']) {
+        const [records, hasPendingReview] = await Promise.all([
+          contentService.listTestimonials(),
+          contentService.hasPendingReviewTestimonials(),
+        ]);
+        return res.render('partials/admin/testimonial-list', { records, hasPendingReview });
+      }
       return res.redirect('/admin/content/testimonials');
     } catch (err) {
       return next(err);

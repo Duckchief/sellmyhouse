@@ -4,8 +4,14 @@ import { reviewRouter } from '../review.router';
 import * as reviewService from '../review.service';
 
 jest.mock('../review.service');
+jest.mock('../../profile/profile.service');
+
+import * as profileService from '../../profile/profile.service';
 
 const mockService = reviewService as jest.Mocked<typeof reviewService>;
+(profileService as jest.Mocked<typeof profileService>).getHasAvatar = jest
+  .fn()
+  .mockResolvedValue(false);
 
 // Minimal test app with mock auth
 function createTestApp(user?: { id: string; role: string }) {
@@ -82,7 +88,6 @@ describe('GET /agent/reviews', () => {
         listing_description: 0,
         listing_photos: 0,
         weekly_update: 0,
-        market_content: 0,
         document_checklist: 0,
       },
     });
@@ -102,7 +107,6 @@ describe('GET /agent/reviews', () => {
         listing_description: 0,
         listing_photos: 0,
         weekly_update: 0,
-        market_content: 0,
         document_checklist: 0,
       },
     });

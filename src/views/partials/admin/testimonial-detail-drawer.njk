@@ -1,0 +1,109 @@
+{#
+  testimonial-detail-drawer.njk
+  Read-only detail view of a single testimonial.
+  Used by: GET /admin/content/testimonials/:id (loaded into #testimonial-drawer-content)
+  pending_review: shows Approve + Reject buttons (hx-post → refreshes #testimonial-list, drawer closes via existing JS)
+  approved / rejected: read-only, no action buttons
+#}
+
+{% set statusColors = {
+  pending_submission: "bg-gray-100 text-gray-700",
+  pending_review: "bg-yellow-100 text-yellow-800",
+  approved: "bg-green-100 text-green-800",
+  rejected: "bg-red-100 text-red-700"
+} %}
+
+<div class="p-6 flex flex-col gap-4 min-h-full">
+
+  {# Header #}
+  <div class="flex items-center justify-between mb-2">
+    <div>
+      <h2 class="text-lg font-semibold text-gray-900">{{ record.clientName }}</h2>
+      <span class="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium {{ statusColors[record.status] }}">
+        {{ record.status | replace('_', ' ') | t }}
+      </span>
+    </div>
+    <button
+      type="button"
+      data-action="close-testimonial-drawer"
+      aria-label="{{ 'Close' | t }}"
+      class="text-gray-400 hover:text-gray-600 p-1 rounded flex-shrink-0">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+      </svg>
+    </button>
+  </div>
+
+  {# Town + source #}
+  <div class="flex items-center gap-2 text-sm text-gray-500">
+    <span>{{ record.clientTown }}</span>
+    <span class="text-gray-300">·</span>
+    {% if record.isManual %}
+      <span class="px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">{{ "Manual" | t }}</span>
+      {% if record.source %}<span class="text-xs text-gray-400">{{ record.source }}</span>{% endif %}
+    {% else %}
+      <span class="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{{ "Seller" | t }}</span>
+    {% endif %}
+  </div>
+
+  {# Rating — read-only stars #}
+  <div>
+    <p class="text-xs font-medium text-gray-500 uppercase mb-1">{{ "Rating" | t }}</p>
+    <div class="flex gap-0.5 text-2xl leading-none">
+      {% for i in range(1, 6) %}
+        {% if i <= record.rating %}
+          <span class="text-amber-400">★</span>
+        {% else %}
+          <span class="text-gray-200">★</span>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  {# Testimonial text #}
+  <div>
+    <p class="text-xs font-medium text-gray-500 uppercase mb-1">{{ "Testimonial" | t }}</p>
+    <p class="text-sm text-gray-800 leading-relaxed">{{ record.content }}</p>
+  </div>
+
+  {# Featured status — approved only #}
+  {% if record.status == 'approved' %}
+  <div class="flex items-center justify-between py-2 border-t border-gray-100">
+    <span class="text-sm text-gray-500">{{ "Featured on website" | t }}</span>
+    {% if record.displayOnWebsite %}
+      <span class="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">{{ "Yes" | t }}</span>
+    {% else %}
+      <span class="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">{{ "No" | t }}</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# Action buttons — pending_review only #}
+  {% if record.status == 'pending_review' %}
+  <div class="flex gap-2 pt-2 mt-auto">
+    <button
+      hx-post="/admin/content/testimonials/{{ record.id }}/approve"
+      hx-target="#testimonial-list"
+      hx-swap="innerHTML"
+      class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 px-4 rounded transition-colors">
+      {{ "✓ Approve" | t }}
+    </button>
+    <button
+      hx-post="/admin/content/testimonials/{{ record.id }}/reject"
+      hx-target="#testimonial-list"
+      hx-swap="innerHTML"
+      class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2 px-4 rounded transition-colors">
+      {{ "✕ Reject" | t }}
+    </button>
+  </div>
+  {% else %}
+  <p class="text-xs text-gray-400 text-center pt-2 mt-auto">
+    {% if record.status == 'approved' %}
+      {{ "Approved — manage featured status from the list." | t }}
+    {% elif record.status == 'rejected' %}
+      {{ "This testimonial was rejected." | t }}
+    {% endif %}
+  </p>
+  {% endif %}
+
+</div>

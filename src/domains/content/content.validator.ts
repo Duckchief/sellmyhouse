@@ -4,8 +4,27 @@ import { body } from 'express-validator';
 export const validateTestimonialSubmit = [
   body('content').trim().notEmpty().withMessage('Please share your experience'),
   body('rating').isInt({ min: 1, max: 5 }).toInt().withMessage('Rating must be between 1 and 5'),
-  body('sellerName').trim().notEmpty().withMessage('Name is required'),
-  body('sellerTown').trim().notEmpty().withMessage('Town is required'),
+  body('clientName').trim().notEmpty().withMessage('Name is required'),
+  body('clientTown').trim().notEmpty().withMessage('Town is required'),
+];
+
+export const validateManualTestimonialCreate = [
+  body('clientName')
+    .trim()
+    .notEmpty()
+    .isLength({ max: 100 })
+    .withMessage('Name is required (max 100 chars)'),
+  body('clientTown')
+    .trim()
+    .notEmpty()
+    .isLength({ max: 100 })
+    .withMessage('Town is required (max 100 chars)'),
+  body('rating').isInt({ min: 1, max: 5 }).toInt().withMessage('Rating must be 1–5'),
+  body('content')
+    .trim()
+    .isLength({ min: 10, max: 1000 })
+    .withMessage('Testimonial must be 10–1000 characters'),
+  body('source').optional().trim().isLength({ max: 50 }),
 ];
 
 const VIDEO_CATEGORIES = ['photography', 'forms', 'process', 'financial'];

@@ -14,6 +14,7 @@ import type {
   HdbTransactionPartial,
   MarketInsights,
   TestimonialSubmitInput,
+  CreateManualTestimonialInput,
 } from './content.types';
 import type { VideoTutorial } from '@prisma/client';
 
@@ -291,8 +292,9 @@ export async function issueTestimonialToken(
     id: createId(),
     sellerId,
     transactionId,
-    sellerName: formatDisplayName(sellerName),
-    sellerTown,
+    clientType: 'seller',
+    clientName: formatDisplayName(sellerName),
+    clientTown: sellerTown,
     submissionToken: token,
     tokenExpiresAt,
   });
@@ -310,8 +312,8 @@ export async function submitTestimonial(token: string, input: TestimonialSubmitI
   return contentRepo.updateTestimonialSubmission(testimonial.id, {
     content: input.content,
     rating: input.rating,
-    sellerName: input.sellerName,
-    sellerTown: input.sellerTown,
+    clientName: input.clientName,
+    clientTown: input.clientTown,
     status: 'pending_review' as const,
   });
 }
@@ -337,8 +339,19 @@ export async function getTestimonialBySeller(sellerId: string) {
   return contentRepo.findTestimonialBySeller(sellerId);
 }
 
-export async function listTestimonials() {
-  return contentRepo.findAllTestimonials();
+export async function getTestimonialById(id: string) {
+  const testimonial = await contentRepo.findTestimonialById(id);
+  if (!testimonial) throw new NotFoundError('Testimonial', id);
+  return testimonial;
+}
+
+export async function listTestimonials(status?: string) {
+  return contentRepo.findAllTestimonials(status);
+}
+
+export async function hasPendingReviewTestimonials(): Promise<boolean> {
+  const count = await contentRepo.countTestimonialsByStatus('pending_review');
+  return count > 0;
 }
 
 export async function getFeaturedTestimonials() {
@@ -351,18 +364,40 @@ export async function approveTestimonial(id: string, agentId: string) {
 
 export async function rejectTestimonial(id: string, agentId?: string, reason?: string) {
   const testimonial = await contentRepo.updateTestimonialStatus(id, 'rejected');
-  void notificationService.send(
-    {
-      recipientType: 'seller',
-      recipientId: testimonial.sellerId,
-      templateName: 'testimonial_rejected',
-      templateData: {
-        reason: reason ?? 'Your testimonial did not meet our publication guidelines.',
+  if (testimonial.sellerId) {
+    void notificationService.send(
+      {
+        recipientType: 'seller',
+        recipientId: testimonial.sellerId,
+        templateName: 'testimonial_rejected',
+        templateData: {
+          reason: reason ?? 'Your testimonial did not meet our publication guidelines.',
+        },
       },
-    },
-    agentId ?? 'system',
-  );
+      agentId ?? 'system',
+    );
+  }
   return testimonial;
+}
+
+export async function createManualTestimonial(
+  agentId: string,
+  input: CreateManualTestimonialInput,
+) {
+  return contentRepo.createManualTestimonial({
+    id: createId(),
+    clientName: input.clientName,
+    clientTown: input.clientTown,
+    rating: input.rating,
+    content: input.content,
+    source: input.source ?? null,
+    isManual: true,
+    status: 'pending_review',
+    createdByAgentId: agentId,
+    sellerId: null,
+    buyerId: null,
+    transactionId: null,
+  });
 }
 
 export async function featureTestimonial(id: string, displayOnWebsite: boolean) {

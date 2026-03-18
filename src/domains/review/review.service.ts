@@ -149,7 +149,6 @@ const AUDIT_ACTION: Record<EntityType, string> = {
   listing_description: 'listing.reviewed',
   listing_photos: 'listing.reviewed',
   weekly_update: 'weekly_update.reviewed',
-  market_content: 'market_content.reviewed',
   document_checklist: 'document_checklist.reviewed',
 };
 
@@ -213,9 +212,6 @@ export async function approveItem(input: {
     }
     case 'weekly_update':
       await reviewRepo.approveWeeklyUpdate(entityId, agentId);
-      break;
-    case 'market_content':
-      await reviewRepo.approveMarketContent(entityId, agentId);
       break;
     case 'document_checklist':
       await reviewRepo.approveDocumentChecklist(entityId, agentId);
@@ -283,9 +279,6 @@ export async function rejectItem(input: {
       break;
     case 'weekly_update':
       await reviewRepo.rejectWeeklyUpdate(entityId, agentId, reviewNotes);
-      break;
-    case 'market_content':
-      await reviewRepo.rejectMarketContent(entityId, agentId, reviewNotes);
       break;
     case 'document_checklist':
       await reviewRepo.rejectDocumentChecklist(entityId, agentId, reviewNotes);

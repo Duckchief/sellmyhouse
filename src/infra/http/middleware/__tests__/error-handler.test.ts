@@ -7,6 +7,7 @@ function mockRes() {
     status: jest.fn().mockReturnThis(),
     json: jest.fn().mockReturnThis(),
     render: jest.fn().mockReturnThis(),
+    redirect: jest.fn().mockReturnThis(),
   };
   return res as unknown as Response;
 }
@@ -23,15 +24,11 @@ const next = jest.fn() as unknown as NextFunction;
 
 describe('errorHandler', () => {
   describe('browser requests (no hx-request, Accept: text/html)', () => {
-    it('renders error page for 401', () => {
-      const req = mockReq({ headers: { accept: 'text/html' } });
+    it('redirects to /auth/login for 401', () => {
+      const req = mockReq({ headers: { accept: 'text/html' }, originalUrl: '/profile' });
       const res = mockRes();
       errorHandler(new UnauthorizedError('Authentication required'), req, res, next);
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.render).toHaveBeenCalledWith(
-        'pages/error',
-        expect.objectContaining({ statusCode: 401, code: 'UNAUTHORIZED' }),
-      );
+      expect(res.redirect).toHaveBeenCalledWith('/auth/login?next=%2Fprofile');
     });
 
     it('renders error page for unhandled 500', () => {

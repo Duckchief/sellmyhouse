@@ -106,6 +106,92 @@ describe('GET /admin/tutorials — tab param', () => {
   });
 });
 
+describe('POST /admin/content/testimonials — manual testimonial creation', () => {
+  const mockTestimonials = [
+    {
+      id: 't-1',
+      clientName: 'Alice Tan',
+      clientTown: 'Ang Mo Kio',
+      rating: 5,
+      content: 'Great service from start to finish.',
+      source: null,
+      status: 'approved',
+    },
+  ];
+
+  // makeApp stubs res.render to always send 200. For the 422 test we need a
+  // variant that preserves the status code set before render is called.
+  function makeAppStatusPreserving() {
+    const app = express();
+    app.use(express.urlencoded({ extended: true }));
+
+    app.use((req, _res, next) => {
+      Object.assign(req, {
+        isAuthenticated: () => true,
+        user: { id: 'admin-1', role: 'admin', twoFactorEnabled: false, twoFactorVerified: true },
+      });
+      next();
+    });
+
+    app.use((_req, res, next) => {
+      res.render = ((_view: string, _options?: object) => {
+        // Preserve whatever status was set by the route before calling render.
+        const current = res.statusCode;
+        res.status(current).send('<html></html>');
+      }) as typeof res.render;
+      next();
+    });
+
+    app.use(adminRouter);
+
+    app.use(
+      (err: Error & { statusCode?: number }, _req: Request, res: Response, _next: NextFunction) => {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      },
+    );
+
+    return app;
+  }
+
+  beforeEach(() => {
+    jest.mocked(contentService.createManualTestimonial).mockResolvedValue(undefined as any);
+    jest.mocked(contentService.listTestimonials).mockResolvedValue(mockTestimonials as any);
+  });
+
+  it('returns 200 and renders testimonial list on valid HTMX request', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/content/testimonials')
+      .set('HX-Request', 'true')
+      .type('form')
+      .send({
+        clientName: 'Alice Tan',
+        clientTown: 'Ang Mo Kio',
+        rating: '5',
+        content: 'Great service from start to finish.',
+        source: 'Google',
+      });
+    expect(res.status).toBe(200);
+    expect(contentService.createManualTestimonial).toHaveBeenCalled();
+  });
+
+  it('returns 422 when required fields are missing on HTMX request', async () => {
+    const app = makeAppStatusPreserving();
+    const res = await request(app)
+      .post('/admin/content/testimonials')
+      .set('HX-Request', 'true')
+      .type('form')
+      .send({
+        clientName: '',
+        clientTown: '',
+        rating: '',
+        content: '',
+      });
+    expect(res.status).toBe(422);
+    expect(contentService.createManualTestimonial).not.toHaveBeenCalled();
+  });
+});
+
 describe('GET /admin/dashboard — preset param', () => {
   beforeEach(() => {
     mockAdminService.getAnalytics.mockResolvedValue({

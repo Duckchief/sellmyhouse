@@ -1057,7 +1057,7 @@ adminRouter.get(
 adminRouter.post(
   '/admin/content/testimonials',
   ...adminAuth,
-  validateManualTestimonialCreate,
+  ...validateManualTestimonialCreate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);

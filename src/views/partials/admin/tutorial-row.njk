@@ -18,10 +18,5 @@
       <input type="hidden" name="items[0][orderIndex]" value="{{ tutorial.orderIndex + 1 }}">
       <button type="submit" class="text-gray-400 hover:text-gray-600 px-1" aria-label="{{ 'Move down' | t }}">↓</button>
     </form>
-    <a href="/admin/tutorials/{{ tutorial.id }}/edit" class="text-indigo-600 hover:underline text-xs no-row-click">{{ "Edit" | t }}</a>
-    <form method="POST" action="/admin/tutorials/{{ tutorial.id }}/delete" class="inline no-row-click"
-          data-action="confirm-submit" data-message="{{ 'Delete this tutorial?' | t }}">
-      <button type="submit" class="text-red-500 hover:underline text-xs">{{ "Delete" | t }}</button>
-    </form>
   </td>
 </tr>

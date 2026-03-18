@@ -50,6 +50,7 @@
         id="drawer-title"
         name="title"
         required
+        maxlength="150"
         value="{{ values.title if values else (tutorial.title if tutorial else '') }}"
         class="input-field w-full"
         oninput="tutorialDrawerUpdateSlug(this.value)">

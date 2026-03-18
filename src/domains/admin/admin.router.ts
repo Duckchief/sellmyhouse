@@ -917,7 +917,7 @@ adminRouter.post(
         if (req.headers['hx-request']) {
           const rawTab = (req.body.activeTab as string) ?? 'photography';
           const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? (rawTab as TutorialTab) : 'photography';
-          return res.status(400).render('partials/admin/tutorial-form-drawer', {
+          return res.status(422).render('partials/admin/tutorial-form-drawer', {
             tutorial: null,
             errors: errors.array(),
             values: req.body,
@@ -958,7 +958,7 @@ adminRouter.post(
         if (req.headers['hx-request']) {
           const rawTab = (req.body.activeTab as string) ?? 'photography';
           const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? (rawTab as TutorialTab) : 'photography';
-          return res.status(409).render('partials/admin/tutorial-form-drawer', {
+          return res.status(422).render('partials/admin/tutorial-form-drawer', {
             tutorial: null,
             errors: [{ msg: err.message }],
             values: req.body,
@@ -1016,7 +1016,7 @@ adminRouter.post(
           const tutorial = await contentService.getTutorialById(req.params['id'] as string);
           const rawTab = (req.body.activeTab as string) ?? 'photography';
           const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? (rawTab as TutorialTab) : 'photography';
-          return res.status(400).render('partials/admin/tutorial-form-drawer', {
+          return res.status(422).render('partials/admin/tutorial-form-drawer', {
             tutorial,
             errors: errors.array(),
             values: req.body,
@@ -1058,7 +1058,7 @@ adminRouter.post(
         if (req.headers['hx-request']) {
           const rawTab = (req.body.activeTab as string) ?? 'photography';
           const activeTab: TutorialTab = VALID_TUTORIAL_TABS.includes(rawTab as TutorialTab) ? (rawTab as TutorialTab) : 'photography';
-          return res.status(409).render('partials/admin/tutorial-form-drawer', {
+          return res.status(422).render('partials/admin/tutorial-form-drawer', {
             tutorial: { id: req.params['id'] as string },
             errors: [{ msg: err.message }],
             values: req.body,

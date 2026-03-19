@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { fromBuffer as fileTypeFromBuffer } from 'file-type';
+import { fileTypeFromBuffer } from 'file-type';
 import { createId } from '@paralleldrive/cuid2';
 import { localStorage } from '../../infra/storage/local-storage';
 import * as propertyRepo from './property.repository';

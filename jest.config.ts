@@ -9,6 +9,7 @@ const config: Config = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@paralleldrive/cuid2$': '<rootDir>/tests/mocks/cuid2.ts',
     '^otplib$': '<rootDir>/tests/mocks/otplib.ts',
+    '^file-type$': '<rootDir>/tests/mocks/file-type.ts',
   },
   testPathIgnorePatterns: [
     '/node_modules/',

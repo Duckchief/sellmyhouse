@@ -6,6 +6,8 @@ import * as authRepo from './auth.repository';
 import * as auditService from '../shared/audit.service';
 import { encrypt, decrypt } from '../shared/encryption';
 import { ValidationError, ConflictError, UnauthorizedError } from '../shared/errors';
+import { maskEmail } from '../shared/nric';
+import { sendSystemEmail } from '../../infra/email/system-mailer';
 import type {
   SellerRegistrationInput,
   TotpSetupResult,
@@ -25,6 +27,13 @@ export async function registerSeller(input: SellerRegistrationInput) {
   if (!input.consentService) {
     throw new ValidationError('Service consent is required', {
       consentService: 'You must consent to our service terms to register',
+    });
+  }
+
+  if (!input.consentHuttonsTransfer) {
+    throw new ValidationError('Huttons data transfer consent is required', {
+      consentHuttonsTransfer:
+        'You must consent to data transfer to Huttons Asia Pte Ltd to register',
     });
   }
 
@@ -48,6 +57,7 @@ export async function registerSeller(input: SellerRegistrationInput) {
     sellerId: seller.id,
     purposeService: input.consentService,
     purposeMarketing: input.consentMarketing,
+    purposeHuttonsTransfer: input.consentHuttonsTransfer,
     ipAddress: input.ipAddress,
     userAgent: input.userAgent,
   });
@@ -56,8 +66,10 @@ export async function registerSeller(input: SellerRegistrationInput) {
     action: 'auth.seller_registered',
     entityType: 'seller',
     entityId: seller.id,
-    details: { email: input.email },
+    details: { email: maskEmail(input.email) },
     ipAddress: input.ipAddress,
+    actorType: 'seller' as const,
+    actorId: seller.id,
   });
 
   return seller;
@@ -81,6 +93,8 @@ export async function loginSeller(email: string, password: string) {
       entityType: 'Seller',
       entityId: seller.id,
       details: { reason: 'invalid_password' },
+      actorType: 'seller' as const,
+      actorId: seller.id,
     });
     await authRepo.incrementSellerFailedLoginAttempts(seller.id);
     if (seller.failedLoginAttempts + 1 >= MAX_LOGIN_FAILURES) {
@@ -91,6 +105,7 @@ export async function loginSeller(email: string, password: string) {
         entityType: 'seller',
         entityId: seller.id,
         details: { reason: 'Too many failed login attempts' },
+        actorType: 'system' as const,
       });
     }
     return null;
@@ -106,6 +121,8 @@ export async function loginSeller(email: string, password: string) {
     entityType: 'Seller',
     entityId: seller.id,
     details: {},
+    actorType: 'seller' as const,
+    actorId: seller.id,
   });
 
   return seller;
@@ -130,6 +147,8 @@ export async function loginAgent(email: string, password: string) {
       entityType: 'Agent',
       entityId: agent.id,
       details: { reason: 'invalid_password' },
+      actorType: 'agent' as const,
+      actorId: agent.id,
     });
     await authRepo.incrementAgentFailedLoginAttempts(agent.id);
     if (agent.failedLoginAttempts + 1 >= MAX_LOGIN_FAILURES) {
@@ -140,6 +159,7 @@ export async function loginAgent(email: string, password: string) {
         entityType: 'agent',
         entityId: agent.id,
         details: { reason: 'Too many failed login attempts' },
+        actorType: 'system' as const,
       });
     }
     return null;
@@ -155,6 +175,8 @@ export async function loginAgent(email: string, password: string) {
     entityType: 'Agent',
     entityId: agent.id,
     details: {},
+    actorType: 'agent' as const,
+    actorId: agent.id,
   });
 
   return agent;
@@ -198,6 +220,8 @@ export async function setup2FA(
     entityType: role,
     entityId: userId,
     details: { method: 'totp' },
+    actorType: role as 'seller' | 'agent',
+    actorId: userId,
   });
 
   return { secret, otpAuthUrl, qrCodeDataUrl, backupCodes };
@@ -271,6 +295,8 @@ export async function verifyBackupCode(input: BackupCodeVerifyInput): Promise<bo
         entityType: input.role,
         entityId: input.userId,
         details: { remainingCodes: remaining.length },
+        actorType: input.role as 'seller' | 'agent',
+        actorId: input.userId,
       });
 
       return true;
@@ -299,6 +325,8 @@ export async function changePassword(
     entityType: role,
     entityId: userId,
     details: {},
+    actorType: role as 'seller' | 'agent',
+    actorId: userId,
   });
 }
 
@@ -327,7 +355,9 @@ export async function requestPasswordReset(
     action: 'auth.password_reset_requested',
     entityType: role,
     entityId: user.id,
-    details: { email },
+    details: { email: maskEmail(email) },
+    actorType: role as 'seller' | 'agent',
+    actorId: user.id,
   });
 
   return { token, userId: user.id };
@@ -371,6 +401,60 @@ export async function resetPassword(
     entityType: role,
     entityId: user.id,
     details: {},
+    actorType: role as 'seller' | 'agent',
+    actorId: user.id,
+  });
+}
+
+export async function sendVerificationEmail(sellerId: string, email: string): Promise<void> {
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+  await authRepo.setSellerEmailVerificationToken(sellerId, hashedToken, expiry);
+
+  const appUrl = process.env.APP_URL || 'https://sellmyhomenow.sg';
+  const verifyUrl = `${appUrl}/auth/verify-email/${rawToken}`;
+
+  await sendSystemEmail(
+    email,
+    'Verify your SellMyHomeNow email address',
+    `<p>Click the link below to verify your email address:</p>
+<p><a href="${verifyUrl}">${verifyUrl}</a></p>
+<p>This link expires in 24 hours.</p>
+<p>If you did not register on SellMyHomeNow, please ignore this email.</p>`,
+  );
+
+  await auditService.log({
+    action: 'auth.email_verification_sent',
+    entityType: 'seller',
+    entityId: sellerId,
+    details: { email: maskEmail(email) },
+    actorType: 'system' as const,
+  });
+}
+
+export async function verifyEmail(rawToken: string): Promise<void> {
+  const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const seller = await authRepo.findSellerByEmailVerificationToken(hashedToken);
+
+  if (!seller) {
+    throw new ValidationError('Invalid or expired verification link');
+  }
+
+  if (!seller.emailVerificationExpiry || seller.emailVerificationExpiry < new Date()) {
+    throw new ValidationError('Invalid or expired verification link');
+  }
+
+  await authRepo.markSellerEmailVerified(seller.id);
+
+  await auditService.log({
+    action: 'auth.email_verified',
+    entityType: 'seller',
+    entityId: seller.id,
+    details: {},
+    actorType: 'seller' as const,
+    actorId: seller.id,
   });
 }
 

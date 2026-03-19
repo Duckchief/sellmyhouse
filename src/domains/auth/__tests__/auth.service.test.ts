@@ -7,6 +7,8 @@ jest.mock('../../shared/encryption');
 jest.mock('bcrypt');
 jest.mock('otplib');
 jest.mock('qrcode');
+jest.mock('../../../infra/email/system-mailer');
+const systemMailer = jest.requireMock('../../../infra/email/system-mailer');
 
 const authRepo = jest.requireMock('../auth.repository');
 const auditService = jest.requireMock('../../shared/audit.service');
@@ -33,6 +35,7 @@ describe('AuthService', () => {
       password: 'password123',
       consentService: true,
       consentMarketing: false,
+      consentHuttonsTransfer: true,
       ipAddress: '127.0.0.1',
       userAgent: 'TestAgent',
     };
@@ -597,6 +600,60 @@ describe('AuthService', () => {
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'auth.password_reset_completed' }),
       );
+    });
+  });
+
+  describe('sendVerificationEmail', () => {
+    it('sets verification token and sends email', async () => {
+      authRepo.setSellerEmailVerificationToken = jest.fn().mockResolvedValue({});
+      systemMailer.sendSystemEmail = jest.fn().mockResolvedValue(undefined);
+
+      await authService.sendVerificationEmail('seller-1', 'seller@example.com');
+
+      expect(authRepo.setSellerEmailVerificationToken).toHaveBeenCalledWith(
+        'seller-1',
+        expect.any(String),
+        expect.any(Date),
+      );
+      expect(systemMailer.sendSystemEmail).toHaveBeenCalledWith(
+        'seller@example.com',
+        expect.stringContaining('Verify'),
+        expect.stringContaining('/auth/verify-email/'),
+      );
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.email_verification_sent' }),
+      );
+    });
+  });
+
+  describe('verifyEmail', () => {
+    it('marks seller email as verified when token is valid', async () => {
+      const expiry = new Date(Date.now() + 60 * 60 * 1000);
+      authRepo.findSellerByEmailVerificationToken = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        emailVerificationExpiry: expiry,
+      });
+      authRepo.markSellerEmailVerified = jest.fn().mockResolvedValue({});
+
+      await authService.verifyEmail('raw-token');
+
+      expect(authRepo.markSellerEmailVerified).toHaveBeenCalledWith('seller-1');
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.email_verified' }),
+      );
+    });
+
+    it('throws ValidationError when token is not found', async () => {
+      authRepo.findSellerByEmailVerificationToken = jest.fn().mockResolvedValue(null);
+      await expect(authService.verifyEmail('bad-token')).rejects.toThrow('Invalid or expired');
+    });
+
+    it('throws ValidationError when token is expired', async () => {
+      authRepo.findSellerByEmailVerificationToken = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        emailVerificationExpiry: new Date(Date.now() - 1000),
+      });
+      await expect(authService.verifyEmail('raw-token')).rejects.toThrow('Invalid or expired');
     });
   });
 });

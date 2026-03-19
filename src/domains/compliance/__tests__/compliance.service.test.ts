@@ -331,8 +331,14 @@ describe('scanRetention', () => {
     mockRepo.findLeadsForRetention.mockResolvedValue([]);
     mockRepo.findServiceWithdrawnForDeletion.mockResolvedValue([]);
     mockRepo.findTransactionsForRetention.mockResolvedValue([]);
+    mockRepo.findTransactionsCompletedBeforeForNric.mockResolvedValue([]);
     mockRepo.findCddRecordsForRetention.mockResolvedValue([]);
     mockRepo.findConsentRecordsForDeletion.mockResolvedValue([]);
+    mockRepo.findClosedListingsForRetention.mockResolvedValue([]);
+    mockRepo.findOldViewingSlotsForClosedProperties.mockResolvedValue([]);
+    mockRepo.deleteOldViewingSlotsWithViewings.mockResolvedValue(0);
+    mockRepo.findOldWeeklyUpdates.mockResolvedValue([]);
+    mockRepo.deleteOldWeeklyUpdates.mockResolvedValue(0);
     mockRepo.findStaleCorrectionRequests.mockResolvedValue([]);
     mockRepo.findExistingDeletionRequest.mockResolvedValue(null);
     mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
@@ -342,12 +348,13 @@ describe('scanRetention', () => {
     mockRepo.anonymiseBuyerRecords.mockResolvedValue(undefined);
     mockAudit.log.mockResolvedValue(undefined);
     // Default retention periods from SystemSetting
-    mockSettings.getNumber.mockResolvedValue(12); // lead_retention_months (first call)
+    mockSettings.getNumber.mockResolvedValue(12); // fallback for any extra calls
     mockSettings.getNumber
       .mockResolvedValueOnce(12) // lead_retention_months
       .mockResolvedValueOnce(5) // transaction_retention_years
       .mockResolvedValueOnce(5) // cdd_retention_years
-      .mockResolvedValueOnce(1); // consent_post_withdrawal_retention_years
+      .mockResolvedValueOnce(1) // consent_post_withdrawal_retention_years
+      .mockResolvedValueOnce(6); // listing_retention_months
   });
 
   it('flags leads inactive for 12+ months', async () => {
@@ -447,6 +454,8 @@ describe('executeHardDelete', () => {
     mockRepo.hardDeleteCddDocuments.mockResolvedValue(undefined);
     mockRepo.hardDeleteConsentRecord.mockResolvedValue(undefined);
     mockRepo.hardDeleteTransaction.mockResolvedValue(undefined);
+    mockRepo.hardDeleteListing.mockResolvedValue(undefined);
+    mockRepo.redactNricFromCddRecord.mockResolvedValue(undefined);
     mockRepo.updateDeletionRequest.mockResolvedValue({} as never);
     mockAudit.log.mockResolvedValue(undefined);
     mockStorage.delete.mockResolvedValue(undefined);
@@ -1103,7 +1112,13 @@ describe('scanRetention — CDD documents with filePaths in details', () => {
     mockRepo.findLeadsForRetention.mockResolvedValue([]);
     mockRepo.findServiceWithdrawnForDeletion.mockResolvedValue([]);
     mockRepo.findTransactionsForRetention.mockResolvedValue([]);
+    mockRepo.findTransactionsCompletedBeforeForNric.mockResolvedValue([]);
     mockRepo.findConsentRecordsForDeletion.mockResolvedValue([]);
+    mockRepo.findClosedListingsForRetention.mockResolvedValue([]);
+    mockRepo.findOldViewingSlotsForClosedProperties.mockResolvedValue([]);
+    mockRepo.deleteOldViewingSlotsWithViewings.mockResolvedValue(0);
+    mockRepo.findOldWeeklyUpdates.mockResolvedValue([]);
+    mockRepo.deleteOldWeeklyUpdates.mockResolvedValue(0);
     mockRepo.findStaleCorrectionRequests.mockResolvedValue([]);
     mockRepo.findVerifiedViewersForRetention.mockResolvedValue([]);
     mockRepo.findBuyersForRetention.mockResolvedValue([]);
@@ -1111,7 +1126,8 @@ describe('scanRetention — CDD documents with filePaths in details', () => {
       .mockResolvedValueOnce(12) // lead_retention_months
       .mockResolvedValueOnce(5) // transaction_retention_years
       .mockResolvedValueOnce(5) // cdd_retention_years
-      .mockResolvedValueOnce(1); // consent_post_withdrawal_retention_years
+      .mockResolvedValueOnce(1) // consent_post_withdrawal_retention_years
+      .mockResolvedValueOnce(6); // listing_retention_months
 
     const cddDocs = [{ path: 'cdd/cdd-1/nric-doc1.jpg.enc', id: 'doc-1', docType: 'nric' }];
     mockRepo.findCddRecordsForRetention.mockResolvedValue([

@@ -24,6 +24,7 @@ const SETTINGS = [
   { key: 'transaction_retention_years', value: '5', description: 'Years post-completion before a transaction is flagged for deletion (AML/CFT minimum)' },
   { key: 'cdd_retention_years', value: '5', description: 'Years post-verification before CDD documents are flagged for deletion (AML/CFT minimum)' },
   { key: 'consent_post_withdrawal_retention_years', value: '1', description: 'Years after consent withdrawal before the consent record is flagged for deletion' },
+  { key: 'listing_retention_months', value: '6', description: 'Months after a listing is closed before it is flagged for deletion' },
   { key: 'seller_inactive_alert_days', value: '14', description: 'Days of inactivity before agent alert is sent' },
   { key: 'maintenance_mode', value: 'false', description: 'Set to true to show the maintenance page to sellers and public visitors' },
   { key: 'maintenance_message', value: '', description: 'Optional custom message displayed on the maintenance page' },

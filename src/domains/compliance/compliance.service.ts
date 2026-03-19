@@ -358,11 +358,13 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     transactionRetentionYears,
     cddRetentionYears,
     consentPostWithdrawalRetentionYears,
+    listingRetentionMonths,
   ] = await Promise.all([
     settingsService.getNumber('lead_retention_months', 12),
     settingsService.getNumber('transaction_retention_years', 5),
     settingsService.getNumber('cdd_retention_years', 5),
     settingsService.getNumber('consent_post_withdrawal_retention_years', 1),
+    settingsService.getNumber('listing_retention_months', 6),
   ]);
 
   async function flagIfNew(
@@ -457,7 +459,25 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     );
   }
 
-  // 5. Withdrawn consent records past configured retention period post-withdrawal
+  // 5. NRIC data 30 days after transaction completion
+  const nricCutoff = new Date(now);
+  nricCutoff.setDate(nricCutoff.getDate() - 30);
+  const completedTxForNric =
+    await complianceRepo.findTransactionsCompletedBeforeForNric(nricCutoff);
+  for (const tx of completedTxForNric) {
+    const cdd = await complianceRepo.findLatestSellerCddRecord(tx.sellerId);
+    if (!cdd || cdd.nricLast4 === 'XXXX') continue; // already redacted
+    await flagIfNew(
+      'nric_data',
+      cdd.id,
+      'NRIC data 30 days post-transaction completion',
+      'nric_30_day_post_completion',
+      'flagged',
+      { sellerId: tx.sellerId, transactionId: tx.id },
+    );
+  }
+
+  // 6. Withdrawn consent records past configured retention period post-withdrawal
   const consentCutoff = new Date(now);
   consentCutoff.setFullYear(consentCutoff.getFullYear() - consentPostWithdrawalRetentionYears);
   const oldConsentRecords = await complianceRepo.findConsentRecordsForDeletion(consentCutoff);
@@ -501,7 +521,71 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     flaggedCount++;
   }
 
-  // 8. Stale data correction requests — alert agent (not deletion)
+  // 8. Closed listings past configured retention period (Finding #15)
+  const listingCutoff = new Date(now);
+  listingCutoff.setMonth(listingCutoff.getMonth() - listingRetentionMonths);
+  const closedListings = await complianceRepo.findClosedListingsForRetention(listingCutoff);
+  for (const listing of closedListings) {
+    const photos = (listing.photos as { path?: string; optimizedPath?: string }[] | null) ?? [];
+    const photoPaths: string[] = [];
+    for (const photo of photos) {
+      if (photo.path) photoPaths.push(photo.path);
+      if (photo.optimizedPath) photoPaths.push(photo.optimizedPath);
+    }
+    await flagIfNew(
+      'listing',
+      listing.id,
+      `Listing closed > ${listingRetentionMonths} months ago`,
+      'listing_closed',
+      'flagged',
+      { propertyId: listing.propertyId, photoPaths },
+    );
+  }
+
+  // 9. ViewingSlots: delete 30 days after slot date once property has a closed listing (Finding #16)
+  // Direct delete — operational scheduling data, no agent review required
+  const viewingSlotCutoff = new Date(now);
+  viewingSlotCutoff.setDate(viewingSlotCutoff.getDate() - 30);
+  const oldSlots = await complianceRepo.findOldViewingSlotsForClosedProperties(viewingSlotCutoff);
+  if (oldSlots.length > 0) {
+    const slotIds = oldSlots.map((s) => s.id);
+    const deletedSlots = await complianceRepo.deleteOldViewingSlotsWithViewings(slotIds);
+    await auditService.log({
+      action: 'compliance.viewing_slots_deleted',
+      entityType: 'viewing_slot',
+      entityId: 'batch',
+      details: { count: deletedSlots, cutoffDate: viewingSlotCutoff },
+    });
+    flaggedCount += deletedSlots;
+  }
+
+  // 10. WeeklyUpdates: delete 6 months after creation (Finding #16)
+  // Direct delete — AI-generated market narratives, not core personal data requiring agent review
+  const weeklyUpdateCutoff = new Date(now);
+  weeklyUpdateCutoff.setMonth(weeklyUpdateCutoff.getMonth() - 6);
+  const oldWeeklyUpdates = await complianceRepo.findOldWeeklyUpdates(weeklyUpdateCutoff);
+  if (oldWeeklyUpdates.length > 0) {
+    const updateIds = oldWeeklyUpdates.map((u) => u.id);
+    const deletedUpdates = await complianceRepo.deleteOldWeeklyUpdates(updateIds);
+    await auditService.log({
+      action: 'compliance.weekly_updates_deleted',
+      entityType: 'weekly_update',
+      entityId: 'batch',
+      details: { count: deletedUpdates, cutoffDate: weeklyUpdateCutoff },
+    });
+    flaggedCount += deletedUpdates;
+  }
+
+  // ── Tables explicitly excluded from automated retention ───────────────────
+  // AuditLog: append-only, 2-year policy enforced at the DB/infra level (CLAUDE.md)
+  // Notification: operational delivery log, no standalone PII — deleted via seller cascade
+  // Testimonial: public marketing content — deleted via seller hard delete cascade
+  // DataDeletionRequest / DataCorrectionRequest: compliance records — never auto-deleted
+  // HdbTransaction / HdbDataSync / MarketContent: public/derived data, no personal data
+  // AgentSetting / SystemSetting: config data — no personal data
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // 11. Stale data correction requests — alert agent (not deletion)
   const correctionCutoff = new Date(now);
   correctionCutoff.setDate(correctionCutoff.getDate() - 30);
   const staleCorrections = await complianceRepo.findStaleCorrectionRequests(correctionCutoff);
@@ -629,6 +713,34 @@ export async function executeHardDelete(input: {
       }
       break;
     }
+
+    case 'listing': {
+      const listingDetails = details as { photoPaths?: string[] } | null;
+      const photoPaths = listingDetails?.photoPaths ?? [];
+      for (const filePath of photoPaths) {
+        try {
+          await localStorage.delete(filePath);
+        } catch (err) {
+          await auditService.log({
+            action: 'compliance.file_unlink_failed',
+            entityType: 'listing',
+            entityId: request.targetId,
+            details: {
+              filePath,
+              error: err instanceof Error ? err.message : String(err),
+              requestId: input.requestId,
+            },
+            agentId: input.agentId,
+          });
+        }
+      }
+      await complianceRepo.hardDeleteListing(request.targetId);
+      break;
+    }
+
+    case 'nric_data':
+      await complianceRepo.redactNricFromCddRecord(request.targetId);
+      break;
 
     default:
       throw new ComplianceError(`Unknown target type for deletion: ${request.targetType}`);

@@ -20,7 +20,7 @@ twoFactorRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const result = await authService.setup2FA(user.id, user.role);
+      const result = await authService.setup2FA(user.id, user.role, req.session.id);
 
       // Update session timeout to 30 min now that 2FA is enabled (Amendment E)
       if (req.session) {

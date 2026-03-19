@@ -390,6 +390,9 @@ model Seller {
   loginLockedUntil        DateTime?              @map("login_locked_until")
   passwordResetToken      String?                @map("password_reset_token")
   passwordResetExpiry     DateTime?              @map("password_reset_expiry")
+  emailVerified           Boolean                @default(false) @map("email_verified")
+  emailVerificationToken  String?                @map("email_verification_token")
+  emailVerificationExpiry DateTime?              @map("email_verification_expiry")
   consultationCompletedAt DateTime?              @map("consultation_completed_at")
   retentionExpiresAt      DateTime?              @map("retention_expires_at")
   cpfDisclaimerShownAt    DateTime?              @map("cpf_disclaimer_shown_at")
@@ -800,8 +803,10 @@ model ConsentRecord {
   buyer              Buyer?             @relation(fields: [buyerId], references: [id])
   viewerId           String?            @map("viewer_id")
   viewer             VerifiedViewer?    @relation(fields: [viewerId], references: [id])
-  purposeService     Boolean            @default(false) @map("purpose_service")
-  purposeMarketing   Boolean            @default(false) @map("purpose_marketing")
+  purposeService          Boolean            @default(false) @map("purpose_service")
+  purposeMarketing        Boolean            @default(false) @map("purpose_marketing")
+  purposeHuttonsTransfer  Boolean            @default(false) @map("purpose_huttons_transfer")
+  version            String             @default("1.0") @map("consent_version")
   consentGivenAt     DateTime           @default(now()) @map("consent_given_at")
   consentWithdrawnAt DateTime?          @map("consent_withdrawn_at")
   withdrawalChannel  String?            @map("withdrawal_channel")
@@ -1021,6 +1026,8 @@ model SystemSetting {
 model AuditLog {
   id         String   @id
   agentId    String?  @map("agent_id")
+  actorType  String?  @map("actor_type")
+  actorId    String?  @map("actor_id")
   action     String
   entityType String   @map("entity_type")
   entityId   String   @map("entity_id")

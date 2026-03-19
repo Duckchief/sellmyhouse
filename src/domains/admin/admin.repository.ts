@@ -199,7 +199,25 @@ export async function findAllSellers(filter: {
       skip,
       take: limit,
       orderBy: { createdAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        status: true,
+        agentId: true,
+        notificationPreference: true,
+        consentService: true,
+        consentMarketing: true,
+        consentTimestamp: true,
+        consentWithdrawnAt: true,
+        leadSource: true,
+        onboardingStep: true,
+        twoFactorEnabled: true,
+        consultationCompletedAt: true,
+        retentionExpiresAt: true,
+        createdAt: true,
+        updatedAt: true,
         agent: { select: { id: true, name: true } },
       },
     }),
@@ -240,6 +258,7 @@ export async function getReviewQueue() {
         },
       },
       orderBy: { updatedAt: 'asc' },
+      take: 50,
     }),
     prisma.financialReport.findMany({
       where: { approvedAt: null, aiNarrative: { not: null } },
@@ -250,6 +269,7 @@ export async function getReviewQueue() {
         property: { select: { block: true, street: true } },
       },
       orderBy: { generatedAt: 'asc' },
+      take: 50,
     }),
   ]);
 

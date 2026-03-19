@@ -147,6 +147,12 @@ export async function backfillPropertySlugs(): Promise<number> {
     const baseSlug = generatePropertySlug(p.block, p.street, p.town);
     const slug = await buildUniqueSlug(baseSlug);
     await propertyRepo.updateSlug(p.id, slug);
+    await auditService.log({
+      action: 'property.slug_backfilled',
+      entityType: 'property',
+      entityId: p.id,
+      details: { slug },
+    });
     count++;
   }
   return count;

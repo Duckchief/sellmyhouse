@@ -41,7 +41,7 @@
       {% endif %}">{{ pageBadge.text | t }}</span>
     {% endif %}
   </div>
-  {% if pageActionsHtml %}{{ pageActionsHtml | safe }}{% endif %}
+  {% if pageActionsHtml %}{{ pageActionsHtml | safe }}{# safe: server-generated action buttons, no user input #}{% endif %}
 </div>
 
 {% if pageSubtitle %}

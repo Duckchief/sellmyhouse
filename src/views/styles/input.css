@@ -58,6 +58,29 @@
   }
 }
 
+/* ── CSP: utility classes replacing inline style="" attributes ───── */
+/* Replaces style="padding:0" on .card elements */
+.card-flush { padding: 0; }
+/* Replaces style="image-rendering:pixelated" on SVG/img elements */
+.img-pixelated { image-rendering: pixelated; }
+/* Replaces style="image-rendering:pixelated;filter:drop-shadow(...)" on logo SVG */
+.logo-glow { image-rendering: pixelated; filter: drop-shadow(0 0 4px rgba(255,102,204,0.6)); }
+/* Replaces style="box-shadow:...; border-radius:50%; left:10%; top:10%; width:80%; height:80%"
+   on the circular crop overlay in the avatar editor */
+.avatar-crop-overlay {
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+  border-radius: 50%;
+  left: 10%;
+  top: 10%;
+  width: 80%;
+  height: 80%;
+}
+/* Replaces style="clip-path:polygon(...); background-color:..." on analytics funnel tiers */
+.funnel-lead      { clip-path: polygon( 5% 0%, 95% 0%, 88% 100%, 12% 100%); background-color: #3b82f6; }
+.funnel-engaged   { clip-path: polygon(12% 0%, 88% 0%, 81% 100%, 19% 100%); background-color: #8b5cf6; }
+.funnel-active    { clip-path: polygon(19% 0%, 81% 0%, 74% 100%, 26% 100%); background-color: #c8553d; }
+.funnel-completed { clip-path: polygon(26% 0%, 74% 0%, 67% 100%, 33% 100%); background-color: #22c55e; }
+
 /* ── Sidebar collapse ───────────────────────────────────────────── */
 #sidebar {
   transition: width 200ms ease;

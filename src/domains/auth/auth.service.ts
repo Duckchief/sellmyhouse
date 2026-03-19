@@ -160,7 +160,11 @@ export async function loginAgent(email: string, password: string) {
   return agent;
 }
 
-export async function setup2FA(userId: string, role: UserRole): Promise<TotpSetupResult> {
+export async function setup2FA(
+  userId: string,
+  role: UserRole,
+  currentSessionId?: string,
+): Promise<TotpSetupResult> {
   const secret = otpGenerateSecret();
   const issuer = role === 'seller' ? 'SellMyHomeNow (Seller)' : 'SellMyHomeNow (Agent)';
   const otpAuthUrl = generateURI({ issuer, label: userId, secret });
@@ -185,6 +189,9 @@ export async function setup2FA(userId: string, role: UserRole): Promise<TotpSetu
     twoFactorEnabled: true,
     twoFactorBackupCodes: hashedCodes,
   });
+
+  // Invalidate all other sessions so existing sessions cannot bypass the new 2FA secret
+  await authRepo.invalidateUserSessions(userId, currentSessionId);
 
   await auditService.log({
     action: 'auth.2fa_setup',

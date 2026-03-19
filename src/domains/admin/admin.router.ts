@@ -1,6 +1,6 @@
 // src/domains/admin/admin.router.ts
 import { Router, Request, Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
+import { body, validationResult } from 'express-validator';
 import * as adminService from './admin.service';
 import { validateAgentCreate, validateSettingUpdate, validateAssign } from './admin.validator';
 import {
@@ -736,8 +736,13 @@ adminRouter.get(
 adminRouter.post(
   '/admin/compliance/deletion-queue/:requestId/approve',
   ...adminAuth,
+  body('reviewNotes').optional().isString().trim().isLength({ max: 1000 }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
       const user = req.user as AuthenticatedUser;
       const { requestId } = req.params;
       const { reviewNotes } = req.body as { reviewNotes?: string };
@@ -1521,8 +1526,13 @@ adminRouter.post(
 adminRouter.post(
   '/admin/maintenance/message',
   ...adminAuth,
+  body('message').optional().isString().trim().isLength({ max: 500 }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
       const user = req.user as AuthenticatedUser;
       const message = (req.body.message as string) ?? '';
       await adminService.setMaintenanceMessage(message, user.id);
@@ -1540,8 +1550,13 @@ adminRouter.post(
 adminRouter.post(
   '/admin/maintenance/eta',
   ...adminAuth,
+  body('eta').optional().isString().trim().isLength({ max: 50 }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
       const user = req.user as AuthenticatedUser;
       const eta = (req.body.eta as string) ?? '';
       await adminService.setMaintenanceEta(eta, user.id);

@@ -19,10 +19,17 @@ export const propertyRouter = Router();
 
 const sellerAuth = [requireAuth(), requireRole('seller')];
 
-// Multer — memory storage, 5MB limit
+// Multer — memory storage, 5MB limit, JPEG/PNG only
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter(_req, file, cb) {
+    if (['image/jpeg', 'image/png'].includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG and PNG images are accepted'));
+    }
+  },
 });
 
 // ─── Property Routes ──────────────────────────────────────────────────────────

@@ -156,6 +156,7 @@
     <h3 class="font-semibold mb-4">{{ "Lead Sources" | t }}</h3>
     {% if analytics.leadSources | length %}
       <canvas id="leadSourceChart" height="120"></canvas>
+      {# safe: dump applies JSON.stringify (escapes all strings); output is type="application/json" (not executed); safe suppresses double-escaping of JSON quotes #}
       <script type="application/json" id="leadSourceData">{{ analytics.leadSources | dump | safe }}</script>
       <table class="w-full text-sm mt-4">
         <thead class="text-xs text-gray-500 uppercase">
@@ -189,6 +190,7 @@
     <span class="text-sm text-gray-400">({{ analytics.timeToClose.count }} {{ "transactions" | t }})</span>
   </div>
   <canvas id="timeToCloseChart" height="150"></canvas>
+  {# safe: dump applies JSON.stringify; keys are HDB flatType enum values (server-controlled); values are computed numbers; type="application/json" is not executed #}
   <script type="application/json" id="timeToCloseData">{{ analytics.timeToClose.byFlatType | dump | safe }}</script>
 </div>
 

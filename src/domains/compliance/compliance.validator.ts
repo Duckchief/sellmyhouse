@@ -38,7 +38,9 @@ export const createCddValidator = [
     .isString()
     .trim()
     .isLength({ min: 4, max: 4 })
-    .withMessage('NRIC last 4 characters must be exactly 4 characters'),
+    .withMessage('NRIC last 4 characters must be exactly 4 characters')
+    .matches(/^\d{3}[A-Z]$/)
+    .withMessage('NRIC last 4 must be 3 digits followed by 1 letter (e.g., 567A)'),
   body('riskLevel')
     .optional()
     .isIn(['standard', 'enhanced'])

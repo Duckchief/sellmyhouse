@@ -486,6 +486,27 @@ export async function findTransactionsForRetention(
   });
 }
 
+export async function findTransactionsCompletedBeforeForNric(
+  cutoffDate: Date,
+): Promise<{ id: string; sellerId: string }[]> {
+  // Completed transactions whose completionDate is older than cutoffDate (30 days ago)
+  return prisma.transaction.findMany({
+    where: {
+      status: 'completed',
+      completionDate: { lt: cutoffDate, not: null },
+    },
+    select: { id: true, sellerId: true },
+  });
+}
+
+export async function redactNricFromCddRecord(cddRecordId: string): Promise<void> {
+  // Overwrite nricLast4 with a redacted placeholder — field is NOT NULL so cannot be nulled
+  await prisma.cddRecord.update({
+    where: { id: cddRecordId },
+    data: { nricLast4: 'XXXX' },
+  });
+}
+
 export async function findCddRecordsForRetention(
   cutoffDate: Date,
 ): Promise<{ id: string; subjectId: string; documents: unknown; verifiedAt: Date | null }[]> {
@@ -872,4 +893,61 @@ export async function findCddRecordWithDocument(
     verifiedByAgentId: record.verifiedByAgentId,
     document: docs.find((d) => d.id === documentId) ?? null,
   };
+}
+
+// ─── Retention: Listings ────────────────────────────────────────────────────
+
+export async function findClosedListingsForRetention(
+  cutoffDate: Date,
+): Promise<{ id: string; propertyId: string; updatedAt: Date; photos: unknown }[]> {
+  return prisma.listing.findMany({
+    where: { status: 'closed', updatedAt: { lt: cutoffDate } },
+    select: { id: true, propertyId: true, updatedAt: true, photos: true },
+  });
+}
+
+export async function hardDeleteListing(listingId: string): Promise<void> {
+  // Delete child PortalListings before the Listing (FK RESTRICT)
+  await prisma.portalListing.deleteMany({ where: { listingId } });
+  await prisma.listing.delete({ where: { id: listingId } });
+}
+
+// ─── Retention: ViewingSlots ─────────────────────────────────────────────────
+
+export async function findOldViewingSlotsForClosedProperties(
+  cutoffDate: Date,
+): Promise<{ id: string; propertyId: string; date: Date }[]> {
+  // Slots whose date passed the cutoff AND whose property has at least one closed listing
+  return prisma.viewingSlot.findMany({
+    where: {
+      date: { lt: cutoffDate },
+      property: { listings: { some: { status: 'closed' } } },
+    },
+    select: { id: true, propertyId: true, date: true },
+  });
+}
+
+export async function deleteOldViewingSlotsWithViewings(slotIds: string[]): Promise<number> {
+  if (slotIds.length === 0) return 0;
+  // Viewings reference ViewingSlots with ON DELETE RESTRICT — must delete children first
+  await prisma.viewing.deleteMany({ where: { viewingSlotId: { in: slotIds } } });
+  const result = await prisma.viewingSlot.deleteMany({ where: { id: { in: slotIds } } });
+  return result.count;
+}
+
+// ─── Retention: WeeklyUpdates ────────────────────────────────────────────────
+
+export async function findOldWeeklyUpdates(
+  cutoffDate: Date,
+): Promise<{ id: string; sellerId: string; createdAt: Date }[]> {
+  return prisma.weeklyUpdate.findMany({
+    where: { createdAt: { lt: cutoffDate } },
+    select: { id: true, sellerId: true, createdAt: true },
+  });
+}
+
+export async function deleteOldWeeklyUpdates(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const result = await prisma.weeklyUpdate.deleteMany({ where: { id: { in: ids } } });
+  return result.count;
 }

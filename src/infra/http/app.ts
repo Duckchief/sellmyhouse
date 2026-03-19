@@ -55,6 +55,10 @@ export function createApp() {
 
   const app = express();
 
+  // Trust the first proxy only (nginx reverse proxy on VPS)
+  // Required for correct req.ip, req.protocol, and secure cookie behaviour
+  app.set('trust proxy', 1);
+
   // Nunjucks setup — resolve from project root so it works in both dev and Docker
   const viewsPath = process.env.VIEWS_PATH || path.resolve('src/views');
   const env = nunjucks.configure(viewsPath, {

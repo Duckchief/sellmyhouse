@@ -2,11 +2,14 @@ import path from 'path';
 import * as service from '../profile.service';
 
 jest.mock('../profile.repository');
+jest.mock('../../auth/auth.repository');
+jest.mock('../../shared/audit.service');
 jest.mock('bcrypt');
 jest.mock('fs/promises');
 jest.mock('sharp');
 
 const repo = jest.requireMock('../profile.repository');
+const authRepo = jest.requireMock('../../auth/auth.repository');
 const fsp = jest.requireMock('fs/promises');
 const sharp = jest.requireMock('sharp');
 
@@ -142,16 +145,18 @@ describe('ProfileService', () => {
       ).rejects.toThrow('Current password is incorrect');
     });
 
-    it('hashes new password at cost 12 and updates DB on success', async () => {
+    it('hashes new password at cost 12, invalidates other sessions, and audit-logs on success', async () => {
       repo.verifyPassword = jest.fn().mockResolvedValue(true);
       const bcrypt = jest.requireMock('bcrypt');
       bcrypt.hash = jest.fn().mockResolvedValue('new-hash');
       repo.updatePasswordHash = jest.fn().mockResolvedValue({});
+      authRepo.invalidateUserSessions = jest.fn().mockResolvedValue(undefined);
 
-      await service.changePassword('agent1', 'correct', 'newpassword', 'newpassword');
+      await service.changePassword('agent1', 'correct', 'newpassword', 'newpassword', 'sess-123');
 
       expect(bcrypt.hash).toHaveBeenCalledWith('newpassword', 12);
       expect(repo.updatePasswordHash).toHaveBeenCalledWith('agent1', 'new-hash');
+      expect(authRepo.invalidateUserSessions).toHaveBeenCalledWith('agent1', 'sess-123');
     });
   });
 

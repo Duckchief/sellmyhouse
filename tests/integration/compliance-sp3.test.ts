@@ -125,28 +125,28 @@ describe('Compliance SP3 — Retention + Deletion + Anonymisation (integration)'
       expect(executed?.status).toBe('executed');
     });
 
-    it('throws ComplianceError for blocked deletion request', async () => {
+    it('throws ComplianceError for already-executed deletion request', async () => {
       const seller = await createTestSeller();
       const agent = await createTestAgent();
 
-      const blockedRequest = await testPrisma.dataDeletionRequest.create({
+      const executedRequest = await testPrisma.dataDeletionRequest.create({
         data: {
           id: createId(),
           targetType: 'lead',
           targetId: seller.id,
           reason: 'Service consent withdrawn',
-          retentionRule: 'aml_cft_5_year',
-          status: 'blocked',
-          details: { retentionEndDate: new Date(Date.now() + 1e9).toISOString() },
+          retentionRule: 'post_completion_purge',
+          status: 'executed',
+          details: {},
         },
       });
 
       await expect(
         complianceService.executeHardDelete({
-          requestId: blockedRequest.id,
+          requestId: executedRequest.id,
           agentId: agent.id,
         }),
-      ).rejects.toThrow('AML/CFT retention requirement');
+      ).rejects.toThrow('not in a reviewable state');
     });
   });
 

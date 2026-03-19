@@ -95,6 +95,34 @@ export async function updateHdbTracking(
   });
 }
 
+export async function confirmHuttonsHandoff(id: string, agentId: string) {
+  return prisma.transaction.update({
+    where: { id },
+    data: {
+      huttonsSubmittedAt: new Date(),
+      huttonsSubmittedByAgentId: agentId,
+    },
+  });
+}
+
+export async function findTransactionsPendingHuttonsHandoff() {
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  return prisma.transaction.findMany({
+    where: {
+      status: 'completed',
+      huttonsSubmittedAt: null,
+      completionDate: { lt: threeDaysAgo, not: null },
+    },
+    select: {
+      id: true,
+      sellerId: true,
+      completionDate: true,
+      seller: { select: { name: true, agentId: true } },
+    },
+  });
+}
+
 export async function updateExerciseDeadline(id: string, exerciseDeadline: Date) {
   return prisma.transaction.update({
     where: { id },

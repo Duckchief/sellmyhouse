@@ -1,5 +1,6 @@
 // src/domains/transaction/transaction.service.ts
 import { createId } from '@paralleldrive/cuid2';
+import { fileTypeFromBuffer } from 'file-type';
 import * as txRepo from './transaction.repository';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
@@ -430,6 +431,12 @@ export async function uploadOtpScan(input: UploadOtpScanInput) {
   if (input.fileBuffer.length > 10 * 1024 * 1024) {
     throw new ValidationError('File must be 10MB or smaller');
   }
+  // Verify actual file content matches claimed type (magic bytes)
+  const detectedOtp = await fileTypeFromBuffer(input.fileBuffer);
+  const allowedOtpMimes = ['image/jpeg', 'image/png', 'application/pdf'];
+  if (!detectedOtp || !allowedOtpMimes.includes(detectedOtp.mime)) {
+    throw new ValidationError('File content does not match a valid image or PDF');
+  }
 
   // Virus scan before saving
   const scanResult = await scanBuffer(input.fileBuffer, input.originalFilename);
@@ -477,6 +484,11 @@ export async function uploadInvoice(input: UploadInvoiceInput) {
   if (ext !== '.pdf') throw new ValidationError('Invoice must be a PDF file');
   if (input.fileBuffer.length > 10 * 1024 * 1024)
     throw new ValidationError('File must be 10MB or smaller');
+  // Verify actual file content is a PDF (magic bytes)
+  const detectedInvoice = await fileTypeFromBuffer(input.fileBuffer);
+  if (!detectedInvoice || detectedInvoice.mime !== 'application/pdf') {
+    throw new ValidationError('File content does not match a valid PDF');
+  }
 
   // Virus scan before saving
   const invoiceScanResult = await scanBuffer(input.fileBuffer, input.originalFilename);

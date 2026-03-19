@@ -15,14 +15,18 @@ import type {
   CddDocument,
 } from './compliance.types';
 
+export const CONSENT_VERSION = '1.0';
+
 export async function createConsentRecord(data: {
   subjectId: string;
   purposeService: boolean;
   purposeMarketing: boolean;
+  purposeHuttonsTransfer?: boolean;
   consentWithdrawnAt?: Date;
   withdrawalChannel?: string;
   ipAddress?: string;
   userAgent?: string;
+  version?: string;
 }): Promise<ConsentRecord> {
   return prisma.consentRecord.create({
     data: {
@@ -32,6 +36,8 @@ export async function createConsentRecord(data: {
       sellerId: data.subjectId,
       purposeService: data.purposeService,
       purposeMarketing: data.purposeMarketing,
+      purposeHuttonsTransfer: data.purposeHuttonsTransfer ?? false,
+      version: data.version ?? CONSENT_VERSION,
       consentWithdrawnAt: data.consentWithdrawnAt ?? null,
       withdrawalChannel: data.withdrawalChannel ?? null,
       ipAddress: data.ipAddress ?? null,
@@ -54,6 +60,7 @@ export async function createViewerConsentRecord(data: {
       viewerId: data.viewerId,
       purposeService: true,
       purposeMarketing: false,
+      version: CONSENT_VERSION,
       ipAddress: data.ipAddress ?? null,
       userAgent: data.userAgent ?? null,
     },
@@ -589,6 +596,15 @@ export async function anonymiseTransactionSeller(
   });
 }
 
+// ─── Finding #10: Notification Content Redaction ─────────────────────────────
+
+export async function redactSellerNotifications(sellerId: string): Promise<void> {
+  await prisma.notification.updateMany({
+    where: { recipientType: 'seller', recipientId: sellerId },
+    data: { content: '[redacted]' },
+  });
+}
+
 // ─── Dashboard: Pending Document Downloads ──────────────────────────────────
 
 export async function findPendingDocumentDownloads(cutoffDate: Date, agentId?: string) {
@@ -808,28 +824,76 @@ export async function findStaleCorrectionRequests(cutoffDate: Date): Promise<
 // ─── Hard Delete ─────────────────────────────────────────────────────────────
 
 export async function hardDeleteSeller(sellerId: string): Promise<void> {
-  // Delete in FK dependency order — none of these have schema-level cascade to seller
-  // 1. Testimonial references both seller and transaction
+  // Delete in FK dependency order — no schema-level cascade on any relation
+
+  // 1. Testimonial (FK to seller + transaction)
   await prisma.testimonial.deleteMany({ where: { sellerId } });
-  // 2. Otp and CommissionInvoice reference transaction (which references seller)
-  const txIds = await prisma.transaction.findMany({
-    where: { sellerId },
-    select: { id: true },
-  });
+
+  // 2. Transaction children (Otp, CommissionInvoice), then Transactions
+  const txIds = (
+    await prisma.transaction.findMany({ where: { sellerId }, select: { id: true } })
+  ).map((t) => t.id);
   if (txIds.length > 0) {
-    const ids = txIds.map((t) => t.id);
-    await prisma.otp.deleteMany({ where: { transactionId: { in: ids } } });
-    await prisma.commissionInvoice.deleteMany({ where: { transactionId: { in: ids } } });
+    await prisma.otp.deleteMany({ where: { transactionId: { in: txIds } } });
+    await prisma.commissionInvoice.deleteMany({ where: { transactionId: { in: txIds } } });
     await prisma.transaction.deleteMany({ where: { sellerId } });
   }
+
+  // 3. Property grandchildren and children (all FK-restrict to Property)
+  const propertyIds = (
+    await prisma.property.findMany({ where: { sellerId }, select: { id: true } })
+  ).map((p) => p.id);
+  if (propertyIds.length > 0) {
+    // PortalListing → Listing
+    const listingIds = (
+      await prisma.listing.findMany({
+        where: { propertyId: { in: propertyIds } },
+        select: { id: true },
+      })
+    ).map((l) => l.id);
+    if (listingIds.length > 0) {
+      await prisma.portalListing.deleteMany({ where: { listingId: { in: listingIds } } });
+    }
+    await prisma.listing.deleteMany({ where: { propertyId: { in: propertyIds } } });
+
+    // Viewing → ViewingSlot
+    const slotIds = (
+      await prisma.viewingSlot.findMany({
+        where: { propertyId: { in: propertyIds } },
+        select: { id: true },
+      })
+    ).map((s) => s.id);
+    if (slotIds.length > 0) {
+      await prisma.viewing.deleteMany({ where: { viewingSlotId: { in: slotIds } } });
+    }
+    await prisma.viewingSlot.deleteMany({ where: { propertyId: { in: propertyIds } } });
+
+    // Offer: break self-references, then delete
+    await prisma.offer.updateMany({
+      where: { propertyId: { in: propertyIds } },
+      data: { parentOfferId: null },
+    });
+    await prisma.offer.deleteMany({ where: { propertyId: { in: propertyIds } } });
+  }
+
+  // 4. Direct seller children (FK-restrict to Seller)
+  await prisma.financialReport.deleteMany({ where: { sellerId } });
+  await prisma.weeklyUpdate.deleteMany({ where: { sellerId } });
+  await prisma.documentChecklist.deleteMany({ where: { sellerId } });
   await prisma.estateAgencyAgreement.deleteMany({ where: { sellerId } });
-  await prisma.property.deleteMany({ where: { sellerId } });
-  // 3. Referrals: delete referrals given by this seller; nullify referredSellerId on referrals received
+  await prisma.consentRecord.deleteMany({ where: { sellerId } });
+  await prisma.caseFlag.deleteMany({ where: { sellerId } });
+  await prisma.dataCorrectionRequest.deleteMany({ where: { sellerId } });
+
+  // 5. Referrals: delete given, nullify received
   await prisma.referral.deleteMany({ where: { referrerSellerId: sellerId } });
   await prisma.referral.updateMany({
     where: { referredSellerId: sellerId },
     data: { referredSellerId: null },
   });
+
+  // 6. Property, then Seller
+  await prisma.property.deleteMany({ where: { sellerId } });
   await prisma.seller.delete({ where: { id: sellerId } });
 }
 
@@ -1189,6 +1253,38 @@ export async function deleteOldWeeklyUpdates(ids: string[]): Promise<number> {
   if (ids.length === 0) return 0;
   const result = await prisma.weeklyUpdate.deleteMany({ where: { id: { in: ids } } });
   return result.count;
+}
+
+// ─── Retention: CDD NRIC Redaction (Finding #2.6) ────────────────────────────
+
+// Returns CDD records for completed/fallen-through transactions past the cutoff
+// where nricLast4 has not yet been redacted. Covers the gap where the main
+// purgeSensitiveDocs loop skips transactions with no OTP/invoice files.
+export async function findCddRecordsForNricRedaction(
+  cutoffDate: Date,
+): Promise<{ id: string }[]> {
+  const completedTxs = await prisma.transaction.findMany({
+    where: {
+      status: { in: ['completed', 'fallen_through'] },
+      completionDate: { lt: cutoffDate, not: null },
+    },
+    select: { id: true, sellerId: true },
+  });
+  if (completedTxs.length === 0) return [];
+
+  const sellerIds = [...new Set(completedTxs.map((t) => t.sellerId))];
+  const txIds = completedTxs.map((t) => t.id);
+
+  return prisma.cddRecord.findMany({
+    where: {
+      nricLast4: { not: 'XXXX' },
+      OR: [
+        { subjectType: SubjectType.seller, subjectId: { in: sellerIds } },
+        { subjectType: SubjectType.counterparty, subjectId: { in: txIds } },
+      ],
+    },
+    select: { id: true },
+  });
 }
 
 // ─── SAR: Audit Trail for Data Export (Finding #3) ───────────────────────────

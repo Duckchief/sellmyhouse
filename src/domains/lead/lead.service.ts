@@ -5,6 +5,7 @@ import * as leadRepo from './lead.repository';
 import * as settingsService from '../shared/settings.service';
 import * as auditService from '../shared/audit.service';
 import * as notificationService from '../notification/notification.service';
+import { maskPhone } from '../shared/nric';
 import type { LeadInput, LeadResult } from './lead.types';
 
 export async function submitLead(input: LeadInput): Promise<LeadResult> {
@@ -26,6 +27,7 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     phone: input.phone,
     consentService: input.consentService,
     consentMarketing: input.consentMarketing,
+    consentHuttonsTransfer: input.consentHuttonsTransfer,
     leadSource: input.leadSource,
     retentionExpiresAt,
     ipAddress: input.ipAddress,
@@ -37,7 +39,8 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     action: 'lead.created',
     entityType: 'Seller',
     entityId: seller.id,
-    details: { leadSource: input.leadSource, phone: input.phone },
+    details: { leadSource: input.leadSource, phone: maskPhone(input.phone) },
+    actorType: 'system' as const,
   });
 
   // A1: Audit consent events from lead capture
@@ -48,6 +51,17 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     entityType: 'seller',
     entityId: seller.id,
     details: { sellerId: seller.id, purposeService: true },
+    actorType: 'seller' as const,
+    actorId: seller.id,
+  });
+
+  await auditService.log({
+    action: 'consent.huttons_transfer_given',
+    entityType: 'seller',
+    entityId: seller.id,
+    details: { sellerId: seller.id, purposeHuttonsTransfer: true },
+    actorType: 'seller' as const,
+    actorId: seller.id,
   });
 
   if (input.consentMarketing) {
@@ -56,6 +70,8 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
       entityType: 'seller',
       entityId: seller.id,
       details: { sellerId: seller.id },
+      actorType: 'seller' as const,
+      actorId: seller.id,
     });
   }
 

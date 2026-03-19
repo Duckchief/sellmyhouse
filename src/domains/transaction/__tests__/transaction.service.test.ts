@@ -25,6 +25,9 @@ jest.mock('@/domains/review/review.service');
 jest.mock('@/infra/security/virus-scanner', () => ({
   scanBuffer: jest.fn().mockResolvedValue({ isClean: true, viruses: [] }),
 }));
+jest.mock('file-type', () => ({
+  fileTypeFromBuffer: jest.fn().mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' }),
+}));
 jest.mock('@/infra/storage/local-storage', () => ({
   localStorage: {
     save: jest.fn().mockResolvedValue('invoices/tx-1/invoice-abc.pdf'),

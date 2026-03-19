@@ -12,6 +12,21 @@ import type { AuthenticatedUser } from './auth.types';
 
 export const loginRouter = Router();
 
+// ─── Reset-password rate limiter ───────────────────────────
+
+const resetPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: {
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Too many password reset attempts. Please try again later.',
+    },
+  },
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? 'unknown'),
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
 // ─── Forgot-password rate limiter (Amendment I) ────────────
 
 const forgotPasswordLimiter = rateLimit({
@@ -224,6 +239,7 @@ loginRouter.get('/auth/reset-password/:token', (req: Request, res: Response) => 
 
 loginRouter.post(
   '/auth/reset-password/:token',
+  resetPasswordLimiter,
   resetPasswordRules,
   async (req: Request, res: Response, next: NextFunction) => {
     try {

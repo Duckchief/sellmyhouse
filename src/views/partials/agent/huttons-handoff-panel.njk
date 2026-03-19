@@ -1,0 +1,25 @@
+{# partials/agent/huttons-handoff-panel.njk #}
+<div id="huttons-handoff" class="mt-4 p-4 border rounded bg-gray-50">
+  {% if huttonsSubmittedAt %}
+    <p class="text-green-700 font-medium">
+      {{ "Submitted to Huttons on" | t }} {{ huttonsSubmittedAt | date("DD MMM YYYY") }}
+    </p>
+    {% if purgedFiles %}
+      <p class="text-sm text-gray-600">{{ purgedFiles }} {{ "sensitive file(s) permanently deleted from platform." | t }}</p>
+    {% endif %}
+  {% else %}
+    <form
+      hx-post="/agent/transactions/{{ tx.id }}/confirm-huttons-handoff"
+      hx-target="#huttons-handoff"
+      hx-swap="outerHTML"
+      hx-confirm="{{ 'Confirm you have downloaded all documents and submitted them to Huttons. This will permanently delete sensitive data from the platform. This cannot be undone.' | t }}"
+    >
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        {{ "Confirm submitted to Huttons" | t }}
+      </button>
+      <p class="mt-2 text-sm text-gray-500">
+        {{ "Confirming will permanently delete NRIC documents, OTP scans, and invoice files from this platform." | t }}
+      </p>
+    </form>
+  {% endif %}
+</div>

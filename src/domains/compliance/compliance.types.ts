@@ -33,6 +33,7 @@ export interface ConsentRecord {
   buyerId: string | null;
   purposeService: boolean;
   purposeMarketing: boolean;
+  purposeHuttonsTransfer: boolean;
   consentGivenAt: Date;
   consentWithdrawnAt: Date | null;
   withdrawalChannel: string | null;

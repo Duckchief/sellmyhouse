@@ -273,7 +273,7 @@ export async function initiateBooking(
     }
 
     const otp = generateOtp();
-    otpHash = await bcrypt.hash(otp, 10);
+    otpHash = await bcrypt.hash(otp, 12);
     otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
     // Send OTP via WhatsApp

@@ -16,12 +16,24 @@ import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middlew
 import { getHasAvatar } from '../profile/profile.service';
 import { localStorage } from '@/infra/storage/local-storage';
 import * as auditService from '@/domains/shared/audit.service';
+import * as complianceService from '@/domains/compliance/compliance.service';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 
 export const transactionRouter = Router();
 
 const agentAuth = [requireAuth(), requireRole('agent', 'admin'), requireTwoFactor()];
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'application/pdf'];
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MIMES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('File type not allowed. Only JPEG, PNG, and PDF are accepted.'));
+    }
+  },
+});
 
 /** Return undefined for admin (allow all), or agent's own ID for ownership filtering */
 function getCallerAgentId(user: AuthenticatedUser): string | undefined {
@@ -369,6 +381,31 @@ transactionRouter.post(
         return res.render('partials/agent/invoice-panel', { invoice });
       }
       res.json({ invoice });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /agent/transactions/:transactionId/confirm-huttons-handoff — confirm Huttons submission
+transactionRouter.post(
+  '/agent/transactions/:transactionId/confirm-huttons-handoff',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const result = await complianceService.confirmHuttonsSubmission(
+        req.params['transactionId'] as string,
+        user.id,
+      );
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/agent/huttons-handoff-panel', {
+          huttonsSubmittedAt: new Date(),
+          purgedFiles: result.purgedFiles,
+        });
+      }
+      res.json({ confirmed: true, purgedFiles: result.purgedFiles });
     } catch (err) {
       next(err);
     }

@@ -5,6 +5,7 @@ export interface LeadInput {
   phone: string;
   consentService: boolean;
   consentMarketing: boolean;
+  consentHuttonsTransfer: boolean;
   leadSource: LeadSource;
   honeypot?: string; // hidden field — must be empty
   formLoadedAt?: number; // timestamp when form was loaded (ms)

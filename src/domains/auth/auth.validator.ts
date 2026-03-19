@@ -11,6 +11,9 @@ export const registerValidation = [
   body('consentService')
     .custom((value) => value === 'true' || value === true || value === 'on')
     .withMessage('You must consent to our service terms'),
+  body('consentHuttonsTransfer')
+    .custom((value) => value === 'true' || value === true || value === 'on')
+    .withMessage('You must consent to data transfer to Huttons Asia Pte Ltd'),
 ];
 
 export const loginValidation = [

@@ -16,6 +16,7 @@ export interface SellerRegistrationInput {
   password: string;
   consentService: boolean;
   consentMarketing: boolean;
+  consentHuttonsTransfer: boolean;
   ipAddress?: string;
   userAgent?: string;
 }

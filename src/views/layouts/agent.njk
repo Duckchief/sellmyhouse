@@ -28,6 +28,9 @@
       <a href="/agent/settings" title="{{ 'Settings' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/agent/settings' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('cog-6-tooth') }}<span class="sidebar-tooltip">{{ "Settings" | t }}</span><span class="sidebar-label">{{ "Settings" | t }}</span></a>
     </nav>
     {# Sidebar footer: logout link removed — logout is now in the top-right header dropdown #}
+    <div class="mt-auto pt-4 border-t border-white/10">
+      <a href="/privacy" class="block px-3 py-1.5 text-xs text-white/40 hover:text-white/70">{{ "Privacy Policy" | t }}</a>
+    </div>
   </aside>
   <main class="flex-1 p-8 bg-bg overflow-auto">
     {% block content %}{% endblock %}

@@ -112,6 +112,10 @@ export function createApp() {
   // Security
   app.use(
     helmet({
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+      },
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
@@ -141,6 +145,7 @@ export function createApp() {
   app.use(
     '/api/webhook/whatsapp',
     express.json({
+      limit: '100kb',
       verify: (req: express.Request, _res, buf) => {
         req.rawBody = buf;
       },

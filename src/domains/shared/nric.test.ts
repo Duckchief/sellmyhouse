@@ -1,4 +1,4 @@
-import { maskNric, validateNricLast4 } from './nric';
+import { maskNric, validateNricLast4, maskPhone, maskEmail } from './nric';
 
 describe('maskNric', () => {
   it('masks a 4-char last-4 NRIC to SXXXX format', () => {
@@ -35,5 +35,41 @@ describe('validateNricLast4', () => {
   });
   it('rejects empty string', () => {
     expect(validateNricLast4('')).toBe(false);
+  });
+});
+
+describe('maskPhone', () => {
+  it('masks all but last 4 digits', () => {
+    expect(maskPhone('91234567')).toBe('****4567');
+  });
+  it('masks an 8-digit Singapore number', () => {
+    expect(maskPhone('98765432')).toBe('****5432');
+  });
+  it('returns **** for empty string', () => {
+    expect(maskPhone('')).toBe('****');
+  });
+  it('shows only last 4 when phone is exactly 4 chars', () => {
+    expect(maskPhone('1234')).toBe('1234');
+  });
+  it('masks correctly when phone is shorter than 4 chars', () => {
+    expect(maskPhone('12')).toBe('**');
+  });
+});
+
+describe('maskEmail', () => {
+  it('masks local part keeping first char, replaces rest with ***, keeps domain', () => {
+    expect(maskEmail('john@example.com')).toBe('j***@example.com');
+  });
+  it('handles single-char local part', () => {
+    expect(maskEmail('a@b.com')).toBe('a***@b.com');
+  });
+  it('masks longer local part to j***', () => {
+    expect(maskEmail('johndoe@test.sg')).toBe('j***@test.sg');
+  });
+  it('returns *** for string with no @ sign', () => {
+    expect(maskEmail('invalidemail')).toBe('***');
+  });
+  it('returns *** for empty string', () => {
+    expect(maskEmail('')).toBe('***');
   });
 });

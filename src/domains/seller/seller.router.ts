@@ -12,6 +12,8 @@ import * as propertyService from '../property/property.service';
 import { HDB_TOWNS, HDB_FLAT_TYPES } from '../property/property.types';
 import * as contentService from '../content/content.service';
 import * as notificationService from '../notification/notification.service';
+import * as accountDeleteService from './account-delete.service';
+import { UnauthorizedError } from '../shared/errors';
 
 export const sellerRouter = Router();
 
@@ -399,6 +401,49 @@ sellerRouter.get(
       }
       return res.render('pages/seller/referral', { referral });
     } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// GET /seller/account/delete — confirmation page
+sellerRouter.get('/seller/account/delete', (req: Request, res: Response) => {
+  res.render('pages/seller/account-delete-confirm');
+});
+
+// POST /seller/account/delete — process deletion
+sellerRouter.post(
+  '/seller/account/delete',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { confirm, password } = req.body as { confirm?: string; password?: string };
+      const user = req.user as AuthenticatedUser;
+
+      if (!password?.trim()) {
+        return res.status(400).render('pages/seller/account-delete-confirm', {
+          error: 'Password is required',
+        });
+      }
+      if (confirm !== 'true') {
+        return res.status(400).render('pages/seller/account-delete-confirm', {
+          error: 'You must confirm that you understand this action cannot be undone',
+        });
+      }
+
+      await accountDeleteService.deleteSellerAccount(user.id, password);
+
+      // Destroy session AFTER deletion is audited — redirect to homepage
+      req.logout(() => {
+        req.session?.destroy(() => {
+          res.redirect('/?account_deleted=1');
+        });
+      });
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        return res.status(400).render('pages/seller/account-delete-confirm', {
+          error: err.message,
+        });
+      }
       next(err);
     }
   },

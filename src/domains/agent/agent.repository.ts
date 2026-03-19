@@ -1,6 +1,7 @@
 import { prisma } from '@/infra/database/prisma';
 import type { Prisma, SellerStatus, LeadSource } from '@prisma/client';
 import type { PipelineStage, PipelineSeller, SellerListFilter } from './agent.types';
+import { maskNric } from '@/domains/shared/nric';
 
 export async function getPipelineStages(agentId?: string) {
   const where = agentId ? { agentId } : {};
@@ -343,7 +344,7 @@ export async function getComplianceStatus(sellerId: string, agentId?: string) {
       verifiedAt: cdd?.verifiedAt ?? null,
       riskLevel: cdd?.riskLevel ?? null,
       fullName: cdd?.fullName ?? null,
-      nricLast4: cdd?.nricLast4 ?? null,
+      nricLast4: cdd?.nricLast4 ? maskNric(cdd.nricLast4) : null,
     },
     eaa: {
       id: eaa?.id ?? null,

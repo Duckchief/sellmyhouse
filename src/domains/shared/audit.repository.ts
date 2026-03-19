@@ -7,6 +7,8 @@ export async function create(entry: AuditEntry): Promise<AuditLogRecord> {
     data: {
       id: createId(),
       agentId: entry.agentId ?? null,
+      actorType: entry.actorType ?? null,
+      actorId: entry.actorId ?? null,
       action: entry.action,
       entityType: entry.entityType,
       entityId: entry.entityId,

@@ -360,6 +360,7 @@ model Agent {
   weeklyUpdatesReviewed      WeeklyUpdate[]           @relation("WeeklyUpdateReviewer")
   documentChecklistsReviewed DocumentChecklist[]      @relation("DocumentChecklistReviewer")
   hdbSubmissions             Transaction[]            @relation("HdbSubmitter")
+  huttonsSubmissions           Transaction[]            @relation("HuttonsSubmitter")
   otpsReviewed               Otp[]                    @relation("OtpReviewer")
 
   @@map("agents")
@@ -651,6 +652,9 @@ model Transaction {
   hdbAppSubmittedByAgentId   String?               @map("hdb_app_submitted_by_agent_id")
   hdbAppSubmittedByAgent     Agent?                @relation("HdbSubmitter", fields: [hdbAppSubmittedByAgentId], references: [id])
   hdbAppApprovedAt           DateTime?             @map("hdb_app_approved_at")
+  huttonsSubmittedAt           DateTime?             @map("huttons_submitted_at")
+  huttonsSubmittedByAgentId    String?               @map("huttons_submitted_by_agent_id")
+  huttonsSubmittedByAgent      Agent?                @relation("HuttonsSubmitter", fields: [huttonsSubmittedByAgentId], references: [id])
   fallenThroughReason      String?           @map("fallen_through_reason")
   anonymisedAt             DateTime?         @map("anonymised_at")
   createdAt                DateTime          @default(now()) @map("created_at")

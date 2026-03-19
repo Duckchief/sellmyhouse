@@ -3,4 +3,8 @@
   <p>{{ "Status:" | t }} {{ tx.status }}</p>
   {% if tx.otp %}{% include "partials/agent/otp-panel.njk" %}{% endif %}
   {% if tx.commissionInvoice %}{% include "partials/agent/invoice-panel.njk" %}{% endif %}
+  {% if tx.status == "completed" or tx.status == "fallen_through" %}
+    {% set huttonsSubmittedAt = tx.huttonsSubmittedAt %}
+    {% include "partials/agent/huttons-handoff-panel.njk" %}
+  {% endif %}
 </div>

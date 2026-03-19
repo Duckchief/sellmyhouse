@@ -20,6 +20,7 @@ import { registerViewingJobs } from './domains/viewing/viewing.jobs';
 import { registerTransactionJobs } from './domains/transaction/transaction.jobs';
 import { registerContentJobs } from './domains/content/content.jobs';
 import { runRetentionScan } from './infra/jobs/retention.job';
+import { runPurgeSensitiveDocsJob } from './infra/jobs/purge-sensitive-docs.job';
 import { runAnonymiseOffersJob } from './infra/jobs/anonymise-offers.job';
 import { initVirusScanner } from './infra/security/virus-scanner';
 import * as sellerService from './domains/seller/seller.service';
@@ -42,7 +43,15 @@ registerViewingJobs();
 registerTransactionJobs();
 registerContentJobs();
 
-// Register retention job (Saturday midnight SGT, configurable via SystemSetting 'retention_schedule')
+// Register daily Tier 1 sensitive doc purge (2am SGT — runs every day to keep within 7-day threshold)
+registerJob(
+  'purge-sensitive-docs',
+  '0 2 * * *', // 2am daily
+  runPurgeSensitiveDocsJob,
+  'Asia/Singapore',
+);
+
+// Register retention job (Saturday midnight SGT) — Tier 2, Tier 3, leads, listings, agents, etc.
 registerJob(
   'retention-scan',
   '0 0 * * 6', // Saturday midnight

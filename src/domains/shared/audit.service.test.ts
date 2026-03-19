@@ -1,4 +1,5 @@
 import { log, getEntityHistory } from './audit.service';
+import type { AuditActorType } from './audit.types';
 import * as auditRepo from './audit.repository';
 
 jest.mock('./audit.repository');
@@ -21,6 +22,8 @@ describe('audit.service', () => {
       mockRepo.create.mockResolvedValue({
         id: 'audit_1',
         agentId: null,
+        actorType: null,
+        actorId: null,
         ...entry,
         ipAddress: null,
         createdAt: new Date(),
@@ -29,6 +32,35 @@ describe('audit.service', () => {
       await log(entry);
 
       expect(mockRepo.create).toHaveBeenCalledWith(entry);
+    });
+
+    it('passes actorType and actorId to repo when provided', async () => {
+      const entry = {
+        action: 'auth.login',
+        entityType: 'seller',
+        entityId: 'seller_1',
+        details: {},
+        actorType: 'seller' as AuditActorType,
+        actorId: 'seller_1',
+      };
+      mockRepo.create.mockResolvedValue({
+        id: 'audit_2',
+        agentId: null,
+        actorType: 'seller',
+        actorId: 'seller_1',
+        action: 'auth.login',
+        entityType: 'seller',
+        entityId: 'seller_1',
+        details: {},
+        ipAddress: null,
+        createdAt: new Date(),
+      });
+
+      await log(entry);
+
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ actorType: 'seller', actorId: 'seller_1' }),
+      );
     });
 
     it('does not throw on failure (fire-and-forget)', async () => {
@@ -52,6 +84,8 @@ describe('audit.service', () => {
         {
           id: 'audit_1',
           agentId: null,
+          actorType: null,
+          actorId: null,
           action: 'property.created',
           entityType: 'Property',
           entityId: 'prop_123',

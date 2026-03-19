@@ -49,6 +49,7 @@ export async function createConsentRecord(
     sellerId: string;
     purposeService: boolean;
     purposeMarketing: boolean;
+    purposeHuttonsTransfer?: boolean;
     ipAddress?: string;
     userAgent?: string;
   },
@@ -61,6 +62,8 @@ export async function createConsentRecord(
       sellerId: data.sellerId,
       purposeService: data.purposeService,
       purposeMarketing: data.purposeMarketing,
+      purposeHuttonsTransfer: data.purposeHuttonsTransfer ?? false,
+      version: '1.0',
       ipAddress: data.ipAddress,
       userAgent: data.userAgent,
     },
@@ -72,6 +75,7 @@ export async function submitLeadAtomically(data: {
   phone: string;
   consentService: boolean;
   consentMarketing: boolean;
+  consentHuttonsTransfer: boolean;
   leadSource: string;
   retentionExpiresAt?: Date;
   ipAddress?: string;
@@ -91,6 +95,7 @@ export async function submitLeadAtomically(data: {
       sellerId: seller.id,
       purposeService: data.consentService,
       purposeMarketing: data.consentMarketing,
+      purposeHuttonsTransfer: data.consentHuttonsTransfer,
       ipAddress: data.ipAddress,
       userAgent: data.userAgent,
     });

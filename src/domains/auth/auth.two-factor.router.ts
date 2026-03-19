@@ -4,6 +4,7 @@ import * as authService from './auth.service';
 import * as auditService from '../shared/audit.service';
 import { totpValidation, backupCodeValidation } from './auth.validator';
 import { requireAuth } from '../../infra/http/middleware/require-auth';
+import { totpRateLimiter } from '../../infra/http/middleware/rate-limit';
 import type { AuthenticatedUser } from './auth.types';
 
 export const twoFactorRouter = Router();
@@ -55,6 +56,7 @@ twoFactorRouter.get('/auth/2fa/verify', requireAuth(), (_req: Request, res: Resp
 twoFactorRouter.post(
   '/auth/2fa/verify',
   requireAuth(),
+  totpRateLimiter,
   totpValidation,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -143,6 +145,7 @@ twoFactorRouter.post(
 twoFactorRouter.post(
   '/auth/2fa/backup',
   requireAuth(),
+  totpRateLimiter,
   backupCodeValidation,
   async (req: Request, res: Response, next: NextFunction) => {
     try {

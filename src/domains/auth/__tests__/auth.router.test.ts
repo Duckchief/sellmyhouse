@@ -17,6 +17,7 @@ const authService = jest.requireMock('../auth.service');
 jest.mock('../../../infra/http/middleware/rate-limit', () => ({
   authRateLimiter: (_req: unknown, _res: unknown, next: () => void) => next(),
   apiRateLimiter: (_req: unknown, _res: unknown, next: () => void) => next(),
+  totpRateLimiter: (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
 
 function createTestApp() {

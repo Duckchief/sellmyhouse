@@ -4,6 +4,8 @@ import fs from 'fs/promises';
 import bcrypt from 'bcrypt';
 import sharp from 'sharp';
 import * as repo from './profile.repository';
+import * as authRepo from '../auth/auth.repository';
+import * as auditService from '../shared/audit.service';
 import { NotFoundError, ValidationError } from '../shared/errors';
 import type { ProfileView } from './profile.types';
 
@@ -34,6 +36,13 @@ export async function uploadAvatar(agentId: string, file: Express.Multer.File): 
     .toFile(outputPath);
 
   await repo.updateAvatarPath(agentId, outputPath);
+
+  await auditService.log({
+    action: 'agent.avatar_uploaded',
+    entityType: 'Agent',
+    entityId: agentId,
+    details: {},
+  });
 }
 
 export async function deleteAvatar(agentId: string): Promise<void> {
@@ -54,6 +63,13 @@ export async function deleteAvatar(agentId: string): Promise<void> {
   }
 
   await repo.clearAvatarPath(agentId);
+
+  await auditService.log({
+    action: 'agent.avatar_deleted',
+    entityType: 'Agent',
+    entityId: agentId,
+    details: {},
+  });
 }
 
 export async function changePassword(
@@ -61,6 +77,7 @@ export async function changePassword(
   currentPassword: string,
   newPassword: string,
   confirmPassword: string,
+  currentSessionId?: string,
 ): Promise<void> {
   if (newPassword !== confirmPassword) {
     throw new ValidationError('Passwords do not match');
@@ -74,6 +91,15 @@ export async function changePassword(
 
   const hash = await bcrypt.hash(newPassword, 12);
   await repo.updatePasswordHash(agentId, hash);
+
+  await authRepo.invalidateUserSessions(agentId, currentSessionId);
+
+  await auditService.log({
+    action: 'agent.password_changed',
+    entityType: 'Agent',
+    entityId: agentId,
+    details: {},
+  });
 }
 
 /** Lightweight check — used by routers to populate hasAvatar in the header */

@@ -92,7 +92,7 @@ profileRouter.post(
       const user = req.user as AuthenticatedUser;
       const { currentPassword, newPassword, confirmPassword } = req.body;
 
-      await service.changePassword(user.id, currentPassword, newPassword, confirmPassword);
+      await service.changePassword(user.id, currentPassword, newPassword, confirmPassword, req.session.id);
 
       if (req.headers['hx-request']) {
         return res.render('partials/profile/password-result.njk', {

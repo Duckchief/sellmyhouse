@@ -695,20 +695,6 @@ describe('executeHardDelete', () => {
 
 // Finding #3: generateDataExport includes audit trail
 describe('generateDataExport', () => {
-  const sellerData = {
-    id: 'seller-1',
-    name: 'Test Seller',
-    email: 'test@example.com',
-    phone: '+6591234567',
-    status: 'active',
-    consentService: true,
-    consentMarketing: false,
-    notificationPreference: 'email_only',
-    createdAt: new Date(),
-    nricDisplay: 'SXXXX567A',
-    identityVerified: true,
-  };
-
   beforeEach(() => {
     mockRepo.getSellerPersonalData.mockResolvedValue({
       id: 'seller-1',

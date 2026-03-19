@@ -106,6 +106,7 @@ export async function getDashboardOverview(sellerId: string): Promise<DashboardO
       phone: seller.phone,
       status: seller.status,
       onboardingStep: seller.onboardingStep,
+      emailVerified: seller.emailVerified,
     },
     onboarding,
     propertyStatus: firstProperty?.status ?? null,

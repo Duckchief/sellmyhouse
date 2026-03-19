@@ -28,7 +28,7 @@ export interface OnboardingStatus {
 }
 
 export interface DashboardOverview {
-  seller: Pick<Seller, 'id' | 'name' | 'email' | 'phone' | 'status' | 'onboardingStep'>;
+  seller: Pick<Seller, 'id' | 'name' | 'email' | 'phone' | 'status' | 'onboardingStep' | 'emailVerified'>;
   onboarding: OnboardingStatus;
   propertyStatus: string | null;
   transactionStatus: string | null;

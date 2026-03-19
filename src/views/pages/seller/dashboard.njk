@@ -6,6 +6,28 @@
 {% set pageTitle = ("Welcome back, " | t) + overview.seller.name %}
 {% include "partials/shared/page-header.njk" %}
 
+{# Email verification banner #}
+{% if not overview.seller.emailVerified %}
+<div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+  <div class="flex">
+    <div class="flex-1">
+      <p class="text-sm font-medium text-blue-800">
+        {{ "Please verify your email to start listing your property." | t }}
+      </p>
+      <form method="POST" action="/auth/resend-verification" class="mt-2"
+            hx-post="/auth/resend-verification"
+            hx-target="this"
+            hx-swap="outerHTML">
+        <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+        <button type="submit" class="text-sm text-blue-700 underline hover:text-blue-900">
+          {{ "Resend verification email" | t }}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {# Case flag alert #}
 {% if overview.caseFlags.length > 0 %}
 <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">

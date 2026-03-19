@@ -1,0 +1,9 @@
+{% extends "layouts/public.njk" %}
+{% block title %}{{ "Email Verification Failed" | t }} — SellMyHomeNow.sg{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto mt-16 text-center">
+  <h1 class="text-2xl font-bold mb-4">{{ "Verification Failed" | t }}</h1>
+  <p class="text-gray-600 mb-6">{{ message | t }}</p>
+  <a href="/auth/login" class="btn-primary">{{ "Back to Login" | t }}</a>
+</div>
+{% endblock %}

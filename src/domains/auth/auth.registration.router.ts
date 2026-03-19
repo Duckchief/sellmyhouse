@@ -1,9 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import passport from 'passport';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { validationResult } from 'express-validator';
 import * as authService from './auth.service';
 import { registerValidation } from './auth.validator';
 import { authRateLimiter } from '../../infra/http/middleware/rate-limit';
+import { requireAuth, requireRole } from '../../infra/http/middleware/require-auth';
+import { ValidationError } from '../shared/errors';
 import type { AuthenticatedUser } from './auth.types';
 
 export const registrationRouter = Router();
@@ -46,6 +49,8 @@ registrationRouter.post(
         consentService: true,
         consentMarketing:
           req.body.consentMarketing === 'true' || req.body.consentMarketing === 'on',
+        consentHuttonsTransfer:
+          req.body.consentHuttonsTransfer === 'true' || req.body.consentHuttonsTransfer === 'on',
         ipAddress: req.ip,
         userAgent: req.get('user-agent'),
       });
@@ -67,6 +72,53 @@ registrationRouter.post(
           });
         },
       )(req, res, next);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ─── Email Verification ────────────────────────────────────
+
+const resendVerificationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3,
+  keyGenerator: (req) => (req.user as { id?: string })?.id ?? ipKeyGenerator(req.ip ?? 'unknown'),
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
+registrationRouter.get(
+  '/auth/verify-email/:token',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await authService.verifyEmail(req.params.token as string);
+      return res.redirect('/seller/dashboard?verified=1');
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return res.status(400).render('pages/auth/verify-email-error', {
+          message: 'This verification link is invalid or has expired.',
+        });
+      }
+      next(err);
+    }
+  },
+);
+
+registrationRouter.post(
+  '/auth/resend-verification',
+  requireAuth(),
+  requireRole('seller'),
+  resendVerificationLimiter,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as { id: string };
+      await authService.resendVerificationEmail(user.id);
+      if (req.headers['hx-request']) {
+        return res.render('partials/auth/form-success', {
+          message: 'Verification email sent. Please check your inbox.',
+        });
+      }
+      return res.redirect('/seller/dashboard?resent=1');
     } catch (err) {
       next(err);
     }

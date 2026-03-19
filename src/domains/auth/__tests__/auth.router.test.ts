@@ -95,6 +95,7 @@ describe('AuthRouter', () => {
         phone: '91234567',
         password: 'password123',
         consentService: 'true',
+        consentHuttonsTransfer: 'true',
       });
 
       expect(res.status).toBe(409);
@@ -160,6 +161,32 @@ describe('AuthRouter', () => {
       const res = await request(app).post('/auth/logout');
       expect(res.status).toBe(302);
       expect(res.headers.location).toBe('/');
+    });
+  });
+
+  describe('GET /auth/verify-email/:token', () => {
+    it('redirects to /seller/dashboard?verified=1 on success', async () => {
+      authService.verifyEmail = jest.fn().mockResolvedValue(undefined);
+      const res = await request(app).get('/auth/verify-email/valid-token');
+      expect(authService.verifyEmail).toHaveBeenCalledWith('valid-token');
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toContain('/seller/dashboard');
+    });
+
+    it('returns 400 on invalid/expired token', async () => {
+      const { ValidationError } = require('../../shared/errors');
+      authService.verifyEmail = jest
+        .fn()
+        .mockRejectedValue(new ValidationError('Invalid or expired verification link'));
+      const res = await request(app).get('/auth/verify-email/bad-token');
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('POST /auth/resend-verification', () => {
+    it('returns 401 when not authenticated', async () => {
+      const res = await request(app).post('/auth/resend-verification');
+      expect(res.status).toBe(401);
     });
   });
 

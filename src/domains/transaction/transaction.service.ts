@@ -100,10 +100,7 @@ function assertTransactionOwnership(
   }
 }
 
-export async function getTransaction(
-  transactionId: string,
-  callerAgentId?: string,
-) {
+export async function getTransaction(transactionId: string, callerAgentId?: string) {
   const tx = await txRepo.findById(transactionId);
   if (!tx) throw new NotFoundError('Transaction', transactionId);
   assertTransactionOwnership(tx, callerAgentId);

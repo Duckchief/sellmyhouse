@@ -462,7 +462,8 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
   // 5. NRIC data 30 days after transaction completion
   const nricCutoff = new Date(now);
   nricCutoff.setDate(nricCutoff.getDate() - 30);
-  const completedTxForNric = await complianceRepo.findTransactionsCompletedBeforeForNric(nricCutoff);
+  const completedTxForNric =
+    await complianceRepo.findTransactionsCompletedBeforeForNric(nricCutoff);
   for (const tx of completedTxForNric) {
     const cdd = await complianceRepo.findLatestSellerCddRecord(tx.sellerId);
     if (!cdd || cdd.nricLast4 === 'XXXX') continue; // already redacted

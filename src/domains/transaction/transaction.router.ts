@@ -382,7 +382,10 @@ transactionRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const invoice = await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));
+      const invoice = await txService.getTransaction(
+        req.params['id'] as string,
+        getCallerAgentId(user),
+      );
       const invoicePath = (invoice as { commissionInvoice?: { invoiceFilePath?: string | null } })
         .commissionInvoice?.invoiceFilePath;
       if (!invoicePath) return res.status(404).json({ error: 'No invoice file found' });

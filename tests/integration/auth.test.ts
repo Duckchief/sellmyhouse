@@ -80,25 +80,33 @@ describe('Auth Integration', () => {
       });
 
       const { agent, csrfToken } = await csrfAgent();
-      const res = await agent.post('/auth/register').set('x-csrf-token', csrfToken).type('form').send({
-        name: 'Dupe Seller',
-        email: 'dupe@test.local',
-        phone: '92345678',
-        password: 'password123',
-        consentService: 'true',
-      });
+      const res = await agent
+        .post('/auth/register')
+        .set('x-csrf-token', csrfToken)
+        .type('form')
+        .send({
+          name: 'Dupe Seller',
+          email: 'dupe@test.local',
+          phone: '92345678',
+          password: 'password123',
+          consentService: 'true',
+        });
 
       expect(res.status).toBe(409);
     });
 
     it('returns 400 when consent is missing', async () => {
       const { agent, csrfToken } = await csrfAgent();
-      const res = await agent.post('/auth/register').set('x-csrf-token', csrfToken).type('form').send({
-        name: 'No Consent',
-        email: 'noconsent@test.local',
-        phone: '93456789',
-        password: 'password123',
-      });
+      const res = await agent
+        .post('/auth/register')
+        .set('x-csrf-token', csrfToken)
+        .type('form')
+        .send({
+          name: 'No Consent',
+          email: 'noconsent@test.local',
+          phone: '93456789',
+          password: 'password123',
+        });
 
       expect(res.status).toBe(400);
     });

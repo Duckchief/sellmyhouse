@@ -61,3 +61,20 @@ export const offerRateLimiter = rateLimit({
   },
   skip: () => process.env.NODE_ENV === 'test',
 });
+
+export const totpRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 TOTP attempts per 15 minutes
+  keyGenerator: (req) =>
+    (req.user as { id?: string } | undefined)?.id ?? ipKeyGenerator(req.ip ?? ''),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Too many verification attempts. Please try again later.',
+    },
+  },
+  skipSuccessfulRequests: true,
+  skip: () => process.env.NODE_ENV === 'test',
+});

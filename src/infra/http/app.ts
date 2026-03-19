@@ -122,7 +122,7 @@ export function createApp() {
           ],
           styleSrc: [
             "'self'",
-            "'unsafe-inline'",
+            (req, res) => `'nonce-${(res as express.Response).locals.cspNonce}'`,
             'fonts.googleapis.com',
             'https://cdn.jsdelivr.net',
           ],

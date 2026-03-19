@@ -128,6 +128,30 @@ export function clearSellerPasswordResetToken(id: string) {
   });
 }
 
+export function setSellerEmailVerificationToken(id: string, hashedToken: string, expiry: Date) {
+  return prisma.seller.update({
+    where: { id },
+    data: { emailVerificationToken: hashedToken, emailVerificationExpiry: expiry },
+  });
+}
+
+export function findSellerByEmailVerificationToken(hashedToken: string) {
+  return prisma.seller.findFirst({
+    where: { emailVerificationToken: hashedToken },
+  });
+}
+
+export function markSellerEmailVerified(id: string) {
+  return prisma.seller.update({
+    where: { id },
+    data: {
+      emailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationExpiry: null,
+    },
+  });
+}
+
 // ─── Agent ─────────────────────────────────────────────────
 
 export function findAgentByEmail(email: string) {
@@ -271,6 +295,7 @@ export function createConsentRecord(data: {
   sellerId: string;
   purposeService: boolean;
   purposeMarketing: boolean;
+  purposeHuttonsTransfer?: boolean;
   ipAddress?: string;
   userAgent?: string;
 }) {
@@ -282,6 +307,8 @@ export function createConsentRecord(data: {
       sellerId: data.sellerId,
       purposeService: data.purposeService,
       purposeMarketing: data.purposeMarketing,
+      purposeHuttonsTransfer: data.purposeHuttonsTransfer ?? false,
+      version: '1.0',
       ipAddress: data.ipAddress ?? null,
       userAgent: data.userAgent ?? null,
     },

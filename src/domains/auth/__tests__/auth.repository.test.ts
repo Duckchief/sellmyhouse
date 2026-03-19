@@ -273,6 +273,39 @@ describe('AuthRepository', () => {
     });
   });
 
+  describe('email verification', () => {
+    it('setSellerEmailVerificationToken updates token and expiry', async () => {
+      prisma.seller.update.mockResolvedValue({});
+      const expiry = new Date('2026-03-20T00:00:00Z');
+      await authRepo.setSellerEmailVerificationToken('seller-1', 'hashed-token', expiry);
+      expect(prisma.seller.update).toHaveBeenCalledWith({
+        where: { id: 'seller-1' },
+        data: { emailVerificationToken: 'hashed-token', emailVerificationExpiry: expiry },
+      });
+    });
+
+    it('findSellerByEmailVerificationToken queries by hashed token', async () => {
+      prisma.seller.findFirst.mockResolvedValue(null);
+      await authRepo.findSellerByEmailVerificationToken('hashed-token');
+      expect(prisma.seller.findFirst).toHaveBeenCalledWith({
+        where: { emailVerificationToken: 'hashed-token' },
+      });
+    });
+
+    it('markSellerEmailVerified sets emailVerified and clears token fields', async () => {
+      prisma.seller.update.mockResolvedValue({});
+      await authRepo.markSellerEmailVerified('seller-1');
+      expect(prisma.seller.update).toHaveBeenCalledWith({
+        where: { id: 'seller-1' },
+        data: {
+          emailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationExpiry: null,
+        },
+      });
+    });
+  });
+
   describe('consentRecord', () => {
     it('creates with correct shape including IP and userAgent', async () => {
       prisma.consentRecord.create.mockResolvedValue({ id: 'test-id' });

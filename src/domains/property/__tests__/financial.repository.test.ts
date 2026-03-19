@@ -13,6 +13,11 @@ jest.mock('@/infra/database/prisma', () => ({
   },
 }));
 
+jest.mock('@/domains/shared/encryption', () => ({
+  encrypt: jest.fn((plaintext: string) => `encrypted:${plaintext}`),
+  decrypt: jest.fn((token: string) => token.replace(/^encrypted:/, '')),
+}));
+
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
 const sampleReportData = {
@@ -32,9 +37,10 @@ describe('financial.repository', () => {
   });
 
   describe('create', () => {
-    it('creates a financial report record', async () => {
-      const expected = { id: 'report-1', reportData: sampleReportData, version: 1 };
-      (mockPrisma.financialReport.create as jest.Mock).mockResolvedValue(expected);
+    it('encrypts reportData before writing and decrypts on return', async () => {
+      const encryptedJson = `encrypted:${JSON.stringify(sampleReportData)}`;
+      const dbRecord = { id: 'report-1', reportData: encryptedJson, version: 1 };
+      (mockPrisma.financialReport.create as jest.Mock).mockResolvedValue(dbRecord);
 
       const result = await financialRepo.create({
         id: 'report-1',
@@ -44,29 +50,44 @@ describe('financial.repository', () => {
         version: 1,
       });
 
+      // Prisma receives the encrypted string, not the raw object
       expect(mockPrisma.financialReport.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           id: 'report-1',
           sellerId: 'seller-1',
           propertyId: 'property-1',
-          reportData: sampleReportData,
+          reportData: encryptedJson,
           version: 1,
         }),
       });
-      expect(result).toEqual(expected);
+      // Caller receives decrypted reportData
+      expect(result.reportData).toEqual(sampleReportData);
     });
   });
 
   describe('findById', () => {
-    it('finds a report by id', async () => {
-      const expected = { id: 'report-1', reportData: sampleReportData };
-      (mockPrisma.financialReport.findUnique as jest.Mock).mockResolvedValue(expected);
+    it('decrypts reportData from DB', async () => {
+      const encryptedJson = `encrypted:${JSON.stringify(sampleReportData)}`;
+      (mockPrisma.financialReport.findUnique as jest.Mock).mockResolvedValue({
+        id: 'report-1',
+        reportData: encryptedJson,
+      });
 
       const result = await financialRepo.findById('report-1');
       expect(mockPrisma.financialReport.findUnique).toHaveBeenCalledWith({
         where: { id: 'report-1' },
       });
-      expect(result).toEqual(expected);
+      expect(result!.reportData).toEqual(sampleReportData);
+    });
+
+    it('handles legacy plaintext reportData (JSON object)', async () => {
+      (mockPrisma.financialReport.findUnique as jest.Mock).mockResolvedValue({
+        id: 'report-1',
+        reportData: sampleReportData,
+      });
+
+      const result = await financialRepo.findById('report-1');
+      expect(result!.reportData).toEqual(sampleReportData);
     });
 
     it('returns null when not found', async () => {

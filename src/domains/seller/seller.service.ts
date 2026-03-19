@@ -603,6 +603,12 @@ export async function checkInactiveSellers() {
 
 export async function recordCpfDisclaimerShown(sellerId: string): Promise<void> {
   await sellerRepo.recordCpfDisclaimerShown(sellerId);
+  await auditService.log({
+    action: 'seller.cpf_disclaimer_shown',
+    entityType: 'seller',
+    entityId: sellerId,
+    details: {},
+  });
 }
 
 export async function findById(sellerId: string) {

@@ -37,6 +37,12 @@ export async function maintenanceMiddleware(
     res.setHeader('Retry-After', '3600');
     res.render('pages/public/maintenance', { maintenanceMessage, maintenanceEta });
   } catch (err) {
+    // If DB is unreachable we cannot check maintenance mode — fail open
+    // so a DB outage doesn't make every request crash with an unhandled error.
+    const errName = err instanceof Error ? (err as Error & { name: string }).name : '';
+    if (errName === 'PrismaClientInitializationError') {
+      return next();
+    }
     next(err);
   }
 }

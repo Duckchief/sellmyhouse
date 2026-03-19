@@ -111,7 +111,7 @@
       {# Pure-CSS star picker: DOM order 5→1, flex-row-reverse for visual 1→5.
          Hovering a label highlights it + all DOM-subsequent labels (= visually lower stars).
          Checked radio fills its label + all DOM-subsequent labels (= stars to its left). #}
-      <style>
+      <style nonce="{{ cspNonce }}">
         .star-picker { display:flex; flex-direction:row-reverse; width:fit-content; gap:2px; }
         .star-picker input[type=radio] { display:none; }
         .star-picker label { font-size:1.75rem; line-height:1; cursor:pointer; color:#d1d5db; transition:color .1s; }

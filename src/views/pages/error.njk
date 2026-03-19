@@ -7,7 +7,7 @@
   <div class="max-w-md w-full text-center">
 
     {% if statusCode == 401 %}
-  <style>
+  <style nonce="{{ cspNonce }}">
     .inv-body {
       background: #0a0a0a;
       min-height: 100vh;
@@ -16,8 +16,9 @@
       align-items: center;
       justify-content: center;
       padding: 40px 20px;
-      overflow: hidden;
-      position: relative;
+      overflow-y: auto;
+      position: fixed;
+      inset: 0;
       font-family: 'Courier New', monospace;
     }
     .inv-stars {
@@ -124,7 +125,7 @@
   </style>
 
   {# Override the outer wrapper from error.njk so we get a full dark background #}
-  <div class="inv-body" style="position:fixed;inset:0;overflow-y:auto;">
+  <div class="inv-body">
     <div class="inv-stars" id="inv-stars"></div>
     <div class="inv-scanline"></div>
 
@@ -218,7 +219,7 @@
   </script>
 
     {% elif statusCode == 403 %}
-    <style>
+    <style nonce="{{ cspNonce }}">
       .inv-body {
         background: #0a0a0a;
         min-height: 100vh;
@@ -227,8 +228,9 @@
         align-items: center;
         justify-content: center;
         padding: 40px 20px;
-        overflow: hidden;
-        position: relative;
+        overflow-y: auto;
+        position: fixed;
+        inset: 0;
         font-family: 'Courier New', monospace;
       }
       .inv-stars {
@@ -342,7 +344,7 @@
     </style>
 
     {# Override the outer wrapper from error.njk so we get a full dark background #}
-    <div class="inv-body" style="position:fixed;inset:0;overflow-y:auto;">
+    <div class="inv-body">
       <div class="inv-stars" id="inv-stars-403"></div>
       <div class="inv-scanline"></div>
 

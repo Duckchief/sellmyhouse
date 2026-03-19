@@ -55,7 +55,7 @@
     "express-session": "^1.19.0",
     "express-validator": "^7.3.1",
     "fast-xml-parser": "^5.5.6",
-    "file-type": "^16.5.4",
+    "file-type": "^21.3.3",
     "helmet": "^8.1.0",
     "htmx.org": "2.0.4",
     "i18next": "^25.8.17",

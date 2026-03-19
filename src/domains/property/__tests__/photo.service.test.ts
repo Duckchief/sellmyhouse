@@ -3,7 +3,7 @@ import * as propertyRepo from '../property.repository';
 import * as auditService from '../../shared/audit.service';
 import { localStorage } from '../../../infra/storage/local-storage';
 import { scanBuffer } from '@/infra/security/virus-scanner';
-import { fromBuffer as fileTypeFromBuffer } from 'file-type';
+import { fileTypeFromBuffer } from 'file-type';
 import { NotFoundError, ValidationError, ForbiddenError } from '../../shared/errors';
 import type { PhotoRecord } from '../property.types';
 import type { Listing } from '@prisma/client';
@@ -11,7 +11,7 @@ import type { Listing } from '@prisma/client';
 // ─── Mock file-type ────────────────────────────────────────────────────────────
 
 jest.mock('file-type', () => ({
-  fromBuffer: jest.fn(),
+  fileTypeFromBuffer: jest.fn(),
 }));
 
 const mockedFileType = jest.mocked(fileTypeFromBuffer);

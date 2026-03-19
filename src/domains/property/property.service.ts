@@ -6,6 +6,7 @@ import { canTransitionListing } from './property.types';
 import type { CreatePropertyInput, UpdatePropertyInput } from './property.types';
 import { checkComplianceGate } from '@/domains/review/review.service';
 import * as caseFlagService from '@/domains/seller/case-flag.service';
+import * as authRepo from '../auth/auth.repository';
 
 export function generatePropertySlug(block: string, street: string, town: string): string {
   return `${block}-${street}-${town}`
@@ -27,6 +28,13 @@ export async function createProperty(input: CreatePropertyInput) {
   if (hasMopBlock && !input.mopOverrideReason) {
     throw new ComplianceError(
       'MOP not yet met: listing creation is blocked. Provide mopOverrideReason to override.',
+    );
+  }
+
+  const seller = await authRepo.findSellerById(input.sellerId);
+  if (!seller?.emailVerified) {
+    throw new ValidationError(
+      'Please verify your email address before creating a listing.',
     );
   }
 

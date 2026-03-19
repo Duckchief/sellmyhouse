@@ -18,6 +18,7 @@ jest.mock('../../seller/case-flag.service', () => ({
   hasActiveMopFlag: jest.fn().mockResolvedValue(false),
 }));
 jest.mock('@paralleldrive/cuid2', () => ({ createId: jest.fn().mockReturnValue('abcdef123456') }));
+jest.mock('@/domains/auth/auth.repository');
 
 const mockedRepo = jest.mocked(propertyRepo);
 const mockedAudit = jest.mocked(auditService);
@@ -25,12 +26,14 @@ const mockedReviewService = jest.mocked(reviewService);
 const mockedCaseFlagService = jest.requireMock('../../seller/case-flag.service') as {
   hasActiveMopFlag: jest.Mock;
 };
+const mockedAuthRepo = jest.requireMock('@/domains/auth/auth.repository');
 
 describe('property.service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedReviewService.checkComplianceGate.mockResolvedValue(undefined);
     mockedRepo.findBySlug.mockResolvedValue(null); // slug not taken by default
+    mockedAuthRepo.findSellerById = jest.fn().mockResolvedValue({ id: 'seller-1', emailVerified: true });
   });
 
   // ─── createProperty ────────────────────────────────────────
@@ -185,6 +188,30 @@ describe('property.service', () => {
           }),
         }),
       );
+    });
+
+    it('throws ValidationError if seller email is not verified', async () => {
+      mockedAuthRepo.findSellerById = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        emailVerified: false,
+      });
+      mockedCaseFlagService.hasActiveMopFlag.mockResolvedValue(false);
+
+      await expect(
+        propertyService.createProperty({
+          sellerId: 'seller-1',
+          agentId: 'agent-1',
+          town: 'Ang Mo Kio',
+          street: 'ANG MO KIO AVE 3',
+          block: '123',
+          flatType: 'four_room',
+          storeyRange: '07 TO 09',
+          floorAreaSqm: 90,
+          flatModel: 'Improved',
+          leaseCommenceDate: 1985,
+          askingPrice: 450000,
+        }),
+      ).rejects.toThrow('Please verify your email address');
     });
   });
 

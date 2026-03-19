@@ -656,4 +656,61 @@ describe('AuthService', () => {
       await expect(authService.verifyEmail('raw-token')).rejects.toThrow('Invalid or expired');
     });
   });
+
+  describe('resendVerificationEmail', () => {
+    it('re-generates token and sends email for the seller', async () => {
+      authRepo.findSellerById = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        email: 'seller@example.com',
+        emailVerified: false,
+      });
+      authRepo.setSellerEmailVerificationToken = jest.fn().mockResolvedValue({});
+      systemMailer.sendSystemEmail = jest.fn().mockResolvedValue(undefined);
+
+      await authService.resendVerificationEmail('seller-1');
+
+      expect(authRepo.setSellerEmailVerificationToken).toHaveBeenCalledWith(
+        'seller-1',
+        expect.any(String),
+        expect.any(Date),
+      );
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.email_verification_resent' }),
+      );
+    });
+
+    it('throws ValidationError if seller not found', async () => {
+      authRepo.findSellerById = jest.fn().mockResolvedValue(null);
+      await expect(authService.resendVerificationEmail('bad-id')).rejects.toThrow();
+    });
+  });
+
+  describe('registerSeller — sends verification email', () => {
+    it('calls sendVerificationEmail after creating seller', async () => {
+      authRepo.findSellerByEmail = jest.fn().mockResolvedValue(null);
+      authRepo.createSeller = jest.fn().mockResolvedValue({ id: 'new-seller', email: 'test@example.com' });
+      authRepo.createConsentRecord = jest.fn().mockResolvedValue({});
+      authRepo.setSellerEmailVerificationToken = jest.fn().mockResolvedValue({});
+      systemMailer.sendSystemEmail = jest.fn().mockResolvedValue(undefined);
+
+      await authService.registerSeller({
+        name: 'Test',
+        email: 'test@example.com',
+        phone: '91234567',
+        password: 'pass',
+        consentService: true,
+        consentMarketing: false,
+        consentHuttonsTransfer: true,
+        ipAddress: '127.0.0.1',
+        userAgent: 'Test',
+      });
+
+      expect(authRepo.setSellerEmailVerificationToken).toHaveBeenCalled();
+      expect(systemMailer.sendSystemEmail).toHaveBeenCalledWith(
+        'test@example.com',
+        expect.stringContaining('Verify'),
+        expect.any(String),
+      );
+    });
+  });
 });

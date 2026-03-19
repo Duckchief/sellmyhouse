@@ -62,6 +62,19 @@ export async function registerSeller(input: SellerRegistrationInput) {
     userAgent: input.userAgent,
   });
 
+  // Best-effort: send verification email; failure should not block registration
+  try {
+    await sendVerificationEmail(seller.id, seller.email as string);
+  } catch (err) {
+    await auditService.log({
+      action: 'auth.email_verification_send_failed',
+      entityType: 'seller',
+      entityId: seller.id,
+      details: { error: err instanceof Error ? err.message : String(err) },
+      actorType: 'system' as const,
+    });
+  }
+
   await auditService.log({
     action: 'auth.seller_registered',
     entityType: 'seller',
@@ -455,6 +468,23 @@ export async function verifyEmail(rawToken: string): Promise<void> {
     details: {},
     actorType: 'seller' as const,
     actorId: seller.id,
+  });
+}
+
+export async function resendVerificationEmail(sellerId: string): Promise<void> {
+  const seller = await authRepo.findSellerById(sellerId);
+  if (!seller) throw new ValidationError('Seller not found');
+  if (!seller.email) throw new ValidationError('Seller email not found');
+
+  await sendVerificationEmail(sellerId, seller.email);
+
+  await auditService.log({
+    action: 'auth.email_verification_resent',
+    entityType: 'seller',
+    entityId: sellerId,
+    details: { email: maskEmail(seller.email) },
+    actorType: 'seller' as const,
+    actorId: sellerId,
   });
 }
 

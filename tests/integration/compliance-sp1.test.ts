@@ -139,7 +139,7 @@ describe('Compliance SP1 — Consent + DNC (integration)', () => {
   });
 
   describe('withdrawConsent — service, with completed transaction', () => {
-    it('creates a blocked DataDeletionRequest with aml_cft_5_year rule', async () => {
+    it('creates a flagged DataDeletionRequest with post_completion_purge rule', async () => {
       const seller = await createTestSeller();
 
       // flatType is a plain String field (not an enum) — use the HDB format string
@@ -182,13 +182,13 @@ describe('Compliance SP1 — Consent + DNC (integration)', () => {
         channel: 'web',
       });
 
-      expect(result.deletionBlocked).toBe(true);
-      expect(result.retentionRule).toBe('aml_cft_5_year');
+      expect(result.deletionBlocked).toBe(false);
+      expect(result.retentionRule).toBe('post_completion_purge');
 
       const request = await testPrisma.dataDeletionRequest.findUnique({
         where: { id: result.deletionRequestId },
       });
-      expect(request?.status).toBe('blocked');
+      expect(request?.status).toBe('flagged');
     });
   });
 

@@ -62,7 +62,7 @@ describe('offer.service', () => {
     jest.clearAllMocks();
     mockSettings.getBoolean.mockResolvedValue(false); // AI disabled by default in tests
     mockSettings.get.mockResolvedValue('anthropic');
-    mockSettings.getNumber.mockResolvedValue(6); // data_retention_years default
+    mockSettings.getNumber.mockResolvedValue(30); // transaction_anonymisation_days default
     mockAudit.log.mockResolvedValue(undefined as never);
     mockNotification.send.mockResolvedValue(undefined as never);
     mockHdbService.getRecentByTownAndFlatType.mockResolvedValue([]);

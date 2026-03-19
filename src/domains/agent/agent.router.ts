@@ -15,6 +15,7 @@ import { ValidationError } from '@/domains/shared/errors';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import type { SellerListFilter } from './agent.types';
 import { getHasAvatar } from '../profile/profile.service';
+import * as complianceService from '@/domains/compliance/compliance.service';
 
 export const agentRouter = Router();
 
@@ -35,9 +36,10 @@ agentRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const [overview, repeatViewers] = await Promise.all([
+      const [overview, repeatViewers, pendingDownloads] = await Promise.all([
         agentService.getPipelineOverview(getAgentFilter(user)),
         agentService.getRepeatViewers(),
+        complianceService.getPendingDocumentDownloads(getAgentFilter(user)),
       ]);
 
       const currentStage = (req.query['stage'] as string) || null;
@@ -51,6 +53,7 @@ agentRouter.get(
         hasAvatar,
         overview,
         repeatViewers,
+        pendingDownloads,
         currentStage,
       });
     } catch (err) {

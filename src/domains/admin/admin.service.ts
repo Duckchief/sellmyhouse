@@ -451,7 +451,9 @@ export async function getSettingsGrouped(): Promise<SettingGroup[]> {
     group('Data & Sync', [
       'hdb_sync_schedule',
       'lead_retention_months',
-      'transaction_retention_years',
+      'sensitive_doc_retention_days',
+      'financial_data_retention_days',
+      'transaction_anonymisation_days',
     ]),
     group('AI', ['ai_provider', 'ai_model', 'ai_max_tokens', 'ai_temperature']),
     group('Platform', [
@@ -503,12 +505,26 @@ export async function setMaintenanceMessage(message: string, agentId: string): P
   // adminRepo.upsertSetting is used here (not settingsService.upsert) because maintenance
   // settings are ephemeral and do not require a description field.
   await adminRepo.upsertSetting('maintenance_message', message, agentId);
+  await auditService.log({
+    agentId,
+    action: 'setting.changed',
+    entityType: 'setting',
+    entityId: 'maintenance_message',
+    details: { key: 'maintenance_message', newValue: message },
+  });
 }
 
 export async function setMaintenanceEta(eta: string, agentId: string): Promise<void> {
   // adminRepo.upsertSetting is used here (not settingsService.upsert) because maintenance
   // settings are ephemeral and do not require a description field.
   await adminRepo.upsertSetting('maintenance_eta', eta, agentId);
+  await auditService.log({
+    agentId,
+    action: 'setting.changed',
+    entityType: 'setting',
+    entityId: 'maintenance_eta',
+    details: { key: 'maintenance_eta', newValue: eta },
+  });
 }
 
 // ─── HDB Management ──────────────────────────────────────────

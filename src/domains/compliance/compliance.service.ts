@@ -15,6 +15,7 @@ import {
   ValidationError,
   ConflictError,
 } from '../shared/errors';
+import { maskNric } from '../shared/nric';
 import { AUTO_APPLY_FIELDS, type CreateCorrectionRequestInput } from './compliance.types';
 import type {
   DncChannel,
@@ -130,15 +131,14 @@ export async function withdrawConsent(
 
     const latestCompletion = completedTxDates[0] ?? now;
     const retentionEndDate = new Date(latestCompletion);
-    retentionEndDate.setFullYear(retentionEndDate.getFullYear() + 5);
+    retentionEndDate.setDate(retentionEndDate.getDate() + 30); // 30-day post-completion purge
 
-    // DeletionTargetType enum has no 'seller' value; 'lead' is the closest valid type
     const deletionRequest = await complianceRepo.createDeletionRequest({
       targetType: 'lead',
       targetId: input.sellerId,
       reason: 'Service consent withdrawn by seller',
-      retentionRule: 'aml_cft_5_year',
-      status: 'blocked',
+      retentionRule: 'post_completion_purge',
+      status: 'flagged',
       details: {
         sellerId: input.sellerId,
         withdrawalDate: now.toISOString(),
@@ -157,8 +157,8 @@ export async function withdrawConsent(
     return {
       consentRecordId: newRecord.id,
       deletionRequestId: deletionRequest.id,
-      deletionBlocked: true,
-      retentionRule: 'aml_cft_5_year',
+      deletionBlocked: false,
+      retentionRule: 'post_completion_purge',
     };
   }
 
@@ -274,7 +274,6 @@ export async function getMyData(sellerId: string) {
   const data = await complianceRepo.getSellerPersonalData(sellerId);
   if (!data) throw new NotFoundError('Seller', sellerId);
 
-  const { maskNric } = await import('../shared/nric');
   const nricDisplay = data.cddRecords[0]?.nricLast4 ? maskNric(data.cddRecords[0].nricLast4) : null;
 
   const correctionRequests = await complianceRepo.findCorrectionRequestsBySeller(sellerId);
@@ -300,6 +299,22 @@ export async function getMyData(sellerId: string) {
   };
 }
 
+// Masks NRIC values at known key names in a nested details object (Finding #3).
+// Only targets fields named `nricLast4` / `nric_last4` to avoid false-positive masking.
+function maskNricInDetails(details: unknown): unknown {
+  if (!details || typeof details !== 'object') return details;
+  if (Array.isArray(details)) return details.map(maskNricInDetails);
+  const obj = details as Record<string, unknown>;
+  return Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => {
+      if ((k === 'nricLast4' || k === 'nric_last4') && typeof v === 'string') {
+        return [k, maskNric(v)];
+      }
+      return [k, maskNricInDetails(v)];
+    }),
+  );
+}
+
 export async function generateDataExport(sellerId: string): Promise<Record<string, unknown>> {
   // A2: Audit data access request
   await auditService.log({
@@ -310,6 +325,11 @@ export async function generateDataExport(sellerId: string): Promise<Record<strin
   });
 
   const myData = await getMyData(sellerId);
+
+  // Finding #3: Include audit trail entries recorded against the seller's ID.
+  // NRIC values in details are masked before export — only last4 is ever stored.
+  const auditLogs = await complianceRepo.findAuditLogsForSeller(sellerId);
+
   const exportData = {
     exportedAt: new Date().toISOString(),
     seller: myData.seller,
@@ -326,6 +346,12 @@ export async function generateDataExport(sellerId: string): Promise<Record<strin
       status: r.status,
       createdAt: r.createdAt,
       processedAt: r.processedAt,
+    })),
+    auditTrail: auditLogs.map((entry) => ({
+      action: entry.action,
+      entityType: entry.entityType,
+      details: maskNricInDetails(entry.details),
+      createdAt: entry.createdAt,
     })),
   };
 
@@ -355,14 +381,16 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
   // Load retention periods from SystemSetting (never hardcode)
   const [
     leadRetentionMonths,
-    transactionRetentionYears,
-    cddRetentionYears,
+    sensitiveDocRetentionDays,
+    financialDataRetentionDays,
+    transactionAnonymisationDays,
     consentPostWithdrawalRetentionYears,
     listingRetentionMonths,
   ] = await Promise.all([
     settingsService.getNumber('lead_retention_months', 12),
-    settingsService.getNumber('transaction_retention_years', 5),
-    settingsService.getNumber('cdd_retention_years', 5),
+    settingsService.getNumber('sensitive_doc_retention_days', 7),
+    settingsService.getNumber('financial_data_retention_days', 7),
+    settingsService.getNumber('transaction_anonymisation_days', 30),
     settingsService.getNumber('consent_post_withdrawal_retention_years', 1),
     settingsService.getNumber('listing_retention_months', 6),
   ]);
@@ -372,7 +400,7 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     targetId: string,
     reason: string,
     retentionRule: string,
-    status: 'flagged' | 'blocked',
+    status: 'flagged',
     details: Record<string, unknown>,
   ) {
     const existing = await complianceRepo.findExistingDeletionRequest(targetType, targetId);
@@ -419,62 +447,64 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     );
   }
 
-  // 3. Transactions post configured retention period
-  const txCutoff = new Date(now);
-  txCutoff.setFullYear(txCutoff.getFullYear() - transactionRetentionYears);
-  const oldTransactions = await complianceRepo.findTransactionsForRetention(txCutoff);
-  for (const tx of oldTransactions) {
-    await flagIfNew(
-      'transaction',
-      tx.id,
-      'Transaction record > 5 years post-completion',
-      'transaction_5_year',
-      'flagged',
-      {
-        sellerId: tx.sellerId,
-        completionDate: tx.completionDate,
-      },
-    );
+  // 3. Tier 1: Auto-delete sensitive documents (NRIC, CDD docs, OTP scans, invoices)
+  const sensitiveDocCutoff = new Date(now);
+  sensitiveDocCutoff.setDate(sensitiveDocCutoff.getDate() - sensitiveDocRetentionDays);
+  const txForDocPurge =
+    await complianceRepo.findCompletedTransactionsForDocPurge(sensitiveDocCutoff);
+  for (const tx of txForDocPurge) {
+    // Skip if already purged (no files remain)
+    const hasOtpFiles = tx.otp?.scannedCopyPathSeller || tx.otp?.scannedCopyPathReturned;
+    const hasInvoice = tx.commissionInvoice?.invoiceFilePath;
+    if (!hasOtpFiles && !hasInvoice) continue;
+
+    const { filePaths } = await complianceRepo.purgeTransactionSensitiveDocs(tx.id, tx.sellerId);
+    for (const filePath of filePaths) {
+      try {
+        await localStorage.delete(filePath);
+      } catch {
+        // Orphaned file — logged in audit below
+      }
+    }
+    await auditService.log({
+      action: 'compliance.sensitive_docs_purged',
+      entityType: 'transaction',
+      entityId: tx.id,
+      details: { sellerId: tx.sellerId, filesDeleted: filePaths.length },
+    });
+    flaggedCount++;
   }
 
-  // 4. CDD documents past configured retention period since verification
-  const cddCutoff = new Date(now);
-  cddCutoff.setFullYear(cddCutoff.getFullYear() - cddRetentionYears);
-  const oldCddRecords = await complianceRepo.findCddRecordsForRetention(cddCutoff);
-  for (const cdd of oldCddRecords) {
-    const docs = (cdd.documents as { path?: string }[] | null) ?? [];
-    const filePaths = docs.map((d) => d.path).filter((p): p is string => !!p);
-
-    await flagIfNew(
-      'cdd_documents',
-      cdd.id,
-      'CDD documents > 5 years old',
-      'cdd_5_year',
-      'flagged',
-      {
-        subjectId: cdd.subjectId,
-        verifiedAt: cdd.verifiedAt,
-        filePaths,
-      },
-    );
+  // 4. Tier 2: Auto-redact financial data (offer amounts, agreed price, option fee)
+  const financialCutoff = new Date(now);
+  financialCutoff.setDate(financialCutoff.getDate() - financialDataRetentionDays);
+  const txForFinancialRedaction =
+    await complianceRepo.findCompletedTransactionsForFinancialRedaction(financialCutoff);
+  for (const tx of txForFinancialRedaction) {
+    await complianceRepo.redactTransactionFinancialData(tx.id);
+    await auditService.log({
+      action: 'compliance.financial_data_redacted',
+      entityType: 'transaction',
+      entityId: tx.id,
+      details: { sellerId: tx.sellerId },
+    });
+    flaggedCount++;
   }
 
-  // 5. NRIC data 30 days after transaction completion
-  const nricCutoff = new Date(now);
-  nricCutoff.setDate(nricCutoff.getDate() - 30);
-  const completedTxForNric =
-    await complianceRepo.findTransactionsCompletedBeforeForNric(nricCutoff);
-  for (const tx of completedTxForNric) {
-    const cdd = await complianceRepo.findLatestSellerCddRecord(tx.sellerId);
-    if (!cdd || cdd.nricLast4 === 'XXXX') continue; // already redacted
-    await flagIfNew(
-      'nric_data',
-      cdd.id,
-      'NRIC data 30 days post-transaction completion',
-      'nric_30_day_post_completion',
-      'flagged',
-      { sellerId: tx.sellerId, transactionId: tx.id },
-    );
+  // 5. Tier 3: Auto-anonymise seller PII (30 days post-completion)
+  const anonymisationCutoff = new Date(now);
+  anonymisationCutoff.setDate(anonymisationCutoff.getDate() - transactionAnonymisationDays);
+  const txForAnonymisation =
+    await complianceRepo.findCompletedTransactionsForAnonymisation(anonymisationCutoff);
+  for (const tx of txForAnonymisation) {
+    await complianceRepo.anonymiseTransactionSeller(tx.id, tx.sellerId);
+    await auditService.log({
+      action: 'compliance.seller_pii_anonymised',
+      entityType: 'transaction',
+      entityId: tx.id,
+      details: { sellerId: tx.sellerId },
+    });
+    flaggedCount++;
   }
 
   // 6. Withdrawn consent records past configured retention period post-withdrawal
@@ -603,6 +633,24 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     });
   }
 
+  // 12. Inactive agents — anonymise PII after configured years of inactivity (Finding #4)
+  // Inactivity = isActive:false AND no logins/seller-activity/HDB-submissions in retention period.
+  // Anonymisation keeps the record for referential integrity (replaces name/email/phone).
+  const agentRetentionYears = await settingsService.getNumber('agent_retention_years', 2);
+  const agentCutoff = new Date(now);
+  agentCutoff.setFullYear(agentCutoff.getFullYear() - agentRetentionYears);
+  const inactiveAgents = await complianceRepo.findInactiveAgentsForRetention(agentCutoff);
+  for (const agent of inactiveAgents) {
+    await complianceRepo.anonymiseAgentRecord(agent.id);
+    await auditService.log({
+      action: 'compliance.agent_pii_anonymised',
+      entityType: 'agent',
+      entityId: agent.id,
+      details: { reason: 'agent_inactive_2_years' },
+    });
+    flaggedCount++;
+  }
+
   return { flaggedCount, skippedCount };
 }
 
@@ -615,12 +663,6 @@ export async function executeHardDelete(input: {
 }): Promise<void> {
   const request = await complianceRepo.findDeletionRequest(input.requestId);
   if (!request) throw new NotFoundError('DataDeletionRequest', input.requestId);
-
-  if (request.status === 'blocked') {
-    throw new ComplianceError(
-      `Cannot delete: AML/CFT retention requirement applies. Rule: ${request.retentionRule}`,
-    );
-  }
 
   if (request.status !== 'flagged' && request.status !== 'pending_review') {
     throw new ComplianceError(`Deletion request is not in a reviewable state: ${request.status}`);
@@ -770,6 +812,49 @@ export async function getDeletionQueue() {
   return complianceRepo.findPendingDeletionRequests();
 }
 
+// ─── Pending Document Downloads (dashboard reminder) ────────────────────────
+
+export interface PendingDownload {
+  transactionId: string;
+  propertyAddress: string;
+  docTypes: string[];
+  daysRemaining: number;
+}
+
+export async function getPendingDocumentDownloads(agentId?: string): Promise<PendingDownload[]> {
+  const sensitiveDocDays = await settingsService.getNumber('sensitive_doc_retention_days', 7);
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - sensitiveDocDays);
+
+  const transactions = await complianceRepo.findPendingDocumentDownloads(cutoffDate, agentId);
+  const now = new Date();
+
+  return transactions.map((tx) => {
+    const docTypes: string[] = [];
+    if (tx.otp?.scannedCopyPathSeller || tx.otp?.scannedCopyPathReturned) {
+      docTypes.push('OTP scanned copy');
+    }
+    if (tx.commissionInvoice?.invoiceFilePath) {
+      docTypes.push('Commission invoice');
+    }
+
+    const completionDate = tx.completionDate as Date;
+    const deleteDate = new Date(completionDate);
+    deleteDate.setDate(deleteDate.getDate() + sensitiveDocDays);
+    const daysRemaining = Math.max(0, Math.ceil((deleteDate.getTime() - now.getTime()) / 86400000));
+
+    const addr = tx.property;
+    const propertyAddress = `${addr.block} ${addr.street}, ${addr.town}`;
+
+    return {
+      transactionId: tx.id,
+      propertyAddress,
+      docTypes,
+      daysRemaining,
+    };
+  });
+}
+
 // ─── CDD Record Management ────────────────────────────────────────────────────
 
 export async function createCddRecord(
@@ -889,6 +974,12 @@ export async function refreshCddRetentionOnCompletion(
   sellerId: string,
 ): Promise<void> {
   await complianceRepo.refreshCddRetentionOnCompletion(transactionId, sellerId);
+  await auditService.log({
+    action: 'compliance.cdd_retention_refreshed',
+    entityType: 'transaction',
+    entityId: transactionId,
+    details: { sellerId },
+  });
 }
 
 // ─── EAA Management ──────────────────────────────────────────────────────────

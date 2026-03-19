@@ -26,7 +26,12 @@ export const SETTING_VALIDATORS: Record<SettingKey, (v: string) => boolean> = {
   maintenance_mode: (v) => v === 'true' || v === 'false',
   hdb_sync_schedule: (v) => /^[\d*,\-/\s]+$/.test(v),
   lead_retention_months: (v) => Number.isInteger(Number(v)) && Number(v) > 0,
-  transaction_retention_years: (v) => Number.isInteger(Number(v)) && Number(v) >= 5,
+  sensitive_doc_retention_days: (v) =>
+    Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 30,
+  financial_data_retention_days: (v) =>
+    Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 30,
+  transaction_anonymisation_days: (v) =>
+    Number.isInteger(Number(v)) && Number(v) >= 7 && Number(v) <= 90,
   ai_provider: (v) => ['anthropic', 'openai', 'google'].includes(v),
   ai_model: (v) => v.length > 0,
   ai_max_tokens: (v) => Number.isInteger(Number(v)) && Number(v) > 0,

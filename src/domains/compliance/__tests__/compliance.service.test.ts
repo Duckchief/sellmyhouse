@@ -50,6 +50,8 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   anonymiseVerifiedViewerRecords: jest.Mock;
   findBuyersForRetention: jest.Mock;
   anonymiseBuyerRecords: jest.Mock;
+  findInactiveAgentsForRetention: jest.Mock;
+  findAuditLogsForSeller: jest.Mock;
   createEaa: jest.Mock;
   findEaaBySellerId: jest.Mock;
   updateEaaStatus: jest.Mock;
@@ -63,6 +65,13 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   addCddDocument: jest.Mock;
   removeCddDocument: jest.Mock;
   findCddRecordWithDocument: jest.Mock;
+  findCompletedTransactionsForDocPurge: jest.Mock;
+  purgeTransactionSensitiveDocs: jest.Mock;
+  findCompletedTransactionsForFinancialRedaction: jest.Mock;
+  redactTransactionFinancialData: jest.Mock;
+  findCompletedTransactionsForAnonymisation: jest.Mock;
+  anonymiseTransactionSeller: jest.Mock;
+  findPendingDocumentDownloads: jest.Mock;
 };
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 
@@ -155,7 +164,7 @@ describe('withdrawConsent', () => {
     expect(result.deletionBlocked).toBe(false);
   });
 
-  it('creates a blocked deletion request when service consent withdrawn with transactions', async () => {
+  it('creates a flagged deletion request when service consent withdrawn with transactions (post-completion purge)', async () => {
     mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: false });
     mockRepo.findSellerWithTransactions.mockResolvedValue({
       status: 'completed',
@@ -172,9 +181,9 @@ describe('withdrawConsent', () => {
     });
 
     expect(mockRepo.createDeletionRequest).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'blocked', retentionRule: 'aml_cft_5_year' }),
+      expect.objectContaining({ status: 'flagged', retentionRule: 'post_completion_purge' }),
     );
-    expect(result.deletionBlocked).toBe(true);
+    expect(result.deletionBlocked).toBe(false);
   });
 
   it('logs consent.withdrawn audit event', async () => {
@@ -335,6 +344,12 @@ describe('scanRetention', () => {
     mockRepo.findCddRecordsForRetention.mockResolvedValue([]);
     mockRepo.findConsentRecordsForDeletion.mockResolvedValue([]);
     mockRepo.findClosedListingsForRetention.mockResolvedValue([]);
+    mockRepo.findCompletedTransactionsForDocPurge.mockResolvedValue([]);
+    mockRepo.purgeTransactionSensitiveDocs.mockResolvedValue({ filePaths: [] });
+    mockRepo.findCompletedTransactionsForFinancialRedaction.mockResolvedValue([]);
+    mockRepo.redactTransactionFinancialData.mockResolvedValue(undefined);
+    mockRepo.findCompletedTransactionsForAnonymisation.mockResolvedValue([]);
+    mockRepo.anonymiseTransactionSeller.mockResolvedValue(undefined);
     mockRepo.findOldViewingSlotsForClosedProperties.mockResolvedValue([]);
     mockRepo.deleteOldViewingSlotsWithViewings.mockResolvedValue(0);
     mockRepo.findOldWeeklyUpdates.mockResolvedValue([]);
@@ -346,13 +361,17 @@ describe('scanRetention', () => {
     mockRepo.anonymiseVerifiedViewerRecords.mockResolvedValue(undefined);
     mockRepo.findBuyersForRetention.mockResolvedValue([]);
     mockRepo.anonymiseBuyerRecords.mockResolvedValue(undefined);
+    mockRepo.findInactiveAgentsForRetention.mockResolvedValue([]);
+    mockRepo.anonymiseAgentRecord.mockResolvedValue(undefined);
     mockAudit.log.mockResolvedValue(undefined);
+    mockStorage.delete.mockResolvedValue(undefined);
     // Default retention periods from SystemSetting
     mockSettings.getNumber.mockResolvedValue(12); // fallback for any extra calls
     mockSettings.getNumber
       .mockResolvedValueOnce(12) // lead_retention_months
-      .mockResolvedValueOnce(5) // transaction_retention_years
-      .mockResolvedValueOnce(5) // cdd_retention_years
+      .mockResolvedValueOnce(7) // sensitive_doc_retention_days
+      .mockResolvedValueOnce(7) // financial_data_retention_days
+      .mockResolvedValueOnce(30) // transaction_anonymisation_days
       .mockResolvedValueOnce(1) // consent_post_withdrawal_retention_years
       .mockResolvedValueOnce(6); // listing_retention_months
   });
@@ -389,21 +408,61 @@ describe('scanRetention', () => {
     expect(result.flaggedCount).toBe(0);
   });
 
-  it('flags transaction records older than 5 years', async () => {
+  it('Tier 1: auto-purges sensitive docs 7 days post-completion', async () => {
     const oldDate = new Date();
-    oldDate.setFullYear(oldDate.getFullYear() - 6);
-    mockRepo.findTransactionsForRetention.mockResolvedValue([
-      { id: 'tx1', sellerId: 'seller1', completionDate: oldDate },
+    oldDate.setDate(oldDate.getDate() - 10);
+    mockRepo.findCompletedTransactionsForDocPurge.mockResolvedValue([
+      {
+        id: 'tx1',
+        sellerId: 'seller1',
+        completionDate: oldDate,
+        otp: { id: 'otp1', scannedCopyPathSeller: 'otp/seller.pdf', scannedCopyPathReturned: null },
+        commissionInvoice: { id: 'inv1', invoiceFilePath: 'invoices/inv.pdf' },
+      },
     ]);
+    mockRepo.purgeTransactionSensitiveDocs.mockResolvedValue({
+      filePaths: ['otp/seller.pdf', 'invoices/inv.pdf'],
+    });
 
     const result = await complianceService.scanRetention();
-    expect(mockRepo.createDeletionRequest).toHaveBeenCalledWith(
-      expect.objectContaining({
-        targetType: 'transaction',
-        targetId: 'tx1',
-        retentionRule: 'transaction_5_year',
-      }),
-    );
+    expect(mockRepo.purgeTransactionSensitiveDocs).toHaveBeenCalledWith('tx1', 'seller1');
+    expect(mockStorage.delete).toHaveBeenCalledWith('otp/seller.pdf');
+    expect(mockStorage.delete).toHaveBeenCalledWith('invoices/inv.pdf');
+    expect(result.flaggedCount).toBeGreaterThan(0);
+  });
+
+  it('Tier 2: auto-redacts financial data 7 days post-completion', async () => {
+    mockRepo.findCompletedTransactionsForFinancialRedaction.mockResolvedValue([
+      { id: 'tx1', sellerId: 'seller1', offerId: 'offer1' },
+    ]);
+    mockRepo.redactTransactionFinancialData.mockResolvedValue(undefined);
+
+    const result = await complianceService.scanRetention();
+    expect(mockRepo.redactTransactionFinancialData).toHaveBeenCalledWith('tx1');
+    expect(result.flaggedCount).toBeGreaterThan(0);
+  });
+
+  it('Tier 3: auto-anonymises seller PII 30 days post-completion', async () => {
+    const oldDate = new Date();
+    oldDate.setDate(oldDate.getDate() - 35);
+    mockRepo.findCompletedTransactionsForAnonymisation.mockResolvedValue([
+      {
+        id: 'tx1',
+        sellerId: 'seller1',
+        completionDate: oldDate,
+        seller: {
+          id: 'seller1',
+          name: 'John Doe',
+          transactions: [
+            { id: 'tx1', completionDate: oldDate, anonymisedAt: null, status: 'completed' },
+          ],
+        },
+      },
+    ]);
+    mockRepo.anonymiseTransactionSeller.mockResolvedValue(undefined);
+
+    const result = await complianceService.scanRetention();
+    expect(mockRepo.anonymiseTransactionSeller).toHaveBeenCalledWith('tx1', 'seller1');
     expect(result.flaggedCount).toBeGreaterThan(0);
   });
 
@@ -444,6 +503,33 @@ describe('scanRetention', () => {
     );
     expect(result.flaggedCount).toBeGreaterThan(0);
   });
+
+  // Finding #4: scanRetention anonymises inactive agent PII fields
+  it('anonymises inactive agent PII and writes audit log', async () => {
+    mockRepo.findInactiveAgentsForRetention.mockResolvedValue([
+      { id: 'agent-old', name: 'Retired Agent', email: 'retired@test.com' },
+    ]);
+
+    const result = await complianceService.scanRetention();
+
+    expect(mockRepo.anonymiseAgentRecord).toHaveBeenCalledWith('agent-old');
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'compliance.agent_pii_anonymised',
+        entityType: 'agent',
+        entityId: 'agent-old',
+      }),
+    );
+    expect(result.flaggedCount).toBeGreaterThan(0);
+  });
+
+  it('skips agent anonymisation when no inactive agents found', async () => {
+    mockRepo.findInactiveAgentsForRetention.mockResolvedValue([]);
+
+    await complianceService.scanRetention();
+
+    expect(mockRepo.anonymiseAgentRecord).not.toHaveBeenCalled();
+  });
 });
 
 describe('executeHardDelete', () => {
@@ -468,19 +554,19 @@ describe('executeHardDelete', () => {
     ).rejects.toThrow();
   });
 
-  it('throws ComplianceError if deletion request is blocked', async () => {
+  it('throws ComplianceError if deletion request is already executed', async () => {
     mockRepo.findDeletionRequest.mockResolvedValue({
       id: 'dr1',
-      status: 'blocked',
+      status: 'executed',
       targetType: 'lead',
       targetId: 'seller1',
-      retentionRule: 'aml_cft_5_year',
+      retentionRule: 'post_completion_purge',
       details: {},
     } as never);
 
     await expect(
       complianceService.executeHardDelete({ requestId: 'dr1', agentId: 'agent1' }),
-    ).rejects.toThrow('AML/CFT');
+    ).rejects.toThrow('not in a reviewable state');
   });
 
   it('deletes all seller files via localStorage.delete before DB cascade', async () => {
@@ -604,6 +690,80 @@ describe('executeHardDelete', () => {
     );
     // DB delete still runs despite file error
     expect(mockRepo.hardDeleteTransaction).toHaveBeenCalledWith('tx-001');
+  });
+});
+
+// Finding #3: generateDataExport includes audit trail
+describe('generateDataExport', () => {
+  beforeEach(() => {
+    mockRepo.getSellerPersonalData.mockResolvedValue({
+      id: 'seller-1',
+      name: 'Test Seller',
+      email: 'test@example.com',
+      phone: '+6591234567',
+      status: 'active',
+      consentService: true,
+      consentMarketing: false,
+      notificationPreference: 'email_only',
+      createdAt: new Date(),
+      consentRecords: [],
+      properties: [],
+      cddRecords: [{ nricLast4: '567A', identityVerified: true, verifiedAt: new Date() }],
+    } as never);
+    mockRepo.findAllConsentRecords.mockResolvedValue([]);
+    mockRepo.findCorrectionRequestsBySeller.mockResolvedValue([]);
+    mockRepo.findAuditLogsForSeller.mockResolvedValue([]);
+    mockAudit.log.mockResolvedValue(undefined);
+  });
+
+  it('includes auditTrail in the export output', async () => {
+    mockRepo.findAuditLogsForSeller.mockResolvedValue([
+      {
+        id: 'log-1',
+        action: 'data_access.requested',
+        entityType: 'seller',
+        details: { requestedBy: 'seller' },
+        createdAt: new Date(),
+      },
+    ]);
+
+    const result = await complianceService.generateDataExport('seller-1');
+
+    expect(result).toHaveProperty('auditTrail');
+    expect(Array.isArray(result['auditTrail'])).toBe(true);
+    expect(result['auditTrail']).toHaveLength(1);
+    expect((result['auditTrail'] as unknown[])[0]).toMatchObject({
+      action: 'data_access.requested',
+      entityType: 'seller',
+    });
+  });
+
+  it('masks nricLast4 values in audit log details', async () => {
+    mockRepo.findAuditLogsForSeller.mockResolvedValue([
+      {
+        id: 'log-2',
+        action: 'cdd.identity_verified',
+        entityType: 'cdd_record',
+        details: { nricLast4: '567A' },
+        createdAt: new Date(),
+      },
+    ]);
+
+    const result = await complianceService.generateDataExport('seller-1');
+    const trail = result['auditTrail'] as { details: Record<string, unknown> }[];
+
+    expect(trail[0]?.details?.['nricLast4']).toBe('SXXXX567A');
+  });
+
+  it('logs data_access.requested and data_access.fulfilled audit events', async () => {
+    await complianceService.generateDataExport('seller-1');
+
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'data_access.requested' }),
+    );
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'data_access.fulfilled' }),
+    );
   });
 });
 
@@ -1106,13 +1266,11 @@ describe('deleteCddDocument', () => {
   });
 });
 
-describe('scanRetention — CDD documents with filePaths in details', () => {
-  it('includes filePaths from documents JSON in flagged deletion request details', async () => {
-    // Minimal mock setup — just enough to reach CDD section
+describe('scanRetention — Tier 1 sensitive doc purge deletes CDD .enc files', () => {
+  it('purges CDD .enc files via purgeTransactionSensitiveDocs', async () => {
+    // Minimal mock setup — just enough to reach Tier 1 section
     mockRepo.findLeadsForRetention.mockResolvedValue([]);
     mockRepo.findServiceWithdrawnForDeletion.mockResolvedValue([]);
-    mockRepo.findTransactionsForRetention.mockResolvedValue([]);
-    mockRepo.findTransactionsCompletedBeforeForNric.mockResolvedValue([]);
     mockRepo.findConsentRecordsForDeletion.mockResolvedValue([]);
     mockRepo.findClosedListingsForRetention.mockResolvedValue([]);
     mockRepo.findOldViewingSlotsForClosedProperties.mockResolvedValue([]);
@@ -1122,34 +1280,49 @@ describe('scanRetention — CDD documents with filePaths in details', () => {
     mockRepo.findStaleCorrectionRequests.mockResolvedValue([]);
     mockRepo.findVerifiedViewersForRetention.mockResolvedValue([]);
     mockRepo.findBuyersForRetention.mockResolvedValue([]);
+    mockRepo.findCompletedTransactionsForFinancialRedaction.mockResolvedValue([]);
+    mockRepo.findCompletedTransactionsForAnonymisation.mockResolvedValue([]);
+    mockRepo.findInactiveAgentsForRetention.mockResolvedValue([]);
+    mockRepo.findExistingDeletionRequest.mockResolvedValue(null);
+    mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr-1' } as never);
+    mockAudit.log.mockResolvedValue(undefined);
+    mockStorage.delete.mockResolvedValue(undefined);
     mockSettings.getNumber
       .mockResolvedValueOnce(12) // lead_retention_months
-      .mockResolvedValueOnce(5) // transaction_retention_years
-      .mockResolvedValueOnce(5) // cdd_retention_years
+      .mockResolvedValueOnce(7) // sensitive_doc_retention_days
+      .mockResolvedValueOnce(7) // financial_data_retention_days
+      .mockResolvedValueOnce(30) // transaction_anonymisation_days
       .mockResolvedValueOnce(1) // consent_post_withdrawal_retention_years
       .mockResolvedValueOnce(6); // listing_retention_months
 
-    const cddDocs = [{ path: 'cdd/cdd-1/nric-doc1.jpg.enc', id: 'doc-1', docType: 'nric' }];
-    mockRepo.findCddRecordsForRetention.mockResolvedValue([
+    const oldDate = new Date();
+    oldDate.setDate(oldDate.getDate() - 10);
+    mockRepo.findCompletedTransactionsForDocPurge.mockResolvedValue([
       {
-        id: 'cdd-1',
-        subjectId: 'seller-1',
-        documents: cddDocs,
-        verifiedAt: new Date('2020-01-01'),
+        id: 'tx-1',
+        sellerId: 'seller-1',
+        completionDate: oldDate,
+        otp: {
+          id: 'otp-1',
+          scannedCopyPathSeller: 'otp/seller.pdf',
+          scannedCopyPathReturned: null,
+        },
+        commissionInvoice: { id: 'inv-1', invoiceFilePath: 'invoices/inv.pdf' },
       },
     ]);
-    mockRepo.findExistingDeletionRequest.mockResolvedValue(null);
-    mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr-1' } as never);
+    mockRepo.purgeTransactionSensitiveDocs.mockResolvedValue({
+      filePaths: ['otp/seller.pdf', 'invoices/inv.pdf', 'cdd/cdd-1/nric-doc1.jpg.enc'],
+    });
 
     await complianceService.scanRetention();
 
-    expect(mockRepo.createDeletionRequest).toHaveBeenCalledWith(
+    expect(mockRepo.purgeTransactionSensitiveDocs).toHaveBeenCalledWith('tx-1', 'seller-1');
+    expect(mockStorage.delete).toHaveBeenCalledWith('cdd/cdd-1/nric-doc1.jpg.enc');
+    expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({
-        targetType: 'cdd_documents',
-        targetId: 'cdd-1',
-        details: expect.objectContaining({
-          filePaths: ['cdd/cdd-1/nric-doc1.jpg.enc'],
-        }),
+        action: 'compliance.sensitive_docs_purged',
+        entityType: 'transaction',
+        entityId: 'tx-1',
       }),
     );
   });

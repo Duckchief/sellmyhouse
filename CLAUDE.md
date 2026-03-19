@@ -60,7 +60,9 @@ Deployed via Docker on Hostinger VPS (Singapore).
 - **Agent anonymisation:** name → "Former Agent [ID]", email → `anonymised-{id}@deleted.local`.
 
 ### AML/CFT
-- Transaction records and CDD documents retained minimum 5 years. This overrides PDPA deletion requests.
+- The **5-year AML/CFT retention obligation is fulfilled by Huttons Asia Pte Ltd**, not this platform. Agents download sensitive documents from the platform and submit them to Huttons' case submission system for the legally required 5-year retention.
+- Do **NOT** implement 5-year retention on this platform. Do **NOT** store data longer than the periods in the Data Lifecycle section below.
+- Transaction records and CDD documents are auto-purged 7 days post-completion regardless of download status. Nothing blocks this purge.
 
 ### Audit
 - Audit logs are **append-only**. Never delete or modify audit log entries.
@@ -111,6 +113,45 @@ npm run docker:test:db     # Start test database
 npm run db:migrate         # Run migrations (development)
 npm run db:migrate:deploy  # Run migrations (production)
 ```
+
+## Data Lifecycle — Process and Purge
+
+This platform is a **transactional processing tool, NOT a long-term data repository**. Sensitive data is processed during the HDB resale transaction, then downloaded by the agent and submitted to Huttons Asia Pte Ltd's case submission system for 5-year retention.
+
+### Retention Tiers
+
+| Tier | Data | Retention | Action |
+|------|------|-----------|--------|
+| 1 | NRIC/FIN, CDD docs, OTP scans, invoices | 7 days post-completion | **Auto-delete** (direct, no flag-and-review) |
+| 2 | Financial data (offer amounts, agreed price, option fee) | 7 days post-completion | **Auto-redact** to 0/null |
+| 3 | Seller PII + transaction metadata | 30 days post-completion | **Auto-anonymise** seller, retain analytics numbers |
+| — | Consent records | 1 year post-withdrawal | Flag for review |
+| — | Audit logs | 2 years | Append-only, infra-level |
+| — | Leads (no transaction) | 12 months inactivity | Flag for review |
+| — | Closed listings | 6 months | Flag for review |
+
+### System Settings (retention)
+| Key | Default | Description |
+|-----|---------|-------------|
+| `sensitive_doc_retention_days` | 7 | Tier 1 auto-delete cutoff |
+| `financial_data_retention_days` | 7 | Tier 2 auto-redact cutoff |
+| `transaction_anonymisation_days` | 30 | Tier 3 auto-anonymise cutoff |
+| `lead_retention_months` | 12 | Lead inactivity flag threshold |
+| `consent_post_withdrawal_retention_years` | 1 | Post-withdrawal consent retention |
+| `listing_retention_months` | 6 | Closed listing retention |
+
+**Removed settings (do not re-add):** `data_retention_years`, `transaction_retention_years`, `cdd_retention_years`
+
+### Data Model Notes
+- `Transaction.anonymisedAt` — set when Tier 3 anonymisation runs; guards against double-processing
+- `DeletionRequestStatus` values: `flagged | pending_review | approved | executed | rejected` — **no `blocked` status**
+- `DeletionTargetType` values: `lead | transaction | cdd_documents | consent_record | nric_data | listing | financial_data | sensitive_documents`
+- Consent withdrawal does **not** block deletion — creates a `flagged` request with `post_completion_purge` retention rule
+
+### Dashboard Reminder
+- `getPendingDocumentDownloads()` in compliance.service surfaces transactions with un-downloaded docs
+- Agent dashboard shows a warning banner with days remaining before auto-delete
+- This is a **reminder only**, not a gate — auto-delete runs regardless of download status
 
 ## Out of Scope
 - Buyer-side workflow (stub only — schema in place, no dashboard)

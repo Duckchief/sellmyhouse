@@ -4,6 +4,8 @@
 {% set pageTitle = "Pipeline Overview" %}
 {% include "partials/shared/page-header.njk" %}
 
+{% include "partials/agent/pending-downloads.njk" %}
+
 {# Pipeline cards auto-refresh #}
 <div id="pipeline-cards"
      hx-get="/agent/dashboard/stats{% if currentStage %}?stage={{ currentStage }}{% endif %}"

@@ -261,14 +261,14 @@ describe('createCddRecord', () => {
     } as never);
   });
 
-  it('sets retentionExpiresAt to approximately now + 5 years (within 1 second)', async () => {
+  it('sets retentionExpiresAt to approximately now + 7 days (within 1 second)', async () => {
     const before = new Date();
-    before.setFullYear(before.getFullYear() + 5);
+    before.setDate(before.getDate() + 7);
 
     await complianceRepo.createCddRecord(baseInput);
 
     const after = new Date();
-    after.setFullYear(after.getFullYear() + 5);
+    after.setDate(after.getDate() + 7);
 
     const call = mockPrisma.cddRecord.create.mock.calls[0][0];
     const expiry: Date = call.data.retentionExpiresAt;
@@ -323,14 +323,14 @@ describe('refreshCddRetentionOnCompletion', () => {
     );
   });
 
-  it('sets retentionExpiresAt to approximately now + 5 years (within 1 second)', async () => {
+  it('sets retentionExpiresAt to approximately now + 7 days (within 1 second)', async () => {
     const before = new Date();
-    before.setFullYear(before.getFullYear() + 5);
+    before.setDate(before.getDate() + 7);
 
     await complianceRepo.refreshCddRetentionOnCompletion('tx-abc', 'seller-xyz');
 
     const after = new Date();
-    after.setFullYear(after.getFullYear() + 5);
+    after.setDate(after.getDate() + 7);
 
     const call = mockPrisma.cddRecord.updateMany.mock.calls[0][0];
     const expiry: Date = call.data.retentionExpiresAt;

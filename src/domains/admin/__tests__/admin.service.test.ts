@@ -349,12 +349,31 @@ describe('SETTING_VALIDATORS', () => {
     expect(SETTING_VALIDATORS['gst_rate']('1')).toBe(false);
   });
 
-  it('rejects transaction_retention_years < 5 (AML/CFT minimum)', () => {
-    expect(SETTING_VALIDATORS['transaction_retention_years']('3')).toBe(false);
+  it('rejects sensitive_doc_retention_days outside 1-30 range', () => {
+    expect(SETTING_VALIDATORS['sensitive_doc_retention_days']('0')).toBe(false);
+    expect(SETTING_VALIDATORS['sensitive_doc_retention_days']('31')).toBe(false);
   });
 
-  it('accepts transaction_retention_years of 5', () => {
-    expect(SETTING_VALIDATORS['transaction_retention_years']('5')).toBe(true);
+  it('accepts sensitive_doc_retention_days of 7', () => {
+    expect(SETTING_VALIDATORS['sensitive_doc_retention_days']('7')).toBe(true);
+  });
+
+  it('rejects financial_data_retention_days outside 1-30 range', () => {
+    expect(SETTING_VALIDATORS['financial_data_retention_days']('0')).toBe(false);
+    expect(SETTING_VALIDATORS['financial_data_retention_days']('31')).toBe(false);
+  });
+
+  it('accepts financial_data_retention_days of 7', () => {
+    expect(SETTING_VALIDATORS['financial_data_retention_days']('7')).toBe(true);
+  });
+
+  it('rejects transaction_anonymisation_days outside 7-90 range', () => {
+    expect(SETTING_VALIDATORS['transaction_anonymisation_days']('6')).toBe(false);
+    expect(SETTING_VALIDATORS['transaction_anonymisation_days']('91')).toBe(false);
+  });
+
+  it('accepts transaction_anonymisation_days of 30', () => {
+    expect(SETTING_VALIDATORS['transaction_anonymisation_days']('30')).toBe(true);
   });
 
   it('accepts valid reminder_schedule JSON array', () => {
@@ -577,10 +596,10 @@ describe('updateSetting', () => {
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
-  it('rejects transaction_retention_years < 5 (AML/CFT minimum)', async () => {
+  it('rejects sensitive_doc_retention_days outside valid range', async () => {
     const { ValidationError } = await import('@/domains/shared/errors');
     await expect(
-      adminService.updateSetting('transaction_retention_years', '3', 'admin-1'),
+      adminService.updateSetting('sensitive_doc_retention_days', '0', 'admin-1'),
     ).rejects.toBeInstanceOf(ValidationError);
   });
 

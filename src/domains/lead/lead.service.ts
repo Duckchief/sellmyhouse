@@ -14,10 +14,10 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     throw new ConflictError('A lead with this phone number already exists');
   }
 
-  // Compute provisional retention expiry (adjustable when transaction completes)
-  const retentionYears = await settingsService.getNumber('data_retention_years', 6);
+  // Provisional retention: lead_retention_months (actual purge handled by scanRetention)
+  const retentionMonths = await settingsService.getNumber('lead_retention_months', 12);
   const retentionExpiresAt = new Date();
-  retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + retentionYears);
+  retentionExpiresAt.setMonth(retentionExpiresAt.getMonth() + retentionMonths);
 
   // Create seller and consent record atomically — if consent creation fails,
   // the seller row is rolled back (PDPA: no personal data without consent audit trail)

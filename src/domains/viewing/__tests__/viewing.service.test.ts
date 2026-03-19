@@ -386,7 +386,7 @@ describe('viewing.service', () => {
         id: 'test-id-123',
         status: 'pending_otp',
       } as never);
-      mockedSettings.getNumber.mockResolvedValue(6); // data_retention_years
+      mockedSettings.getNumber.mockResolvedValue(30); // transaction_anonymisation_days
 
       await viewingService.initiateBooking(validInput, { ipAddress: '127.0.0.1' });
 

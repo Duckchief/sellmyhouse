@@ -232,9 +232,9 @@ export async function initiateBooking(
   const isReturningViewer = !!(viewer as { phoneVerifiedAt?: Date } | null)?.phoneVerifiedAt;
 
   if (!viewer) {
-    const retentionYears = await settingsService.getNumber('data_retention_years', 6);
+    const retentionDays = await settingsService.getNumber('transaction_anonymisation_days', 30);
     const retentionExpiresAt = new Date();
-    retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + retentionYears);
+    retentionExpiresAt.setDate(retentionExpiresAt.getDate() + retentionDays);
 
     viewer = await viewingRepo.createVerifiedViewer({
       id: createId(),
@@ -426,6 +426,13 @@ export async function verifyOtp(input: VerifyOtpInput) {
   await complianceService.createViewerConsentRecord({
     viewerId: v.verifiedViewerId,
     subjectId: v.verifiedViewerId,
+  });
+
+  await auditService.log({
+    action: 'viewer.consent_captured',
+    entityType: 'VerifiedViewer',
+    entityId: v.verifiedViewerId,
+    details: { purposeService: true },
   });
 
   // Notify seller

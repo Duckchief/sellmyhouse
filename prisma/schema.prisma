@@ -255,10 +255,13 @@ enum DeletionTargetType {
   transaction
   cdd_documents
   consent_record
+  nric_data
+  listing
+  financial_data
+  sensitive_documents
 }
 
 enum DeletionRequestStatus {
-  blocked
   flagged
   pending_review
   approved
@@ -646,6 +649,7 @@ model Transaction {
   hdbAppSubmittedByAgent     Agent?                @relation("HdbSubmitter", fields: [hdbAppSubmittedByAgentId], references: [id])
   hdbAppApprovedAt           DateTime?             @map("hdb_app_approved_at")
   fallenThroughReason      String?           @map("fallen_through_reason")
+  anonymisedAt             DateTime?         @map("anonymised_at")
   createdAt                DateTime          @default(now()) @map("created_at")
   updatedAt                DateTime          @updatedAt @map("updated_at")
 

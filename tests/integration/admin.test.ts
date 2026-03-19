@@ -314,13 +314,13 @@ describe('POST /admin/settings/:key', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 400 for transaction_retention_years < 5 (AML/CFT minimum)', async () => {
+  it('returns 400 for sensitive_doc_retention_days outside valid range', async () => {
     const { agent } = await loginAsAdmin();
 
     const res = await agent
-      .post('/admin/settings/transaction_retention_years')
+      .post('/admin/settings/sensitive_doc_retention_days')
       .type('form')
-      .send({ value: '3' });
+      .send({ value: '0' });
 
     expect(res.status).toBe(400);
   });

@@ -71,9 +71,9 @@ export async function createOffer(input: CreateOfferServiceInput) {
 
   const offerId = createId();
 
-  const retentionYears = await settingsService.getNumber('data_retention_years', 6);
+  const retentionDays = await settingsService.getNumber('transaction_anonymisation_days', 30);
   const retentionExpiresAt = new Date();
-  retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + retentionYears);
+  retentionExpiresAt.setDate(retentionExpiresAt.getDate() + retentionDays);
 
   const offer = await offerRepo.create({
     id: offerId,

@@ -90,7 +90,7 @@ export async function findCddRecordByTransactionAndSubjectType(
 
 export async function createCddRecord(data: CreateCddRecordInput): Promise<CddRecord> {
   const retentionExpiresAt = new Date();
-  retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + 5); // AML/CFT 5-year minimum
+  retentionExpiresAt.setDate(retentionExpiresAt.getDate() + 7); // 7-day post-processing retention
   return prisma.cddRecord.create({
     data: {
       id: createId(),
@@ -130,7 +130,7 @@ export async function upsertCddStatus(
     });
   } else {
     const retentionExpiresAt = new Date();
-    retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + 5);
+    retentionExpiresAt.setDate(retentionExpiresAt.getDate() + 7);
     await prisma.cddRecord.create({
       data: {
         id: createId(),
@@ -171,7 +171,7 @@ export async function refreshCddRetentionOnCompletion(
   sellerId: string,
 ): Promise<void> {
   const newExpiry = new Date();
-  newExpiry.setFullYear(newExpiry.getFullYear() + 5);
+  newExpiry.setDate(newExpiry.getDate() + 7);
   await prisma.cddRecord.updateMany({
     where: {
       OR: [{ subjectId: transactionId }, { subjectType: SubjectType.seller, subjectId: sellerId }],
@@ -233,7 +233,7 @@ export async function updateDeletionRequest(
 
 export async function findPendingDeletionRequests(): Promise<DataDeletionRequest[]> {
   return prisma.dataDeletionRequest.findMany({
-    where: { status: { in: ['flagged', 'blocked', 'pending_review'] as never[] } },
+    where: { status: { in: ['flagged', 'pending_review'] as never[] } },
     orderBy: { flaggedAt: 'asc' },
   }) as Promise<DataDeletionRequest[]>;
 }
@@ -384,6 +384,243 @@ export async function getSellerPersonalData(sellerId: string) {
   });
 
   return { ...seller, cddRecords };
+}
+
+// ─── Tier 1: Sensitive Document Purge ────────────────────────────────────────
+
+export async function findCompletedTransactionsForDocPurge(cutoffDate: Date) {
+  return prisma.transaction.findMany({
+    where: {
+      status: { in: ['completed', 'fallen_through'] },
+      completionDate: { lt: cutoffDate, not: null },
+    },
+    select: {
+      id: true,
+      sellerId: true,
+      completionDate: true,
+      otp: {
+        select: {
+          id: true,
+          scannedCopyPathSeller: true,
+          scannedCopyPathReturned: true,
+        },
+      },
+      commissionInvoice: {
+        select: { id: true, invoiceFilePath: true },
+      },
+    },
+  });
+}
+
+export async function purgeTransactionSensitiveDocs(
+  transactionId: string,
+  sellerId: string,
+): Promise<{ filePaths: string[] }> {
+  const filePaths: string[] = [];
+
+  // Null OTP scan paths
+  const otp = await prisma.otp.findUnique({
+    where: { transactionId },
+    select: { id: true, scannedCopyPathSeller: true, scannedCopyPathReturned: true },
+  });
+  if (otp) {
+    if (otp.scannedCopyPathSeller) filePaths.push(otp.scannedCopyPathSeller);
+    if (otp.scannedCopyPathReturned) filePaths.push(otp.scannedCopyPathReturned);
+    await prisma.otp.update({
+      where: { id: otp.id },
+      data: {
+        scannedCopyPathSeller: null,
+        scannedCopyPathReturned: null,
+        scannedCopyDeletedAt: new Date(),
+      },
+    });
+  }
+
+  // Null invoice path
+  const invoice = await prisma.commissionInvoice.findUnique({
+    where: { transactionId },
+    select: { id: true, invoiceFilePath: true },
+  });
+  if (invoice?.invoiceFilePath) {
+    filePaths.push(invoice.invoiceFilePath);
+    await prisma.commissionInvoice.update({
+      where: { id: invoice.id },
+      data: { invoiceFilePath: null, invoiceDeletedAt: new Date() },
+    });
+  }
+
+  // Clear CDD documents and redact NRIC for seller
+  const cddRecords = await prisma.cddRecord.findMany({
+    where: { subjectType: SubjectType.seller, subjectId: sellerId },
+    select: { id: true, documents: true, nricLast4: true },
+  });
+  for (const cdd of cddRecords) {
+    const docs = (cdd.documents as { path?: string }[] | null) ?? [];
+    for (const doc of docs) {
+      if (doc.path) filePaths.push(doc.path);
+    }
+    await prisma.cddRecord.update({
+      where: { id: cdd.id },
+      data: {
+        documents: [],
+        nricLast4: 'XXXX',
+      },
+    });
+  }
+
+  // Clear counterparty CDD documents too
+  const counterpartyCdd = await prisma.cddRecord.findMany({
+    where: { subjectType: SubjectType.counterparty, subjectId: transactionId },
+    select: { id: true, documents: true, nricLast4: true },
+  });
+  for (const cdd of counterpartyCdd) {
+    const docs = (cdd.documents as { path?: string }[] | null) ?? [];
+    for (const doc of docs) {
+      if (doc.path) filePaths.push(doc.path);
+    }
+    await prisma.cddRecord.update({
+      where: { id: cdd.id },
+      data: {
+        documents: [],
+        nricLast4: 'XXXX',
+      },
+    });
+  }
+
+  return { filePaths };
+}
+
+// ─── Tier 2: Financial Data Redaction ───────────────────────────────────────
+
+export async function findCompletedTransactionsForFinancialRedaction(cutoffDate: Date) {
+  return prisma.transaction.findMany({
+    where: {
+      status: { in: ['completed', 'fallen_through'] },
+      completionDate: { lt: cutoffDate, not: null },
+      agreedPrice: { not: 0 },
+    },
+    select: { id: true, sellerId: true, offerId: true },
+  });
+}
+
+export async function redactTransactionFinancialData(transactionId: string): Promise<void> {
+  await prisma.transaction.update({
+    where: { id: transactionId },
+    data: { agreedPrice: 0, optionFee: null },
+  });
+
+  // Redact all offers for the transaction's property
+  const tx = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    select: { propertyId: true },
+  });
+  if (tx) {
+    await prisma.offer.updateMany({
+      where: { propertyId: tx.propertyId },
+      data: { offerAmount: 0, counterAmount: null },
+    });
+  }
+}
+
+// ─── Tier 3: Seller PII Anonymisation ───────────────────────────────────────
+
+export async function findCompletedTransactionsForAnonymisation(cutoffDate: Date) {
+  // Group by seller — only anonymise when ALL transactions for that seller are past cutoff
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      status: { in: ['completed', 'fallen_through'] },
+      completionDate: { lt: cutoffDate, not: null },
+      anonymisedAt: null,
+    },
+    select: {
+      id: true,
+      sellerId: true,
+      completionDate: true,
+      seller: {
+        select: {
+          id: true,
+          name: true,
+          transactions: {
+            select: { id: true, completionDate: true, anonymisedAt: true, status: true },
+          },
+        },
+      },
+    },
+  });
+
+  // Filter: only include transactions where ALL of the seller's transactions are past cutoff
+  return transactions.filter((tx) => {
+    return tx.seller.transactions.every(
+      (t) =>
+        t.anonymisedAt !== null ||
+        ((t.status === 'completed' || t.status === 'fallen_through') &&
+          t.completionDate !== null &&
+          t.completionDate < cutoffDate),
+    );
+  });
+}
+
+export async function anonymiseTransactionSeller(
+  transactionId: string,
+  sellerId: string,
+): Promise<void> {
+  // Anonymise seller PII
+  await prisma.seller.update({
+    where: { id: sellerId },
+    data: { name: 'Anonymised Seller', email: null, phone: '' },
+  });
+
+  // Anonymise offer counterparty PII
+  const tx = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    select: { propertyId: true },
+  });
+  if (tx) {
+    await prisma.offer.updateMany({
+      where: { propertyId: tx.propertyId },
+      data: { buyerName: null, buyerPhone: null },
+    });
+  }
+
+  // Set anonymisedAt
+  await prisma.transaction.update({
+    where: { id: transactionId },
+    data: { anonymisedAt: new Date() },
+  });
+}
+
+// ─── Dashboard: Pending Document Downloads ──────────────────────────────────
+
+export async function findPendingDocumentDownloads(cutoffDate: Date, agentId?: string) {
+  return prisma.transaction.findMany({
+    where: {
+      status: { in: ['completed', 'fallen_through'] },
+      completionDate: { gte: cutoffDate, not: null },
+      OR: [
+        { otp: { scannedCopyPathSeller: { not: null } } },
+        { otp: { scannedCopyPathReturned: { not: null } } },
+        { commissionInvoice: { invoiceFilePath: { not: null } } },
+      ],
+      ...(agentId ? { seller: { agentId } } : {}),
+    },
+    select: {
+      id: true,
+      completionDate: true,
+      property: {
+        select: { block: true, street: true, town: true },
+      },
+      otp: {
+        select: {
+          scannedCopyPathSeller: true,
+          scannedCopyPathReturned: true,
+        },
+      },
+      commissionInvoice: {
+        select: { invoiceFilePath: true },
+      },
+    },
+    orderBy: { completionDate: 'asc' },
+  });
 }
 
 // ─── EAA Management ──────────────────────────────────────────────────────────
@@ -929,7 +1166,9 @@ export async function findOldViewingSlotsForClosedProperties(
 
 export async function deleteOldViewingSlotsWithViewings(slotIds: string[]): Promise<number> {
   if (slotIds.length === 0) return 0;
-  // Viewings reference ViewingSlots with ON DELETE RESTRICT — must delete children first
+  // Finding #5 (PASS): Viewing records are deleted here before ViewingSlots.
+  // Viewings reference ViewingSlots with ON DELETE RESTRICT — must delete children first.
+  // This ensures feedback/interest rating PII in Viewing rows is removed along with the slot.
   await prisma.viewing.deleteMany({ where: { viewingSlotId: { in: slotIds } } });
   const result = await prisma.viewingSlot.deleteMany({ where: { id: { in: slotIds } } });
   return result.count;
@@ -950,4 +1189,37 @@ export async function deleteOldWeeklyUpdates(ids: string[]): Promise<number> {
   if (ids.length === 0) return 0;
   const result = await prisma.weeklyUpdate.deleteMany({ where: { id: { in: ids } } });
   return result.count;
+}
+
+// ─── SAR: Audit Trail for Data Export (Finding #3) ───────────────────────────
+
+export async function findAuditLogsForSeller(
+  sellerId: string,
+): Promise<{ id: string; action: string; entityType: string; details: unknown; createdAt: Date }[]> {
+  return prisma.auditLog.findMany({
+    where: { entityId: sellerId },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, action: true, entityType: true, details: true, createdAt: true },
+  });
+}
+
+// ─── Retention: Inactive Agents (Finding #4) ─────────────────────────────────
+
+export async function findInactiveAgentsForRetention(
+  cutoffDate: Date,
+): Promise<{ id: string; name: string; email: string }[]> {
+  // Targets deactivated agents with no recent activity across all tracked dimensions:
+  // - updatedAt proxy covers logins (auth updates failedLoginAttempts, lockouts, password resets)
+  // - sellers: no recently active seller assigned to them
+  // - hdbSubmissions: no HDB application submissions since cutoff
+  return prisma.agent.findMany({
+    where: {
+      isActive: false,
+      updatedAt: { lt: cutoffDate },
+      email: { not: { endsWith: '@deleted.local' } }, // skip already-anonymised records
+      hdbSubmissions: { none: { createdAt: { gte: cutoffDate } } },
+      sellers: { none: { updatedAt: { gte: cutoffDate } } },
+    },
+    select: { id: true, name: true, email: true },
+  });
 }

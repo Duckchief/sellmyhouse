@@ -458,10 +458,7 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     const hasInvoice = tx.commissionInvoice?.invoiceFilePath;
     if (!hasOtpFiles && !hasInvoice) continue;
 
-    const { filePaths } = await complianceRepo.purgeTransactionSensitiveDocs(
-      tx.id,
-      tx.sellerId,
-    );
+    const { filePaths } = await complianceRepo.purgeTransactionSensitiveDocs(tx.id, tx.sellerId);
     for (const filePath of filePaths) {
       try {
         await localStorage.delete(filePath);
@@ -824,9 +821,7 @@ export interface PendingDownload {
   daysRemaining: number;
 }
 
-export async function getPendingDocumentDownloads(
-  agentId?: string,
-): Promise<PendingDownload[]> {
+export async function getPendingDocumentDownloads(agentId?: string): Promise<PendingDownload[]> {
   const sensitiveDocDays = await settingsService.getNumber('sensitive_doc_retention_days', 7);
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - sensitiveDocDays);
@@ -846,10 +841,7 @@ export async function getPendingDocumentDownloads(
     const completionDate = tx.completionDate as Date;
     const deleteDate = new Date(completionDate);
     deleteDate.setDate(deleteDate.getDate() + sensitiveDocDays);
-    const daysRemaining = Math.max(
-      0,
-      Math.ceil((deleteDate.getTime() - now.getTime()) / 86400000),
-    );
+    const daysRemaining = Math.max(0, Math.ceil((deleteDate.getTime() - now.getTime()) / 86400000));
 
     const addr = tx.property;
     const propertyAddress = `${addr.block} ${addr.street}, ${addr.town}`;

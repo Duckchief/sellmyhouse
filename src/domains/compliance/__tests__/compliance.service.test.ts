@@ -1302,7 +1302,11 @@ describe('scanRetention — Tier 1 sensitive doc purge deletes CDD .enc files', 
         id: 'tx-1',
         sellerId: 'seller-1',
         completionDate: oldDate,
-        otp: { id: 'otp-1', scannedCopyPathSeller: 'otp/seller.pdf', scannedCopyPathReturned: null },
+        otp: {
+          id: 'otp-1',
+          scannedCopyPathSeller: 'otp/seller.pdf',
+          scannedCopyPathReturned: null,
+        },
         commissionInvoice: { id: 'inv-1', invoiceFilePath: 'invoices/inv.pdf' },
       },
     ]);

@@ -1195,7 +1195,9 @@ export async function deleteOldWeeklyUpdates(ids: string[]): Promise<number> {
 
 export async function findAuditLogsForSeller(
   sellerId: string,
-): Promise<{ id: string; action: string; entityType: string; details: unknown; createdAt: Date }[]> {
+): Promise<
+  { id: string; action: string; entityType: string; details: unknown; createdAt: Date }[]
+> {
   return prisma.auditLog.findMany({
     where: { entityId: sellerId },
     orderBy: { createdAt: 'desc' },

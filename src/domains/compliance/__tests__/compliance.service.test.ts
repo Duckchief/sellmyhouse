@@ -21,6 +21,9 @@ jest.mock('@/infra/storage/encrypted-storage', () => ({
 jest.mock('@/infra/security/virus-scanner', () => ({
   scanBuffer: jest.fn(),
 }));
+jest.mock('file-type', () => ({
+  fileTypeFromBuffer: jest.fn().mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' }),
+}));
 jest.mock('../../shared/settings.service');
 const mockStorage = localStorage as jest.Mocked<typeof localStorage>;
 const mockSettings = settingsService as jest.Mocked<typeof settingsService>;
@@ -29,6 +32,30 @@ const mockScanBuffer = scanBuffer as jest.MockedFunction<typeof scanBuffer>;
 
 jest.mock('../compliance.repository');
 jest.mock('../../shared/audit.service');
+
+import * as txRepo from '../../transaction/transaction.repository';
+jest.mock('../../transaction/transaction.repository');
+const mockTxRepo = txRepo as jest.Mocked<typeof txRepo>;
+
+import * as propertyRepo from '../../property/property.repository';
+jest.mock('../../property/property.repository');
+const mockPropertyRepo = propertyRepo as jest.Mocked<typeof propertyRepo>;
+
+import * as offerRepo from '../../offer/offer.repository';
+jest.mock('../../offer/offer.repository');
+const mockOfferRepo = offerRepo as jest.Mocked<typeof offerRepo>;
+
+import * as viewingRepo from '../../viewing/viewing.repository';
+jest.mock('../../viewing/viewing.repository');
+const mockViewingRepo = viewingRepo as jest.Mocked<typeof viewingRepo>;
+
+import * as notificationService from '../../notification/notification.service';
+jest.mock('../../notification/notification.service');
+const mockNotificationService = notificationService as jest.Mocked<typeof notificationService>;
+
+import * as sellerService from '../../seller/seller.service';
+jest.mock('../../seller/seller.service');
+const mockSellerService = sellerService as jest.Mocked<typeof sellerService>;
 
 const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   findLeadsForRetention: jest.Mock;
@@ -67,10 +94,12 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   findCddRecordWithDocument: jest.Mock;
   findCompletedTransactionsForDocPurge: jest.Mock;
   purgeTransactionSensitiveDocs: jest.Mock;
+  findCddRecordsForNricRedaction: jest.Mock;
   findCompletedTransactionsForFinancialRedaction: jest.Mock;
   redactTransactionFinancialData: jest.Mock;
   findCompletedTransactionsForAnonymisation: jest.Mock;
   anonymiseTransactionSeller: jest.Mock;
+  redactSellerNotifications: jest.Mock;
   findPendingDocumentDownloads: jest.Mock;
 };
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
@@ -201,6 +230,130 @@ describe('withdrawConsent', () => {
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'consent.withdrawn' }),
     );
+  });
+
+  describe('service consent side effects', () => {
+    const baseProperty = {
+      id: 'prop-1',
+      block: '123',
+      street: 'Main St',
+      town: 'Bishan',
+      sellerId: 'seller1',
+      listings: [],
+    };
+
+    beforeEach(() => {
+      mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: false });
+      mockRepo.findSellerWithTransactions.mockResolvedValue({ status: 'lead', transactions: [] });
+      mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+      mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
+      mockAudit.log.mockResolvedValue(undefined);
+      mockPropertyRepo.findBySellerId.mockResolvedValue(baseProperty as never);
+      mockPropertyRepo.findActiveListingForProperty.mockResolvedValue(null);
+      mockPropertyRepo.updateListingStatus.mockResolvedValue(undefined as never);
+      mockOfferRepo.findByPropertyId.mockResolvedValue([]);
+      mockOfferRepo.updateStatus.mockResolvedValue(undefined as never);
+      mockViewingRepo.findActiveSlotsByPropertyId.mockResolvedValue([]);
+      mockViewingRepo.cancelSlotAndViewings.mockResolvedValue(undefined as never);
+      mockTxRepo.findTransactionBySellerId.mockResolvedValue(null);
+      mockSellerService.findById.mockResolvedValue({ id: 'seller1', agentId: 'agent-1' } as never);
+      mockNotificationService.send.mockResolvedValue(undefined);
+    });
+
+    it('voids pending offers on service consent withdrawal', async () => {
+      const pendingOffer = { id: 'offer-1', status: 'pending', buyerAgentName: null };
+      mockOfferRepo.findByPropertyId.mockResolvedValue([pendingOffer] as never);
+
+      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+
+      expect(mockOfferRepo.updateStatus).toHaveBeenCalledWith('offer-1', 'expired');
+    });
+
+    it('voids countered offers on service consent withdrawal', async () => {
+      const counteredOffer = { id: 'offer-2', status: 'countered', buyerAgentName: 'External Agent' };
+      mockOfferRepo.findByPropertyId.mockResolvedValue([counteredOffer] as never);
+
+      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+
+      expect(mockOfferRepo.updateStatus).toHaveBeenCalledWith('offer-2', 'expired');
+    });
+
+    it('does not void accepted or expired offers', async () => {
+      const offers = [
+        { id: 'offer-3', status: 'accepted', buyerAgentName: null },
+        { id: 'offer-4', status: 'expired', buyerAgentName: null },
+      ];
+      mockOfferRepo.findByPropertyId.mockResolvedValue(offers as never);
+
+      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+
+      expect(mockOfferRepo.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it('cancels active viewing slots on service consent withdrawal', async () => {
+      const slot = { id: 'slot-1', status: 'available' };
+      mockViewingRepo.findActiveSlotsByPropertyId.mockResolvedValue([slot] as never);
+
+      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+
+      expect(mockViewingRepo.cancelSlotAndViewings).toHaveBeenCalledWith('slot-1');
+    });
+
+    it('delists active listing on service consent withdrawal', async () => {
+      const listing = { id: 'listing-1', status: 'listed' };
+      mockPropertyRepo.findActiveListingForProperty.mockResolvedValue(listing as never);
+
+      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+
+      expect(mockPropertyRepo.updateListingStatus).toHaveBeenCalledWith('listing-1', 'closed');
+    });
+
+    it('marks active transaction as fallen_through on service consent withdrawal', async () => {
+      const activeTx = { id: 'tx-1', status: 'option_issued' };
+      mockTxRepo.findTransactionBySellerId.mockResolvedValue(activeTx as never);
+
+      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+
+      expect(mockTxRepo.updateFallenThrough).toHaveBeenCalledWith(
+        'tx-1',
+        expect.stringContaining('consent'),
+      );
+    });
+
+    it('sends notification to listing agent for each co-broke voided offer', async () => {
+      const coBrokeOffer = { id: 'offer-5', status: 'pending', buyerAgentName: 'External Agent Ltd' };
+      mockOfferRepo.findByPropertyId.mockResolvedValue([coBrokeOffer] as never);
+
+      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+
+      expect(mockNotificationService.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipientType: 'agent',
+          recipientId: 'agent-1',
+          templateName: 'generic',
+          preferredChannel: 'whatsapp',
+        }),
+        'agent-1',
+      );
+    });
+
+    it('does not block withdrawal when side effects fail', async () => {
+      mockPropertyRepo.findBySellerId.mockRejectedValue(new Error('DB error'));
+
+      const result = await complianceService.withdrawConsent({
+        sellerId: 'seller1',
+        type: 'service',
+        channel: 'web',
+      });
+
+      expect(result.consentRecordId).toBe('cr1');
+    });
+
+    it('does not run side effects for marketing consent withdrawal', async () => {
+      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'marketing', channel: 'web' });
+
+      expect(mockPropertyRepo.findBySellerId).not.toHaveBeenCalled();
+    });
   });
 });
 
@@ -346,10 +499,12 @@ describe('scanRetention', () => {
     mockRepo.findClosedListingsForRetention.mockResolvedValue([]);
     mockRepo.findCompletedTransactionsForDocPurge.mockResolvedValue([]);
     mockRepo.purgeTransactionSensitiveDocs.mockResolvedValue({ filePaths: [] });
+    mockRepo.findCddRecordsForNricRedaction = jest.fn().mockResolvedValue([]);
     mockRepo.findCompletedTransactionsForFinancialRedaction.mockResolvedValue([]);
     mockRepo.redactTransactionFinancialData.mockResolvedValue(undefined);
     mockRepo.findCompletedTransactionsForAnonymisation.mockResolvedValue([]);
     mockRepo.anonymiseTransactionSeller.mockResolvedValue(undefined);
+    mockRepo.redactSellerNotifications = jest.fn().mockResolvedValue(undefined);
     mockRepo.findOldViewingSlotsForClosedProperties.mockResolvedValue([]);
     mockRepo.deleteOldViewingSlotsWithViewings.mockResolvedValue(0);
     mockRepo.findOldWeeklyUpdates.mockResolvedValue([]);
@@ -460,9 +615,12 @@ describe('scanRetention', () => {
       },
     ]);
     mockRepo.anonymiseTransactionSeller.mockResolvedValue(undefined);
+    mockRepo.redactSellerNotifications = jest.fn().mockResolvedValue(undefined);
 
     const result = await complianceService.scanRetention();
     expect(mockRepo.anonymiseTransactionSeller).toHaveBeenCalledWith('tx1', 'seller1');
+    // Finding #10: notification content is also redacted for the anonymised seller
+    expect(mockRepo.redactSellerNotifications).toHaveBeenCalledWith('seller1');
     expect(result.flaggedCount).toBeGreaterThan(0);
   });
 
@@ -529,6 +687,35 @@ describe('scanRetention', () => {
     await complianceService.scanRetention();
 
     expect(mockRepo.anonymiseAgentRecord).not.toHaveBeenCalled();
+  });
+
+  // Finding #6.2g: WeeklyUpdate 6-month retention
+  it('deletes WeeklyUpdates older than 6 months and writes audit log', async () => {
+    mockRepo.findOldWeeklyUpdates.mockResolvedValue([
+      { id: 'wu-1', sellerId: 'seller-1', createdAt: new Date('2025-01-01') },
+      { id: 'wu-2', sellerId: 'seller-2', createdAt: new Date('2025-02-01') },
+    ]);
+    mockRepo.deleteOldWeeklyUpdates.mockResolvedValue(2);
+
+    const result = await complianceService.scanRetention();
+
+    expect(mockRepo.findOldWeeklyUpdates).toHaveBeenCalledWith(expect.any(Date));
+    expect(mockRepo.deleteOldWeeklyUpdates).toHaveBeenCalledWith(['wu-1', 'wu-2']);
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'compliance.weekly_updates_deleted',
+        entityType: 'weekly_update',
+      }),
+    );
+    expect(result.flaggedCount).toBeGreaterThan(0);
+  });
+
+  it('skips WeeklyUpdate deletion when none are older than 6 months', async () => {
+    mockRepo.findOldWeeklyUpdates.mockResolvedValue([]);
+
+    await complianceService.scanRetention();
+
+    expect(mockRepo.deleteOldWeeklyUpdates).not.toHaveBeenCalled();
   });
 });
 
@@ -1325,5 +1512,192 @@ describe('scanRetention — Tier 1 sensitive doc purge deletes CDD .enc files', 
         entityId: 'tx-1',
       }),
     );
+  });
+});
+
+describe('purgeSensitiveDocs', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAudit.log.mockResolvedValue(undefined);
+    mockStorage.delete.mockResolvedValue(undefined);
+    mockRepo.findCddRecordsForNricRedaction = jest.fn().mockResolvedValue([]);
+  });
+
+  it('purges sensitive docs for completed transactions past the 7-day threshold', async () => {
+    mockSettings.getNumber.mockResolvedValueOnce(7); // sensitive_doc_retention_days
+    const oldDate = new Date();
+    oldDate.setDate(oldDate.getDate() - 10);
+    mockRepo.findCompletedTransactionsForDocPurge.mockResolvedValue([
+      {
+        id: 'tx-daily-1',
+        sellerId: 'seller-daily-1',
+        completionDate: oldDate,
+        otp: { id: 'otp-1', scannedCopyPathSeller: 'otp/seller.pdf', scannedCopyPathReturned: null },
+        commissionInvoice: { id: 'inv-1', invoiceFilePath: 'invoices/inv.pdf' },
+      },
+    ]);
+    mockRepo.purgeTransactionSensitiveDocs.mockResolvedValue({
+      filePaths: ['otp/seller.pdf', 'invoices/inv.pdf'],
+    });
+
+    const result = await complianceService.purgeSensitiveDocs();
+
+    expect(mockRepo.purgeTransactionSensitiveDocs).toHaveBeenCalledWith('tx-daily-1', 'seller-daily-1');
+    expect(mockStorage.delete).toHaveBeenCalledWith('otp/seller.pdf');
+    expect(mockStorage.delete).toHaveBeenCalledWith('invoices/inv.pdf');
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'compliance.sensitive_docs_purged',
+        entityType: 'transaction',
+        entityId: 'tx-daily-1',
+      }),
+    );
+    expect(result.purgedCount).toBe(1);
+  });
+
+  it('skips transactions that have no files remaining', async () => {
+    mockSettings.getNumber.mockResolvedValueOnce(7);
+    mockRepo.findCompletedTransactionsForDocPurge.mockResolvedValue([
+      {
+        id: 'tx-empty',
+        sellerId: 'seller-2',
+        completionDate: new Date(),
+        otp: { id: 'otp-2', scannedCopyPathSeller: null, scannedCopyPathReturned: null },
+        commissionInvoice: null,
+      },
+    ]);
+    mockRepo.purgeTransactionSensitiveDocs.mockResolvedValue({ filePaths: [] });
+
+    const result = await complianceService.purgeSensitiveDocs();
+
+    expect(mockRepo.purgeTransactionSensitiveDocs).not.toHaveBeenCalled();
+    expect(result.purgedCount).toBe(0);
+  });
+
+  it('returns purgedCount 0 when no transactions qualify', async () => {
+    mockSettings.getNumber.mockResolvedValueOnce(7);
+    mockRepo.findCompletedTransactionsForDocPurge.mockResolvedValue([]);
+
+    const result = await complianceService.purgeSensitiveDocs();
+
+    expect(result.purgedCount).toBe(0);
+  });
+
+  // Finding #2.6: nricLast4 redaction for transactions with CDD records but no OTP/invoice files
+  it('redacts nricLast4 on CDD records for completed transactions past cutoff even when no OTP/invoice files exist', async () => {
+    mockSettings.getNumber.mockResolvedValueOnce(7); // sensitive_doc_retention_days
+    const oldDate = new Date();
+    oldDate.setDate(oldDate.getDate() - 10);
+    mockRepo.findCompletedTransactionsForDocPurge.mockResolvedValue([
+      {
+        id: 'tx-cdd-only',
+        sellerId: 'seller-cdd',
+        completionDate: oldDate,
+        otp: { id: 'otp-1', scannedCopyPathSeller: null, scannedCopyPathReturned: null },
+        commissionInvoice: null,
+      },
+    ]);
+    mockRepo.findCddRecordsForNricRedaction = jest.fn().mockResolvedValue([{ id: 'cdd-1' }]);
+    mockRepo.redactNricFromCddRecord = jest.fn().mockResolvedValue(undefined);
+
+    await complianceService.purgeSensitiveDocs();
+
+    expect(mockRepo.findCddRecordsForNricRedaction).toHaveBeenCalledWith(expect.any(Date));
+    expect(mockRepo.redactNricFromCddRecord).toHaveBeenCalledWith('cdd-1');
+  });
+
+  it('skips CDD nricLast4 redaction when no records qualify', async () => {
+    mockSettings.getNumber.mockResolvedValueOnce(7);
+    mockRepo.findCompletedTransactionsForDocPurge.mockResolvedValue([]);
+    mockRepo.findCddRecordsForNricRedaction = jest.fn().mockResolvedValue([]);
+    mockRepo.redactNricFromCddRecord = jest.fn().mockResolvedValue(undefined);
+
+    await complianceService.purgeSensitiveDocs();
+
+    expect(mockRepo.redactNricFromCddRecord).not.toHaveBeenCalled();
+  });
+});
+
+describe('confirmHuttonsSubmission', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAudit.log.mockResolvedValue(undefined);
+    mockStorage.delete.mockResolvedValue(undefined);
+  });
+
+  it('confirms handoff, purges sensitive docs, and writes audit log', async () => {
+    mockTxRepo.findById.mockResolvedValue({
+      id: 'tx-1',
+      sellerId: 'seller-1',
+      status: 'completed',
+      completionDate: new Date(),
+      seller: { agentId: 'agent-1' },
+      huttonsSubmittedAt: null,
+    } as any);
+    mockTxRepo.confirmHuttonsHandoff.mockResolvedValue({} as any);
+    mockRepo.purgeTransactionSensitiveDocs.mockResolvedValue({
+      filePaths: ['otp/seller.pdf', 'cdd/doc.jpg.enc'],
+    });
+
+    const result = await complianceService.confirmHuttonsSubmission('tx-1', 'agent-1');
+
+    expect(mockTxRepo.confirmHuttonsHandoff).toHaveBeenCalledWith('tx-1', 'agent-1');
+    expect(mockRepo.purgeTransactionSensitiveDocs).toHaveBeenCalledWith('tx-1', 'seller-1');
+    expect(mockStorage.delete).toHaveBeenCalledWith('otp/seller.pdf');
+    expect(mockStorage.delete).toHaveBeenCalledWith('cdd/doc.jpg.enc');
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'compliance.huttons_handoff_confirmed',
+        entityType: 'transaction',
+        entityId: 'tx-1',
+      }),
+    );
+    expect(result.purgedFiles).toBe(2);
+  });
+
+  it('throws NotFoundError when transaction does not exist', async () => {
+    mockTxRepo.findById.mockResolvedValue(null);
+
+    await expect(
+      complianceService.confirmHuttonsSubmission('tx-missing', 'agent-1'),
+    ).rejects.toThrow('not found');
+  });
+
+  it('throws ValidationError when transaction is not completed', async () => {
+    mockTxRepo.findById.mockResolvedValue({
+      id: 'tx-1',
+      status: 'option_issued',
+      seller: { agentId: 'agent-1' },
+    } as any);
+
+    await expect(
+      complianceService.confirmHuttonsSubmission('tx-1', 'agent-1'),
+    ).rejects.toThrow('completed');
+  });
+
+  it('throws ForbiddenError when agent does not own the transaction', async () => {
+    mockTxRepo.findById.mockResolvedValue({
+      id: 'tx-1',
+      status: 'completed',
+      seller: { agentId: 'agent-other' },
+      huttonsSubmittedAt: null,
+    } as any);
+
+    await expect(
+      complianceService.confirmHuttonsSubmission('tx-1', 'agent-1'),
+    ).rejects.toThrow();
+  });
+
+  it('throws ConflictError when already submitted', async () => {
+    mockTxRepo.findById.mockResolvedValue({
+      id: 'tx-1',
+      status: 'completed',
+      seller: { agentId: 'agent-1' },
+      huttonsSubmittedAt: new Date(),
+    } as any);
+
+    await expect(
+      complianceService.confirmHuttonsSubmission('tx-1', 'agent-1'),
+    ).rejects.toThrow();
   });
 });

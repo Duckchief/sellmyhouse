@@ -64,6 +64,16 @@ function assertInUploadsRoot(resolvedPath: string): void {
 
 export const complianceRouter = Router();
 
+// GET /seller/consent/withdraw — multi-step withdrawal confirmation page
+complianceRouter.get(
+  '/seller/consent/withdraw',
+  requireAuth(),
+  requireRole('seller'),
+  (_req: Request, res: Response) => {
+    res.render('pages/seller/consent-withdraw-confirm');
+  },
+);
+
 // POST /seller/compliance/consent/withdraw
 // Seller withdraws marketing or service consent
 complianceRouter.post(
@@ -82,7 +92,18 @@ complianceRouter.post(
 
     try {
       const sellerId = (req.user as { id: string }).id;
-      const { type, channel } = req.body as { type: string; channel?: string };
+      const { type, channel, confirmConsequences } = req.body as {
+        type: string;
+        channel?: string;
+        confirmConsequences?: string;
+      };
+
+      // Service consent withdrawal requires explicit multi-step confirmation (Finding #3.8/#3.9)
+      if (type === 'service' && confirmConsequences !== 'true') {
+        return res.status(400).render('pages/seller/consent-withdraw-confirm', {
+          error: 'You must check the confirmation box to proceed.',
+        });
+      }
 
       const result = await complianceService.withdrawConsent({
         sellerId,

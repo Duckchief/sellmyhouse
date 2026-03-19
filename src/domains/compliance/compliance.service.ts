@@ -1,9 +1,16 @@
 // src/domains/compliance/compliance.service.ts
 import path from 'path';
 import { createId } from '@paralleldrive/cuid2';
+import { fileTypeFromBuffer } from 'file-type';
 import * as complianceRepo from './compliance.repository';
+import * as txRepo from '@/domains/transaction/transaction.repository';
 import * as sellerService from '@/domains/seller/seller.service';
 import * as settingsService from '@/domains/shared/settings.service';
+import * as propertyRepo from '@/domains/property/property.repository';
+import * as offerRepo from '@/domains/offer/offer.repository';
+import * as viewingRepo from '@/domains/viewing/viewing.repository';
+import * as notificationService from '@/domains/notification/notification.service';
+import { logger } from '@/infra/logger';
 import { localStorage } from '@/infra/storage/local-storage';
 import { encryptedStorage } from '@/infra/storage/encrypted-storage';
 import { scanBuffer } from '@/infra/security/virus-scanner';
@@ -122,6 +129,9 @@ export async function withdrawConsent(
   }
   const hasAnyTransaction = sellerWithTx.transactions.length > 0;
 
+  let retentionRule: string;
+  let deletionRequestDetails: Record<string, string | number>;
+
   if (hasAnyTransaction) {
     // Find the most recent completion date for retention end calculation
     const completedTxDates = sellerWithTx.transactions
@@ -133,47 +143,30 @@ export async function withdrawConsent(
     const retentionEndDate = new Date(latestCompletion);
     retentionEndDate.setDate(retentionEndDate.getDate() + 30); // 30-day post-completion purge
 
-    const deletionRequest = await complianceRepo.createDeletionRequest({
-      targetType: 'lead',
-      targetId: input.sellerId,
-      reason: 'Service consent withdrawn by seller',
-      retentionRule: 'post_completion_purge',
-      status: 'flagged',
-      details: {
-        sellerId: input.sellerId,
-        withdrawalDate: now.toISOString(),
-        retentionEndDate: retentionEndDate.toISOString(),
-        transactionCount: sellerWithTx.transactions.length,
-      },
-    });
-
-    await auditService.log({
-      action: 'consent.withdrawn',
-      entityType: 'seller',
-      entityId: input.sellerId,
-      details: { type: input.type, channel: input.channel, consentRecordId: newRecord.id },
-    });
-
-    return {
-      consentRecordId: newRecord.id,
-      deletionRequestId: deletionRequest.id,
-      deletionBlocked: false,
-      retentionRule: 'post_completion_purge',
+    retentionRule = 'post_completion_purge';
+    deletionRequestDetails = {
+      sellerId: input.sellerId,
+      withdrawalDate: now.toISOString(),
+      retentionEndDate: retentionEndDate.toISOString(),
+      transactionCount: sellerWithTx.transactions.length,
+    };
+  } else {
+    // No transactions: flag for 30-day grace deletion
+    retentionRule = '30_day_grace';
+    deletionRequestDetails = {
+      sellerId: input.sellerId,
+      withdrawalDate: now.toISOString(),
     };
   }
 
-  // No transactions: flag for 30-day grace deletion
   // DeletionTargetType enum has no 'seller' value; 'lead' is the closest valid type
   const deletionRequest = await complianceRepo.createDeletionRequest({
     targetType: 'lead',
     targetId: input.sellerId,
     reason: 'Service consent withdrawn by seller',
-    retentionRule: '30_day_grace',
+    retentionRule,
     status: 'flagged',
-    details: {
-      sellerId: input.sellerId,
-      withdrawalDate: now.toISOString(),
-    },
+    details: deletionRequestDetails,
   });
 
   await auditService.log({
@@ -183,12 +176,74 @@ export async function withdrawConsent(
     details: { type: input.type, channel: input.channel, consentRecordId: newRecord.id },
   });
 
+  // Side effects: void offers, cancel viewings, delist listing, mark transaction fallen_through
+  // Best-effort — failures are logged but must not block the withdrawal
+  try {
+    await executeConsentWithdrawalSideEffects(input.sellerId);
+  } catch (err) {
+    logger.error({ err, sellerId: input.sellerId }, 'consent.withdrawal.side_effects_failed');
+  }
+
   return {
     consentRecordId: newRecord.id,
     deletionRequestId: deletionRequest.id,
     deletionBlocked: false,
-    retentionRule: '30_day_grace',
+    retentionRule,
   };
+}
+
+async function executeConsentWithdrawalSideEffects(sellerId: string): Promise<void> {
+  const property = await propertyRepo.findBySellerId(sellerId);
+  if (property) {
+    const address = `${property.block} ${property.street} ${property.town}`;
+
+    // 1. Void all pending/countered offers
+    const offers = await offerRepo.findByPropertyId(property.id);
+    const seller = await sellerService.findById(sellerId);
+    for (const offer of offers) {
+      if (offer.status === 'pending' || offer.status === 'countered') {
+        await offerRepo.updateStatus(offer.id, 'expired');
+
+        // Notify listing agent for co-broke offers (buyer's agent is external — agent handles follow-up)
+        if (offer.buyerAgentName && seller?.agentId) {
+          try {
+            await notificationService.send(
+              {
+                recipientType: 'agent',
+                recipientId: seller.agentId,
+                templateName: 'generic',
+                templateData: {
+                  message: `The seller for ${address} has withdrawn from the transaction. The offer has been voided.`,
+                },
+                preferredChannel: 'whatsapp',
+              },
+              seller.agentId,
+            );
+          } catch (notifyErr) {
+            logger.warn({ err: notifyErr, offerId: offer.id }, 'Failed to notify agent of voided offer');
+          }
+        }
+      }
+    }
+
+    // 2. Cancel all active viewing slots
+    const activeSlots = await viewingRepo.findActiveSlotsByPropertyId(property.id);
+    for (const slot of activeSlots) {
+      await viewingRepo.cancelSlotAndViewings(slot.id);
+    }
+
+    // 3. Delist active listing
+    const listing = await propertyRepo.findActiveListingForProperty(property.id);
+    if (listing) {
+      await propertyRepo.updateListingStatus(listing.id, 'closed');
+    }
+  }
+
+  // 4. Transition any active transaction to fallen_through
+  const activeTx = await txRepo.findTransactionBySellerId(sellerId);
+  if (activeTx) {
+    await txRepo.updateFallenThrough(activeTx.id, 'Seller withdrew service consent');
+  }
 }
 
 // ─── Correction Requests ──────────────────────────────────────────────────────
@@ -373,6 +428,91 @@ export interface ScanRetentionResult {
   skippedCount: number;
 }
 
+// ─── Tier 1: Daily Sensitive Document Purge ──────────────────────────────────
+
+export async function purgeSensitiveDocs(): Promise<{ purgedCount: number }> {
+  const sensitiveDocRetentionDays = await settingsService.getNumber('sensitive_doc_retention_days', 7);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - sensitiveDocRetentionDays);
+
+  const transactions = await complianceRepo.findCompletedTransactionsForDocPurge(cutoff);
+  let purgedCount = 0;
+
+  for (const tx of transactions) {
+    const hasOtpFiles = tx.otp?.scannedCopyPathSeller || tx.otp?.scannedCopyPathReturned;
+    const hasInvoice = tx.commissionInvoice?.invoiceFilePath;
+    if (!hasOtpFiles && !hasInvoice) continue;
+
+    const { filePaths } = await complianceRepo.purgeTransactionSensitiveDocs(tx.id, tx.sellerId);
+    for (const filePath of filePaths) {
+      try {
+        await localStorage.delete(filePath);
+      } catch {
+        // Orphaned file — logged in audit below
+      }
+    }
+    await auditService.log({
+      action: 'compliance.sensitive_docs_purged',
+      entityType: 'transaction',
+      entityId: tx.id,
+      details: { sellerId: tx.sellerId, filesDeleted: filePaths.length },
+    });
+    purgedCount++;
+  }
+
+  // Finding #2.6: Redact nricLast4 for any CDD records not yet processed (e.g. transactions
+  // that had no OTP/invoice files and were skipped by the guard above).
+  const cddForNricRedaction = await complianceRepo.findCddRecordsForNricRedaction(cutoff);
+  for (const cdd of cddForNricRedaction) {
+    await complianceRepo.redactNricFromCddRecord(cdd.id);
+  }
+
+  return { purgedCount };
+}
+
+export async function confirmHuttonsSubmission(
+  transactionId: string,
+  agentId: string,
+): Promise<{ purgedFiles: number }> {
+  const tx = await txRepo.findById(transactionId);
+  if (!tx) throw new NotFoundError('Transaction', transactionId);
+
+  if (tx.status !== 'completed' && tx.status !== 'fallen_through') {
+    throw new ValidationError('Transaction must be completed before confirming Huttons submission');
+  }
+
+  if (tx.seller?.agentId !== agentId) {
+    throw new ForbiddenError('You do not own this transaction');
+  }
+
+  if ((tx as { huttonsSubmittedAt?: Date | null }).huttonsSubmittedAt) {
+    throw new ConflictError('Huttons submission already confirmed for this transaction');
+  }
+
+  // Record the handoff
+  await txRepo.confirmHuttonsHandoff(transactionId, agentId);
+
+  // Immediate Tier 1 purge — same logic as the 7-day auto-purge
+  const { filePaths } = await complianceRepo.purgeTransactionSensitiveDocs(transactionId, tx.sellerId);
+  for (const filePath of filePaths) {
+    try {
+      await localStorage.delete(filePath);
+    } catch {
+      // Orphaned file — logged in audit below
+    }
+  }
+
+  await auditService.log({
+    agentId,
+    action: 'compliance.huttons_handoff_confirmed',
+    entityType: 'transaction',
+    entityId: transactionId,
+    details: { sellerId: tx.sellerId, filesDeleted: filePaths.length },
+  });
+
+  return { purgedFiles: filePaths.length };
+}
+
 export async function scanRetention(): Promise<ScanRetentionResult> {
   const now = new Date();
   let flaggedCount = 0;
@@ -381,14 +521,12 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
   // Load retention periods from SystemSetting (never hardcode)
   const [
     leadRetentionMonths,
-    sensitiveDocRetentionDays,
     financialDataRetentionDays,
     transactionAnonymisationDays,
     consentPostWithdrawalRetentionYears,
     listingRetentionMonths,
   ] = await Promise.all([
     settingsService.getNumber('lead_retention_months', 12),
-    settingsService.getNumber('sensitive_doc_retention_days', 7),
     settingsService.getNumber('financial_data_retention_days', 7),
     settingsService.getNumber('transaction_anonymisation_days', 30),
     settingsService.getNumber('consent_post_withdrawal_retention_years', 1),
@@ -448,32 +586,8 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
   }
 
   // 3. Tier 1: Auto-delete sensitive documents (NRIC, CDD docs, OTP scans, invoices)
-  const sensitiveDocCutoff = new Date(now);
-  sensitiveDocCutoff.setDate(sensitiveDocCutoff.getDate() - sensitiveDocRetentionDays);
-  const txForDocPurge =
-    await complianceRepo.findCompletedTransactionsForDocPurge(sensitiveDocCutoff);
-  for (const tx of txForDocPurge) {
-    // Skip if already purged (no files remain)
-    const hasOtpFiles = tx.otp?.scannedCopyPathSeller || tx.otp?.scannedCopyPathReturned;
-    const hasInvoice = tx.commissionInvoice?.invoiceFilePath;
-    if (!hasOtpFiles && !hasInvoice) continue;
-
-    const { filePaths } = await complianceRepo.purgeTransactionSensitiveDocs(tx.id, tx.sellerId);
-    for (const filePath of filePaths) {
-      try {
-        await localStorage.delete(filePath);
-      } catch {
-        // Orphaned file — logged in audit below
-      }
-    }
-    await auditService.log({
-      action: 'compliance.sensitive_docs_purged',
-      entityType: 'transaction',
-      entityId: tx.id,
-      details: { sellerId: tx.sellerId, filesDeleted: filePaths.length },
-    });
-    flaggedCount++;
-  }
+  const { purgedCount: tier1Purged } = await purgeSensitiveDocs();
+  flaggedCount += tier1Purged;
 
   // 4. Tier 2: Auto-redact financial data (offer amounts, agreed price, option fee)
   const financialCutoff = new Date(now);
@@ -498,11 +612,13 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     await complianceRepo.findCompletedTransactionsForAnonymisation(anonymisationCutoff);
   for (const tx of txForAnonymisation) {
     await complianceRepo.anonymiseTransactionSeller(tx.id, tx.sellerId);
+    await complianceRepo.redactSellerNotifications(tx.sellerId);
     await auditService.log({
       action: 'compliance.seller_pii_anonymised',
       entityType: 'transaction',
       entityId: tx.id,
       details: { sellerId: tx.sellerId },
+      actorType: 'system',
     });
     flaggedCount++;
   }
@@ -1128,6 +1244,13 @@ export async function uploadCddDocument(input: UploadCddDocumentInput): Promise<
   const existing = (record.documents as CddDocument[]) ?? [];
   if (existing.length >= MAX_CDD_DOCUMENTS) {
     throw new ValidationError(`Maximum ${MAX_CDD_DOCUMENTS} documents per CDD record`);
+  }
+
+  // Verify actual file content (magic bytes) before virus scan
+  const detectedCdd = await fileTypeFromBuffer(input.fileBuffer);
+  const allowedCddMimes = ['image/jpeg', 'image/png', 'application/pdf'];
+  if (!detectedCdd || !allowedCddMimes.includes(detectedCdd.mime)) {
+    throw new ValidationError('File content does not match a valid image or PDF');
   }
 
   // Virus scan — fail-closed in production

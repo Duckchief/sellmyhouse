@@ -111,6 +111,23 @@ const mockVerifiedComplianceStatus = {
   },
 } as unknown as Awaited<ReturnType<typeof agentRepo.getComplianceStatus>>;
 
+describe('GET /seller/consent/withdraw', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns 401 for unauthenticated requests', async () => {
+    const app = createTestApp();
+    const res = await request(app).get('/seller/consent/withdraw');
+    expect(res.status).toBe(401);
+  });
+
+  it('renders withdrawal confirmation page for authenticated seller', async () => {
+    const app = createSellerApp();
+    const res = await request(app).get('/seller/consent/withdraw');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Withdraw Consent');
+  });
+});
+
 describe('POST /seller/compliance/consent/withdraw', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -130,6 +147,27 @@ describe('POST /seller/compliance/consent/withdraw', () => {
       .post('/seller/compliance/consent/withdraw')
       .send({ type: 'invalid' });
     expect([400, 401]).toContain(res.status);
+  });
+
+  it('returns 400 when confirmConsequences not checked for service consent withdrawal', async () => {
+    const app = createSellerApp();
+    const res = await request(app)
+      .post('/seller/compliance/consent/withdraw')
+      .send({ type: 'service', channel: 'web' });
+    expect(res.status).toBe(400);
+  });
+
+  it('proceeds with service withdrawal when confirmConsequences is checked', async () => {
+    mockService.withdrawConsent.mockResolvedValue({
+      consentRecordId: 'cr-1',
+      deletionBlocked: false,
+    });
+
+    const app = createSellerApp();
+    const res = await request(app)
+      .post('/seller/compliance/consent/withdraw')
+      .send({ type: 'service', channel: 'web', confirmConsequences: 'true' });
+    expect(res.status).toBe(302);
   });
 
   it('redirects on successful marketing consent withdrawal', async () => {

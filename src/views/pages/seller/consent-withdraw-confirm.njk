@@ -1,0 +1,83 @@
+{% extends "layouts/seller.njk" %}
+
+{% block title %}{{ "Withdraw Consent & Cancel Transaction" | t }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+  {% set pageTitle = "Withdraw Consent & Cancel Transaction" %}
+  {% include "partials/shared/page-header.njk" %}
+
+  <div class="card border-red-200 space-y-6">
+    <div class="rounded-lg p-4 bg-red-50 border border-red-200">
+      <h2 class="text-base font-semibold text-red-800 mb-3">{{ "What will happen if you proceed" | t }}</h2>
+      <ul class="space-y-2 text-sm text-red-700">
+        <li class="flex items-start gap-2">
+          <span class="mt-0.5 text-red-500">&#10005;</span>
+          <span>{{ "Your HDB listing will be taken down immediately" | t }}</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="mt-0.5 text-red-500">&#10005;</span>
+          <span>{{ "All scheduled viewings will be cancelled" | t }}</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="mt-0.5 text-red-500">&#10005;</span>
+          <span>{{ "Any pending offers will be voided" | t }}</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="mt-0.5 text-red-500">&#10005;</span>
+          <span>{{ "Your active transaction will be marked as fallen through" | t }}</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="mt-0.5 text-red-500">&#10005;</span>
+          <span>{{ "Your sensitive data will be permanently deleted from our platform" | t }}</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="mt-0.5 text-orange-500">&#9432;</span>
+          <span>{{ "For data already submitted to Huttons, contact Huttons directly" | t }}</span>
+        </li>
+      </ul>
+    </div>
+
+    {% if error %}
+      <div class="rounded-lg p-4 bg-red-50 border border-red-300">
+        <p class="text-sm text-red-800">{{ error | t }}</p>
+      </div>
+    {% endif %}
+
+    <form method="POST" action="/seller/compliance/consent/withdraw" class="space-y-5">
+      <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+      <input type="hidden" name="type" value="service">
+      <input type="hidden" name="channel" value="web">
+
+      <div class="flex items-start gap-3">
+        <input
+          type="checkbox"
+          id="confirmConsequences"
+          name="confirmConsequences"
+          value="true"
+          required
+          class="mt-0.5 h-4 w-4 text-red-600 border-gray-300 rounded"
+          onchange="document.getElementById('submit-btn').disabled = !this.checked">
+        <label for="confirmConsequences" class="text-sm text-gray-700 font-medium">
+          {{ "I understand and accept all consequences listed above" | t }}
+        </label>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button
+          id="submit-btn"
+          type="submit"
+          disabled
+          class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
+          {{ "Withdraw Consent & Cancel Transaction" | t }}
+        </button>
+        <a
+          href="/seller/my-data"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+          {{ "Cancel" | t }}
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -90,17 +90,13 @@
     <h2 class="page-section-title">{{ "Account Deletion" | t }}</h2>
     <div class="card border-red-200">
       <p class="text-sm text-gray-600 mb-4">
-        {{ "Requesting deletion withdraws your service consent. If you have completed transactions, data is retained for 5 years under financial regulations." | t }}
+        {{ "Requesting deletion withdraws your service consent. If you have completed transactions, data is retained for the applicable retention period." | t }}
       </p>
-      <button
-        hx-post="/seller/compliance/consent/withdraw"
-        hx-vals='{"type": "service", "channel": "web"}'
-        hx-confirm="{{ 'Are you sure you want to request account deletion? This action cannot be undone.' | t }}"
-        hx-target="#consent-panel"
-        hx-swap="outerHTML"
-        class="px-4 py-2 text-sm font-medium text-red-700 border border-red-300 rounded-lg hover:bg-red-50">
+      <a
+        href="/seller/consent/withdraw"
+        class="inline-block px-4 py-2 text-sm font-medium text-red-700 border border-red-300 rounded-lg hover:bg-red-50">
         {{ "Request Account Deletion" | t }}
-      </button>
+      </a>
     </div>
   </div>
 </div>

@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { createApp } from '../../src/infra/http/app';
 import { testPrisma, cleanDatabase } from '../helpers/prisma';
+import { getCsrfToken } from '../helpers/csrf';
 
 let app: ReturnType<typeof createApp>;
 
@@ -17,10 +18,19 @@ afterAll(async () => {
   await testPrisma.$disconnect();
 });
 
+/** One-off agent with CSRF cookie established. */
+async function csrfAgent() {
+  const agent = request.agent(app);
+  const csrfToken = await getCsrfToken(agent);
+  return { agent, csrfToken };
+}
+
 describe('POST /api/leads', () => {
   it('creates a lead with valid input and service consent', async () => {
-    const res = await request(app)
+    const { agent, csrfToken } = await csrfAgent();
+    const res = await agent
       .post('/api/leads')
+      .set('x-csrf-token', csrfToken)
       .type('form')
       .send({
         name: 'John Tan',
@@ -50,8 +60,10 @@ describe('POST /api/leads', () => {
   });
 
   it('rejects submission without service consent', async () => {
-    const res = await request(app)
+    const { agent, csrfToken } = await csrfAgent();
+    const res = await agent
       .post('/api/leads')
+      .set('x-csrf-token', csrfToken)
       .type('form')
       .send({
         name: 'Jane Lim',
@@ -65,8 +77,10 @@ describe('POST /api/leads', () => {
 
   it('rejects duplicate phone number', async () => {
     // Create first lead
-    await request(app)
+    const { agent: agent1, csrfToken: token1 } = await csrfAgent();
+    await agent1
       .post('/api/leads')
+      .set('x-csrf-token', token1)
       .type('form')
       .send({
         name: 'John Tan',
@@ -76,8 +90,10 @@ describe('POST /api/leads', () => {
       });
 
     // Attempt duplicate
-    const res = await request(app)
+    const { agent: agent2, csrfToken: token2 } = await csrfAgent();
+    const res = await agent2
       .post('/api/leads')
+      .set('x-csrf-token', token2)
       .type('form')
       .send({
         name: 'Another Person',
@@ -90,8 +106,10 @@ describe('POST /api/leads', () => {
   });
 
   it('rejects invalid phone format', async () => {
-    const res = await request(app)
+    const { agent, csrfToken } = await csrfAgent();
+    const res = await agent
       .post('/api/leads')
+      .set('x-csrf-token', csrfToken)
       .type('form')
       .send({
         name: 'John Tan',

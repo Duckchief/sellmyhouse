@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import { testPrisma, cleanDatabase } from '../helpers/prisma';
 import { factory } from '../fixtures/factory';
 import { createApp } from '../../src/infra/http/app';
+import { getCsrfToken, withCsrf } from '../helpers/csrf';
 
 let app: ReturnType<typeof createApp>;
 
@@ -30,12 +31,13 @@ async function loginAsAdmin() {
   });
 
   const agent = request.agent(app);
-  await agent.post('/auth/login/agent').type('form').send({
+  const csrfToken = await getCsrfToken(agent);
+  await agent.post('/auth/login/agent').set('x-csrf-token', csrfToken).type('form').send({
     email: adminRecord.email,
     password,
   });
 
-  return { adminRecord, agent };
+  return { adminRecord, agent: withCsrf(agent, csrfToken) };
 }
 
 /** Create and log in as a regular agent */
@@ -48,12 +50,13 @@ async function loginAsAgent() {
   });
 
   const sessionAgent = request.agent(app);
-  await sessionAgent.post('/auth/login/agent').type('form').send({
+  const csrfToken = await getCsrfToken(sessionAgent);
+  await sessionAgent.post('/auth/login/agent').set('x-csrf-token', csrfToken).type('form').send({
     email: agentRecord.email,
     password,
   });
 
-  return { agentRecord, agent: sessionAgent };
+  return { agentRecord, agent: withCsrf(sessionAgent, csrfToken) };
 }
 
 // ─── RBAC ────────────────────────────────────────────────────

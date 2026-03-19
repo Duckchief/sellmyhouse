@@ -202,19 +202,23 @@ async function sendExternal(
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     logger.warn({ err, channel: resolvedChannel }, 'Primary notification channel failed');
-    await notificationRepo.updateStatus(record.id, 'failed', { error: errorMessage });
+    try {
+      await notificationRepo.updateStatus(record.id, 'failed', { error: errorMessage });
 
-    // Task 17: Audit log on primary channel failure
-    await auditService.log({
-      action: 'notification.failed',
-      entityType: 'notification',
-      entityId: record.id,
-      details: {
-        channel: resolvedChannel,
-        templateName: input.templateName,
-        error: errorMessage,
-      },
-    });
+      // Task 17: Audit log on primary channel failure
+      await auditService.log({
+        action: 'notification.failed',
+        entityType: 'notification',
+        entityId: record.id,
+        details: {
+          channel: resolvedChannel,
+          templateName: input.templateName,
+          error: errorMessage,
+        },
+      });
+    } catch (statusUpdateErr) {
+      logger.warn({ statusUpdateErr }, 'Failed to update notification status to failed');
+    }
 
     // Fallback: WhatsApp → email
     if (resolvedChannel === 'whatsapp') {

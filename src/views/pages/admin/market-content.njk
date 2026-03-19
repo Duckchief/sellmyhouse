@@ -6,6 +6,7 @@
 {% set pageTitle = "Media Content" %}
 {% set pageActionsHtml %}
 <form method="POST" action="/admin/content/market/run">
+  <input type="hidden" name="_csrf" value="{{ csrfToken }}">
   <button type="submit"
     class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700">
     {{ "Run Now" | t }}

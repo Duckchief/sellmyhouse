@@ -2,6 +2,7 @@ import request from 'supertest';
 import { testPrisma, cleanDatabase } from '../helpers/prisma';
 import { factory } from '../fixtures/factory';
 import { createApp } from '../../src/infra/http/app';
+import { getCsrfToken } from '../helpers/csrf';
 
 let app: ReturnType<typeof createApp>;
 
@@ -27,7 +28,12 @@ describe('Notification Integration', () => {
 
   describe('POST /api/notifications/:id/read', () => {
     it('requires authentication', async () => {
-      const res = await request(app).post('/api/notifications/some-id/read');
+      // Must include CSRF token so CSRF check passes; auth check then returns 401
+      const agent = request.agent(app);
+      const csrfToken = await getCsrfToken(agent);
+      const res = await agent
+        .post('/api/notifications/some-id/read')
+        .set('x-csrf-token', csrfToken);
       expect(res.status).toBe(401);
     });
   });

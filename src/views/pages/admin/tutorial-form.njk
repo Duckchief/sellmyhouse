@@ -21,6 +21,7 @@
 
   <form method="POST"
     action="{% if tutorial %}/admin/tutorials/{{ tutorial.id }}{% else %}/admin/tutorials{% endif %}">
+    <input type="hidden" name="_csrf" value="{{ csrfToken }}">
 
     <div class="mb-4">
       <label class="block text-sm font-medium mb-1">{{ "Title" | t }} *</label>

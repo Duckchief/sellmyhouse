@@ -16,6 +16,7 @@
     <form id="download-confirm-form"
           method="POST"
           action="/agent/transactions/{{ transactionId }}/documents/download-all-and-delete">
+      <input type="hidden" name="_csrf" value="{{ csrfToken }}">
 
       <div class="space-y-3 mb-6">
         <label class="flex items-start gap-3 cursor-pointer">

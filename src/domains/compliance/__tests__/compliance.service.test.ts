@@ -1701,3 +1701,33 @@ describe('confirmHuttonsSubmission', () => {
     ).rejects.toThrow();
   });
 });
+
+describe('recordHuttonsTransferConsent', () => {
+  it('carries forward existing service/marketing consent values', async () => {
+    mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: true });
+    mockRepo.createConsentRecord.mockResolvedValue({} as any);
+
+    await complianceService.recordHuttonsTransferConsent('seller-123');
+
+    expect(mockRepo.createConsentRecord).toHaveBeenCalledWith({
+      subjectId: 'seller-123',
+      purposeService: true,
+      purposeMarketing: true,
+      purposeHuttonsTransfer: true,
+    });
+  });
+
+  it('uses defaults when no existing consent record exists', async () => {
+    mockRepo.findSellerConsent.mockResolvedValue(null);
+    mockRepo.createConsentRecord.mockResolvedValue({} as any);
+
+    await complianceService.recordHuttonsTransferConsent('seller-new');
+
+    expect(mockRepo.createConsentRecord).toHaveBeenCalledWith({
+      subjectId: 'seller-new',
+      purposeService: true,
+      purposeMarketing: false,
+      purposeHuttonsTransfer: true,
+    });
+  });
+});

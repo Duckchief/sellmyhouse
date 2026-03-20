@@ -63,17 +63,6 @@
       </div>
 
       <div class="flex items-start">
-        <input type="checkbox" id="consentHuttonsTransfer" name="consentHuttonsTransfer" value="true" required
-          class="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-        <label for="consentHuttonsTransfer" class="ml-2 text-sm text-gray-600">
-          {{ "I consent to my personal data being transferred to Huttons Asia Pte Ltd (CEA Licence No. L3008899K) for long-term record retention as required by law." | t }} <span class="text-red-500">*</span>
-        </label>
-      </div>
-      {% if errors and errors.consentHuttonsTransfer %}
-        <p class="mt-1 text-sm text-red-600">{{ errors.consentHuttonsTransfer }}</p>
-      {% endif %}
-
-      <div class="flex items-start">
         <input type="checkbox" id="consentMarketing" name="consentMarketing" value="true"
           class="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
         <label for="consentMarketing" class="ml-2 text-sm text-gray-600">

@@ -52,6 +52,15 @@ describe('POST /api/leads', () => {
     expect(seller!.status).toBe('lead');
     expect(seller!.countryCode).toBe('+65');
     expect(seller!.nationalNumber).toBe('91234567');
+    expect(seller!.consentService).toBe(true);
+    expect(seller!.agentId).toBeNull();
+
+    // Verify consent record was created (PDPA compliance)
+    const consent = await testPrisma.consentRecord.findFirst({
+      where: { sellerId: seller!.id },
+    });
+    expect(consent).not.toBeNull();
+    expect(consent!.purposeService).toBe(true);
   });
 
   it('rejects submission without service consent', async () => {

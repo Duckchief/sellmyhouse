@@ -671,4 +671,20 @@
     document.querySelectorAll('.cron-picker').forEach(initCronPicker);
   })();
 
+  // ── HTMX: show browser validation on failed form submit ────────
+  document.addEventListener('htmx:validation:failed', function (e) {
+    var form = e.detail.elt;
+    if (form && form.reportValidity) {
+      form.reportValidity();
+    }
+  });
+
+  // ── HTMX: swap server error responses (4xx/5xx) into target ────
+  document.addEventListener('htmx:beforeOnLoad', function (e) {
+    if (e.detail.xhr.status >= 400) {
+      e.detail.shouldSwap = true;
+      e.detail.isError = false;
+    }
+  });
+
 })();

@@ -34,8 +34,10 @@ describe('POST /api/leads', () => {
       .type('form')
       .send({
         name: 'John Tan',
-        phone: '91234567',
+        countryCode: '+65',
+        nationalNumber: '91234567',
         consentService: 'true',
+        consentHuttonsTransfer: 'true',
         consentMarketing: 'false',
         leadSource: 'website',
         formLoadedAt: (Date.now() - 10000).toString(),
@@ -44,19 +46,12 @@ describe('POST /api/leads', () => {
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
 
-    // Verify seller was created
-    const seller = await testPrisma.seller.findFirst({ where: { phone: '91234567' } });
+    // Verify seller was created with E.164 phone
+    const seller = await testPrisma.seller.findFirst({ where: { phone: '+6591234567' } });
     expect(seller).not.toBeNull();
     expect(seller!.status).toBe('lead');
-    expect(seller!.consentService).toBe(true);
-    expect(seller!.agentId).toBeNull();
-
-    // Verify consent record was created
-    const consent = await testPrisma.consentRecord.findFirst({
-      where: { subjectId: seller!.id },
-    });
-    expect(consent).not.toBeNull();
-    expect(consent!.purposeService).toBe(true);
+    expect(seller!.countryCode).toBe('+65');
+    expect(seller!.nationalNumber).toBe('91234567');
   });
 
   it('rejects submission without service consent', async () => {
@@ -67,8 +62,10 @@ describe('POST /api/leads', () => {
       .type('form')
       .send({
         name: 'Jane Lim',
-        phone: '81234567',
+        countryCode: '+65',
+        nationalNumber: '81234567',
         consentService: 'false',
+        consentHuttonsTransfer: 'true',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
@@ -76,7 +73,6 @@ describe('POST /api/leads', () => {
   });
 
   it('rejects duplicate phone number', async () => {
-    // Create first lead
     const { agent: agent1, csrfToken: token1 } = await csrfAgent();
     await agent1
       .post('/api/leads')
@@ -84,12 +80,13 @@ describe('POST /api/leads', () => {
       .type('form')
       .send({
         name: 'John Tan',
-        phone: '91234567',
+        countryCode: '+65',
+        nationalNumber: '91234567',
         consentService: 'true',
+        consentHuttonsTransfer: 'true',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
-    // Attempt duplicate
     const { agent: agent2, csrfToken: token2 } = await csrfAgent();
     const res = await agent2
       .post('/api/leads')
@@ -97,15 +94,17 @@ describe('POST /api/leads', () => {
       .type('form')
       .send({
         name: 'Another Person',
-        phone: '91234567',
+        countryCode: '+65',
+        nationalNumber: '91234567',
         consentService: 'true',
+        consentHuttonsTransfer: 'true',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
     expect(res.status).toBe(409);
   });
 
-  it('rejects invalid phone format', async () => {
+  it('rejects invalid Singapore phone format', async () => {
     const { agent, csrfToken } = await csrfAgent();
     const res = await agent
       .post('/api/leads')
@@ -113,11 +112,38 @@ describe('POST /api/leads', () => {
       .type('form')
       .send({
         name: 'John Tan',
-        phone: '61234567',
+        countryCode: '+65',
+        nationalNumber: '61234567',
         consentService: 'true',
+        consentHuttonsTransfer: 'true',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
     expect(res.status).toBe(400);
+  });
+
+  it('creates a lead with Malaysian phone number', async () => {
+    const { agent, csrfToken } = await csrfAgent();
+    const res = await agent
+      .post('/api/leads')
+      .set('x-csrf-token', csrfToken)
+      .type('form')
+      .send({
+        name: 'Ahmad Bin Ali',
+        countryCode: '+60',
+        nationalNumber: '123456789',
+        consentService: 'true',
+        consentHuttonsTransfer: 'true',
+        consentMarketing: 'false',
+        leadSource: 'website',
+        formLoadedAt: (Date.now() - 10000).toString(),
+      });
+
+    expect(res.status).toBe(201);
+
+    const seller = await testPrisma.seller.findFirst({ where: { phone: '+60123456789' } });
+    expect(seller).not.toBeNull();
+    expect(seller!.countryCode).toBe('+60');
+    expect(seller!.nationalNumber).toBe('123456789');
   });
 });

@@ -13,6 +13,7 @@ import { HDB_TOWNS, HDB_FLAT_TYPES } from '../property/property.types';
 import * as contentService from '../content/content.service';
 import * as notificationService from '../notification/notification.service';
 import * as accountDeleteService from './account-delete.service';
+import * as complianceService from '../compliance/compliance.service';
 import { UnauthorizedError } from '../shared/errors';
 
 export const sellerRouter = Router();
@@ -214,6 +215,10 @@ sellerRouter.post(
             leaseCommenceDate: parseInt(leaseCommenceDate, 10),
           });
         }
+      }
+
+      if (step === 5) {
+        await complianceService.recordHuttonsTransferConsent(sellerId);
       }
 
       const result = await sellerService.completeOnboardingStep({

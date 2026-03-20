@@ -1399,3 +1399,15 @@ export async function anonymiseAgent(input: {
     agentId: input.requestedByAgentId,
   });
 }
+
+// ─── Huttons Transfer Consent ─────────────────────────────────────────────────
+
+export async function recordHuttonsTransferConsent(sellerId: string): Promise<void> {
+  const existing = await complianceRepo.findSellerConsent(sellerId);
+  await complianceRepo.createConsentRecord({
+    subjectId: sellerId,
+    purposeService: existing?.consentService ?? true,
+    purposeMarketing: existing?.consentMarketing ?? false,
+    purposeHuttonsTransfer: true,
+  });
+}

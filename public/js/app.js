@@ -388,10 +388,15 @@
       if (btn) btn.disabled = !(a && a.checked && b && b.checked);
     }
 
-    // Onboarding step 5: enable the complete button when checkbox is checked
+    // Onboarding step 5: enable the complete button when ALL checkboxes are checked
     if (action === 'toggle-complete-btn') {
       var completeBtn = document.getElementById('complete-btn');
-      if (completeBtn) completeBtn.disabled = !el.checked;
+      if (completeBtn) {
+        var allChecked = Array.from(
+          document.querySelectorAll('[data-action="toggle-complete-btn"]')
+        ).every(function (cb) { return cb.checked; });
+        completeBtn.disabled = !allChecked;
+      }
     }
 
     // Market report: sync hidden months value + label from slider position

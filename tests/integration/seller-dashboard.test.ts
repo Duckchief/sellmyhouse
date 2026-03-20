@@ -179,6 +179,12 @@ describe('Seller Dashboard Integration', () => {
       // Verify the DB record has onboardingStep = 5
       const updated = await testPrisma.seller.findUnique({ where: { id: seller.id } });
       expect(updated?.onboardingStep).toBe(5);
+
+      // Verify Huttons transfer consent was recorded at step 5
+      const consentRecord = await testPrisma.consentRecord.findFirst({
+        where: { sellerId: seller.id, purposeHuttonsTransfer: true },
+      });
+      expect(consentRecord).not.toBeNull();
     });
 
     it('creates an audit log entry for each completed onboarding step', async () => {

@@ -27,6 +27,11 @@
       <span class="text-sm text-gray-700">{{ "I have watched the video and understand the terms" | t }}</span>
     </label>
 
+    <label class="flex items-start gap-2 mb-4">
+      <input type="checkbox" id="huttons-consent-checkbox" class="mt-1 rounded border-gray-300" data-action="toggle-complete-btn">
+      <span class="text-sm text-gray-700">{{ "I consent to my personal data being transferred to Huttons Asia Pte Ltd for the purpose of processing my HDB resale transaction." | t }}</span>
+    </label>
+
     <button
       id="complete-btn"
       hx-post="/seller/onboarding/step/5"

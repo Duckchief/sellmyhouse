@@ -1,10 +1,14 @@
 import * as sellerService from '../seller.service';
 import * as propertyService from '../../property/property.service';
+import * as complianceService from '../../compliance/compliance.service';
 import { TOTAL_ONBOARDING_STEPS } from '../seller.types';
 import type { VideoTutorial } from '@prisma/client';
 
 jest.mock('../seller.service');
 jest.mock('../../property/property.service');
+jest.mock('../../compliance/compliance.service', () => ({
+  recordHuttonsTransferConsent: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock('../../notification/notification.repository', () => ({
   countUnreadForRecipient: jest.fn().mockResolvedValue(0),
   findUnreadForRecipient: jest.fn().mockResolvedValue([]),
@@ -16,6 +20,7 @@ jest.mock('../case-flag.service', () => ({
 
 const mockedService = jest.mocked(sellerService);
 const mockedPropertyService = jest.mocked(propertyService);
+const mockedComplianceService = jest.mocked(complianceService);
 
 import request from 'supertest';
 import express from 'express';
@@ -212,6 +217,19 @@ describe('seller.router', () => {
 
       expect(res.status).toBe(200);
       expect(res.headers['hx-redirect']).toBe('/seller/dashboard');
+    });
+
+    it('records Huttons transfer consent when completing step 5', async () => {
+      mockedService.completeOnboardingStep.mockResolvedValue({
+        onboardingStep: TOTAL_ONBOARDING_STEPS,
+      });
+
+      const res = await request(app)
+        .post(`/seller/onboarding/step/5`)
+        .set('HX-Request', 'true');
+
+      expect(res.status).toBe(200);
+      expect(mockedComplianceService.recordHuttonsTransferConsent).toHaveBeenCalledWith('seller-1');
     });
   });
 

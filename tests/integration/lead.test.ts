@@ -37,7 +37,6 @@ describe('POST /api/leads', () => {
         countryCode: '+65',
         nationalNumber: '91234567',
         consentService: 'true',
-        consentHuttonsTransfer: 'true',
         consentMarketing: 'false',
         leadSource: 'website',
         formLoadedAt: (Date.now() - 10000).toString(),
@@ -74,7 +73,6 @@ describe('POST /api/leads', () => {
         countryCode: '+65',
         nationalNumber: '81234567',
         consentService: 'false',
-        consentHuttonsTransfer: 'true',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
@@ -92,7 +90,6 @@ describe('POST /api/leads', () => {
         countryCode: '+65',
         nationalNumber: '91234567',
         consentService: 'true',
-        consentHuttonsTransfer: 'true',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
@@ -106,7 +103,6 @@ describe('POST /api/leads', () => {
         countryCode: '+65',
         nationalNumber: '91234567',
         consentService: 'true',
-        consentHuttonsTransfer: 'true',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
@@ -124,7 +120,6 @@ describe('POST /api/leads', () => {
         countryCode: '+65',
         nationalNumber: '61234567',
         consentService: 'true',
-        consentHuttonsTransfer: 'true',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
@@ -142,7 +137,6 @@ describe('POST /api/leads', () => {
         countryCode: '+60',
         nationalNumber: '123456789',
         consentService: 'true',
-        consentHuttonsTransfer: 'true',
         consentMarketing: 'false',
         leadSource: 'website',
         formLoadedAt: (Date.now() - 10000).toString(),

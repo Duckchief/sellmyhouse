@@ -8,7 +8,6 @@ describe('validateLeadInput', () => {
     phone: '+6591234567',
     consentService: true,
     consentMarketing: false,
-    consentHuttonsTransfer: true,
     leadSource: 'website' as const,
     formLoadedAt: Date.now() - 10000, // 10 seconds ago
   };
@@ -118,11 +117,4 @@ describe('validateLeadInput', () => {
     expect(result).toBeNull();
   });
 
-  it('rejects missing Huttons transfer consent', () => {
-    const result = validateLeadInput({ ...validInput, consentHuttonsTransfer: false });
-    expect(result).toEqual({
-      consentHuttonsTransfer:
-        'You must consent to data transfer to Huttons Asia Pte Ltd to proceed',
-    });
-  });
 });

@@ -81,7 +81,6 @@ export async function submitLeadAtomically(data: {
   phone: string;
   consentService: boolean;
   consentMarketing: boolean;
-  consentHuttonsTransfer: boolean;
   leadSource: string;
   retentionExpiresAt?: Date;
   ipAddress?: string;
@@ -103,7 +102,6 @@ export async function submitLeadAtomically(data: {
       sellerId: seller.id,
       purposeService: data.consentService,
       purposeMarketing: data.consentMarketing,
-      purposeHuttonsTransfer: data.consentHuttonsTransfer,
       ipAddress: data.ipAddress,
       userAgent: data.userAgent,
     });

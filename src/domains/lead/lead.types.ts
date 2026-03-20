@@ -7,7 +7,6 @@ export interface LeadInput {
   phone: string; // E.164 format, constructed by router
   consentService: boolean;
   consentMarketing: boolean;
-  consentHuttonsTransfer: boolean;
   leadSource: LeadSource;
   honeypot?: string;
   formLoadedAt?: number;

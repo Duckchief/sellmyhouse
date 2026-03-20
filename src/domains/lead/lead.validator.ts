@@ -41,12 +41,5 @@ export function validateLeadInput(
     return { consentService: 'Service consent is required' };
   }
 
-  if (!input.consentHuttonsTransfer) {
-    return {
-      consentHuttonsTransfer:
-        'You must consent to data transfer to Huttons Asia Pte Ltd to proceed',
-    };
-  }
-
   return null;
 }

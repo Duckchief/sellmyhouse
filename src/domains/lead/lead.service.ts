@@ -29,7 +29,6 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     phone: input.phone,
     consentService: input.consentService,
     consentMarketing: input.consentMarketing,
-    consentHuttonsTransfer: input.consentHuttonsTransfer,
     leadSource: input.leadSource,
     retentionExpiresAt,
     ipAddress: input.ipAddress,
@@ -53,15 +52,6 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     entityType: 'seller',
     entityId: seller.id,
     details: { sellerId: seller.id, purposeService: true },
-    actorType: 'seller' as const,
-    actorId: seller.id,
-  });
-
-  await auditService.log({
-    action: 'consent.huttons_transfer_given',
-    entityType: 'seller',
-    entityId: seller.id,
-    details: { sellerId: seller.id, purposeHuttonsTransfer: true },
     actorType: 'seller' as const,
     actorId: seller.id,
   });

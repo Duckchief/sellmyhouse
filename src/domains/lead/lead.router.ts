@@ -27,8 +27,6 @@ leadRouter.post('/api/leads', leadRateLimiter, async (req, res, next) => {
       phone,
       consentService: req.body.consentService === 'true' || req.body.consentService === true,
       consentMarketing: req.body.consentMarketing === 'true' || req.body.consentMarketing === true,
-      consentHuttonsTransfer:
-        req.body.consentHuttonsTransfer === 'true' || req.body.consentHuttonsTransfer === true,
       leadSource,
       honeypot: req.body.website ?? '', // honeypot field named "website"
       formLoadedAt: req.body.formLoadedAt ? parseInt(req.body.formLoadedAt, 10) : undefined,

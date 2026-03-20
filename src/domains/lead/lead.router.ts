@@ -16,9 +16,15 @@ leadRouter.post('/api/leads', leadRateLimiter, async (req, res, next) => {
       ? (req.body.leadSource as LeadSource)
       : 'website';
 
+    const countryCode = req.body.countryCode ?? '+65';
+    const nationalNumber = (req.body.nationalNumber ?? req.body.phone ?? '').replace(/\D/g, '');
+    const phone = countryCode + nationalNumber;
+
     const input = {
       name: req.body.name ?? '',
-      phone: req.body.phone ?? '',
+      countryCode,
+      nationalNumber,
+      phone,
       consentService: req.body.consentService === 'true' || req.body.consentService === true,
       consentMarketing: req.body.consentMarketing === 'true' || req.body.consentMarketing === true,
       consentHuttonsTransfer:

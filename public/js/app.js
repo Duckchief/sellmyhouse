@@ -31,6 +31,104 @@
     if (el) el.value = Date.now().toString();
   })();
 
+  // ── Country code picker (lead form) ─────────────────────────────
+  (function () {
+    var COUNTRIES = [
+      { name: 'Singapore', code: '+65', flag: '\u{1F1F8}\u{1F1EC}', pattern: '[89]\\d{7}', placeholder: '91234567' },
+      { name: 'Malaysia', code: '+60', flag: '\u{1F1F2}\u{1F1FE}', pattern: '\\d{7,15}', placeholder: 'Phone number' },
+      { name: 'Indonesia', code: '+62', flag: '\u{1F1EE}\u{1F1E9}', pattern: '\\d{7,15}', placeholder: 'Phone number' },
+      { name: 'Thailand', code: '+66', flag: '\u{1F1F9}\u{1F1ED}', pattern: '\\d{7,15}', placeholder: 'Phone number' },
+      { name: 'Philippines', code: '+63', flag: '\u{1F1F5}\u{1F1ED}', pattern: '\\d{7,15}', placeholder: 'Phone number' },
+      { name: 'Vietnam', code: '+84', flag: '\u{1F1FB}\u{1F1F3}', pattern: '\\d{7,15}', placeholder: 'Phone number' },
+      { name: 'Myanmar', code: '+95', flag: '\u{1F1F2}\u{1F1F2}', pattern: '\\d{7,15}', placeholder: 'Phone number' },
+      { name: 'Cambodia', code: '+855', flag: '\u{1F1F0}\u{1F1ED}', pattern: '\\d{7,15}', placeholder: 'Phone number' },
+      { name: 'Laos', code: '+856', flag: '\u{1F1F1}\u{1F1E6}', pattern: '\\d{7,15}', placeholder: 'Phone number' },
+      { name: 'Brunei', code: '+673', flag: '\u{1F1E7}\u{1F1F3}', pattern: '\\d{7,15}', placeholder: 'Phone number' },
+    ];
+
+    var btn = document.getElementById('country-picker-btn');
+    var dropdown = document.getElementById('country-picker-dropdown');
+    var searchInput = document.getElementById('country-picker-search');
+    var list = document.getElementById('country-picker-list');
+    var hiddenInput = document.getElementById('countryCode');
+    var flagEl = document.getElementById('country-picker-flag');
+    var codeEl = document.getElementById('country-picker-code');
+    var phoneInput = document.getElementById('nationalNumber');
+
+    if (!btn || !dropdown || !list || !hiddenInput) return;
+
+    function renderList(filter) {
+      var lc = (filter || '').toLowerCase();
+      list.innerHTML = '';
+      COUNTRIES.forEach(function (c) {
+        if (lc && c.name.toLowerCase().indexOf(lc) === -1 && c.code.indexOf(lc) === -1) return;
+        var li = document.createElement('li');
+        li.className = 'flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-gray-100';
+        li.setAttribute('role', 'option');
+        li.dataset.code = c.code;
+        li.innerHTML = '<span>' + c.flag + '</span><span class="flex-1">' + c.name + '</span><span class="text-gray-400">' + c.code + '</span>';
+        li.addEventListener('click', function () {
+          selectCountry(c);
+        });
+        list.appendChild(li);
+      });
+    }
+
+    function selectCountry(c) {
+      hiddenInput.value = c.code;
+      flagEl.textContent = c.flag;
+      codeEl.textContent = c.code;
+      if (phoneInput) {
+        phoneInput.setAttribute('pattern', c.pattern);
+        phoneInput.setAttribute('placeholder', c.placeholder);
+      }
+      closeDropdown();
+    }
+
+    function openDropdown() {
+      dropdown.classList.remove('hidden');
+      btn.setAttribute('aria-expanded', 'true');
+      searchInput.value = '';
+      renderList('');
+      searchInput.focus();
+    }
+
+    function closeDropdown() {
+      dropdown.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (dropdown.classList.contains('hidden')) {
+        openDropdown();
+      } else {
+        closeDropdown();
+      }
+    });
+
+    searchInput.addEventListener('input', function () {
+      renderList(searchInput.value);
+    });
+
+    // Close on outside click
+    document.addEventListener('click', function (e) {
+      if (!dropdown.classList.contains('hidden') && !btn.contains(e.target) && !dropdown.contains(e.target)) {
+        closeDropdown();
+      }
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) {
+        closeDropdown();
+      }
+    });
+
+    // Initial render
+    renderList('');
+  })();
+
   // ── Dark mode: system preference live listener ─────────────────
   (function () {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {

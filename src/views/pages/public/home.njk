@@ -81,8 +81,25 @@
       </div>
 
       <div class="mb-4">
-        <label for="phone" class="block text-sm font-semibold mb-1">{{ "Mobile Number" | t }}</label>
-        <input type="tel" id="phone" name="phone" placeholder="91234567" required pattern="[89]\d{7}" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8553d] focus:border-transparent outline-none">
+        <label for="nationalNumber" class="block text-sm font-semibold mb-1">{{ "Mobile Number" | t }}</label>
+        <div class="flex gap-2">
+          <div class="relative" id="country-picker">
+            <input type="hidden" name="countryCode" id="countryCode" value="+65">
+            <button type="button" id="country-picker-btn"
+              class="flex items-center gap-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white hover:bg-gray-50 focus:ring-2 focus:ring-[#c8553d] focus:border-transparent outline-none whitespace-nowrap"
+              aria-haspopup="listbox" aria-expanded="false">
+              <span id="country-picker-flag">🇸🇬</span>
+              <span id="country-picker-code">+65</span>
+              <svg class="w-3 h-3 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div id="country-picker-dropdown" class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-64">
+              <input type="text" id="country-picker-search" placeholder="Search country..." class="w-full border-b border-gray-200 px-3 py-2 text-sm outline-none focus:ring-0" autocomplete="off">
+              <ul id="country-picker-list" class="max-h-48 overflow-y-auto" role="listbox"></ul>
+            </div>
+          </div>
+          <input type="tel" id="nationalNumber" name="nationalNumber" placeholder="91234567" required pattern="[89]\d{7}"
+            class="flex-1 min-w-0 border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8553d] focus:border-transparent outline-none">
+        </div>
       </div>
 
       <div class="mb-3">

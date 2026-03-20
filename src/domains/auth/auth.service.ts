@@ -30,13 +30,6 @@ export async function registerSeller(input: SellerRegistrationInput) {
     });
   }
 
-  if (!input.consentHuttonsTransfer) {
-    throw new ValidationError('Huttons data transfer consent is required', {
-      consentHuttonsTransfer:
-        'You must consent to data transfer to Huttons Asia Pte Ltd to register',
-    });
-  }
-
   const existing = await authRepo.findSellerByEmail(input.email);
   if (existing) {
     throw new ConflictError('An account with this email already exists');
@@ -57,7 +50,7 @@ export async function registerSeller(input: SellerRegistrationInput) {
     sellerId: seller.id,
     purposeService: input.consentService,
     purposeMarketing: input.consentMarketing,
-    purposeHuttonsTransfer: input.consentHuttonsTransfer,
+    purposeHuttonsTransfer: false,
     ipAddress: input.ipAddress,
     userAgent: input.userAgent,
   });

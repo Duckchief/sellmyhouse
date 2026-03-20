@@ -49,8 +49,6 @@ registrationRouter.post(
         consentService: true,
         consentMarketing:
           req.body.consentMarketing === 'true' || req.body.consentMarketing === 'on',
-        consentHuttonsTransfer:
-          req.body.consentHuttonsTransfer === 'true' || req.body.consentHuttonsTransfer === 'on',
         ipAddress: req.ip,
         userAgent: req.get('user-agent'),
       });

@@ -35,7 +35,6 @@ describe('AuthService', () => {
       password: 'password123',
       consentService: true,
       consentMarketing: false,
-      consentHuttonsTransfer: true,
       ipAddress: '127.0.0.1',
       userAgent: 'TestAgent',
     };
@@ -700,7 +699,6 @@ describe('AuthService', () => {
         password: 'pass',
         consentService: true,
         consentMarketing: false,
-        consentHuttonsTransfer: true,
         ipAddress: '127.0.0.1',
         userAgent: 'Test',
       });

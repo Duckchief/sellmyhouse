@@ -95,7 +95,6 @@ describe('AuthRouter', () => {
         phone: '91234567',
         password: 'password123',
         consentService: 'true',
-        consentHuttonsTransfer: 'true',
       });
 
       expect(res.status).toBe(409);

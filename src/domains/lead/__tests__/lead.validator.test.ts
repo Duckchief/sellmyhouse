@@ -3,7 +3,9 @@ import { validateLeadInput } from '../lead.validator';
 describe('validateLeadInput', () => {
   const validInput = {
     name: 'John Tan',
-    phone: '91234567',
+    countryCode: '+65',
+    nationalNumber: '91234567',
+    phone: '+6591234567',
     consentService: true,
     consentMarketing: false,
     consentHuttonsTransfer: true,
@@ -26,19 +28,72 @@ describe('validateLeadInput', () => {
     expect(result).toEqual({ name: 'Name is required' });
   });
 
-  it('rejects phone not starting with 8 or 9', () => {
-    const result = validateLeadInput({ ...validInput, phone: '61234567' });
-    expect(result).toEqual({ phone: 'Please enter a valid Singapore mobile number' });
+  it('rejects SG phone not starting with 8 or 9', () => {
+    const result = validateLeadInput({ ...validInput, nationalNumber: '61234567' });
+    expect(result).toEqual({
+      nationalNumber:
+        'Please enter a valid Singapore mobile number (starts with 8 or 9, 8 digits)',
+    });
   });
 
-  it('rejects phone with wrong length', () => {
-    const result = validateLeadInput({ ...validInput, phone: '9123456' });
-    expect(result).toEqual({ phone: 'Please enter a valid Singapore mobile number' });
+  it('rejects SG phone with wrong length', () => {
+    const result = validateLeadInput({ ...validInput, nationalNumber: '9123456' });
+    expect(result).toEqual({
+      nationalNumber:
+        'Please enter a valid Singapore mobile number (starts with 8 or 9, 8 digits)',
+    });
   });
 
-  it('rejects phone with non-digits', () => {
-    const result = validateLeadInput({ ...validInput, phone: '9123abcd' });
-    expect(result).toEqual({ phone: 'Please enter a valid Singapore mobile number' });
+  it('rejects SG phone with non-digits', () => {
+    const result = validateLeadInput({ ...validInput, nationalNumber: '9123abcd' });
+    expect(result).toEqual({
+      nationalNumber:
+        'Please enter a valid Singapore mobile number (starts with 8 or 9, 8 digits)',
+    });
+  });
+
+  it('accepts valid Malaysia input', () => {
+    const result = validateLeadInput({
+      ...validInput,
+      countryCode: '+60',
+      nationalNumber: '1234567890',
+      phone: '+601234567890',
+    });
+    expect(result).toBeNull();
+  });
+
+  it('rejects non-SG phone with too few digits', () => {
+    const result = validateLeadInput({
+      ...validInput,
+      countryCode: '+60',
+      nationalNumber: '123456',
+      phone: '+60123456',
+    });
+    expect(result).toEqual({
+      nationalNumber: 'Please enter a valid phone number (7-15 digits)',
+    });
+  });
+
+  it('rejects non-SG phone with non-digits', () => {
+    const result = validateLeadInput({
+      ...validInput,
+      countryCode: '+60',
+      nationalNumber: '12345abc',
+      phone: '+6012345abc',
+    });
+    expect(result).toEqual({
+      nationalNumber: 'Please enter a valid phone number (7-15 digits)',
+    });
+  });
+
+  it('rejects unknown country code', () => {
+    const result = validateLeadInput({
+      ...validInput,
+      countryCode: '+1',
+      nationalNumber: '2025551234',
+      phone: '+12025551234',
+    });
+    expect(result).toEqual({ countryCode: 'Please select a valid country' });
   });
 
   it('rejects missing service consent', () => {
@@ -66,7 +121,8 @@ describe('validateLeadInput', () => {
   it('rejects missing Huttons transfer consent', () => {
     const result = validateLeadInput({ ...validInput, consentHuttonsTransfer: false });
     expect(result).toEqual({
-      consentHuttonsTransfer: 'You must consent to data transfer to Huttons Asia Pte Ltd to proceed',
+      consentHuttonsTransfer:
+        'You must consent to data transfer to Huttons Asia Pte Ltd to proceed',
     });
   });
 });

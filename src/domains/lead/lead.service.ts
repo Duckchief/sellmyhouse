@@ -24,6 +24,8 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
   // the seller row is rolled back (PDPA: no personal data without consent audit trail)
   const seller = await leadRepo.submitLeadAtomically({
     name: input.name.trim(),
+    countryCode: input.countryCode,
+    nationalNumber: input.nationalNumber,
     phone: input.phone,
     consentService: input.consentService,
     consentMarketing: input.consentMarketing,

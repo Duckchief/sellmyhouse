@@ -14,6 +14,8 @@ export async function createSellerLead(
   tx: Prisma.TransactionClient,
   data: {
     name: string;
+    countryCode: string;
+    nationalNumber: string;
     phone: string;
     consentService: boolean;
     consentMarketing: boolean;
@@ -26,6 +28,8 @@ export async function createSellerLead(
     data: {
       id,
       name: data.name,
+      countryCode: data.countryCode,
+      nationalNumber: data.nationalNumber,
       phone: data.phone,
       consentService: data.consentService,
       consentMarketing: data.consentMarketing,
@@ -72,6 +76,8 @@ export async function createConsentRecord(
 
 export async function submitLeadAtomically(data: {
   name: string;
+  countryCode: string;
+  nationalNumber: string;
   phone: string;
   consentService: boolean;
   consentMarketing: boolean;
@@ -84,6 +90,8 @@ export async function submitLeadAtomically(data: {
   return prisma.$transaction(async (tx) => {
     const seller = await createSellerLead(tx, {
       name: data.name,
+      countryCode: data.countryCode,
+      nationalNumber: data.nationalNumber,
       phone: data.phone,
       consentService: data.consentService,
       consentMarketing: data.consentMarketing,

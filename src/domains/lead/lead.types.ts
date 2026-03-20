@@ -2,13 +2,15 @@ export type LeadSource = 'website' | 'tiktok' | 'instagram' | 'referral' | 'walk
 
 export interface LeadInput {
   name: string;
-  phone: string;
+  countryCode: string;
+  nationalNumber: string;
+  phone: string; // E.164 format, constructed by router
   consentService: boolean;
   consentMarketing: boolean;
   consentHuttonsTransfer: boolean;
   leadSource: LeadSource;
-  honeypot?: string; // hidden field — must be empty
-  formLoadedAt?: number; // timestamp when form was loaded (ms)
+  honeypot?: string;
+  formLoadedAt?: number;
   ipAddress?: string;
   userAgent?: string;
 }

@@ -22,7 +22,9 @@ describe('lead.service', () => {
 
   const validInput = {
     name: 'John Tan',
-    phone: '91234567',
+    countryCode: '+65',
+    nationalNumber: '91234567',
+    phone: '+6591234567',
     consentService: true,
     consentMarketing: false,
     consentHuttonsTransfer: true,
@@ -34,7 +36,9 @@ describe('lead.service', () => {
   const sellerFixture = {
     id: 'seller-1',
     name: 'John Tan',
-    phone: '91234567',
+    countryCode: '+65',
+    nationalNumber: '91234567',
+    phone: '+6591234567',
     email: null,
     passwordHash: null,
     agentId: null,
@@ -73,11 +77,13 @@ describe('lead.service', () => {
     const result = await submitLead(validInput);
 
     expect(result.sellerId).toBe('seller-1');
-    expect(mockLeadRepo.findActiveSellerByPhone).toHaveBeenCalledWith('91234567');
+    expect(mockLeadRepo.findActiveSellerByPhone).toHaveBeenCalledWith('+6591234567');
     // Atomic creation of seller + consent is now handled inside the repository
     expect(mockLeadRepo.submitLeadAtomically).toHaveBeenCalledWith({
       name: 'John Tan',
-      phone: '91234567',
+      countryCode: '+65',
+      nationalNumber: '91234567',
+      phone: '+6591234567',
       consentService: true,
       consentMarketing: false,
       consentHuttonsTransfer: true,
@@ -121,13 +127,14 @@ describe('lead.service', () => {
     mockLeadRepo.submitLeadAtomically.mockResolvedValue({
       ...sellerFixture,
       id: 'seller-2',
-      phone: '81234567',
+      phone: '+6581234567',
+      nationalNumber: '81234567',
       name: 'Jane',
     });
     mockLeadRepo.findAdminAgents.mockResolvedValue([]);
     mockAudit.log.mockResolvedValue(undefined);
 
-    const result = await submitLead({ ...validInput, phone: '81234567' });
+    const result = await submitLead({ ...validInput, nationalNumber: '81234567', phone: '+6581234567' });
 
     expect(result.sellerId).toBe('seller-2');
     // Only the welcome_seller notification should be sent — no admin notifications

@@ -25,7 +25,7 @@
           <div class="flex justify-between"><dt class="text-gray-500">{{ "Status" | t }}</dt><dd>{{ seller.status }}</dd></div>
           <div class="flex justify-between"><dt class="text-gray-500">{{ "Lead Source" | t }}</dt><dd>{{ seller.leadSource or "—" }}</dd></div>
           {% set stepLabels = ["Accepts initial consent", "Enters property details", "Enters financial details", "Uploads property photos", "Signs EA Agreement"] %}
-          <div class="flex justify-between"><dt class="text-gray-500">{{ "Onboarding" | t }}</dt><dd>{{ "Step" | t }} {{ seller.onboardingStep }} / 5: {{ stepLabels[seller.onboardingStep - 1] }}</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500 flex items-center gap-1">{{ "Onboarding" | t }}<span class="relative group"><span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[10px] cursor-default select-none">?</span><span class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-52 bg-gray-800 text-white text-xs rounded px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-normal"><ol class="list-decimal list-inside space-y-0.5"><li>{{ "Accepts initial consent" | t }}</li><li>{{ "Enters property details" | t }}</li><li>{{ "Enters financial details" | t }}</li><li>{{ "Uploads property photos" | t }}</li><li>{{ "Signs EA Agreement" | t }}</li></ol></span></span></dt><dd>{{ "Step" | t }} {{ seller.onboardingStep }} / 5: {{ stepLabels[seller.onboardingStep - 1] }}</dd></div>
           <div class="flex justify-between"><dt class="text-gray-500">{{ "Created" | t }}</dt><dd>{{ seller.createdAt | date('DD/MM/YYYY HH:mm') }}</dd></div>
         </dl>
       </div>

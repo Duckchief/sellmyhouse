@@ -16,6 +16,7 @@ import * as accountDeleteService from './account-delete.service';
 import * as complianceService from '../compliance/compliance.service';
 import * as complianceRepo from '../compliance/compliance.repository';
 import { UnauthorizedError, ValidationError } from '../shared/errors';
+import * as settingsService from '../shared/settings.service';
 import { HdbService } from '../hdb/service';
 
 export const sellerRouter = Router();
@@ -139,6 +140,17 @@ sellerRouter.get(
         });
       }
 
+      if (stepNum === 3) {
+        const commission = await settingsService.getCommission();
+        const saleProceeds = await sellerService.getSaleProceeds(sellerId);
+        const property = await propertyService.getPropertyForSeller(sellerId);
+        return res.render('partials/seller/onboarding-step-3', {
+          commission,
+          saleProceeds,
+          askingPrice: property?.askingPrice ? Number(property.askingPrice) : null,
+        });
+      }
+
       res.render(`partials/seller/onboarding-step-${stepNum}`);
     } catch (err) {
       next(err);
@@ -229,6 +241,42 @@ sellerRouter.post(
         }
       }
 
+      if (step === 3) {
+        const {
+          sellingPrice,
+          outstandingLoan,
+          cpfSeller1,
+          cpfSeller2,
+          cpfSeller3,
+          cpfSeller4,
+          resaleLevy,
+          otherDeductions,
+        } = req.body;
+
+        if (!sellingPrice || !outstandingLoan || !cpfSeller1) {
+          const commission = await settingsService.getCommission();
+          return res.status(400).render('partials/seller/onboarding-step-3', {
+            error: 'Selling price, outstanding loan, and CPF (Seller 1) are required.',
+            commission,
+          });
+        }
+
+        const commission = await settingsService.getCommission();
+
+        await sellerService.saveSaleProceeds({
+          sellerId,
+          sellingPrice: parseFloat(sellingPrice),
+          outstandingLoan: parseFloat(outstandingLoan),
+          cpfSeller1: parseFloat(cpfSeller1),
+          cpfSeller2: cpfSeller2 ? parseFloat(cpfSeller2) : undefined,
+          cpfSeller3: cpfSeller3 ? parseFloat(cpfSeller3) : undefined,
+          cpfSeller4: cpfSeller4 ? parseFloat(cpfSeller4) : undefined,
+          resaleLevy: parseFloat(resaleLevy || '0'),
+          otherDeductions: parseFloat(otherDeductions || '0'),
+          commission: commission.total,
+        });
+      }
+
       if (step === 4) {
         const { marketingConsent } = req.body as { marketingConsent?: string };
         if (marketingConsent === 'on') {
@@ -263,6 +311,12 @@ sellerRouter.post(
         const stepData: Record<string, unknown> = { currentStep: nextStep };
         if (nextStep === 2) {
           stepData['flatTypes'] = HDB_FLAT_TYPES;
+        }
+        if (nextStep === 3) {
+          const commission = await settingsService.getCommission();
+          const property = await propertyService.getPropertyForSeller(sellerId);
+          stepData['commission'] = commission;
+          stepData['askingPrice'] = property?.askingPrice ? Number(property.askingPrice) : null;
         }
         return res.render(`partials/seller/onboarding-step-${nextStep}`, stepData);
       }

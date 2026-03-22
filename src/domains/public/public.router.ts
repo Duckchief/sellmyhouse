@@ -135,6 +135,30 @@ publicRouter.get(
   },
 );
 
+// GET /api/hdb/property-info?block=123&street=TAMPINES+ST+21 — lookup town + lease year
+publicRouter.get(
+  '/api/hdb/property-info',
+  hdbRateLimiter,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const block = (req.query.block as string)?.trim();
+      const street = (req.query.street as string)?.trim();
+
+      if (!block || !street) {
+        return res.json({ town: null, leaseCommenceDate: null });
+      }
+
+      const result = await hdbService.getPropertyInfo(block, street);
+      return res.json({
+        town: result?.town ?? null,
+        leaseCommenceDate: result?.leaseCommenceDate ?? null,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 publicRouter.get('/privacy', (_req: Request, res: Response) => {
   res.render('pages/public/privacy');
 });

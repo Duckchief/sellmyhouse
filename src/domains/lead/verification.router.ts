@@ -3,9 +3,11 @@ import crypto from 'crypto';
 import * as verificationService from './verification.service';
 import { ValidationError } from '../shared/errors';
 import { HDB_TOWNS } from '../property/property.types';
+import { HdbService } from '../hdb/service';
 import { leadRateLimiter, resendVerificationRateLimiter } from '../../infra/http/middleware/rate-limit';
 
 export const verificationRouter = Router();
+const hdbService = new HdbService();
 
 const VALID_TIMELINES = ['one_to_three_months', 'three_to_six_months', 'just_thinking'];
 const VALID_REASONS = ['upgrading', 'downsizing', 'relocating', 'financial', 'investment', 'other'];
@@ -39,7 +41,6 @@ verificationRouter.get('/verify-email', async (req: Request, res: Response, next
       pageTitle: 'Complete Your Submission',
       sellerId,
       signature,
-      towns: HDB_TOWNS,
     });
   } catch (err) {
     if (err instanceof ValidationError) {
@@ -63,7 +64,6 @@ if (process.env.NODE_ENV !== 'production') {
         pageTitle: 'Complete Your Submission',
         sellerId,
         signature,
-        towns: HDB_TOWNS,
       });
     },
   );
@@ -75,7 +75,7 @@ verificationRouter.post(
   leadRateLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { sellerId, signature, block, street, town, askingPrice, sellingTimeline, sellingReason, sellingReasonOther } = req.body;
+      const { sellerId, signature, block, street, askingPrice, sellingTimeline, sellingReason, sellingReasonOther } = req.body;
 
       if (!sellerId || !signature || !verifySellerId(sellerId, signature)) {
         throw new ValidationError('Invalid form submission');
@@ -85,8 +85,11 @@ verificationRouter.post(
         throw new ValidationError('Block and street are required');
       }
 
-      if (!HDB_TOWNS.includes(town)) {
-        throw new ValidationError('Please select a valid HDB town');
+      // Derive town from HDB transaction data
+      const info = await hdbService.getPropertyInfo(block.trim(), street.trim());
+      const town = info?.town;
+      if (!town || !HDB_TOWNS.includes(town as typeof HDB_TOWNS[number])) {
+        throw new ValidationError('Could not determine town from your address. Please check your block and street.');
       }
 
       if (!VALID_TIMELINES.includes(sellingTimeline)) {

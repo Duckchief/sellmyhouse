@@ -198,6 +198,43 @@ export class HdbRepository {
     return results.map((r) => r.storeyRange);
   }
 
+  async findPropertyInfo(block: string, street: string): Promise<{ leaseCommenceDate: number; town: string } | null> {
+    const normalised = this.normaliseStreetName(street);
+    const result = await prisma.hdbTransaction.findFirst({
+      where: {
+        block: block.toUpperCase(),
+        streetName: { contains: normalised, mode: 'insensitive' },
+      },
+      select: { leaseCommenceDate: true, town: true },
+      orderBy: { month: 'desc' },
+    });
+    return result ?? null;
+  }
+
+  private normaliseStreetName(street: string): string {
+    const replacements: [RegExp, string][] = [
+      [/\bSTREET\b/i, 'ST'],
+      [/\bAVENUE\b/i, 'AVE'],
+      [/\bROAD\b/i, 'RD'],
+      [/\bDRIVE\b/i, 'DR'],
+      [/\bCRESCENT\b/i, 'CRES'],
+      [/\bBOULEVARD\b/i, 'BLVD'],
+      [/\bPLACE\b/i, 'PL'],
+      [/\bLANE\b/i, 'LN'],
+      [/\bCLOSE\b/i, 'CL'],
+      [/\bTERRACE\b/i, 'TER'],
+      [/\bNORTH\b/i, 'NTH'],
+      [/\bSOUTH\b/i, 'STH'],
+      [/\bCENTRAL\b/i, 'CTRL'],
+      [/\bBUKIT\b/i, 'BT'],
+    ];
+    let result = street.toUpperCase().trim();
+    for (const [pattern, replacement] of replacements) {
+      result = result.replace(pattern, replacement);
+    }
+    return result;
+  }
+
   async countTransactions(): Promise<number> {
     return prisma.hdbTransaction.count();
   }

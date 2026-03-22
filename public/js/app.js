@@ -790,4 +790,45 @@
     }
   });
 
+  // ── Auto-fill town + lease year from HDB data ─────────────────
+  function lookupPropertyInfo() {
+    var blockInput = document.getElementById('block');
+    var streetInput = document.getElementById('street');
+    var leaseInput = document.getElementById('leaseCommenceDate');
+    var townInput = document.getElementById('town');
+    if (!blockInput || !streetInput) return;
+
+    var block = blockInput.value.trim();
+    var street = streetInput.value.trim();
+    if (!block || !street) return;
+
+    fetch('/api/hdb/property-info?block=' + encodeURIComponent(block) + '&street=' + encodeURIComponent(street))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.leaseCommenceDate && leaseInput) {
+          leaseInput.value = data.leaseCommenceDate;
+        }
+        if (data.town && townInput) {
+          townInput.value = data.town;
+        }
+      })
+      .catch(function () {});
+  }
+
+  document.body.addEventListener('blur', function (e) {
+    var el = e.target;
+    if (!el || (el.id !== 'block' && el.id !== 'street')) return;
+    lookupPropertyInfo();
+  }, true);
+
+  // Also trigger on HTMX content load (pre-filled forms)
+  document.body.addEventListener('htmx:afterSettle', function (e) {
+    var blockInput = document.getElementById('block');
+    var streetInput = document.getElementById('street');
+    var leaseInput = document.getElementById('leaseCommenceDate');
+    if (blockInput && streetInput && blockInput.value && streetInput.value && leaseInput && (!leaseInput.value || leaseInput.value === '0')) {
+      lookupPropertyInfo();
+    }
+  });
+
 })();

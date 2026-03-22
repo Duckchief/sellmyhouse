@@ -15,9 +15,11 @@ import * as notificationService from '../notification/notification.service';
 import * as accountDeleteService from './account-delete.service';
 import * as complianceService from '../compliance/compliance.service';
 import * as complianceRepo from '../compliance/compliance.repository';
-import { UnauthorizedError } from '../shared/errors';
+import { UnauthorizedError, ValidationError } from '../shared/errors';
+import { HdbService } from '../hdb/service';
 
 export const sellerRouter = Router();
+const hdbService = new HdbService();
 
 const sellerAuth = [requireAuth(), requireRole('seller')];
 
@@ -133,7 +135,6 @@ sellerRouter.get(
         return res.render('partials/seller/onboarding-step-2', {
           status: onboarding,
           property,
-          towns: HDB_TOWNS,
           flatTypes: HDB_FLAT_TYPES,
         });
       }
@@ -164,7 +165,6 @@ sellerRouter.post(
 
       if (step === 2) {
         const {
-          town,
           street,
           block,
           flatType,
@@ -175,7 +175,6 @@ sellerRouter.post(
         } = req.body;
 
         if (
-          !town ||
           !street ||
           !block ||
           !flatType ||
@@ -185,9 +184,21 @@ sellerRouter.post(
           !leaseCommenceDate
         ) {
           return res.status(400).render('partials/seller/onboarding-step-2', {
-            towns: HDB_TOWNS,
             flatTypes: HDB_FLAT_TYPES,
             error: 'All property fields are required.',
+          });
+        }
+
+        // Derive town from HDB data; fall back to form hidden field
+        let town = req.body.town?.trim();
+        if (!town) {
+          const info = await hdbService.getPropertyInfo(block, street);
+          town = info?.town;
+        }
+        if (!town || !HDB_TOWNS.includes(town)) {
+          return res.status(400).render('partials/seller/onboarding-step-2', {
+            flatTypes: HDB_FLAT_TYPES,
+            error: 'Could not determine town from your address. Please check your block and street.',
           });
         }
 
@@ -251,7 +262,6 @@ sellerRouter.post(
       if (req.headers['hx-request']) {
         const stepData: Record<string, unknown> = { currentStep: nextStep };
         if (nextStep === 2) {
-          stepData['towns'] = HDB_TOWNS;
           stepData['flatTypes'] = HDB_FLAT_TYPES;
         }
         return res.render(`partials/seller/onboarding-step-${nextStep}`, stepData);

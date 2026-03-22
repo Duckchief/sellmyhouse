@@ -27,17 +27,6 @@
       </div>
 
       <div>
-        <label for="town" class="block text-sm font-semibold mb-1">{{ "Town" | t }} *</label>
-        <select id="town" name="town" required
-          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8553d] focus:border-transparent outline-none bg-white">
-          <option value="">{{ "Select a town" | t }}</option>
-          {% for t in towns %}
-          <option value="{{ t }}">{{ t }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div>
         <label for="askingPrice" class="block text-sm font-semibold mb-1">{{ "Indicative Asking Price ($)" | t }}</label>
         <input type="number" id="askingPrice" name="askingPrice" min="0" step="1000" placeholder="500000"
           class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8553d] focus:border-transparent outline-none">

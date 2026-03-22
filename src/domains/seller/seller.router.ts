@@ -75,7 +75,7 @@ sellerRouter.get('/seller/dashboard', async (req: Request, res: Response, next: 
           }
         : null,
     };
-    const milestones = sellerService.getTimelineMilestones(timelineInput, 'agent');
+    const milestones = sellerService.getTimelineMilestones(timelineInput, 'seller');
 
     if (req.headers['hx-request']) {
       return res.render('partials/seller/dashboard-overview', { overview, milestones });
@@ -105,10 +105,6 @@ sellerRouter.get('/seller/onboarding', async (req: Request, res: Response, next:
   try {
     const user = req.user as AuthenticatedUser;
     const status = await sellerService.getOnboardingStatus(user.id);
-
-    if (status.isComplete) {
-      return res.redirect('/seller/dashboard');
-    }
 
     res.render('pages/seller/onboarding', { status });
   } catch (err) {
@@ -293,12 +289,15 @@ sellerRouter.post(
         await complianceService.recordHuttonsTransferConsent(sellerId);
       }
 
-      const result = await sellerService.completeOnboardingStep({
-        sellerId,
-        step,
-      });
+      // Only advance onboarding if this is the next expected step;
+      // if the user went back and re-submitted a completed step, just save data and show next step
+      const status = await sellerService.getOnboardingStatus(sellerId);
+      if (step === status.currentStep + 1) {
+        await sellerService.completeOnboardingStep({ sellerId, step });
+      }
 
-      if (result.onboardingStep >= TOTAL_ONBOARDING_STEPS) {
+      // Only redirect to dashboard when completing the final step
+      if (step === TOTAL_ONBOARDING_STEPS) {
         if (req.headers['hx-request']) {
           res.set('HX-Redirect', '/seller/dashboard');
           return res.sendStatus(200);

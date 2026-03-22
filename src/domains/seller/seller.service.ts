@@ -660,7 +660,21 @@ export async function saveSaleProceeds(input: SaleProceedsInput) {
 }
 
 export async function getSaleProceeds(sellerId: string) {
-  return sellerRepo.findSaleProceedsBySellerId(sellerId);
+  const record = await sellerRepo.findSaleProceedsBySellerId(sellerId);
+  if (!record) return null;
+
+  return {
+    sellingPrice: Number(record.sellingPrice),
+    outstandingLoan: Number(record.outstandingLoan),
+    cpfSeller1: Number(record.cpfSeller1),
+    cpfSeller2: record.cpfSeller2 ? Number(record.cpfSeller2) : null,
+    cpfSeller3: record.cpfSeller3 ? Number(record.cpfSeller3) : null,
+    cpfSeller4: record.cpfSeller4 ? Number(record.cpfSeller4) : null,
+    resaleLevy: Number(record.resaleLevy),
+    otherDeductions: Number(record.otherDeductions),
+    commission: Number(record.commission),
+    netProceeds: Number(record.netProceeds),
+  };
 }
 
 // --- Private helpers ---

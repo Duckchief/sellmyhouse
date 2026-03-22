@@ -80,9 +80,9 @@ propertyRouter.put(
         street,
         block,
         flatType,
-        storeyRange,
+        level,
+        unitNumber,
         floorAreaSqm,
-        flatModel,
         leaseCommenceDate,
         remainingLease,
       } = req.body as Record<string, string>;
@@ -100,9 +100,9 @@ propertyRouter.put(
           street: street ?? '',
           block: block ?? '',
           flatType: flatType ?? '',
-          storeyRange: storeyRange ?? '',
+          level: level ?? '',
+          unitNumber: unitNumber ?? '',
           floorAreaSqm: parseFloat(floorAreaSqm ?? '0'),
-          flatModel: flatModel ?? '',
           leaseCommenceDate: parseInt(leaseCommenceDate ?? '0', 10),
           remainingLease: remainingLease ?? undefined,
           askingPrice: askingPrice !== undefined ? parseFloat(askingPrice) : undefined,
@@ -116,9 +116,9 @@ propertyRouter.put(
         if (street !== undefined) updateData['street'] = street;
         if (block !== undefined) updateData['block'] = block;
         if (flatType !== undefined) updateData['flatType'] = flatType;
-        if (storeyRange !== undefined) updateData['storeyRange'] = storeyRange;
+        if (level !== undefined) updateData['level'] = level;
+        if (unitNumber !== undefined) updateData['unitNumber'] = unitNumber;
         if (floorAreaSqm !== undefined) updateData['floorAreaSqm'] = parseFloat(floorAreaSqm);
-        if (flatModel !== undefined) updateData['flatModel'] = flatModel;
         if (leaseCommenceDate !== undefined)
           updateData['leaseCommenceDate'] = parseInt(leaseCommenceDate, 10);
         if (remainingLease !== undefined) updateData['remainingLease'] = remainingLease;

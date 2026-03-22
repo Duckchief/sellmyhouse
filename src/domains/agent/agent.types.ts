@@ -93,6 +93,10 @@ export interface SellerDetail {
   name: string;
   email: string | null;
   phone: string;
+  emailVerified: boolean;
+  sellingTimeline: string | null;
+  sellingReason: string | null;
+  sellingReasonOther: string | null;
   status: SellerStatus;
   leadSource: LeadSource | null;
   agentId: string | null;

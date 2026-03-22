@@ -697,6 +697,27 @@ describe('POST /seller/compliance/consent/grant', () => {
     expect(res.status).toBe(302);
     expect(res.headers['location']).toBe('/seller/my-data');
   });
+
+  it('renders settings-consent partial when source=settings on HTMX request', async () => {
+    mockService.grantMarketingConsent.mockResolvedValue({
+      consentRecordId: 'record-1',
+    });
+
+    const res = await request(createSellerApp())
+      .post('/seller/compliance/consent/grant')
+      .set('HX-Request', 'true')
+      .send('type=marketing&channel=web&source=settings');
+
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 401 when not authenticated', async () => {
+    const app = createTestApp();
+    const res = await request(app)
+      .post('/seller/compliance/consent/grant')
+      .send({ type: 'marketing' });
+    expect(res.status).toBe(401);
+  });
 });
 
 describe('POST /agent/cdd-records/:cddRecordId/documents/:documentId/download', () => {

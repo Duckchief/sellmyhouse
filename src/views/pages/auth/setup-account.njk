@@ -1,0 +1,58 @@
+{% extends "layouts/public.njk" %}
+
+{% block title %}{{ "Set Up Your Account" | t }} — SellMyHomeNow{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-10">
+  <h1 class="text-2xl font-bold mb-2">{{ "Welcome to SellMyHomeNow" | t }}{% if sellerName %}, {{ sellerName }}{% endif %}!</h1>
+  <p class="text-sm text-gray-600 mb-6">
+    {{ "Create a password to access your seller dashboard. Your password must be at least 8 characters and contain at least one number." | t }}
+  </p>
+
+  {% if error %}
+  <div class="mb-4 rounded-md bg-red-50 p-4">
+    <p class="text-sm text-red-700">{{ error }}</p>
+  </div>
+  {% endif %}
+
+  <div id="setup-messages"></div>
+
+  <form
+    action="/auth/setup-account"
+    method="POST"
+    hx-post="/auth/setup-account"
+    hx-target="#setup-messages"
+    hx-swap="innerHTML"
+    data-action="check-passwords"
+    class="space-y-4"
+  >
+    <input type="hidden" name="token" value="{{ token }}">
+
+    <div>
+      <label for="password" class="block text-sm font-medium text-gray-700">
+        {{ "Password" | t }}
+      </label>
+      <input type="password" id="password" name="password" required
+             minlength="8" autocomplete="new-password"
+             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#c8553d] focus:ring-[#c8553d]">
+    </div>
+
+    <div>
+      <label for="confirmPassword" class="block text-sm font-medium text-gray-700">
+        {{ "Confirm Password" | t }}
+      </label>
+      <input type="password" id="confirmPassword" name="confirmPassword" required
+             minlength="8" autocomplete="new-password"
+             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#c8553d] focus:ring-[#c8553d]">
+      <p id="password-mismatch" class="hidden mt-1 text-xs text-red-600">
+        {{ "Passwords do not match." | t }}
+      </p>
+    </div>
+
+    <button type="submit"
+            class="w-full bg-[#c8553d] text-white py-3 rounded-full font-semibold hover:bg-[#b04a35] transition-colors">
+      {{ "Create Account" | t }}
+    </button>
+  </form>
+</div>
+{% endblock %}

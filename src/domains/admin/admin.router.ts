@@ -1489,6 +1489,30 @@ adminRouter.post(
   },
 );
 
+adminRouter.post(
+  '/admin/content/testimonials/:id/resend',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const feedback = typeof req.body.feedback === 'string' && req.body.feedback.trim()
+        ? req.body.feedback.trim()
+        : undefined;
+      await contentService.reissueTestimonialToken(req.params['id'] as string, user.id, feedback);
+      if (req.headers['hx-request']) {
+        const [records, hasPendingReview] = await Promise.all([
+          contentService.listTestimonials(),
+          contentService.hasPendingReviewTestimonials(),
+        ]);
+        return res.render('partials/admin/testimonial-list', { records, hasPendingReview });
+      }
+      return res.redirect('/admin/content/testimonials');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 // ─── Referral Management ─────────────────────────────────────────────────────
 
 adminRouter.get(

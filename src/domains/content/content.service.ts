@@ -392,7 +392,7 @@ export async function reissueTestimonialToken(
         recipientId: updated.sellerId,
         templateName: 'testimonial_reissued',
         templateData: {
-          submissionUrl: `${process.env['APP_URL'] ?? ''}/testimonial/${updated.submissionToken ?? token}`,
+          submissionUrl: `${process.env['APP_URL'] ?? ''}/testimonial/${token}`,
           feedback: feedback ?? '',
         },
       },

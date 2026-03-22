@@ -1026,12 +1026,14 @@ describe('reissueTestimonialToken', () => {
     mockedRepo.findTestimonialById.mockResolvedValue(baseTestimonial);
     mockedRepo.reissueTestimonialToken.mockResolvedValue({
       ...baseTestimonial,
-      submissionToken: 'new-tok',
       status: 'pending_submission',
     } as unknown as Testimonial);
 
     await contentService.reissueTestimonialToken('t-1', 'agent-1', 'Please shorten it.');
     await Promise.resolve();
+
+    // Capture the token that was generated and passed to the repo
+    const passedToken = (mockedRepo.reissueTestimonialToken.mock.calls[0] as unknown[])[1] as string;
 
     expect(mockedNotification.send).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1039,7 +1041,7 @@ describe('reissueTestimonialToken', () => {
         recipientId: 'seller-1',
         templateName: 'testimonial_reissued',
         templateData: expect.objectContaining({
-          submissionUrl: expect.stringContaining('new-tok'),
+          submissionUrl: expect.stringContaining(passedToken),
           feedback: 'Please shorten it.',
         }),
       }),

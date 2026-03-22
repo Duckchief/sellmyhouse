@@ -4,7 +4,10 @@
     <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
       <tr>
         <th class="px-4 py-3 text-left">{{ "Seller" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Phone" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Town" | t }}</th>
         <th class="px-4 py-3 text-left">{{ "Agent" | t }}</th>
+        <th class="px-4 py-3 text-left">{{ "Asking Price" | t }}</th>
         <th class="px-4 py-3 text-left">{{ "Status" | t }}</th>
         <th class="px-4 py-3 text-left">{{ "Actions" | t }}</th>
       </tr>
@@ -16,8 +19,13 @@
           <a href="/admin/sellers/{{ seller.id }}" class="font-medium text-accent hover:underline">{{ seller.name }}</a>
           <div class="text-xs text-gray-500">{{ seller.email }}</div>
         </td>
+        <td class="px-4 py-3 text-gray-600">{{ seller.phone or '-' }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ seller.town or '-' }}</td>
         <td class="px-4 py-3 text-gray-600">
           {% if seller.agent %}{{ seller.agent.name }}{% else %}<span class="text-amber-600">{{ "Unassigned" | t }}</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-gray-600">
+          {% if seller.askingPrice %}${{ seller.askingPrice | formatPrice }}{% else %}-{% endif %}
         </td>
         <td class="px-4 py-3">
           <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">{{ seller.status }}</span>

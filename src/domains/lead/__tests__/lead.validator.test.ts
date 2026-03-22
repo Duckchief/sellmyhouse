@@ -3,6 +3,7 @@ import { validateLeadInput } from '../lead.validator';
 describe('validateLeadInput', () => {
   const validInput = {
     name: 'John Tan',
+    email: 'test@example.com',
     countryCode: '+65',
     nationalNumber: '91234567',
     phone: '+6591234567',
@@ -25,6 +26,21 @@ describe('validateLeadInput', () => {
   it('rejects whitespace-only name', () => {
     const result = validateLeadInput({ ...validInput, name: '   ' });
     expect(result).toEqual({ name: 'Name is required' });
+  });
+
+  it('returns error when email is missing', () => {
+    const input = { ...validInput, email: '' };
+    expect(validateLeadInput(input)).toEqual({ email: 'Email is required' });
+  });
+
+  it('returns error when email format is invalid', () => {
+    const input = { ...validInput, email: 'not-an-email' };
+    expect(validateLeadInput(input)).toEqual({ email: 'Please enter a valid email address' });
+  });
+
+  it('accepts valid email', () => {
+    const input = { ...validInput, email: 'grogu@example.com' };
+    expect(validateLeadInput(input)).toBeNull();
   });
 
   it('rejects SG phone not starting with 8 or 9', () => {

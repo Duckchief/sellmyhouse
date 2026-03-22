@@ -2,6 +2,7 @@ export type LeadSource = 'website' | 'tiktok' | 'instagram' | 'referral' | 'walk
 
 export interface LeadInput {
   name: string;
+  email: string;
   countryCode: string;
   nationalNumber: string;
   phone: string; // E.164 format, constructed by router

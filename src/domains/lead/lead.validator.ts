@@ -2,6 +2,7 @@ import type { LeadInput } from './lead.types';
 
 const SG_MOBILE_REGEX = /^[89]\d{7}$/;
 const LOOSE_PHONE_REGEX = /^\d{7,15}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_FORM_TIME_MS = 3000;
 
 const VALID_COUNTRY_CODES = [
@@ -21,6 +22,14 @@ export function validateLeadInput(
 
   if (!input.name || !input.name.trim()) {
     return { name: 'Name is required' };
+  }
+
+  if (!input.email || !input.email.trim()) {
+    return { email: 'Email is required' };
+  }
+
+  if (!EMAIL_REGEX.test(input.email.trim())) {
+    return { email: 'Please enter a valid email address' };
   }
 
   if (!VALID_COUNTRY_CODES.includes(input.countryCode)) {

@@ -209,6 +209,78 @@ describe('seller.service', () => {
 
       await expect(sellerService.getDashboardOverview('bad-id')).rejects.toThrow(NotFoundError);
     });
+
+    it('sets showMarketingPrompt true when seller is 14+ days old and consentMarketing is false', async () => {
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+      mockedSellerRepo.getSellerWithRelations.mockResolvedValue({
+        id: 'seller-1',
+        name: 'Test Seller',
+        email: 'test@test.local',
+        phone: '91234567',
+        status: 'engaged',
+        onboardingStep: 3,
+        properties: [],
+        transactions: [],
+        consentRecords: [],
+        caseFlags: [],
+        createdAt: fourteenDaysAgo,
+        consentMarketing: false,
+      } as any);
+      mockedNotificationService.countUnreadNotifications.mockResolvedValue(0);
+
+      const result = await sellerService.getDashboardOverview('seller-1');
+      expect(result.showMarketingPrompt).toBe(true);
+    });
+
+    it('sets showMarketingPrompt false when seller is less than 14 days old', async () => {
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+      mockedSellerRepo.getSellerWithRelations.mockResolvedValue({
+        id: 'seller-1',
+        name: 'Test Seller',
+        email: 'test@test.local',
+        phone: '91234567',
+        status: 'engaged',
+        onboardingStep: 3,
+        properties: [],
+        transactions: [],
+        consentRecords: [],
+        caseFlags: [],
+        createdAt: twoDaysAgo,
+        consentMarketing: false,
+      } as any);
+      mockedNotificationService.countUnreadNotifications.mockResolvedValue(0);
+
+      const result = await sellerService.getDashboardOverview('seller-1');
+      expect(result.showMarketingPrompt).toBe(false);
+    });
+
+    it('sets showMarketingPrompt false when consentMarketing is already true', async () => {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      mockedSellerRepo.getSellerWithRelations.mockResolvedValue({
+        id: 'seller-1',
+        name: 'Test Seller',
+        email: 'test@test.local',
+        phone: '91234567',
+        status: 'engaged',
+        onboardingStep: 3,
+        properties: [],
+        transactions: [],
+        consentRecords: [],
+        caseFlags: [],
+        createdAt: thirtyDaysAgo,
+        consentMarketing: true,
+      } as any);
+      mockedNotificationService.countUnreadNotifications.mockResolvedValue(0);
+
+      const result = await sellerService.getDashboardOverview('seller-1');
+      expect(result.showMarketingPrompt).toBe(false);
+    });
   });
 
   describe('getDashboardOverview - enhanced', () => {

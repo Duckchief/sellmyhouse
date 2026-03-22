@@ -117,7 +117,14 @@ export async function getDashboardOverview(sellerId: string): Promise<DashboardO
     caseFlags,
     upcomingViewings,
     totalViewings,
-    showMarketingPrompt: false,
+    showMarketingPrompt: (() => {
+      if (!seller.createdAt) return false;
+      const MARKETING_PROMPT_DELAY_DAYS = 14;
+      const daysSinceCreation = Math.floor(
+        (Date.now() - seller.createdAt.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      return !seller.consentMarketing && daysSinceCreation >= MARKETING_PROMPT_DELAY_DAYS;
+    })(),
   };
 }
 

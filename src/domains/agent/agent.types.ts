@@ -73,6 +73,8 @@ export interface LeadQueueItem {
   id: string;
   name: string;
   phone: string;
+  email: string | null;
+  emailVerified: boolean;
   leadSource: LeadSource | null;
   createdAt: Date;
   timeSinceCreation: number; // milliseconds
@@ -82,7 +84,8 @@ export interface LeadQueueItem {
 
 export interface LeadQueueResult {
   unassigned: LeadQueueItem[];
-  all: LeadQueueItem[];
+  verified: LeadQueueItem[];
+  unverified: LeadQueueItem[];
 }
 
 export interface SellerDetail {

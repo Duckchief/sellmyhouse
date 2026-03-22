@@ -86,7 +86,7 @@ describe('agent.service', () => {
   });
 
   describe('getLeadQueue', () => {
-    it('partitions leads into unassigned and all arrays', async () => {
+    it('partitions leads into unassigned, verified, and unverified arrays', async () => {
       const now = new Date();
       const oneHourAgo = new Date(now.getTime() - 1 * 60 * 60 * 1000);
       const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
@@ -96,25 +96,38 @@ describe('agent.service', () => {
           id: 'seller-1',
           name: 'John Tan',
           phone: '91234567',
+          email: 'john@test.com',
+          emailVerified: false,
           leadSource: 'website',
           createdAt: twoHoursAgo,
           agentId: null,
-          status: 'lead',
         } as unknown as Awaited<ReturnType<typeof agentRepo.getLeadQueue>>[0],
         {
           id: 'seller-2',
           name: 'Mary Lim',
           phone: '98765432',
+          email: 'mary@test.com',
+          emailVerified: true,
           leadSource: 'tiktok',
           createdAt: oneHourAgo,
           agentId: 'agent-1',
-          status: 'lead',
+        } as unknown as Awaited<ReturnType<typeof agentRepo.getLeadQueue>>[0],
+        {
+          id: 'seller-3',
+          name: 'Bob Lee',
+          phone: '91112222',
+          email: 'bob@test.com',
+          emailVerified: false,
+          leadSource: 'website',
+          createdAt: oneHourAgo,
+          agentId: 'agent-1',
         } as unknown as Awaited<ReturnType<typeof agentRepo.getLeadQueue>>[0],
       ]);
       mockRepo.getWelcomeNotificationStatus.mockResolvedValue(
         new Map([
           ['seller-1', true],
           ['seller-2', false],
+          ['seller-3', false],
         ]),
       );
 
@@ -122,10 +135,10 @@ describe('agent.service', () => {
 
       expect(result.unassigned).toHaveLength(1);
       expect(result.unassigned[0].id).toBe('seller-1');
-      expect(result.unassigned[0].agentId).toBeNull();
-      expect(result.all).toHaveLength(2);
-      expect(result.all[0].id).toBe('seller-1');
-      expect(result.all[1].id).toBe('seller-2');
+      expect(result.verified).toHaveLength(1);
+      expect(result.verified[0].id).toBe('seller-2');
+      expect(result.unverified).toHaveLength(1);
+      expect(result.unverified[0].id).toBe('seller-3');
     });
 
     it('returns empty unassigned when all leads are assigned', async () => {
@@ -135,10 +148,11 @@ describe('agent.service', () => {
           id: 'seller-1',
           name: 'John Tan',
           phone: '91234567',
+          email: 'john@test.com',
+          emailVerified: true,
           leadSource: null,
           createdAt: now,
           agentId: 'agent-1',
-          status: 'lead',
         } as unknown as Awaited<ReturnType<typeof agentRepo.getLeadQueue>>[0],
       ]);
       mockRepo.getWelcomeNotificationStatus.mockResolvedValue(new Map([['seller-1', false]]));
@@ -146,17 +160,19 @@ describe('agent.service', () => {
       const result = await agentService.getLeadQueue('agent-1');
 
       expect(result.unassigned).toHaveLength(0);
-      expect(result.all).toHaveLength(1);
+      expect(result.verified).toHaveLength(1);
+      expect(result.unverified).toHaveLength(0);
     });
 
-    it('returns both empty arrays when no leads exist', async () => {
+    it('returns all empty arrays when no leads exist', async () => {
       mockRepo.getLeadQueue.mockResolvedValue([]);
       mockRepo.getWelcomeNotificationStatus.mockResolvedValue(new Map());
 
       const result = await agentService.getLeadQueue();
 
       expect(result.unassigned).toHaveLength(0);
-      expect(result.all).toHaveLength(0);
+      expect(result.verified).toHaveLength(0);
+      expect(result.unverified).toHaveLength(0);
     });
   });
 

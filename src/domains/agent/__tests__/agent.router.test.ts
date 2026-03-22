@@ -292,7 +292,7 @@ describe('agent.router', () => {
   describe('GET /agent/leads', () => {
     it('returns lead queue for agent', async () => {
       const app = createTestApp({ id: 'agent-1', role: 'agent' });
-      mockService.getLeadQueue.mockResolvedValue({ unassigned: [], all: [] });
+      mockService.getLeadQueue.mockResolvedValue({ unassigned: [], verified: [], unverified: [] });
 
       const res = await request(app).get('/agent/leads');
       expect(res.status).toBe(200);

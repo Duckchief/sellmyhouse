@@ -48,6 +48,8 @@ export async function getLeadQueue(agentId?: string): Promise<LeadQueueResult> {
     id: lead.id,
     name: lead.name,
     phone: lead.phone,
+    email: lead.email,
+    emailVerified: lead.emailVerified,
     leadSource: lead.leadSource,
     createdAt: lead.createdAt,
     timeSinceCreation: now - lead.createdAt.getTime(),
@@ -56,8 +58,11 @@ export async function getLeadQueue(agentId?: string): Promise<LeadQueueResult> {
   }));
 
   const unassigned = all.filter((l) => l.agentId === null);
+  const assigned = all.filter((l) => l.agentId !== null);
+  const verified = assigned.filter((l) => l.emailVerified);
+  const unverified = assigned.filter((l) => !l.emailVerified);
 
-  return { unassigned, all };
+  return { unassigned, verified, unverified };
 }
 
 export async function getSellerList(

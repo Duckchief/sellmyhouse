@@ -136,6 +136,16 @@ export async function getLeadQueue(agentId?: string) {
       status: 'lead',
       ...(agentId ? { agentId } : {}),
     },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      email: true,
+      emailVerified: true,
+      leadSource: true,
+      createdAt: true,
+      agentId: true,
+    },
     orderBy: { createdAt: 'asc' },
   });
 }

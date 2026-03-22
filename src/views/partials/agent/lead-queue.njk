@@ -5,7 +5,9 @@
       <tr>
         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Name" | t }}</th>
         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Phone" | t }}</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Email" | t }}</th>
         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Source" | t }}</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Verified" | t }}</th>
         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Time" | t }}</th>
         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ "Notified" | t }}</th>
       </tr>
@@ -15,7 +17,15 @@
       <tr class="hover:bg-gray-50 cursor-pointer" data-action="navigate" data-url="/agent/sellers/{{ lead.id }}">
         <td class="px-4 py-3 text-sm font-medium">{{ lead.name }}</td>
         <td class="px-4 py-3 text-sm text-gray-500">{{ lead.phone }}</td>
+        <td class="px-4 py-3 text-sm text-gray-500">{{ lead.email or "—" }}</td>
         <td class="px-4 py-3 text-sm text-gray-500">{{ lead.leadSource or "—" }}</td>
+        <td class="px-4 py-3 text-sm">
+          {% if lead.emailVerified %}
+          <span class="text-green-600">✓</span>
+          {% else %}
+          <span class="text-gray-300">—</span>
+          {% endif %}
+        </td>
         <td class="px-4 py-3 text-sm text-gray-500">{{ lead.createdAt | date("relative") }}</td>
         <td class="px-4 py-3 text-sm">
           {% if lead.welcomeNotificationSent %}
@@ -32,21 +42,32 @@
 </div>
 {% endmacro %}
 
-{% if all.length == 0 %}
+{% set totalLeads = unassigned.length + verified.length + unverified.length %}
+
+{% if totalLeads == 0 %}
 <div class="text-gray-500 py-8 text-center">{{ "No new leads" | t }}</div>
 
-{% elif unassigned.length > 0 %}
+{% else %}
 <div class="space-y-6">
+  {% if unassigned.length > 0 %}
   <div>
     <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">{{ "Unassigned Leads" | t }}</h2>
     {{ leadTable(unassigned) }}
   </div>
-  <div>
-    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">{{ "All Leads" | t }}</h2>
-    {{ leadTable(all) }}
-  </div>
-</div>
+  {% endif %}
 
-{% else %}
-{{ leadTable(all) }}
+  {% if verified.length > 0 %}
+  <div>
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">{{ "Verified Leads" | t }}</h2>
+    {{ leadTable(verified) }}
+  </div>
+  {% endif %}
+
+  {% if unverified.length > 0 %}
+  <div>
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">{{ "Unverified Leads" | t }}</h2>
+    {{ leadTable(unverified) }}
+  </div>
+  {% endif %}
+</div>
 {% endif %}

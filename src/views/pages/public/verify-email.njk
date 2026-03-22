@@ -12,6 +12,7 @@
     <form method="POST" action="/verify-email/details" class="border border-gray-200 rounded-xl p-8 space-y-4">
       <input type="hidden" name="sellerId" value="{{ sellerId }}">
       <input type="hidden" name="signature" value="{{ signature }}">
+      <input type="hidden" name="_csrf" value="{{ csrfToken }}">
 
       <div>
         <label for="block" class="block text-sm font-semibold mb-1">{{ "Block Number" | t }} *</label>

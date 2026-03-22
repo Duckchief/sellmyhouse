@@ -249,9 +249,12 @@ sellerRouter.post(
 
       const nextStep = step + 1;
       if (req.headers['hx-request']) {
-        return res.render(`partials/seller/onboarding-step-${nextStep}`, {
-          currentStep: nextStep,
-        });
+        const stepData: Record<string, unknown> = { currentStep: nextStep };
+        if (nextStep === 2) {
+          stepData['towns'] = HDB_TOWNS;
+          stepData['flatTypes'] = HDB_FLAT_TYPES;
+        }
+        return res.render(`partials/seller/onboarding-step-${nextStep}`, stepData);
       }
       res.redirect('/seller/onboarding');
     } catch (err) {
@@ -302,7 +305,12 @@ sellerRouter.get('/seller/my-data', async (req: Request, res: Response, next: Ne
     if (req.headers['hx-request']) {
       return res.render('partials/seller/my-data-content', { myData });
     }
-    res.render('pages/seller/my-data', { myData });
+    res.render('pages/seller/my-data', {
+      myData,
+      consentService: myData.consentStatus.service,
+      consentMarketing: myData.consentStatus.marketing,
+      consentHistory: myData.consentHistory,
+    });
   } catch (err) {
     next(err);
   }

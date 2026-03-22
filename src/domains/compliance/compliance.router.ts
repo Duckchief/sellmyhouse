@@ -204,6 +204,8 @@ complianceRouter.get(
       return res.render('pages/seller/my-data', {
         seller: myData.seller,
         properties: myData.properties,
+        consentService: myData.seller.consentService,
+        consentMarketing: myData.seller.consentMarketing,
         consentHistory: myData.consentHistory,
         correctionRequests: myData.correctionRequests,
         title: 'My Data',

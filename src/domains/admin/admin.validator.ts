@@ -48,6 +48,8 @@ export const SETTING_VALIDATORS: Record<SettingKey, (v: string) => boolean> = {
   // Optional free-text settings — any value including empty string is valid
   maintenance_message: () => true,
   maintenance_eta: () => true,
+  // default_agent_id — UUID or empty string to clear
+  default_agent_id: () => true,
 };
 
 export const validateAgentCreate = [

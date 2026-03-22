@@ -1009,3 +1009,55 @@ describe('setMaintenanceEta', () => {
     );
   });
 });
+
+// ─── setDefaultAgent ─────────────────────────────────────────
+
+describe('setDefaultAgent', () => {
+  const agentFixture = {
+    id: 'agent-1', name: 'Alice', email: 'alice@test.com', phone: null,
+    ceaRegNo: 'R001', role: 'agent', isActive: true,
+    activeSellersCount: 0, completedCount: 0, stageCounts: {}, createdAt: new Date(),
+  };
+
+  it('upserts default_agent_id setting and writes audit log', async () => {
+    mockAdminRepo.findAgentById.mockResolvedValue(agentFixture as never);
+    mockSettingsService.upsert.mockResolvedValue(undefined as any);
+
+    await adminService.setDefaultAgent('agent-1', 'admin-1');
+
+    expect(mockSettingsService.upsert).toHaveBeenCalledWith(
+      'default_agent_id', 'agent-1', 'Default agent for new lead assignment', 'admin-1',
+    );
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'agent.set_as_default', entityId: 'agent-1' }),
+    );
+  });
+
+  it('throws NotFoundError if agent does not exist', async () => {
+    mockAdminRepo.findAgentById.mockResolvedValue(null);
+    await expect(adminService.setDefaultAgent('bad-id', 'admin-1')).rejects.toThrow(NotFoundError);
+  });
+
+  it('throws ValidationError if agent is inactive', async () => {
+    mockAdminRepo.findAgentById.mockResolvedValue({ ...agentFixture, isActive: false } as never);
+    const { ValidationError } = await import('@/domains/shared/errors');
+    await expect(adminService.setDefaultAgent('agent-1', 'admin-1')).rejects.toThrow(ValidationError);
+  });
+});
+
+// ─── getDefaultAgentId ───────────────────────────────────────
+
+describe('getDefaultAgentId', () => {
+  it('returns the current default agent id', async () => {
+    mockSettingsService.get.mockResolvedValue('agent-1');
+    const result = await adminService.getDefaultAgentId();
+    expect(result).toBe('agent-1');
+    expect(mockSettingsService.get).toHaveBeenCalledWith('default_agent_id', '');
+  });
+
+  it('returns null when no default is set', async () => {
+    mockSettingsService.get.mockResolvedValue('');
+    const result = await adminService.getDefaultAgentId();
+    expect(result).toBeNull();
+  });
+});

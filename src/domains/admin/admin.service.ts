@@ -39,6 +39,43 @@ export async function getTeam() {
   return adminRepo.findAllAgents();
 }
 
+export async function getDefaultAgentId(): Promise<string | null> {
+  const value = await settingsService.get('default_agent_id', '');
+  return value || null;
+}
+
+export async function setDefaultAgent(agentId: string, adminId: string): Promise<void> {
+  const agent = await adminRepo.findAgentById(agentId);
+  if (!agent) throw new NotFoundError('Agent', agentId);
+  if (!agent.isActive) throw new ValidationError('Cannot set an inactive agent as default');
+
+  await settingsService.upsert(
+    'default_agent_id',
+    agentId,
+    'Default agent for new lead assignment',
+    adminId,
+  );
+
+  await auditService.log({
+    agentId: adminId,
+    action: 'agent.set_as_default',
+    entityType: 'agent',
+    entityId: agentId,
+    details: { agentId, setBy: adminId },
+  });
+}
+
+export async function clearDefaultAgent(adminId: string): Promise<void> {
+  await settingsService.upsert('default_agent_id', '', 'Default agent for new lead assignment', adminId);
+  await auditService.log({
+    agentId: adminId,
+    action: 'agent.default_cleared',
+    entityType: 'agent',
+    entityId: 'none',
+    details: { clearedBy: adminId },
+  });
+}
+
 export async function createAgent(
   input: AgentCreateInput,
   adminId: string,

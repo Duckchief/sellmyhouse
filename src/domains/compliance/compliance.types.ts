@@ -25,6 +25,17 @@ export interface ConsentWithdrawalResult {
   retentionRule?: string;
 }
 
+export interface GrantConsentInput {
+  sellerId: string;
+  channel: string; // 'web' | 'email' | 'whatsapp' | 'phone' | 'in_person'
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export interface ConsentGrantResult {
+  consentRecordId: string;
+}
+
 export interface ConsentRecord {
   id: string;
   subjectType: string;

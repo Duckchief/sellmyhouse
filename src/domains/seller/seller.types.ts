@@ -46,6 +46,7 @@ export interface DashboardOverview {
   caseFlags: Array<{ id: string; flagType: string; description: string }>;
   upcomingViewings: number;
   totalViewings: number;
+  showMarketingPrompt: boolean;
 }
 
 export interface NextStep {

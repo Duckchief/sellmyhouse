@@ -4,9 +4,14 @@ import type { FinancialReport } from '@prisma/client';
 import { financialRouter } from '../financial.router';
 import * as financialService from '../financial.service';
 import * as sellerService from '@/domains/seller/seller.service';
+import * as settingsService from '@/domains/shared/settings.service';
 
 jest.mock('../financial.service');
 jest.mock('@/domains/seller/seller.service');
+jest.mock('@/domains/shared/settings.service');
+jest.mock('@/domains/property/property.service');
+
+const mockSettingsService = settingsService as jest.Mocked<typeof settingsService>;
 
 const mockService = financialService as jest.Mocked<typeof financialService>;
 const mockSellerService = sellerService as jest.Mocked<typeof sellerService>;
@@ -83,6 +88,13 @@ describe('financial.router', () => {
       cpfDisclaimerShownAt: new Date('2026-01-01T00:00:00.000Z'),
     } as never);
     mockSellerService.recordCpfDisclaimerShown.mockResolvedValue(undefined);
+    // Hub route needs commission and sale proceeds
+    mockSettingsService.getCommission = jest.fn().mockResolvedValue({
+      amount: 1499,
+      gstRate: 0.09,
+      total: 1633.91,
+    });
+    mockSellerService.getSaleProceeds = jest.fn().mockResolvedValue(null);
   });
 
   describe('POST /seller/financial/calculate', () => {
@@ -127,7 +139,7 @@ describe('financial.router', () => {
 
   describe('GET /seller/financial', () => {
     it('renders the financial page for non-HTMX requests', async () => {
-      mockService.getReportsForSeller.mockResolvedValue([
+      mockService.getApprovedReportsForSeller = jest.fn().mockResolvedValue([
         { id: 'r1', version: 2 },
         { id: 'r2', version: 1 },
       ] as unknown as FinancialReport[]);
@@ -136,11 +148,11 @@ describe('financial.router', () => {
       const res = await request(app).get('/seller/financial');
 
       expect(res.status).toBe(200);
-      expect(mockService.getReportsForSeller).toHaveBeenCalledWith('seller-1');
+      expect(mockService.getApprovedReportsForSeller).toHaveBeenCalledWith('seller-1');
     });
 
-    it('renders financial-list partial for HTMX requests', async () => {
-      mockService.getReportsForSeller.mockResolvedValue([
+    it('renders financial-hub partial for HTMX requests', async () => {
+      mockService.getApprovedReportsForSeller = jest.fn().mockResolvedValue([
         { id: 'r1', version: 2 },
       ] as unknown as FinancialReport[]);
 
@@ -148,7 +160,7 @@ describe('financial.router', () => {
       const res = await request(app).get('/seller/financial').set('HX-Request', 'true');
 
       expect(res.status).toBe(200);
-      expect(mockService.getReportsForSeller).toHaveBeenCalledWith('seller-1');
+      expect(mockService.getApprovedReportsForSeller).toHaveBeenCalledWith('seller-1');
     });
   });
 

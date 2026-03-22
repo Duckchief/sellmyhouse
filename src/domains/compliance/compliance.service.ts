@@ -30,6 +30,8 @@ import type {
   DncAllowedResult,
   WithdrawConsentInput,
   ConsentWithdrawalResult,
+  GrantConsentInput,
+  ConsentGrantResult,
   CreateCddRecordInput,
   CddRecord,
   CreateEaaInput,
@@ -190,6 +192,37 @@ export async function withdrawConsent(
     deletionBlocked: false,
     retentionRule,
   };
+}
+
+// ─── Consent Grant ────────────────────────────────────────────────────────────
+
+export async function grantMarketingConsent(
+  input: GrantConsentInput,
+): Promise<ConsentGrantResult> {
+  const currentConsent = await complianceRepo.findSellerConsent(input.sellerId);
+  if (!currentConsent) {
+    throw new NotFoundError('Seller', input.sellerId);
+  }
+
+  // Append-only — always create a new record, even if already consented
+  const newRecord = await complianceRepo.createConsentRecord({
+    subjectId: input.sellerId,
+    purposeService: currentConsent.consentService,
+    purposeMarketing: true,
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent,
+  });
+
+  await complianceRepo.updateSellerConsent(input.sellerId, { consentMarketing: true });
+
+  await auditService.log({
+    action: 'consent.granted',
+    entityType: 'seller',
+    entityId: input.sellerId,
+    details: { type: 'marketing', channel: input.channel, consentRecordId: newRecord.id },
+  });
+
+  return { consentRecordId: newRecord.id };
 }
 
 async function executeConsentWithdrawalSideEffects(sellerId: string): Promise<void> {

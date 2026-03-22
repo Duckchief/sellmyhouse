@@ -117,6 +117,7 @@ export async function getDashboardOverview(sellerId: string): Promise<DashboardO
     caseFlags,
     upcomingViewings,
     totalViewings,
+    showMarketingPrompt: false,
   };
 }
 

@@ -3,6 +3,7 @@ import * as complianceRepo from '../compliance.repository';
 import * as auditService from '../../shared/audit.service';
 import * as settingsService from '../../shared/settings.service';
 import * as complianceService from '../compliance.service';
+import { NotFoundError } from '../../shared/errors';
 import { localStorage } from '@/infra/storage/local-storage';
 import { encryptedStorage } from '@/infra/storage/encrypted-storage';
 import { scanBuffer } from '@/infra/security/virus-scanner';
@@ -1729,5 +1730,79 @@ describe('recordHuttonsTransferConsent', () => {
       purposeMarketing: false,
       purposeHuttonsTransfer: true,
     });
+  });
+});
+
+describe('grantMarketingConsent', () => {
+  it('sets consentMarketing to true and creates a consent record', async () => {
+    mockRepo.findSellerConsent.mockResolvedValue({
+      consentService: true,
+      consentMarketing: false,
+    });
+    mockRepo.createConsentRecord.mockResolvedValue({ id: 'record-1' } as any);
+    mockRepo.updateSellerConsent.mockResolvedValue(undefined);
+
+    const result = await complianceService.grantMarketingConsent({
+      sellerId: 'seller-1',
+      channel: 'web',
+      ipAddress: '127.0.0.1',
+      userAgent: 'Mozilla/5.0',
+    });
+
+    expect(mockRepo.createConsentRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subjectId: 'seller-1',
+        purposeMarketing: true,
+        purposeService: true,
+      }),
+    );
+    expect(mockRepo.updateSellerConsent).toHaveBeenCalledWith('seller-1', {
+      consentMarketing: true,
+    });
+    expect(result.consentRecordId).toBe('record-1');
+  });
+
+  it('throws NotFoundError when seller does not exist', async () => {
+    mockRepo.findSellerConsent.mockResolvedValue(null);
+
+    await expect(
+      complianceService.grantMarketingConsent({ sellerId: 'missing', channel: 'web' }),
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it('is idempotent — can grant when already true', async () => {
+    mockRepo.findSellerConsent.mockResolvedValue({
+      consentService: true,
+      consentMarketing: true,
+    });
+    mockRepo.createConsentRecord.mockResolvedValue({ id: 'record-2' } as any);
+    mockRepo.updateSellerConsent.mockResolvedValue(undefined);
+
+    const result = await complianceService.grantMarketingConsent({
+      sellerId: 'seller-1',
+      channel: 'web',
+    });
+
+    expect(result.consentRecordId).toBe('record-2');
+  });
+
+  it('writes an audit log entry', async () => {
+    mockRepo.findSellerConsent.mockResolvedValue({
+      consentService: true,
+      consentMarketing: false,
+    });
+    mockRepo.createConsentRecord.mockResolvedValue({ id: 'record-3' } as any);
+    mockRepo.updateSellerConsent.mockResolvedValue(undefined);
+
+    await complianceService.grantMarketingConsent({ sellerId: 'seller-1', channel: 'web' });
+
+    const mockAudit = auditService as jest.Mocked<typeof auditService>;
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'consent.granted',
+        entityType: 'seller',
+        entityId: 'seller-1',
+      }),
+    );
   });
 });

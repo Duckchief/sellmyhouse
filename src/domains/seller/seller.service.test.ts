@@ -265,4 +265,39 @@ describe('getTimelineMilestones', () => {
       expect(appt.status).toBe('upcoming');
     });
   });
+
+  describe('seller role', () => {
+    it('returns 9 milestones (excludes Counterparty CDD and OTP Review)', () => {
+      const milestones = getTimelineMilestones(emptyInput, 'seller');
+      expect(milestones).toHaveLength(9);
+    });
+
+    it('does not include Counterparty CDD milestone', () => {
+      const milestones = getTimelineMilestones(emptyInput, 'seller');
+      const labels = milestones.map((m) => m.label);
+      expect(labels).not.toContain('Counterparty CDD');
+    });
+
+    it('does not include OTP Review milestone', () => {
+      const milestones = getTimelineMilestones(emptyInput, 'seller');
+      const labels = milestones.map((m) => m.label);
+      expect(labels).not.toContain('OTP Review');
+    });
+
+    it('still includes all other milestones in correct order', () => {
+      const milestones = getTimelineMilestones(emptyInput, 'seller');
+      const labels = milestones.map((m) => m.label);
+      expect(labels).toEqual([
+        'Seller CDD Done',
+        'Estate Agency Agreement Signed',
+        'Property Listed',
+        'Viewings',
+        'Offer Received',
+        'OTP Issued',
+        'OTP Exercised',
+        'HDB Resale Submission',
+        'Completion',
+      ]);
+    });
+  });
 });

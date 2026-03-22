@@ -238,7 +238,7 @@ type RawMilestone = Omit<TimelineMilestone, 'status'> & { completed: boolean };
 
 export function getTimelineMilestones(
   data: TimelineInput,
-  role: 'agent' | 'admin',
+  role: 'agent' | 'admin' | 'seller',
 ): TimelineMilestone[] {
   const raw: RawMilestone[] = [];
 
@@ -339,26 +339,29 @@ export function getTimelineMilestones(
     });
   }
 
-  // 6. Counterparty CDD
-  // Completed only when counterpartyCddRecord exists (or N/A when isCoBroke).
-  raw.push({
-    label: 'Counterparty CDD',
-    description: data.isCoBroke
-      ? 'Not required — co-broke transaction'
-      : 'Due diligence completed on buyer',
-    completed: !data.isCoBroke && !!data.counterpartyCddRecord,
-    date: data.isCoBroke ? null : (data.counterpartyCddRecord?.createdAt ?? null),
-    notApplicable: data.isCoBroke,
-  });
+  // 6. Counterparty CDD (agent/admin only — not shown to sellers)
+  if (role !== 'seller') {
+    raw.push({
+      label: 'Counterparty CDD',
+      description: data.isCoBroke
+        ? 'Not required — co-broke transaction'
+        : 'Due diligence completed on buyer',
+      completed: !data.isCoBroke && !!data.counterpartyCddRecord,
+      date: data.isCoBroke ? null : (data.counterpartyCddRecord?.createdAt ?? null),
+      notApplicable: data.isCoBroke,
+    });
+  }
 
-  // 7. OTP Review
-  raw.push({
-    label: 'OTP Review',
-    description: 'Agent reviews OTP terms before issuing to buyer',
-    completed: !!data.otp?.agentReviewedAt,
-    date: data.otp?.agentReviewedAt ?? null,
-    notApplicable: false,
-  });
+  // 7. OTP Review (agent/admin only — not shown to sellers)
+  if (role !== 'seller') {
+    raw.push({
+      label: 'OTP Review',
+      description: 'Agent reviews OTP terms before issuing to buyer',
+      completed: !!data.otp?.agentReviewedAt,
+      date: data.otp?.agentReviewedAt ?? null,
+      notApplicable: false,
+    });
+  }
 
   // 8. OTP Issued
   raw.push({

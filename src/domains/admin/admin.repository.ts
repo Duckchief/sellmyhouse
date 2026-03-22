@@ -228,7 +228,7 @@ export async function findAllSellers(filter: {
   const mappedSellers = sellers.map((s) => ({
     ...s,
     town: s.properties[0]?.town ?? null,
-    askingPrice: s.properties[0]?.askingPrice ? Number(s.properties[0].askingPrice) : null,
+    askingPrice: s.properties[0]?.askingPrice != null ? Number(s.properties[0].askingPrice) : null,
   }));
 
   return { sellers: mappedSellers, total, page: filter.page ?? 1, limit };

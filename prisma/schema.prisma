@@ -432,6 +432,7 @@ model Seller {
   correctionRequests      DataCorrectionRequest[]
   weeklyUpdates           WeeklyUpdate[]
   documentChecklists      DocumentChecklist[]
+  saleProceeds            SaleProceeds?
 
   @@index([agentId, status])
   @@index([leadSource])
@@ -493,6 +494,26 @@ model Property {
 
   @@index([sellerId, status])
   @@map("properties")
+}
+
+model SaleProceeds {
+  id                String   @id
+  sellerId          String   @unique @map("seller_id")
+  seller            Seller   @relation(fields: [sellerId], references: [id])
+  sellingPrice      Decimal  @map("selling_price") @db.Decimal(12, 2)
+  outstandingLoan   Decimal  @map("outstanding_loan") @db.Decimal(12, 2)
+  cpfSeller1        Decimal  @map("cpf_seller_1") @db.Decimal(12, 2)
+  cpfSeller2        Decimal? @map("cpf_seller_2") @db.Decimal(12, 2)
+  cpfSeller3        Decimal? @map("cpf_seller_3") @db.Decimal(12, 2)
+  cpfSeller4        Decimal? @map("cpf_seller_4") @db.Decimal(12, 2)
+  resaleLevy        Decimal  @default(0) @map("resale_levy") @db.Decimal(12, 2)
+  otherDeductions   Decimal  @default(0) @map("other_deductions") @db.Decimal(12, 2)
+  commission        Decimal  @map("commission") @db.Decimal(12, 2)
+  netProceeds       Decimal  @map("net_proceeds") @db.Decimal(12, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("sale_proceeds")
 }
 
 model Listing {

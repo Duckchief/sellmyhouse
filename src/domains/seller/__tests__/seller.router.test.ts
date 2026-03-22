@@ -88,6 +88,7 @@ describe('seller.router', () => {
         upcomingViewings: 0,
         totalViewings: 0,
         unreadNotificationCount: 0,
+        showMarketingPrompt: false,
         nextSteps: [],
       });
 
@@ -116,6 +117,7 @@ describe('seller.router', () => {
         upcomingViewings: 0,
         totalViewings: 0,
         unreadNotificationCount: 3,
+        showMarketingPrompt: false,
         nextSteps: [],
       });
 
@@ -143,6 +145,7 @@ describe('seller.router', () => {
         upcomingViewings: 0,
         totalViewings: 0,
         unreadNotificationCount: 0,
+        showMarketingPrompt: false,
         nextSteps: [],
       });
 

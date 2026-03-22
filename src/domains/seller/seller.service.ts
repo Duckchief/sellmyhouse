@@ -20,6 +20,7 @@ import {
   type TimelineMilestone,
   type TimelineInput,
   type DocumentChecklistItem,
+  type SaleProceedsInput,
 } from './seller.types';
 import * as contentService from '@/domains/content/content.service';
 import type { Property } from '@prisma/client';
@@ -634,6 +635,29 @@ export async function recordCpfDisclaimerShown(sellerId: string): Promise<void> 
 
 export async function findById(sellerId: string) {
   return sellerRepo.findById(sellerId);
+}
+
+export async function saveSaleProceeds(input: SaleProceedsInput) {
+  const cpfTotal = input.cpfSeller1
+    + (input.cpfSeller2 ?? 0)
+    + (input.cpfSeller3 ?? 0)
+    + (input.cpfSeller4 ?? 0);
+
+  const netProceeds = input.sellingPrice
+    - input.outstandingLoan
+    - cpfTotal
+    - input.resaleLevy
+    - input.otherDeductions
+    - input.commission;
+
+  return sellerRepo.upsertSaleProceeds({
+    ...input,
+    netProceeds: Math.round(netProceeds * 100) / 100,
+  });
+}
+
+export async function getSaleProceeds(sellerId: string) {
+  return sellerRepo.findSaleProceedsBySellerId(sellerId);
 }
 
 // --- Private helpers ---

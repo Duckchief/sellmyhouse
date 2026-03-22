@@ -142,3 +142,16 @@ export interface UpdateNotificationPreferenceInput {
   preference: 'whatsapp_and_email' | 'email_only';
   agentId?: string;
 }
+
+export interface SaleProceedsInput {
+  sellerId: string;
+  sellingPrice: number;
+  outstandingLoan: number;
+  cpfSeller1: number;
+  cpfSeller2?: number;
+  cpfSeller3?: number;
+  cpfSeller4?: number;
+  resaleLevy: number;
+  otherDeductions: number;
+  commission: number;
+}

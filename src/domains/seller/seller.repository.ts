@@ -1,4 +1,5 @@
 import { prisma } from '@/infra/database/prisma';
+import { createId } from '@paralleldrive/cuid2';
 import type { Seller, SellerStatus } from '@prisma/client';
 
 export async function findById(id: string): Promise<Seller | null> {
@@ -88,4 +89,42 @@ export async function recordCpfDisclaimerShown(id: string): Promise<void> {
     where: { id },
     data: { cpfDisclaimerShownAt: new Date() },
   });
+}
+
+export async function upsertSaleProceeds(data: {
+  sellerId: string;
+  sellingPrice: number;
+  outstandingLoan: number;
+  cpfSeller1: number;
+  cpfSeller2?: number;
+  cpfSeller3?: number;
+  cpfSeller4?: number;
+  resaleLevy: number;
+  otherDeductions: number;
+  commission: number;
+  netProceeds: number;
+}) {
+  return prisma.saleProceeds.upsert({
+    where: { sellerId: data.sellerId },
+    create: {
+      id: createId(),
+      ...data,
+    },
+    update: {
+      sellingPrice: data.sellingPrice,
+      outstandingLoan: data.outstandingLoan,
+      cpfSeller1: data.cpfSeller1,
+      cpfSeller2: data.cpfSeller2 ?? null,
+      cpfSeller3: data.cpfSeller3 ?? null,
+      cpfSeller4: data.cpfSeller4 ?? null,
+      resaleLevy: data.resaleLevy,
+      otherDeductions: data.otherDeductions,
+      commission: data.commission,
+      netProceeds: data.netProceeds,
+    },
+  });
+}
+
+export async function findSaleProceedsBySellerId(sellerId: string) {
+  return prisma.saleProceeds.findUnique({ where: { sellerId } });
 }

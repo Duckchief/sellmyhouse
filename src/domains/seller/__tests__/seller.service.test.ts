@@ -192,6 +192,7 @@ describe('seller.service', () => {
         transactions: [],
         consentRecords: [],
         caseFlags: [],
+        createdAt: new Date(),
       } as unknown as SellerWithRelations);
       mockedNotificationService.countUnreadNotifications.mockResolvedValue(5);
 
@@ -281,6 +282,30 @@ describe('seller.service', () => {
       const result = await sellerService.getDashboardOverview('seller-1');
       expect(result.showMarketingPrompt).toBe(false);
     });
+
+    it('sets showMarketingPrompt false when seller is exactly 13 days old', async () => {
+      const thirteenDaysAgo = new Date();
+      thirteenDaysAgo.setDate(thirteenDaysAgo.getDate() - 13);
+
+      mockedSellerRepo.getSellerWithRelations.mockResolvedValue({
+        id: 'seller-1',
+        name: 'Test Seller',
+        email: 'test@test.local',
+        phone: '91234567',
+        status: 'engaged',
+        onboardingStep: 3,
+        properties: [],
+        transactions: [],
+        consentRecords: [],
+        caseFlags: [],
+        createdAt: thirteenDaysAgo,
+        consentMarketing: false,
+      } as any);
+      mockedNotificationService.countUnreadNotifications.mockResolvedValue(0);
+
+      const result = await sellerService.getDashboardOverview('seller-1');
+      expect(result.showMarketingPrompt).toBe(false);
+    });
   });
 
   describe('getDashboardOverview - enhanced', () => {
@@ -310,6 +335,7 @@ describe('seller.service', () => {
           { id: 'flag-1', flagType: 'missing_document', description: 'NRIC not uploaded' },
           { id: 'flag-2', flagType: 'compliance_check', description: 'CDD pending' },
         ],
+        createdAt: new Date(),
       } as unknown as SellerWithRelations);
 
       mockedNotificationService.countUnreadNotifications.mockResolvedValue(3);
@@ -359,6 +385,7 @@ describe('seller.service', () => {
         transactions: [],
         consentRecords: [],
         caseFlags: [],
+        createdAt: new Date(),
       } as unknown as SellerWithRelations);
 
       mockedNotificationService.countUnreadNotifications.mockResolvedValue(0);

@@ -22,6 +22,8 @@ import {
 import * as contentService from '@/domains/content/content.service';
 import type { Property } from '@prisma/client';
 
+const MARKETING_PROMPT_DELAY_DAYS = 14;
+
 export async function getOnboardingStatus(sellerId: string): Promise<OnboardingStatus> {
   const seller = await sellerRepo.findById(sellerId);
   if (!seller) throw new NotFoundError('Seller', sellerId);
@@ -98,6 +100,12 @@ export async function getDashboardOverview(sellerId: string): Promise<DashboardO
     totalViewings = stats.totalViewings;
   }
 
+  const daysSinceCreation = Math.floor(
+    (Date.now() - seller.createdAt.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  const showMarketingPrompt =
+    !seller.consentMarketing && daysSinceCreation >= MARKETING_PROMPT_DELAY_DAYS;
+
   return {
     seller: {
       id: seller.id,
@@ -117,14 +125,7 @@ export async function getDashboardOverview(sellerId: string): Promise<DashboardO
     caseFlags,
     upcomingViewings,
     totalViewings,
-    showMarketingPrompt: (() => {
-      if (!seller.createdAt) return false;
-      const MARKETING_PROMPT_DELAY_DAYS = 14;
-      const daysSinceCreation = Math.floor(
-        (Date.now() - seller.createdAt.getTime()) / (1000 * 60 * 60 * 24),
-      );
-      return !seller.consentMarketing && daysSinceCreation >= MARKETING_PROMPT_DELAY_DAYS;
-    })(),
+    showMarketingPrompt,
   };
 }
 

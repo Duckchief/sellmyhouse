@@ -953,3 +953,133 @@ describe('rejectTestimonial — seller notification', () => {
     expect(mockedNotification.send).not.toHaveBeenCalled();
   });
 });
+
+// ─── reissueTestimonialToken ──────────────────────────────────────────────────
+
+describe('reissueTestimonialToken', () => {
+  const baseTestimonial = {
+    id: 't-1',
+    sellerId: 'seller-1',
+    status: 'rejected',
+    content: 'Great service!',
+    rating: 5,
+    clientName: 'Mary L.',
+    clientTown: 'Bishan',
+  } as unknown as Testimonial;
+
+  beforeEach(() => {
+    mockedNotification.send = jest.fn().mockResolvedValue(undefined);
+  });
+
+  it('throws NotFoundError when testimonial does not exist', async () => {
+    mockedRepo.findTestimonialById.mockResolvedValue(null);
+    await expect(
+      contentService.reissueTestimonialToken('bad-id', 'agent-1'),
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it('throws ValidationError when testimonial is not rejected', async () => {
+    mockedRepo.findTestimonialById.mockResolvedValue({
+      ...baseTestimonial,
+      status: 'pending_review',
+    } as unknown as Testimonial);
+    await expect(
+      contentService.reissueTestimonialToken('t-1', 'agent-1'),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it('resets status and issues a new token', async () => {
+    mockedRepo.findTestimonialById.mockResolvedValue(baseTestimonial);
+    mockedRepo.reissueTestimonialToken.mockResolvedValue({
+      ...baseTestimonial,
+      status: 'pending_submission',
+    } as unknown as Testimonial);
+
+    await contentService.reissueTestimonialToken('t-1', 'agent-1');
+
+    expect(mockedRepo.reissueTestimonialToken).toHaveBeenCalledWith(
+      't-1',
+      expect.any(String), // new token
+      expect.any(Date),   // new expiry
+    );
+  });
+
+  it('writes an audit log entry', async () => {
+    mockedRepo.findTestimonialById.mockResolvedValue(baseTestimonial);
+    mockedRepo.reissueTestimonialToken.mockResolvedValue({
+      ...baseTestimonial,
+      status: 'pending_submission',
+    } as unknown as Testimonial);
+
+    await contentService.reissueTestimonialToken('t-1', 'agent-1');
+
+    expect(mockedAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'testimonial_token_reissued',
+        entityType: 'testimonial',
+        entityId: 't-1',
+      }),
+    );
+  });
+
+  it('sends testimonial_reissued notification with submissionUrl and feedback', async () => {
+    mockedRepo.findTestimonialById.mockResolvedValue(baseTestimonial);
+    mockedRepo.reissueTestimonialToken.mockResolvedValue({
+      ...baseTestimonial,
+      submissionToken: 'new-tok',
+      status: 'pending_submission',
+    } as unknown as Testimonial);
+
+    await contentService.reissueTestimonialToken('t-1', 'agent-1', 'Please shorten it.');
+    await Promise.resolve();
+
+    expect(mockedNotification.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientType: 'seller',
+        recipientId: 'seller-1',
+        templateName: 'testimonial_reissued',
+        templateData: expect.objectContaining({
+          submissionUrl: expect.stringContaining('new-tok'),
+          feedback: 'Please shorten it.',
+        }),
+      }),
+      'agent-1',
+    );
+  });
+
+  it('sends empty feedback string when none provided', async () => {
+    mockedRepo.findTestimonialById.mockResolvedValue(baseTestimonial);
+    mockedRepo.reissueTestimonialToken.mockResolvedValue({
+      ...baseTestimonial,
+      submissionToken: 'new-tok',
+      status: 'pending_submission',
+    } as unknown as Testimonial);
+
+    await contentService.reissueTestimonialToken('t-1', 'agent-1');
+    await Promise.resolve();
+
+    expect(mockedNotification.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        templateData: expect.objectContaining({ feedback: '' }),
+      }),
+      'agent-1',
+    );
+  });
+
+  it('does not send notification when sellerId is null (manual testimonial)', async () => {
+    mockedRepo.findTestimonialById.mockResolvedValue({
+      ...baseTestimonial,
+      sellerId: null,
+    } as unknown as Testimonial);
+    mockedRepo.reissueTestimonialToken.mockResolvedValue({
+      ...baseTestimonial,
+      sellerId: null,
+      status: 'pending_submission',
+    } as unknown as Testimonial);
+
+    await contentService.reissueTestimonialToken('t-1', 'agent-1');
+    await Promise.resolve();
+
+    expect(mockedNotification.send).not.toHaveBeenCalled();
+  });
+});

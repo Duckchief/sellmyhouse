@@ -362,6 +362,47 @@ export async function approveTestimonial(id: string, agentId: string) {
   return contentRepo.updateTestimonialStatus(id, 'approved', agentId);
 }
 
+export async function reissueTestimonialToken(
+  id: string,
+  agentId: string,
+  feedback?: string,
+) {
+  const testimonial = await contentRepo.findTestimonialById(id);
+  if (!testimonial) throw new NotFoundError('Testimonial', id);
+  if (testimonial.status !== 'rejected')
+    throw new ValidationError('Only rejected testimonials can have their token reissued');
+
+  const token = createId();
+  const tokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  const updated = await contentRepo.reissueTestimonialToken(id, token, tokenExpiresAt);
+
+  await auditService.log({
+    action: 'testimonial_token_reissued',
+    entityType: 'testimonial',
+    entityId: id,
+    agentId,
+    details: {},
+  });
+
+  if (updated.sellerId) {
+    void notificationService.send(
+      {
+        recipientType: 'seller',
+        recipientId: updated.sellerId,
+        templateName: 'testimonial_reissued',
+        templateData: {
+          submissionUrl: `${process.env['APP_URL'] ?? ''}/testimonial/${updated.submissionToken ?? token}`,
+          feedback: feedback ?? '',
+        },
+      },
+      agentId,
+    );
+  }
+
+  return updated;
+}
+
 export async function rejectTestimonial(id: string, agentId?: string, reason?: string) {
   const testimonial = await contentRepo.updateTestimonialStatus(id, 'rejected');
   if (testimonial.sellerId) {

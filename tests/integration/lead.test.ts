@@ -39,6 +39,7 @@ describe('POST /api/leads', () => {
         consentService: 'true',
         consentMarketing: 'false',
         leadSource: 'website',
+        email: 'test@example.com',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
@@ -73,6 +74,7 @@ describe('POST /api/leads', () => {
         countryCode: '+65',
         nationalNumber: '81234567',
         consentService: 'false',
+        email: 'test@example.com',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
@@ -90,6 +92,7 @@ describe('POST /api/leads', () => {
         countryCode: '+65',
         nationalNumber: '91234567',
         consentService: 'true',
+        email: 'test@example.com',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
@@ -103,6 +106,7 @@ describe('POST /api/leads', () => {
         countryCode: '+65',
         nationalNumber: '91234567',
         consentService: 'true',
+        email: 'another@example.com',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
@@ -120,6 +124,7 @@ describe('POST /api/leads', () => {
         countryCode: '+65',
         nationalNumber: '61234567',
         consentService: 'true',
+        email: 'test@example.com',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
@@ -139,6 +144,7 @@ describe('POST /api/leads', () => {
         consentService: 'true',
         consentMarketing: 'false',
         leadSource: 'website',
+        email: 'ahmad@example.com',
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 

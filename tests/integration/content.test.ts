@@ -679,6 +679,7 @@ describe('POST /api/leads — lead form with referral session', () => {
       .set('x-csrf-token', csrfToken)
       .send({
         name: 'Jane Doe',
+        email: 'jane@example.com',
         phone: '98765432',
         consentService: 'true',
         consentMarketing: 'false',

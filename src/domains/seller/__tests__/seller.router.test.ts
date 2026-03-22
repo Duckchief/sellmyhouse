@@ -245,7 +245,7 @@ describe('seller.router', () => {
         .set('HX-Request', 'true');
 
       expect(mockedComplianceService.grantMarketingConsent).toHaveBeenCalledWith(
-        expect.objectContaining({ channel: 'web' }),
+        expect.objectContaining({ sellerId: 'seller-1', channel: 'web' }),
       );
     });
 

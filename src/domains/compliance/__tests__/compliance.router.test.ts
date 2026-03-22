@@ -54,8 +54,8 @@ function createTestApp(userOverride?: { id: string; role: string }) {
   app.set('view engine', 'njk');
 
   if (userOverride) {
-    app.use((req, _res, next) => {
-      req.user = {
+    app.use((req, res, next) => {
+      const user = {
         id: userOverride.id,
         role: userOverride.role as 'seller' | 'agent' | 'admin',
         email: 'test@test.local',
@@ -63,6 +63,9 @@ function createTestApp(userOverride?: { id: string; role: string }) {
         twoFactorEnabled: true,
         twoFactorVerified: true,
       };
+      req.user = user;
+      res.locals.user = user;
+      res.locals.hasAvatar = false;
       req.isAuthenticated = (() => true) as typeof req.isAuthenticated;
       next();
     });

@@ -31,15 +31,18 @@ function createTestApp() {
   app.set('view engine', 'njk');
 
   // Mock authenticated seller with session
-  app.use((req, _res, next) => {
-    req.user = {
+  app.use((req, res, next) => {
+    const user = {
       id: 'seller-1',
-      role: 'seller',
+      role: 'seller' as const,
       email: 'test@test.local',
       name: 'Test Seller',
       twoFactorEnabled: false,
       twoFactorVerified: false,
     };
+    req.user = user;
+    res.locals.user = user;
+    res.locals.hasAvatar = false;
     req.isAuthenticated = (() => true) as typeof req.isAuthenticated;
     (req as never as { logout: jest.Mock }).logout = jest.fn((cb: () => void) => cb());
     req.session = {

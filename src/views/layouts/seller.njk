@@ -1,116 +1,42 @@
 {% extends "layouts/base.njk" %}
+{% from "partials/shared/icons.njk" import icon %}
 
 {% block body %}
-{# Mobile hamburger bar — visible only below md breakpoint #}
-<div class="md:hidden fixed top-0 left-0 right-0 z-30 bg-white dark:bg-panel border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
-  <div class="flex items-center gap-3">
-    <button data-action="toggle-sidebar" class="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-    </button>
-    <a href="/seller/dashboard" class="text-lg font-bold text-accent">{{ "SellMyHomeNow" | t }}</a>
-  </div>
-  {# Dark mode toggle — mobile bar #}
-  <button
-    data-action="toggle-dark-mode"
-    class="w-9 h-9 flex items-center justify-center rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-    aria-label="{{ 'Toggle dark mode' | t }}"
-  >
-    <svg class="w-5 h-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path>
-    </svg>
-    <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-    </svg>
-  </button>
-</div>
+{# Top header — always visible, contains user dropdown #}
+{% include "partials/shared/top-header.njk" %}
 
 {# Sidebar backdrop — mobile overlay #}
 <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/40 z-40 md:hidden" data-action="toggle-sidebar"></div>
 
-<div class="flex min-h-screen">
-  {# Sidebar #}
-  <aside id="sidebar" class="hidden md:flex w-64 bg-white dark:bg-panel border-r border-gray-200 dark:border-gray-700 flex-col fixed md:static inset-y-0 left-0 z-50">
-    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-      <a href="/seller/dashboard" class="text-lg font-bold text-accent">
-        {{ "SellMyHomeNow" | t }}
-      </a>
-      {# Dark mode toggle — sidebar header #}
-      <button
-        data-action="toggle-dark-mode"
-        class="w-8 h-8 flex items-center justify-center rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        aria-label="{{ 'Toggle dark mode' | t }}"
-      >
-        <svg class="w-4 h-4 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path>
-        </svg>
-        <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-        </svg>
+<div class="flex min-h-screen pt-16">
+  <aside id="sidebar" class="hidden md:flex w-64 bg-ink text-white p-4 flex-col flex-shrink-0 fixed md:static top-16 bottom-0 md:top-auto md:bottom-auto left-0 z-50">
+    <div class="sidebar-header flex items-center mb-6 min-w-0">
+      <div class="sidebar-title text-lg font-bold flex-1 min-w-0">{{ "Seller Portal" | t }}</div>
+      <button class="sidebar-toggle hidden md:flex items-center justify-center p-1 rounded hover:bg-white/10 text-white/60 hover:text-white flex-shrink-0" title="{{ 'Toggle sidebar' | t }}" data-action="toggle-sidebar-collapse" aria-label="{{ 'Toggle sidebar' | t }}">
+        {{ icon('panel-left') }}
       </button>
     </div>
-    <nav class="flex-1 p-4 space-y-1">
-      <a href="/seller/dashboard"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/dashboard' %}bg-accent/10 text-accent{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800{% endif %}">
-        {{ "Overview" | t }}
+    <nav class="space-y-1 flex-1">
+      <a href="/seller/dashboard" title="{{ 'Overview' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/seller/dashboard' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('home') }}<span class="sidebar-tooltip">{{ "Overview" | t }}</span><span class="sidebar-label">{{ "Overview" | t }}</span></a>
+      <a href="/seller/property" title="{{ 'Property' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/seller/property' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('building-office-2') }}<span class="sidebar-tooltip">{{ "Property" | t }}</span><span class="sidebar-label">{{ "Property" | t }}</span></a>
+      <a href="/seller/onboarding" title="{{ 'Photos' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/seller/onboarding' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('camera') }}<span class="sidebar-tooltip">{{ "Photos" | t }}</span><span class="sidebar-label">{{ "Photos" | t }}</span></a>
+      <a href="/seller/viewings" title="{{ 'Viewings' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/seller/viewings' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('calendar') }}<span class="sidebar-tooltip">{{ "Viewings" | t }}</span><span class="sidebar-label">{{ "Viewings" | t }}</span></a>
+      <a href="/seller/documents" title="{{ 'Documents' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/seller/documents' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('document-text') }}<span class="sidebar-tooltip">{{ "Documents" | t }}</span><span class="sidebar-label">{{ "Documents" | t }}</span></a>
+      <a href="/seller/financial" title="{{ 'Financial Report' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/seller/financial' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('banknotes') }}<span class="sidebar-tooltip">{{ "Financial Report" | t }}</span><span class="sidebar-label">{{ "Financial Report" | t }}</span></a>
+      <a href="/seller/tutorials" title="{{ 'Video Tutorials' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/seller/tutorials' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('academic-cap') }}<span class="sidebar-tooltip">{{ "Video Tutorials" | t }}</span><span class="sidebar-label">{{ "Video Tutorials" | t }}</span></a>
+      <div class="sidebar-divider border-t border-white/10 my-2"></div>
+      <a href="/seller/notifications" title="{{ 'Notifications' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/seller/notifications' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('bell') }}<span class="sidebar-tooltip">{{ "Notifications" | t }}</span><span class="sidebar-label">{{ "Notifications" | t }}</span>
+        {% if unreadCount > 0 %}<span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">{{ unreadCount }}</span>{% endif %}
       </a>
-      <a href="/seller/property"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/property' %}bg-accent/10 text-accent{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800{% endif %}">
-        {{ "Property" | t }}
-      </a>
-      <a href="/seller/onboarding"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/onboarding' %}bg-accent/10 text-accent{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800{% endif %}">
-        {{ "Photos" | t }}
-      </a>
-      <a href="/seller/viewings"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/viewings' %}bg-accent/10 text-accent{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800{% endif %}">
-        {{ "Viewings" | t }}
-      </a>
-      <a href="/seller/documents"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/documents' %}bg-accent/10 text-accent{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800{% endif %}">
-        {{ "Documents" | t }}
-      </a>
-      <a href="/seller/financial"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/financial' %}bg-accent/10 text-accent{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800{% endif %}">
-        {{ "Financial Report" | t }}
-      </a>
-      <a href="/seller/tutorials"
-         class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/tutorials' %}bg-accent/10 text-accent{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800{% endif %}">
-        {{ "Video Tutorials" | t }}
-      </a>
-
-      <div class="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-        <a href="/seller/notifications"
-           class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/notifications' %}bg-accent/10 text-accent{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800{% endif %}">
-          {{ "Notifications" | t }}
-          {% if unreadCount > 0 %}
-          <span class="ml-auto inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
-            {{ unreadCount }}
-          </span>
-          {% endif %}
-        </a>
-        <a href="/seller/settings"
-           class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/settings' %}bg-accent/10 text-accent{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800{% endif %}">
-          {{ "Settings" | t }}
-        </a>
-        <a href="/seller/my-data"
-           class="flex items-center px-3 py-2 rounded-md text-sm font-medium {% if currentPath == '/seller/my-data' %}bg-accent/10 text-accent{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800{% endif %}">
-          {{ "My Data" | t }}
-        </a>
-      </div>
+      <a href="/seller/settings" title="{{ 'Settings' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/seller/settings' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('cog-6-tooth') }}<span class="sidebar-tooltip">{{ "Settings" | t }}</span><span class="sidebar-label">{{ "Settings" | t }}</span></a>
+      <a href="/seller/my-data" title="{{ 'My Data' | t }}" class="flex items-center gap-2 px-3 py-2.5 rounded text-sm {% if currentPath == '/seller/my-data' %}bg-white/10 text-accent border-l-2 border-accent{% else %}hover:bg-white/10{% endif %}">{{ icon('shield-check') }}<span class="sidebar-tooltip">{{ "My Data" | t }}</span><span class="sidebar-label">{{ "My Data" | t }}</span></a>
     </nav>
-    <div class="p-4 border-t border-gray-200 dark:border-gray-700">
-      <a href="/privacy" class="block px-3 py-1.5 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 mb-2">{{ "Privacy Policy" | t }}</a>
-      <form action="/auth/logout" method="POST">
-        <input type="hidden" name="_csrf" value="{{ csrfToken }}">
-        <button type="submit" class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md">
-          {{ "Log Out" | t }}
-        </button>
-      </form>
+    {# Sidebar footer: logout link removed — logout is now in the top-right header dropdown #}
+    <div class="mt-auto pt-4 border-t border-white/10">
+      <a href="/privacy" class="block px-3 py-1.5 text-xs text-white/40 hover:text-white/70">{{ "Privacy Policy" | t }}</a>
     </div>
   </aside>
-
-  {# Main content #}
-  <main class="flex-1 pt-16 md:pt-8 p-8">
+  <main class="flex-1 p-8 bg-bg overflow-auto">
     {% block content %}{% endblock %}
   </main>
 </div>

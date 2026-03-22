@@ -44,15 +44,18 @@ function createTestApp() {
   app.set('view engine', 'njk');
 
   // Mock authenticated seller
-  app.use((req, _res, next) => {
-    req.user = {
+  app.use((req, res, next) => {
+    const user = {
       id: 'seller-1',
-      role: 'seller',
+      role: 'seller' as const,
       email: 'test@test.local',
       name: 'Test',
       twoFactorEnabled: false,
       twoFactorVerified: false,
     };
+    req.user = user;
+    res.locals.user = user;
+    res.locals.hasAvatar = false;
     req.isAuthenticated = (() => true) as typeof req.isAuthenticated;
     next();
   });
@@ -169,7 +172,7 @@ describe('seller.router', () => {
       expect(res.status).toBe(200);
     });
 
-    it('redirects to dashboard if onboarding is complete', async () => {
+    it('renders onboarding page even if onboarding is complete (allows back navigation)', async () => {
       mockedService.getOnboardingStatus.mockResolvedValue({
         currentStep: TOTAL_ONBOARDING_STEPS,
         isComplete: true,
@@ -178,13 +181,13 @@ describe('seller.router', () => {
 
       const res = await request(app).get('/seller/onboarding');
 
-      expect(res.status).toBe(302);
-      expect(res.headers.location).toBe('/seller/dashboard');
+      expect(res.status).toBe(200);
     });
   });
 
   describe('POST /seller/onboarding/step/:step', () => {
     it('completes step and returns next step partial for HTMX', async () => {
+      mockedService.getOnboardingStatus.mockResolvedValue({ currentStep: 1, isComplete: false, completedSteps: [1] });
       mockedService.completeOnboardingStep.mockResolvedValue({ onboardingStep: 2 });
       mockedPropertyService.getPropertyForSeller.mockResolvedValue(null);
       mockedPropertyService.createProperty.mockResolvedValue({} as never);
@@ -211,6 +214,9 @@ describe('seller.router', () => {
     });
 
     it('redirects to dashboard after completing last step', async () => {
+      mockedService.getOnboardingStatus
+        .mockResolvedValueOnce({ currentStep: TOTAL_ONBOARDING_STEPS - 1, isComplete: false, completedSteps: [] })
+        .mockResolvedValueOnce({ currentStep: TOTAL_ONBOARDING_STEPS, isComplete: true, completedSteps: [] });
       mockedService.completeOnboardingStep.mockResolvedValue({
         onboardingStep: TOTAL_ONBOARDING_STEPS,
       });
@@ -224,6 +230,9 @@ describe('seller.router', () => {
     });
 
     it('records Huttons transfer consent when completing step 5', async () => {
+      mockedService.getOnboardingStatus
+        .mockResolvedValueOnce({ currentStep: TOTAL_ONBOARDING_STEPS - 1, isComplete: false, completedSteps: [] })
+        .mockResolvedValueOnce({ currentStep: TOTAL_ONBOARDING_STEPS, isComplete: true, completedSteps: [] });
       mockedService.completeOnboardingStep.mockResolvedValue({
         onboardingStep: TOTAL_ONBOARDING_STEPS,
       });

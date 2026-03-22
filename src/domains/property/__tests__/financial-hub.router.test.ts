@@ -37,15 +37,18 @@ function createTestApp() {
   env.addFilter('formatPrice', (n: unknown) => String(n));
   app.set('view engine', 'njk');
 
-  app.use((req, _res, next) => {
-    req.user = {
+  app.use((req, res, next) => {
+    const user = {
       id: 'seller-1',
-      role: 'seller',
+      role: 'seller' as const,
       email: 'test@test.local',
       name: 'Test',
       twoFactorEnabled: false,
       twoFactorVerified: false,
     };
+    req.user = user;
+    res.locals.user = user;
+    res.locals.hasAvatar = false;
     req.isAuthenticated = (() => true) as typeof req.isAuthenticated;
     next();
   });

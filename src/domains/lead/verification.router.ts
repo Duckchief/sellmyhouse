@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import * as verificationService from './verification.service';
 import { ValidationError } from '../shared/errors';
 import { HDB_TOWNS } from '../property/property.types';
-import { leadRateLimiter } from '../../infra/http/middleware/rate-limit';
+import { leadRateLimiter, resendVerificationRateLimiter } from '../../infra/http/middleware/rate-limit';
 
 export const verificationRouter = Router();
 
@@ -105,6 +105,35 @@ verificationRouter.post(
           pageTitle: 'Submission Error',
           message: err.message,
         });
+      }
+      next(err);
+    }
+  },
+);
+
+// POST /api/leads/resend-verification — seller-initiated resend
+verificationRouter.post(
+  '/api/leads/resend-verification',
+  resendVerificationRateLimiter,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const email = req.body.email?.trim();
+      if (!email) {
+        throw new ValidationError('Email is required');
+      }
+
+      await verificationService.resendVerificationEmail(email);
+
+      if (req.headers['hx-request']) {
+        return res.send('<span class="text-green-600 text-xs">Verification email sent!</span>');
+      }
+      res.json({ success: true });
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        if (req.headers['hx-request']) {
+          return res.send(`<span class="text-red-600 text-xs">${err.message}</span>`);
+        }
+        return res.status(400).json({ error: err.message });
       }
       next(err);
     }

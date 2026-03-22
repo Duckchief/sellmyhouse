@@ -185,6 +185,24 @@ export async function updateSellingIntent(
   });
 }
 
+export async function findUnverifiedSellerByEmail(email: string) {
+  return prisma.seller.findFirst({
+    where: {
+      email,
+      emailVerified: false,
+      status: 'lead',
+    },
+    select: { id: true, email: true },
+  });
+}
+
+export async function findSellerWithEmail(sellerId: string) {
+  return prisma.seller.findUnique({
+    where: { id: sellerId },
+    select: { id: true, email: true, emailVerified: true },
+  });
+}
+
 export async function assignAgent(sellerId: string, agentId: string): Promise<void> {
   await prisma.seller.update({ where: { id: sellerId }, data: { agentId } });
 }

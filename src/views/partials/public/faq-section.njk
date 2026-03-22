@@ -55,7 +55,7 @@
         aria-controls="faq-panel-{{ loop.index }}"
       >
         <span>{{ item.q | t }}</span>
-        <svg class="faq-chevron w-5 h-5 text-[#c8553d] flex-shrink-0 ml-4 transition-transform duration-200 {{ 'rotate-180' if loop.first else '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg aria-hidden="true" class="faq-chevron w-5 h-5 text-[#c8553d] flex-shrink-0 ml-4 transition-transform duration-200 {{ 'rotate-180' if loop.first else '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
         </svg>
       </button>

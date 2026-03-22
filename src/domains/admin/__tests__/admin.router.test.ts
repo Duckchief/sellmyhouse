@@ -1015,3 +1015,21 @@ describe('POST /admin/team/:id/anonymise (default agent guard)', () => {
     expect(mockAdminService.anonymiseAgent).toHaveBeenCalled();
   });
 });
+
+describe('GET /admin/sellers', () => {
+  it('calls getAdminSellerStatusCounts and passes statusCounts to render', async () => {
+    mockAdminService.getAllSellers.mockResolvedValue({
+      sellers: [], total: 0, page: 1, limit: 25,
+    } as any);
+    mockAdminService.getTeam.mockResolvedValue([] as any);
+    mockAdminService.getAdminSellerStatusCounts.mockResolvedValue({
+      lead: 2, engaged: 1, active: 3, completed: 0, archived: 0,
+    });
+
+    const app = makeApp();
+    const res = await request(app).get('/admin/sellers');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.getAdminSellerStatusCounts).toHaveBeenCalled();
+  });
+});

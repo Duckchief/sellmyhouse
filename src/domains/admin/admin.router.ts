@@ -508,12 +508,13 @@ adminRouter.get(
         page: req.query['page'] ? parseInt(req.query['page'] as string, 10) : undefined,
         limit: req.query['limit'] ? parseInt(req.query['limit'] as string, 10) : undefined,
       };
-      const [result, team] = await Promise.all([
+      const [result, team, statusCounts] = await Promise.all([
         adminService.getAllSellers(filter),
         adminService.getTeam(),
+        adminService.getAdminSellerStatusCounts(),
       ]);
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/seller-list', { result, team });
+        return res.render('partials/admin/seller-list', { result, team, statusCounts });
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
@@ -523,6 +524,8 @@ adminRouter.get(
         hasAvatar,
         result,
         team,
+        statusCounts,
+        currentStatus: filter.status ?? '',
         currentPath: '/admin/sellers',
       });
     } catch (err) {

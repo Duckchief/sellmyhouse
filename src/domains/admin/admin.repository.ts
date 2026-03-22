@@ -219,12 +219,19 @@ export async function findAllSellers(filter: {
         createdAt: true,
         updatedAt: true,
         agent: { select: { id: true, name: true } },
+        properties: { take: 1, select: { town: true, askingPrice: true } },
       },
     }),
     prisma.seller.count({ where }),
   ]);
 
-  return { sellers, total, page: filter.page ?? 1, limit };
+  const mappedSellers = sellers.map((s) => ({
+    ...s,
+    town: s.properties[0]?.town ?? null,
+    askingPrice: s.properties[0]?.askingPrice ? Number(s.properties[0].askingPrice) : null,
+  }));
+
+  return { sellers: mappedSellers, total, page: filter.page ?? 1, limit };
 }
 
 export async function getAdminSellerStatusCounts(): Promise<Record<string, number>> {

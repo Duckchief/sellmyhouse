@@ -16,12 +16,12 @@ export const validatePropertyCreate = [
     .withMessage('Flat type is required')
     .isIn([...HDB_FLAT_TYPES])
     .withMessage('Invalid flat type'),
-  body('storeyRange').trim().notEmpty().withMessage('Storey range is required'),
+  body('level').trim().notEmpty().withMessage('Level is required'),
+  body('unitNumber').trim().notEmpty().withMessage('Unit number is required'),
   body('floorAreaSqm')
     .isFloat({ min: 30, max: 300 })
     .withMessage('Floor area must be between 30 and 300 sqm')
     .toFloat(),
-  body('flatModel').trim().notEmpty().withMessage('Flat model is required'),
   body('leaseCommenceDate')
     .isInt({ min: 1960, max: new Date().getFullYear() })
     .withMessage('Invalid lease commencement date')
@@ -47,9 +47,9 @@ export const validatePropertyUpdate = [
     .trim()
     .isIn([...HDB_FLAT_TYPES])
     .withMessage('Invalid flat type'),
-  body('storeyRange').optional().trim().notEmpty(),
+  body('level').optional().trim().notEmpty(),
+  body('unitNumber').optional().trim().notEmpty(),
   body('floorAreaSqm').optional().isFloat({ min: 30, max: 300 }).toFloat(),
-  body('flatModel').optional().trim().notEmpty(),
   body('leaseCommenceDate').optional().isInt({ min: 1960, max: new Date().getFullYear() }).toInt(),
   body('remainingLease').optional().trim(),
   body('askingPrice').optional().isFloat({ min: 0 }).toFloat(),

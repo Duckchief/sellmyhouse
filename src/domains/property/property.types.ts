@@ -49,9 +49,9 @@ export interface CreatePropertyInput {
   street: string;
   block: string;
   flatType: string;
-  storeyRange: string;
+  level: string;
+  unitNumber: string;
   floorAreaSqm: number;
-  flatModel: string;
   leaseCommenceDate: number;
   remainingLease?: string;
   askingPrice?: number;
@@ -65,9 +65,9 @@ export interface UpdatePropertyInput {
   street?: string;
   block?: string;
   flatType?: string;
-  storeyRange?: string;
+  level?: string;
+  unitNumber?: string;
   floorAreaSqm?: number;
-  flatModel?: string;
   leaseCommenceDate?: number;
   remainingLease?: string;
   askingPrice?: number;

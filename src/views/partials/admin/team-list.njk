@@ -16,6 +16,9 @@
       <tr class="hover:bg-gray-50" id="agent-row-{{ member.id }}">
         <td class="px-4 py-3 font-medium">
           <a href="/admin/team/{{ member.id }}/pipeline" class="text-indigo-600 hover:underline">{{ member.name }}</a>
+          {% if member.id === defaultAgentId %}
+            <span class="ml-2 bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs font-medium">{{ "Default" | t }}</span>
+          {% endif %}
         </td>
         <td class="px-4 py-3 text-gray-600">{{ member.email }}</td>
         <td class="px-4 py-3 text-gray-600">{{ member.ceaRegNo }}</td>
@@ -29,13 +32,12 @@
           {% endif %}
         </td>
         <td class="px-4 py-3">
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
             {% if member.isActive %}
               <button
                 class="text-xs text-amber-600 hover:underline"
                 hx-post="/admin/team/{{ member.id }}/deactivate"
-                hx-target="#action-result"
-                hx-confirm="{{ 'Deactivate this agent?' | t }}"
+                hx-target="#modal-container"
               >{{ "Deactivate" | t }}</button>
             {% else %}
               <button
@@ -49,6 +51,13 @@
               hx-get="/admin/team/{{ member.id }}/anonymise-confirm"
               hx-target="#modal-container"
             >{{ "Anonymise" | t }}</button>
+            {% if member.isActive and member.id !== defaultAgentId %}
+              <button
+                class="text-xs text-indigo-600 hover:underline"
+                hx-post="/admin/team/{{ member.id }}/set-default"
+                hx-target="#action-result"
+              >{{ "Set Default" | t }}</button>
+            {% endif %}
           </div>
         </td>
       </tr>

@@ -260,9 +260,12 @@ adminRouter.get(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const team = await adminService.getTeam();
+      const [team, defaultAgentId] = await Promise.all([
+        adminService.getTeam(),
+        adminService.getDefaultAgentId(),
+      ]);
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/team-list', { team });
+        return res.render('partials/admin/team-list', { team, defaultAgentId });
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
@@ -271,6 +274,7 @@ adminRouter.get(
         user,
         hasAvatar,
         team,
+        defaultAgentId,
         currentPath: '/admin/team',
       });
     } catch (err) {

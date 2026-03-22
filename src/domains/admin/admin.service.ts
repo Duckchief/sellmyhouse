@@ -216,6 +216,10 @@ export async function getAllSellers(filter: {
   return adminRepo.findAllSellers(filter);
 }
 
+export async function getAdminSellerStatusCounts(): Promise<Record<string, number>> {
+  return adminRepo.getAdminSellerStatusCounts();
+}
+
 export async function assignSeller(
   sellerId: string,
   newAgentId: string,

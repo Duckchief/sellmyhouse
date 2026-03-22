@@ -1078,3 +1078,16 @@ describe('clearDefaultAgent', () => {
     );
   });
 });
+
+// ─── getAdminSellerStatusCounts ──────────────────────────────
+
+describe('getAdminSellerStatusCounts', () => {
+  it('returns counts from repo', async () => {
+    const expected = { lead: 4, engaged: 2, active: 5, completed: 3, archived: 1 };
+    mockAdminRepo.getAdminSellerStatusCounts.mockResolvedValue(expected);
+
+    const result = await adminService.getAdminSellerStatusCounts();
+
+    expect(result).toEqual(expected);
+  });
+});

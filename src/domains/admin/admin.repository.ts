@@ -227,6 +227,18 @@ export async function findAllSellers(filter: {
   return { sellers, total, page: filter.page ?? 1, limit };
 }
 
+export async function getAdminSellerStatusCounts(): Promise<Record<string, number>> {
+  const rows = await prisma.seller.groupBy({
+    by: ['status'],
+    _count: { id: true },
+  });
+  const counts: Record<string, number> = { lead: 0, engaged: 0, active: 0, completed: 0, archived: 0 };
+  for (const row of rows) {
+    counts[row.status] = row._count.id;
+  }
+  return counts;
+}
+
 export async function findSellerById(
   id: string,
 ): Promise<{ id: string; agentId: string | null; name: string } | null> {

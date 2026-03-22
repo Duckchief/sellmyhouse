@@ -1,43 +1,12 @@
 {% extends "layouts/seller.njk" %}
 
-{% block title %}{{ "Financial Report" | t }} — SellMyHomeNow.sg{% endblock %}
+{% block title %}{{ "Financial Overview" | t }} — SellMyHomeNow.sg{% endblock %}
 
 {% block content %}
-{% set pageTitle = "Net Proceeds Calculator" %}
+{% set pageTitle = "Financial Overview" %}
 {% include "partials/shared/page-header.njk" %}
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-  {# ── Main area: calculator form or loaded report ─── #}
-  <div class="lg:col-span-2">
-    <div
-      id="financial-content"
-      hx-get="/seller/financial/form"
-      hx-trigger="load"
-      hx-swap="innerHTML"
-    >
-      <p class="text-xs text-gray-400 text-center py-2">{{ "Loading…" | t }}</p>
-    </div>
-  </div>
-
-  {# ── Report history sidebar ─────────────────────── #}
-  <div>
-    <h2 class="page-section-title">{{ "Report History" | t }}</h2>
-    <div class="card">
-      <div
-        id="financial-history"
-        hx-get="/seller/financial"
-        hx-trigger="load"
-        hx-target="#financial-history"
-        hx-swap="innerHTML"
-      >
-        <p class="text-xs text-gray-400 text-center py-2">{{ "Loading…" | t }}</p>
-      </div>
-    </div>
-  </div>
+<div id="financial-hub-container">
+  {% include "partials/seller/financial-hub.njk" %}
 </div>
-
-<p class="mt-6 text-xs text-gray-400">
-  {{ "This report is an indicative estimate only based on figures you provide. CPF accrued interest rates, resale levy, and legal fees may vary. It does not constitute financial, legal, or tax advice. Please verify all figures with HDB and CPF Board directly." | t }}
-</p>
 {% endblock %}

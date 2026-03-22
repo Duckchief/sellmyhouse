@@ -96,14 +96,34 @@
       {{ "✕ Reject" | t }}
     </button>
   </div>
-  {% else %}
+  {% elif record.status == 'approved' %}
   <p class="text-xs text-gray-400 text-center pt-2 mt-auto">
-    {% if record.status == 'approved' %}
-      {{ "Approved — manage featured status from the list." | t }}
-    {% elif record.status == 'rejected' %}
-      {{ "This testimonial was rejected." | t }}
-    {% endif %}
+    {{ "Approved — manage featured status from the list." | t }}
   </p>
+  {% elif record.status == 'rejected' %}
+  <div class="pt-2 mt-auto space-y-3">
+    <p class="text-xs text-gray-500">{{ "This testimonial was rejected. You can resend a new submission link to the seller." | t }}</p>
+    <form
+      hx-post="/admin/content/testimonials/{{ record.id }}/resend"
+      hx-target="#testimonial-list"
+      hx-swap="innerHTML"
+      class="space-y-2">
+      <label class="block text-xs font-medium text-gray-500 uppercase mb-1" for="resend-feedback">
+        {{ "Feedback (optional)" | t }}
+      </label>
+      <textarea
+        id="resend-feedback"
+        name="feedback"
+        rows="3"
+        placeholder="{{ 'Optional — let the seller know what to change' | t }}"
+        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"></textarea>
+      <button
+        type="submit"
+        class="btn-primary w-full">
+        {{ "Resend Submission Link" | t }}
+      </button>
+    </form>
+  </div>
   {% endif %}
 
 </div>

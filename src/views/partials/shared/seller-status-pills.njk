@@ -7,12 +7,12 @@
 #}
 
 {% set pillList = [
-  { value: '',          label: 'All',       bg: 'bg-gray-50',   ring: 'ring-gray-400',   countColor: 'text-gray-700'   },
-  { value: 'lead',      label: 'Lead',      bg: 'bg-blue-50',   ring: 'ring-blue-400',   countColor: 'text-blue-700'   },
-  { value: 'engaged',   label: 'Engaged',   bg: 'bg-yellow-50', ring: 'ring-yellow-400', countColor: 'text-yellow-700' },
-  { value: 'active',    label: 'Active',    bg: 'bg-green-50',  ring: 'ring-green-400',  countColor: 'text-green-700'  },
-  { value: 'completed', label: 'Completed', bg: 'bg-gray-50',   ring: 'ring-gray-400',   countColor: 'text-gray-700'   },
-  { value: 'archived',  label: 'Archived',  bg: 'bg-red-50',    ring: 'ring-red-400',    countColor: 'text-red-700'    }
+  { value: '',          label: 'All',       bg: 'bg-gray-50',   ring: 'ring-gray-400',   countColor: 'text-gray-700',   tooltip: 'All sellers currently in your pipeline'                                         },
+  { value: 'lead',      label: 'Lead',      bg: 'bg-blue-50',   ring: 'ring-blue-400',   countColor: 'text-blue-700',   tooltip: 'New enquiry received. Not yet contacted or assigned to an agent'             },
+  { value: 'engaged',   label: 'Engaged',   bg: 'bg-yellow-50', ring: 'ring-yellow-400', countColor: 'text-yellow-700', tooltip: 'In active consultation. EAA being prepared or signed'                        },
+  { value: 'active',    label: 'Active',    bg: 'bg-green-50',  ring: 'ring-green-400',  countColor: 'text-green-700',  tooltip: 'Property listed and transaction in progress. Viewings, offers, OTP'          },
+  { value: 'completed', label: 'Completed', bg: 'bg-gray-50',   ring: 'ring-gray-400',   countColor: 'text-gray-700',   tooltip: 'Transaction closed. Commission paid'                                         },
+  { value: 'archived',  label: 'Archived',  bg: 'bg-red-50',    ring: 'ring-red-400',    countColor: 'text-red-700',    tooltip: 'Case closed without a completed transaction, or past retention period'       }
 ] %}
 
 <div class="flex gap-3 mb-4 w-full">
@@ -26,11 +26,18 @@
     hx-target="#seller-list"
     hx-include="#{{ formId }}"
     hx-vals='{"status": "{{ p.value }}"}'
-    class="flex-1 p-6 rounded-lg text-sm font-medium border-0 cursor-pointer transition {{ p.bg }}
+    class="relative flex-1 p-6 rounded-lg text-sm font-medium border-0 cursor-pointer transition {{ p.bg }}
       {%- if currentStatus == p.value %} ring-2 ring-offset-1 {{ p.ring }}
       {%- else %} hover:ring-2 hover:ring-offset-1 hover:{{ p.ring }}
       {%- endif %}"
   >
+    <div class="absolute top-2 right-2 group">
+      <span class="w-4 h-4 rounded-full bg-white bg-opacity-60 text-gray-400 text-xs flex items-center justify-center cursor-default select-none">?</span>
+      <div class="absolute bottom-full right-0 mb-2 w-48 bg-gray-900 text-white text-xs rounded px-2 py-1.5 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+        {{ p.tooltip | t }}
+        <div class="absolute top-full right-2 border-4 border-transparent border-t-gray-900"></div>
+      </div>
+    </div>
     <p class="text-xs font-medium text-gray-500 uppercase text-center">{{ p.label | t }}</p>
     <p class="text-2xl font-bold mt-1 text-center {{ p.countColor }}">
       {%- if p.value == '' -%}

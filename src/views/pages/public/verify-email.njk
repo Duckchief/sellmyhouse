@@ -1,0 +1,95 @@
+{% extends "layouts/public.njk" %}
+
+{% block content %}
+<section class="py-16 px-4 bg-white">
+  <div class="max-w-md mx-auto">
+    <div class="text-center mb-8">
+      <div class="text-3xl mb-3">✓</div>
+      <h2 class="text-2xl font-bold mb-2">{{ "Email Verified!" | t }}</h2>
+      <p class="text-gray-500">{{ "Complete your submission by providing your property details." | t }}</p>
+    </div>
+
+    <form method="POST" action="/verify-email/details" class="border border-gray-200 rounded-xl p-8 space-y-4">
+      <input type="hidden" name="sellerId" value="{{ sellerId }}">
+      <input type="hidden" name="signature" value="{{ signature }}">
+
+      <div>
+        <label for="block" class="block text-sm font-semibold mb-1">{{ "Block Number" | t }} *</label>
+        <input type="text" id="block" name="block" required placeholder="123"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8553d] focus:border-transparent outline-none">
+      </div>
+
+      <div>
+        <label for="street" class="block text-sm font-semibold mb-1">{{ "Street Name" | t }} *</label>
+        <input type="text" id="street" name="street" required placeholder="Ang Mo Kio Ave 3"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8553d] focus:border-transparent outline-none">
+      </div>
+
+      <div>
+        <label for="town" class="block text-sm font-semibold mb-1">{{ "Town" | t }} *</label>
+        <select id="town" name="town" required
+          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8553d] focus:border-transparent outline-none bg-white">
+          <option value="">{{ "Select a town" | t }}</option>
+          {% for t in towns %}
+          <option value="{{ t }}">{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="askingPrice" class="block text-sm font-semibold mb-1">{{ "Indicative Asking Price ($)" | t }}</label>
+        <input type="number" id="askingPrice" name="askingPrice" min="0" step="1000" placeholder="500000"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8553d] focus:border-transparent outline-none">
+        <p class="text-xs text-gray-400 mt-1">{{ "Optional. This is not a formal valuation." | t }}</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold mb-2">{{ "Timeline to Sell" | t }} *</label>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 text-sm">
+            <input type="radio" name="sellingTimeline" value="one_to_three_months" required> {{ "1-3 months" | t }}
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="radio" name="sellingTimeline" value="three_to_six_months"> {{ "3-6 months" | t }}
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="radio" name="sellingTimeline" value="just_thinking"> {{ "Just thinking about it" | t }}
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label for="sellingReason" class="block text-sm font-semibold mb-1">{{ "Reason to Sell" | t }} *</label>
+        <select id="sellingReason" name="sellingReason" required
+          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8553d] focus:border-transparent outline-none bg-white">
+          <option value="">{{ "Select a reason" | t }}</option>
+          <option value="upgrading">{{ "Upgrading" | t }}</option>
+          <option value="downsizing">{{ "Downsizing" | t }}</option>
+          <option value="relocating">{{ "Relocating" | t }}</option>
+          <option value="financial">{{ "Financial reasons" | t }}</option>
+          <option value="investment">{{ "Investment" | t }}</option>
+          <option value="other">{{ "Other" | t }}</option>
+        </select>
+      </div>
+
+      <div id="other-reason-container" class="hidden">
+        <label for="sellingReasonOther" class="block text-sm font-semibold mb-1">{{ "Please specify" | t }}</label>
+        <input type="text" id="sellingReasonOther" name="sellingReasonOther" maxlength="200"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8553d] focus:border-transparent outline-none">
+      </div>
+
+      <button type="submit" class="w-full bg-[#c8553d] text-white py-3 rounded-full font-semibold hover:bg-[#b04a35] transition-colors">{{ "Submit" | t }}</button>
+    </form>
+  </div>
+</section>
+
+<script nonce="{{ cspNonce }}">
+(function() {
+  var sel = document.getElementById('sellingReason');
+  var container = document.getElementById('other-reason-container');
+  sel.addEventListener('change', function() {
+    container.classList.toggle('hidden', sel.value !== 'other');
+  });
+})();
+</script>
+{% endblock %}

@@ -18,6 +18,7 @@ import { profileRouter } from '../../domains/profile/profile.router';
 import { notificationRouter } from '../../domains/notification/notification.router';
 import { publicRouter } from '../../domains/public/public.router';
 import { leadRouter } from '../../domains/lead/lead.router';
+import { verificationRouter } from '../../domains/lead/verification.router';
 import { sellerRouter } from '../../domains/seller/seller.router';
 import { propertyRouter } from '../../domains/property/property.router';
 import { financialRouter } from '../../domains/property/financial.router';
@@ -190,6 +191,7 @@ export function createApp() {
   app.use(publicRouter);
   app.use(testimonialRouter);
   app.use(leadRouter);
+  app.use(verificationRouter);
   app.use(authRouter);
   app.use(agentSettingsRouter);
   app.use(profileRouter); // ← profile routes

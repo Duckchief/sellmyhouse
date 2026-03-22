@@ -93,6 +93,8 @@ export interface SellerDetail {
   name: string;
   email: string | null;
   phone: string;
+  countryCode: string;
+  nationalNumber: string;
   emailVerified: boolean;
   sellingTimeline: string | null;
   sellingReason: string | null;

@@ -168,9 +168,9 @@ sellerRouter.post(
           street,
           block,
           flatType,
-          storeyRange,
+          level,
+          unitNumber,
           floorAreaSqm,
-          flatModel,
           leaseCommenceDate,
         } = req.body;
 
@@ -179,9 +179,9 @@ sellerRouter.post(
           !street ||
           !block ||
           !flatType ||
-          !storeyRange ||
+          !level ||
+          !unitNumber ||
           !floorAreaSqm ||
-          !flatModel ||
           !leaseCommenceDate
         ) {
           return res.status(400).render('partials/seller/onboarding-step-2', {
@@ -198,9 +198,9 @@ sellerRouter.post(
             street,
             block,
             flatType,
-            storeyRange,
+            level,
+            unitNumber,
             floorAreaSqm: parseFloat(floorAreaSqm),
-            flatModel,
             leaseCommenceDate: parseInt(leaseCommenceDate, 10),
           });
         } else {
@@ -210,9 +210,9 @@ sellerRouter.post(
             street,
             block,
             flatType,
-            storeyRange,
+            level,
+            unitNumber,
             floorAreaSqm: parseFloat(floorAreaSqm),
-            flatModel,
             leaseCommenceDate: parseInt(leaseCommenceDate, 10),
           });
         }

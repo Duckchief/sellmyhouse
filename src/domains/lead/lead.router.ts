@@ -22,6 +22,7 @@ leadRouter.post('/api/leads', leadRateLimiter, async (req, res, next) => {
 
     const input = {
       name: req.body.name ?? '',
+      email: req.body.email ?? '',
       countryCode,
       nationalNumber,
       phone,

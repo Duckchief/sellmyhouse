@@ -42,6 +42,7 @@ export const SETTING_KEYS = {
   PLATFORM_NAME: 'platform_name',
   SUPPORT_EMAIL: 'support_email',
   SUPPORT_PHONE: 'support_phone',
+  DEFAULT_AGENT_ID: 'default_agent_id',
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

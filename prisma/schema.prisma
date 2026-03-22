@@ -470,9 +470,9 @@ model Property {
   street            String
   block             String
   flatType          String         @map("flat_type")
-  storeyRange       String         @map("storey_range")
+  level             String         @map("level")
+  unitNumber        String         @map("unit_number")
   floorAreaSqm      Float          @map("floor_area_sqm")
-  flatModel         String         @map("flat_model")
   leaseCommenceDate Int            @map("lease_commence_date")
   remainingLease    String?        @map("remaining_lease")
   askingPrice       Decimal?       @map("asking_price") @db.Decimal(12, 2)

@@ -684,6 +684,46 @@ describe('AuthService', () => {
     });
   });
 
+  describe('sendAccountSetupEmail', () => {
+    it('generates token, stores hash, and sends setup email', async () => {
+      authRepo.setSellerPasswordResetToken = jest.fn().mockResolvedValue(undefined);
+      systemMailer.sendSystemEmail = jest.fn().mockResolvedValue(undefined);
+
+      await authService.sendAccountSetupEmail('seller-1', 'Peanuts Malone', 'peanuts@example.com');
+
+      expect(authRepo.setSellerPasswordResetToken).toHaveBeenCalledWith(
+        'seller-1',
+        expect.any(String), // hashed token
+        expect.any(Date),   // expiry
+      );
+      expect(systemMailer.sendSystemEmail).toHaveBeenCalledWith(
+        'peanuts@example.com',
+        'Set up your SellMyHomeNow account',
+        expect.stringContaining('/auth/setup-account?token='),
+      );
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'lead.account_setup_sent',
+          entityId: 'seller-1',
+        }),
+      );
+    });
+
+    it('sets expiry to 24 hours from now', async () => {
+      authRepo.setSellerPasswordResetToken = jest.fn().mockResolvedValue(undefined);
+      systemMailer.sendSystemEmail = jest.fn().mockResolvedValue(undefined);
+
+      const before = Date.now();
+      await authService.sendAccountSetupEmail('seller-1', 'Test', 'test@example.com');
+      const after = Date.now();
+
+      const expiry = authRepo.setSellerPasswordResetToken.mock.calls[0][2] as Date;
+      const expiryMs = expiry.getTime();
+      expect(expiryMs).toBeGreaterThanOrEqual(before + 24 * 60 * 60 * 1000 - 5000);
+      expect(expiryMs).toBeLessThanOrEqual(after + 24 * 60 * 60 * 1000 + 5000);
+    });
+  });
+
   describe('registerSeller — sends verification email', () => {
     it('calls sendVerificationEmail after creating seller', async () => {
       authRepo.findSellerByEmail = jest.fn().mockResolvedValue(null);

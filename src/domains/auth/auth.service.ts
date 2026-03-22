@@ -481,6 +481,39 @@ export async function resendVerificationEmail(sellerId: string): Promise<void> {
   });
 }
 
+export async function sendAccountSetupEmail(
+  sellerId: string,
+  name: string,
+  email: string,
+): Promise<void> {
+  const rawToken = crypto.randomBytes(64).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+  await authRepo.setSellerPasswordResetToken(sellerId, hashedToken, expiry);
+
+  const appUrl = process.env.APP_URL || 'https://sellmyhomenow.sg';
+  const setupUrl = `${appUrl}/auth/setup-account?token=${rawToken}`;
+
+  await sendSystemEmail(
+    email,
+    'Set up your SellMyHomeNow account',
+    `<p>Hi ${name},</p>
+<p>Your agent has invited you to set up your SellMyHomeNow account. Click the link below to create your password and access your dashboard:</p>
+<p><a href="${setupUrl}">${setupUrl}</a></p>
+<p>This link expires in 24 hours.</p>
+<p>If you did not expect this email, please ignore it.</p>`,
+  );
+
+  await auditService.log({
+    action: 'lead.account_setup_sent',
+    entityType: 'seller',
+    entityId: sellerId,
+    details: { email: maskEmail(email) },
+    actorType: 'system' as const,
+  });
+}
+
 // ─── Helpers ───────────────────────────────────────────────
 
 async function getRecordForRole(userId: string, role: UserRole) {

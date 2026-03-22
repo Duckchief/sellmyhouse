@@ -929,11 +929,89 @@ describe('POST /admin/team/:id/deactivate (default agent guard)', () => {
     const app = makeApp();
     const res = await request(app)
       .post('/admin/team/agent-1/deactivate')
-      .send('newDefaultAgentId=agent-2')
+      .send('newDefaultAgentId=00000000-0000-0000-0000-000000000002')
       .set('hx-request', 'true');
 
     expect(res.status).toBe(200);
-    expect(mockAdminService.setDefaultAgent).toHaveBeenCalledWith('agent-2', expect.any(String));
+    expect(mockAdminService.setDefaultAgent).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-000000000002',
+      expect.any(String),
+    );
     expect(mockAdminService.deactivateAgent).toHaveBeenCalled();
+  });
+});
+
+describe('POST /admin/team/:id/anonymise (default agent guard)', () => {
+  it('returns modal partial when agent is default and no replacement provided', async () => {
+    mockAdminService.getDefaultAgentId.mockResolvedValue('agent-1');
+    mockAdminService.getTeam.mockResolvedValue([
+      { id: 'agent-2', name: 'Bob', isActive: true } as any,
+    ]);
+
+    // Use a render stub that echoes the view name so we can assert on it
+    const appWithViewName = express();
+    appWithViewName.use(express.urlencoded({ extended: true }));
+    appWithViewName.use((req, _res, next) => {
+      Object.assign(req, {
+        isAuthenticated: () => true,
+        user: { id: 'admin-1', role: 'admin', twoFactorEnabled: false, twoFactorVerified: true },
+      });
+      next();
+    });
+    appWithViewName.use((_req, res, next) => {
+      res.render = ((view: string, _options?: object) => {
+        res.status(200).send(view);
+      }) as typeof res.render;
+      next();
+    });
+    appWithViewName.use(adminRouter);
+    appWithViewName.use(
+      (err: Error & { statusCode?: number }, _req: Request, res: Response, _next: NextFunction) => {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      },
+    );
+
+    const res = await request(appWithViewName)
+      .post('/admin/team/agent-1/anonymise')
+      .set('hx-request', 'true');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.anonymiseAgent).not.toHaveBeenCalled();
+    expect(res.text).toContain('reassign-default-modal');
+  });
+
+  it('clears default and anonymises when newDefaultAgentId=unassigned', async () => {
+    mockAdminService.getDefaultAgentId.mockResolvedValue('agent-1');
+    mockAdminService.clearDefaultAgent.mockResolvedValue(undefined);
+    mockAdminService.anonymiseAgent.mockResolvedValue(undefined);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/team/agent-1/anonymise')
+      .send('newDefaultAgentId=unassigned')
+      .set('hx-request', 'true');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.clearDefaultAgent).toHaveBeenCalled();
+    expect(mockAdminService.anonymiseAgent).toHaveBeenCalled();
+  });
+
+  it('sets new default and anonymises when newDefaultAgentId is an agent id', async () => {
+    mockAdminService.getDefaultAgentId.mockResolvedValue('agent-1');
+    mockAdminService.setDefaultAgent.mockResolvedValue(undefined);
+    mockAdminService.anonymiseAgent.mockResolvedValue(undefined);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/team/agent-1/anonymise')
+      .send('newDefaultAgentId=00000000-0000-0000-0000-000000000002')
+      .set('hx-request', 'true');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.setDefaultAgent).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-000000000002',
+      expect.any(String),
+    );
+    expect(mockAdminService.anonymiseAgent).toHaveBeenCalled();
   });
 });

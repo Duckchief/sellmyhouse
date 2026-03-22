@@ -11,7 +11,7 @@ import {
 import * as contentService from '@/domains/content/content.service';
 import * as reviewService from '@/domains/review/review.service';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
-import { NotFoundError, ConflictError } from '@/domains/shared/errors';
+import { NotFoundError, ConflictError, ValidationError } from '@/domains/shared/errors';
 import { logger } from '@/infra/logger';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import { getHasAvatar } from '../profile/profile.service';
@@ -338,6 +338,11 @@ adminRouter.post(
         if (newDefaultAgentId === 'unassigned') {
           await adminService.clearDefaultAgent(user.id);
         } else {
+          // Basic UUID format check before hitting the service
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (!uuidRegex.test(newDefaultAgentId)) {
+            throw new ValidationError('Invalid agent ID format');
+          }
           await adminService.setDefaultAgent(newDefaultAgentId, user.id);
         }
       }
@@ -421,6 +426,11 @@ adminRouter.post(
         if (newDefaultAgentId === 'unassigned') {
           await adminService.clearDefaultAgent(user.id);
         } else {
+          // Basic UUID format check before hitting the service
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (!uuidRegex.test(newDefaultAgentId)) {
+            throw new ValidationError('Invalid agent ID format');
+          }
           await adminService.setDefaultAgent(newDefaultAgentId, user.id);
         }
       }

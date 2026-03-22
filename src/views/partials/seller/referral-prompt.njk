@@ -1,0 +1,15 @@
+<div id="marketing-prompt-card" class="card mb-6">
+  <h2 class="font-semibold mb-1">{{ "Refer a friend" | t }}</h2>
+  <p class="text-sm text-gray-600 mb-4">
+    {{ "Know someone selling their HDB? Share the love with your friend with your referral link. Opt in to hear about market updates too." | t }}
+  </p>
+  <button
+    hx-post="/seller/compliance/consent/grant"
+    hx-vals='{"type": "marketing", "channel": "web"}'
+    hx-target="#marketing-prompt-card"
+    hx-swap="outerHTML"
+    class="btn-primary text-sm"
+  >
+    {{ "Yes, keep me informed" | t }}
+  </button>
+</div>

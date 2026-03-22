@@ -49,6 +49,11 @@
   <div class="lg:col-span-2">
     {% include "partials/seller/dashboard-overview.njk" %}
 
+    {# Marketing consent prompt — shown 14+ days after signup if not yet opted in #}
+    {% if overview.showMarketingPrompt %}
+      {% include "partials/seller/referral-prompt.njk" %}
+    {% endif %}
+
     {# Quick stats - auto-refresh #}
     <div id="dashboard-stats"
          hx-get="/seller/dashboard/stats"

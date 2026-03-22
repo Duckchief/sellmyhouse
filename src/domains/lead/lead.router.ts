@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { validateLeadInput } from './lead.validator';
 import { submitLead } from './lead.service';
 import { leadRateLimiter } from '../../infra/http/middleware/rate-limit';
-import { ValidationError } from '../shared/errors';
+import { ValidationError, ConflictError } from '../shared/errors';
 import type { LeadSource } from './lead.types';
 import { linkReferralToLead } from '../content/content.service';
 
@@ -65,6 +65,12 @@ leadRouter.post('/api/leads', leadRateLimiter, async (req, res, next) => {
     }
     return res.status(201).json({ success: true });
   } catch (err) {
+    if (err instanceof ConflictError) {
+      if (req.headers['hx-request']) {
+        return res.status(200).render('partials/public/lead-already-registered');
+      }
+      return res.status(200).json({ success: true, alreadyRegistered: true });
+    }
     next(err);
   }
 });

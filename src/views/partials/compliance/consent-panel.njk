@@ -1,66 +1,68 @@
 {# src/views/partials/compliance/consent-panel.njk #}
-<h2 class="text-lg font-semibold text-gray-800 mb-4">{{ "Consent Preferences" | t }}</h2>
-<div class="space-y-4">
-  <div class="flex items-center justify-between p-4 rounded-lg bg-gray-50">
-    <div>
-      <p class="font-medium text-sm text-gray-900">{{ "Service Communications" | t }}</p>
-      <p class="text-xs text-gray-500 mt-1">{{ "Transaction updates, appointment reminders, compliance notices." | t }}</p>
-    </div>
-    <span class="px-3 py-1 text-xs font-medium rounded-full
-      {% if consentService %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-      {% if consentService %}{{ "Active" | t }}{% else %}{{ "Withdrawn" | t }}{% endif %}
-    </span>
-  </div>
-
-  <div class="flex items-center justify-between p-4 rounded-lg bg-gray-50">
-    <div>
-      <p class="font-medium text-sm text-gray-900">{{ "Marketing Communications" | t }}</p>
-      <p class="text-xs text-gray-500 mt-1">{{ "Market updates, listings, referral programme." | t }}</p>
-    </div>
-    <div class="flex items-center gap-3">
+<div id="consent-panel">
+  <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ "Consent Preferences" | t }}</h2>
+  <div class="space-y-4">
+    <div class="flex items-center justify-between p-4 rounded-lg bg-gray-50">
+      <div>
+        <p class="font-medium text-sm text-gray-900">{{ "Service Communications" | t }}</p>
+        <p class="text-xs text-gray-500 mt-1">{{ "Transaction updates, appointment reminders, compliance notices." | t }}</p>
+      </div>
       <span class="px-3 py-1 text-xs font-medium rounded-full
-        {% if consentMarketing %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-600{% endif %}">
-        {% if consentMarketing %}{{ "Active" | t }}{% else %}{{ "Not given" | t }}{% endif %}
+        {% if consentService %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+        {% if consentService %}{{ "Active" | t }}{% else %}{{ "Withdrawn" | t }}{% endif %}
       </span>
-      {% if consentMarketing %}
-      <button
-        hx-post="/seller/compliance/consent/withdraw"
-        hx-vals='{"type": "marketing", "channel": "web"}'
-        hx-target="#consent-panel"
-        hx-swap="outerHTML"
-        class="text-xs text-red-600 hover:underline">
-        {{ "Withdraw" | t }}
-      </button>
-      {% else %}
-      <button
-        hx-post="/seller/compliance/consent/grant"
-        hx-vals='{"type": "marketing", "channel": "web"}'
-        hx-target="#consent-panel"
-        hx-swap="outerHTML"
-        class="text-xs text-blue-600 hover:underline">
-        {{ "Give consent" | t }}
-      </button>
-      {% endif %}
+    </div>
+
+    <div class="flex items-center justify-between p-4 rounded-lg bg-gray-50">
+      <div>
+        <p class="font-medium text-sm text-gray-900">{{ "Marketing Communications" | t }}</p>
+        <p class="text-xs text-gray-500 mt-1">{{ "Market updates, listings, referral programme." | t }}</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="px-3 py-1 text-xs font-medium rounded-full
+          {% if consentMarketing %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-600{% endif %}">
+          {% if consentMarketing %}{{ "Active" | t }}{% else %}{{ "Not given" | t }}{% endif %}
+        </span>
+        {% if consentMarketing %}
+        <button
+          hx-post="/seller/compliance/consent/withdraw"
+          hx-vals='{"type": "marketing", "channel": "web"}'
+          hx-target="#consent-panel"
+          hx-swap="outerHTML"
+          class="text-xs text-red-600 hover:underline">
+          {{ "Withdraw" | t }}
+        </button>
+        {% else %}
+        <button
+          hx-post="/seller/compliance/consent/grant"
+          hx-vals='{"type": "marketing", "channel": "web"}'
+          hx-target="#consent-panel"
+          hx-swap="outerHTML"
+          class="text-xs text-blue-600 hover:underline">
+          {{ "Give consent" | t }}
+        </button>
+        {% endif %}
+      </div>
     </div>
   </div>
-</div>
 
-{% if consentHistory | length > 0 %}
-<details class="mt-4">
-  <summary class="text-sm text-gray-500 cursor-pointer hover:text-gray-700">{{ "View consent history" | t }}</summary>
-  <ul class="mt-2 space-y-1">
-    {% for record in consentHistory %}
-    <li class="text-xs text-gray-500">
-      {% if record.consentWithdrawnAt %}
-        {{ record.consentWithdrawnAt | date("DD MMM YYYY") }}: {{ "Withdrew" | t }}
-        {% if record.purposeService == false %}{{ "service" | t }}{% endif %}
-        {% if record.purposeMarketing == false %}{{ "marketing" | t }}{% endif %}
-        {{ "consent" | t }}
-      {% else %}
-        {{ record.consentGivenAt | date("DD MMM YYYY") }}: {{ "Gave consent" | t }}
-      {% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-</details>
-{% endif %}
+  {% if consentHistory | length > 0 %}
+  <details class="mt-4">
+    <summary class="text-sm text-gray-500 cursor-pointer hover:text-gray-700">{{ "View consent history" | t }}</summary>
+    <ul class="mt-2 space-y-1">
+      {% for record in consentHistory %}
+      <li class="text-xs text-gray-500">
+        {% if record.consentWithdrawnAt %}
+          {{ record.consentWithdrawnAt | date("DD MMM YYYY") }}: {{ "Withdrew" | t }}
+          {% if record.purposeService == false %}{{ "service" | t }}{% endif %}
+          {% if record.purposeMarketing == false %}{{ "marketing" | t }}{% endif %}
+          {{ "consent" | t }}
+        {% else %}
+          {{ record.consentGivenAt | date("DD MMM YYYY") }}: {{ "Gave consent" | t }}
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</div>

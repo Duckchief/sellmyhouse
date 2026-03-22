@@ -40,9 +40,9 @@ export async function submitLeadDetails(input: LeadDetailsInput): Promise<void> 
     street: input.street,
     town: input.town,
     flatType: 'Unknown',
-    storeyRange: 'Unknown',
+    level: '',
+    unitNumber: '',
     floorAreaSqm: 0,
-    flatModel: 'Unknown',
     leaseCommenceDate: 0,
     askingPrice: input.askingPrice,
   });

@@ -217,6 +217,18 @@ sellerRouter.post(
         }
       }
 
+      if (step === 4) {
+        const { marketingConsent } = req.body as { marketingConsent?: string };
+        if (marketingConsent === 'on') {
+          await complianceService.grantMarketingConsent({
+            sellerId,
+            channel: 'web',
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'] as string | undefined,
+          });
+        }
+      }
+
       if (step === 5) {
         await complianceService.recordHuttonsTransferConsent(sellerId);
       }

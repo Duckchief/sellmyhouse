@@ -23,14 +23,32 @@
     <p class="text-sm text-gray-500">{{ "You can upload photos now or later from your dashboard." | t }}</p>
   </div>
 
-  <div class="mt-6">
+  <form
+    hx-post="/seller/onboarding/step/4"
+    hx-target="#onboarding-step"
+    hx-swap="innerHTML"
+    class="mt-6 space-y-4"
+  >
+    <label class="flex items-start gap-3 cursor-pointer">
+      <input
+        type="checkbox"
+        name="marketingConsent"
+        value="on"
+        class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+      >
+      <span class="text-sm text-gray-700">
+        {{ "Keep me informed about market updates and the referral programme" | t }}
+        <span class="block text-xs text-gray-400 mt-0.5">
+          {{ "We'll send occasional updates. You can opt out any time in Settings." | t }}
+        </span>
+      </span>
+    </label>
+
     <button
-      hx-post="/seller/onboarding/step/4"
-      hx-target="#onboarding-step"
-      hx-swap="innerHTML"
+      type="submit"
       class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition"
     >
-      {{ "I'll take photos — Continue" | t }}
+      {{ "Continue" | t }}
     </button>
-  </div>
+  </form>
 </div>

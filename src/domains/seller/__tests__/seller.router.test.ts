@@ -8,6 +8,7 @@ jest.mock('../seller.service');
 jest.mock('../../property/property.service');
 jest.mock('../../compliance/compliance.service', () => ({
   recordHuttonsTransferConsent: jest.fn().mockResolvedValue(undefined),
+  grantMarketingConsent: jest.fn().mockResolvedValue({ consentRecordId: 'r1' }),
 }));
 jest.mock('../../notification/notification.repository', () => ({
   countUnreadForRecipient: jest.fn().mockResolvedValue(0),
@@ -233,6 +234,30 @@ describe('seller.router', () => {
 
       expect(res.status).toBe(200);
       expect(mockedComplianceService.recordHuttonsTransferConsent).toHaveBeenCalledWith('seller-1');
+    });
+
+    it('grants marketing consent when marketingConsent checkbox is on for step 4', async () => {
+      mockedService.completeOnboardingStep.mockResolvedValue({ onboardingStep: 4 });
+
+      await request(app)
+        .post('/seller/onboarding/step/4')
+        .send('marketingConsent=on')
+        .set('HX-Request', 'true');
+
+      expect(mockedComplianceService.grantMarketingConsent).toHaveBeenCalledWith(
+        expect.objectContaining({ channel: 'web' }),
+      );
+    });
+
+    it('does not call grantMarketingConsent when checkbox is absent on step 4', async () => {
+      mockedService.completeOnboardingStep.mockResolvedValue({ onboardingStep: 4 });
+
+      await request(app)
+        .post('/seller/onboarding/step/4')
+        .send('')
+        .set('HX-Request', 'true');
+
+      expect(mockedComplianceService.grantMarketingConsent).not.toHaveBeenCalled();
     });
   });
 

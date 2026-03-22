@@ -13,6 +13,7 @@ import { configurePassport } from './middleware/passport';
 import { apiRateLimiter, globalRateLimiter } from './middleware/rate-limit';
 import { healthRouter } from './health.router';
 import { authRouter } from '../../domains/auth/auth.router';
+import { setupAccountRouter } from '../../domains/auth/auth.setup-account.router';
 import { agentSettingsRouter } from '../../domains/agent-settings/agent-settings.router';
 import { profileRouter } from '../../domains/profile/profile.router';
 import { notificationRouter } from '../../domains/notification/notification.router';
@@ -193,6 +194,7 @@ export function createApp() {
   app.use(leadRouter);
   app.use(verificationRouter);
   app.use(authRouter);
+  app.use(setupAccountRouter);
   app.use(agentSettingsRouter);
   app.use(profileRouter); // ← profile routes
   app.use('/api', apiRateLimiter);

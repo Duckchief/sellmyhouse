@@ -1,0 +1,66 @@
+{#
+  Variables required:
+    statusCounts   — Record<string, number>  e.g. { lead: 3, engaged: 1, active: 5, ... }
+    currentStatus  — string                  the currently active status value, or '' for All
+    hxEndpoint     — string                  e.g. '/agent/sellers' or '/admin/sellers'
+    formId         — string                  id of the search form (for hx-include)
+#}
+
+{% set pillList = [
+  { value: '',          label: 'All',       bg: 'bg-gray-50',   ring: 'ring-gray-400',   countColor: 'text-gray-700'   },
+  { value: 'lead',      label: 'Lead',      bg: 'bg-blue-50',   ring: 'ring-blue-400',   countColor: 'text-blue-700'   },
+  { value: 'engaged',   label: 'Engaged',   bg: 'bg-yellow-50', ring: 'ring-yellow-400', countColor: 'text-yellow-700' },
+  { value: 'active',    label: 'Active',    bg: 'bg-green-50',  ring: 'ring-green-400',  countColor: 'text-green-700'  },
+  { value: 'completed', label: 'Completed', bg: 'bg-gray-50',   ring: 'ring-gray-400',   countColor: 'text-gray-700'   },
+  { value: 'archived',  label: 'Archived',  bg: 'bg-red-50',    ring: 'ring-red-400',    countColor: 'text-red-700'    }
+] %}
+
+<div class="flex flex-wrap gap-3 mb-4">
+  {% for p in pillList %}
+  <button
+    type="button"
+    data-status-pill
+    data-value="{{ p.value }}"
+    data-ring="{{ p.ring }}"
+    hx-get="{{ hxEndpoint }}"
+    hx-target="#seller-list"
+    hx-include="#{{ formId }}"
+    hx-vals='{"status": "{{ p.value }}"}'
+    class="px-4 py-2 rounded-lg text-sm font-medium border-0 cursor-pointer transition {{ p.bg }}
+      {%- if currentStatus == p.value %} ring-2 ring-offset-1 {{ p.ring }}
+      {%- else %} hover:ring-2 hover:ring-offset-1 hover:{{ p.ring }}
+      {%- endif %}"
+  >
+    <p class="text-xs font-medium text-gray-500 uppercase text-center">{{ p.label | t }}</p>
+    <p class="text-2xl font-bold text-center {{ p.countColor }}">
+      {%- if p.value == '' -%}
+        {{ (statusCounts.lead or 0) + (statusCounts.engaged or 0) + (statusCounts.active or 0) + (statusCounts.completed or 0) + (statusCounts.archived or 0) }}
+      {%- else -%}
+        {{ statusCounts[p.value] or 0 }}
+      {%- endif -%}
+    </p>
+  </button>
+  {% endfor %}
+</div>
+
+<script nonce="{{ cspNonce }}">
+  (function () {
+    var pills = document.querySelectorAll('[data-status-pill]');
+    var statusInput = document.getElementById('status-input');
+
+    pills.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        // Update active visual state
+        pills.forEach(function (b) {
+          b.classList.remove('ring-2', 'ring-offset-1', b.dataset.ring);
+          b.classList.add('hover:ring-2', 'hover:ring-offset-1', 'hover:' + b.dataset.ring);
+        });
+        this.classList.remove('hover:ring-2', 'hover:ring-offset-1', 'hover:' + this.dataset.ring);
+        this.classList.add('ring-2', 'ring-offset-1', this.dataset.ring);
+
+        // Keep hidden status input in sync so Search button preserves selection
+        if (statusInput) statusInput.value = this.dataset.value;
+      });
+    });
+  })();
+</script>

@@ -15,7 +15,7 @@
   { value: 'archived',  label: 'Archived',  bg: 'bg-red-50',    ring: 'ring-red-400',    countColor: 'text-red-700'    }
 ] %}
 
-<div class="flex flex-wrap gap-3 mb-4">
+<div class="flex gap-3 mb-4 w-full">
   {% for p in pillList %}
   <button
     type="button"
@@ -26,7 +26,7 @@
     hx-target="#seller-list"
     hx-include="#{{ formId }}"
     hx-vals='{"status": "{{ p.value }}"}'
-    class="px-4 py-2 rounded-lg text-sm font-medium border-0 cursor-pointer transition {{ p.bg }}
+    class="flex-1 px-4 py-2 rounded-lg text-sm font-medium border-0 cursor-pointer transition {{ p.bg }}
       {%- if currentStatus == p.value %} ring-2 ring-offset-1 {{ p.ring }}
       {%- else %} hover:ring-2 hover:ring-offset-1 hover:{{ p.ring }}
       {%- endif %}"

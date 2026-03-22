@@ -1,0 +1,21 @@
+{# Inline edit form for sale proceeds on the financial hub page.
+   Expects: saleProceeds (or null), commission, askingPrice (or null)
+#}
+<div class="bg-white rounded-lg shadow p-6">
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="text-lg font-semibold text-gray-900">{{ "Edit Your Estimate" | t }}</h3>
+    <button type="button"
+      hx-get="/seller/financial"
+      hx-target="#estimate-section"
+      hx-swap="innerHTML"
+      hx-select="#estimate-section > *"
+      class="text-sm text-gray-500 hover:text-gray-700">
+      {{ "Cancel" | t }}
+    </button>
+  </div>
+
+  {% set postTarget = "/seller/financial/estimate" %}
+  {% set swapTarget = "#estimate-section" %}
+  {% set submitLabel = "Save Estimate" %}
+  {% include "partials/seller/sale-proceeds-form.njk" %}
+</div>

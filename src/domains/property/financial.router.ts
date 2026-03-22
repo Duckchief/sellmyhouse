@@ -11,6 +11,8 @@ import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import { logger } from '@/infra/logger';
 import * as auditService from '@/domains/shared/audit.service';
 import { ForbiddenError } from '@/domains/shared/errors';
+import * as settingsService from '@/domains/shared/settings.service';
+import * as propertyService from '@/domains/property/property.service';
 
 export const financialRouter = Router();
 
@@ -72,15 +74,96 @@ financialRouter.post(
 financialRouter.get(
   '/seller/financial',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const reports = await financialService.getReportsForSeller(user.id);
+      const [saleProceeds, reports, commission] = await Promise.all([
+        sellerService.getSaleProceeds(user.id),
+        financialService.getApprovedReportsForSeller(user.id),
+        settingsService.getCommission(),
+      ]);
 
       if (req.headers['hx-request']) {
-        return res.render('partials/seller/financial-list', { reports });
+        return res.render('partials/seller/financial-hub', {
+          saleProceeds,
+          reports,
+          commission,
+        });
       }
-      return res.render('pages/seller/financial');
+      return res.render('pages/seller/financial', {
+        saleProceeds,
+        reports,
+        commission,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+financialRouter.get(
+  '/seller/financial/estimate/edit',
+  requireAuth(),
+  requireRole('seller'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const [saleProceeds, commission] = await Promise.all([
+        sellerService.getSaleProceeds(user.id),
+        settingsService.getCommission(),
+      ]);
+      const property = await propertyService.getPropertyForSeller(user.id);
+
+      res.render('partials/seller/financial-estimate-edit', {
+        saleProceeds,
+        commission,
+        askingPrice: property?.askingPrice ? Number(property.askingPrice) : null,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+financialRouter.post(
+  '/seller/financial/estimate',
+  requireAuth(),
+  requireRole('seller'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const { sellingPrice, outstandingLoan, cpfSeller1, cpfSeller2, cpfSeller3, cpfSeller4, resaleLevy, otherDeductions } = req.body;
+
+      if (!sellingPrice || !outstandingLoan || !cpfSeller1) {
+        const commission = await settingsService.getCommission();
+        return res.status(400).render('partials/seller/financial-estimate-edit', {
+          error: 'Selling price, outstanding loan, and CPF (Seller 1) are required.',
+          commission,
+        });
+      }
+
+      const commission = await settingsService.getCommission();
+
+      await sellerService.saveSaleProceeds({
+        sellerId: user.id,
+        sellingPrice: parseFloat(sellingPrice),
+        outstandingLoan: parseFloat(outstandingLoan),
+        cpfSeller1: parseFloat(cpfSeller1),
+        cpfSeller2: cpfSeller2 ? parseFloat(cpfSeller2) : undefined,
+        cpfSeller3: cpfSeller3 ? parseFloat(cpfSeller3) : undefined,
+        cpfSeller4: cpfSeller4 ? parseFloat(cpfSeller4) : undefined,
+        resaleLevy: parseFloat(resaleLevy || '0'),
+        otherDeductions: parseFloat(otherDeductions || '0'),
+        commission: commission.total,
+      });
+
+      const saleProceeds = await sellerService.getSaleProceeds(user.id);
+
+      res.render('partials/seller/estimate-summary', {
+        saleProceeds,
+        commission,
+      });
     } catch (err) {
       next(err);
     }

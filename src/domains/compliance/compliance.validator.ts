@@ -12,6 +12,16 @@ export const withdrawConsentValidator = [
     .withMessage('Invalid withdrawal channel'),
 ];
 
+export const grantConsentValidator = [
+  body('type')
+    .isIn(['marketing'])
+    .withMessage('Only marketing consent can be granted via this endpoint'),
+  body('channel')
+    .optional()
+    .isIn(['web', 'email', 'whatsapp', 'phone', 'in_person'])
+    .withMessage('Invalid channel'),
+];
+
 export const createCorrectionValidator = [
   body('fieldName')
     .isString()

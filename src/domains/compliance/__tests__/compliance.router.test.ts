@@ -644,6 +644,61 @@ describe('DELETE /agent/cdd-records/:cddRecordId/documents/:documentId', () => {
   });
 });
 
+describe('POST /seller/compliance/consent/grant', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns 200 and calls grantMarketingConsent on valid HTMX request', async () => {
+    mockService.grantMarketingConsent.mockResolvedValue({
+      consentRecordId: 'record-1',
+    });
+    mockService.getMyData.mockResolvedValue({
+      seller: { consentService: true, consentMarketing: true },
+      consentHistory: [],
+    } as any);
+
+    const app = createSellerApp();
+    const res = await request(app)
+      .post('/seller/compliance/consent/grant')
+      .set('HX-Request', 'true')
+      .send('type=marketing&channel=web');
+
+    expect(res.status).toBe(200);
+    expect(mockService.grantMarketingConsent).toHaveBeenCalledWith(
+      expect.objectContaining({ channel: 'web' }),
+    );
+  });
+
+  it('returns 400 for invalid type', async () => {
+    const app = createSellerApp();
+    const res = await request(app)
+      .post('/seller/compliance/consent/grant')
+      .set('HX-Request', 'true')
+      .send('type=invalid&channel=web');
+
+    expect(res.status).toBe(400);
+  });
+
+  it('redirects to /seller/my-data on non-HTMX request', async () => {
+    mockService.grantMarketingConsent.mockResolvedValue({
+      consentRecordId: 'record-1',
+    });
+    mockService.getMyData.mockResolvedValue({
+      seller: { consentService: true, consentMarketing: true },
+      consentHistory: [],
+    } as any);
+
+    const app = createSellerApp();
+    const res = await request(app)
+      .post('/seller/compliance/consent/grant')
+      .send('type=marketing&channel=web');
+
+    expect(res.status).toBe(302);
+    expect(res.headers['location']).toBe('/seller/my-data');
+  });
+});
+
 describe('POST /agent/cdd-records/:cddRecordId/documents/:documentId/download', () => {
   beforeEach(() => jest.clearAllMocks());
 

@@ -10,6 +10,7 @@ import * as complianceService from './compliance.service';
 import * as auditService from '../shared/audit.service';
 import {
   withdrawConsentValidator,
+  grantConsentValidator,
   createCorrectionValidator,
   createCddValidator,
   updateCddStatusValidator,
@@ -114,6 +115,12 @@ complianceRouter.post(
       });
 
       if (req.headers['hx-request']) {
+        const source = (req.body as { source?: string }).source;
+        if (source === 'settings') {
+          return res.render('partials/seller/settings-consent', {
+            consentMarketing: false,
+          });
+        }
         return res.render('partials/compliance/consent-withdrawal-result', {
           type,
           deletionBlocked: result.deletionBlocked,
@@ -122,6 +129,54 @@ complianceRouter.post(
       }
 
       return res.redirect('/seller/my-data?consent_withdrawn=true');
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /seller/compliance/consent/grant
+// Seller grants marketing consent
+complianceRouter.post(
+  '/seller/compliance/consent/grant',
+  requireAuth(),
+  requireRole('seller'),
+  grantConsentValidator,
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const fields = Object.fromEntries(
+        Object.entries(errors.mapped()).map(([k, v]) => [k, v.msg as string]),
+      );
+      return next(new ValidationError('Invalid request', fields));
+    }
+
+    try {
+      const sellerId = (req.user as { id: string }).id;
+      const { channel, source } = req.body as { channel?: string; source?: string };
+
+      await complianceService.grantMarketingConsent({
+        sellerId,
+        channel: channel ?? 'web',
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
+      if (req.headers['hx-request']) {
+        if (source === 'settings') {
+          return res.render('partials/seller/settings-consent', {
+            consentMarketing: true,
+          });
+        }
+        const myData = await complianceService.getMyData(sellerId);
+        return res.render('partials/compliance/consent-panel', {
+          consentService: myData.seller.consentService,
+          consentMarketing: myData.seller.consentMarketing,
+          consentHistory: myData.consentHistory,
+        });
+      }
+
+      return res.redirect('/seller/my-data');
     } catch (err) {
       return next(err);
     }

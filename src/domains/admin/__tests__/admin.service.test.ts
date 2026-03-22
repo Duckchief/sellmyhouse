@@ -48,47 +48,6 @@ beforeEach(() => {
   mockAudit.log.mockResolvedValue(undefined);
 });
 
-// ─── getAdminPipeline ────────────────────────────────────────
-
-describe('getAdminPipeline', () => {
-  it('returns stages grouped by seller status', async () => {
-    mockAdminRepo.getPipelineForAdmin.mockResolvedValue([
-      {
-        id: 's1',
-        name: 'Alice',
-        phone: '91234567',
-        status: 'lead',
-        agent: { name: 'Agent A' },
-        properties: [{ town: 'TAMPINES', askingPrice: { toNumber: () => 500000 } }],
-      },
-      {
-        id: 's2',
-        name: 'Bob',
-        phone: '91234568',
-        status: 'active',
-        agent: null,
-        properties: [],
-      },
-    ] as never);
-
-    const result = await adminService.getAdminPipeline();
-    expect(result.stages).toHaveLength(2);
-    expect(result.stages[0].status).toBe('lead');
-    expect(result.stages[0].sellers[0].agentName).toBe('Agent A');
-    expect(result.stages[0].sellers[0].town).toBe('TAMPINES');
-    expect(result.stages[1].status).toBe('active');
-    expect(result.totalSellers).toBe(2);
-  });
-
-  it('returns empty stages array when no sellers', async () => {
-    mockAdminRepo.getPipelineForAdmin.mockResolvedValue([]);
-
-    const result = await adminService.getAdminPipeline();
-    expect(result.stages).toHaveLength(0);
-    expect(result.totalSellers).toBe(0);
-  });
-});
-
 // ─── getUnassignedLeads ─────────────────────────────────────
 
 describe('getUnassignedLeads', () => {

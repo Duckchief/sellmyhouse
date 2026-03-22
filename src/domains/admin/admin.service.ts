@@ -15,8 +15,6 @@ import type {
   AdminLeadQueueResult,
   AdminSellerDetail,
   AgentCreateInput,
-  AdminPipelineResult,
-  AdminPipelineStage,
   AnalyticsData,
   AnalyticsFilter,
   HdbDataStatus,
@@ -291,51 +289,6 @@ export async function reassignSeller(
     entityId: sellerId,
     details: { fromAgentId, toAgentId: newAgentId, reason: 'admin_reassignment' },
   });
-}
-
-// ─── Pipeline ────────────────────────────────────────────────
-
-export async function getAdminPipeline(stage?: string): Promise<AdminPipelineResult> {
-  const sellers = await adminRepo.getPipelineForAdmin(stage);
-
-  const stageMap = new Map<string, AdminPipelineStage>();
-  const stageOrder = ['lead', 'engaged', 'active', 'completed', 'archived'];
-
-  for (const s of sellers) {
-    const key = s.status;
-    if (!stageMap.has(key)) {
-      stageMap.set(key, { status: key, count: 0, sellers: [] });
-    }
-    const stageEntry = stageMap.get(key)!;
-    stageEntry.count++;
-    stageEntry.sellers.push({
-      id: s.id,
-      name: s.name,
-      phone: s.phone,
-      town: s.properties[0]?.town ?? null,
-      agentName: s.agent?.name ?? null,
-      askingPrice: s.properties[0]?.askingPrice ? Number(s.properties[0].askingPrice) : null,
-      status: s.status,
-    });
-  }
-
-  const stages = stageOrder
-    .filter((status) => stageMap.has(status))
-    .map((status) => stageMap.get(status)!);
-
-  return { stages, totalSellers: sellers.length };
-}
-
-export async function getAdminPipelineCounts(): Promise<Record<string, number>> {
-  const stageOrder = ['lead', 'engaged', 'active', 'completed', 'archived'];
-  const counts = await Promise.all(
-    stageOrder.map((status) => adminRepo.countPipelineStage(status)),
-  );
-  const result: Record<string, number> = {};
-  stageOrder.forEach((status, i) => {
-    result[status] = counts[i];
-  });
-  return result;
 }
 
 // ─── Leads ───────────────────────────────────────────────────

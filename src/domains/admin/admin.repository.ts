@@ -1,6 +1,5 @@
 // src/domains/admin/admin.repository.ts
 import { prisma, createId } from '@/infra/database/prisma';
-import { SellerStatus } from '@prisma/client';
 import type { TeamMember, AgentCreateInput, HdbDataStatus, HdbSyncRecord } from './admin.types';
 import type { SettingRecord } from '@/domains/shared/settings.types';
 
@@ -104,30 +103,6 @@ export async function countActiveSellers(agentId: string): Promise<number> {
       status: { notIn: ['completed', 'archived'] },
     },
   });
-}
-
-// ─── Pipeline Queries ────────────────────────────────────────
-
-export async function getPipelineForAdmin(stage?: string) {
-  const where: Record<string, unknown> = {};
-  if (stage) where.status = stage;
-
-  return prisma.seller.findMany({
-    where,
-    select: {
-      id: true,
-      name: true,
-      phone: true,
-      status: true,
-      agent: { select: { name: true } },
-      properties: { take: 1, select: { town: true, askingPrice: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-}
-
-export async function countPipelineStage(status: string): Promise<number> {
-  return prisma.seller.count({ where: { status: status as SellerStatus } });
 }
 
 // ─── Lead Queries ────────────────────────────────────────────

@@ -421,7 +421,7 @@ describe('POST /admin/content/testimonials/:id/reject — HTMX', () => {
   });
 });
 
-describe('POST /admin/content/testimonials/:id/resend', () => {
+describe('POST /admin/content/testimonials/:id/resend — HTMX', () => {
   it('calls reissueTestimonialToken and re-renders testimonial list on HTMX request', async () => {
     jest.mocked(contentService.reissueTestimonialToken).mockResolvedValue({} as any);
     jest.mocked(contentService.listTestimonials).mockResolvedValue([]);
@@ -442,13 +442,33 @@ describe('POST /admin/content/testimonials/:id/resend', () => {
     );
   });
 
+  it('passes undefined feedback when body contains only whitespace', async () => {
+    jest.mocked(contentService.reissueTestimonialToken).mockResolvedValue({} as any);
+    jest.mocked(contentService.listTestimonials).mockResolvedValue([]);
+    jest.mocked(contentService.hasPendingReviewTestimonials).mockResolvedValue(false);
+
+    const app = makeApp();
+    await request(app)
+      .post('/admin/content/testimonials/t-1/resend')
+      .set('HX-Request', 'true')
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .send('feedback=   ');
+
+    expect(contentService.reissueTestimonialToken).toHaveBeenCalledWith(
+      't-1',
+      expect.any(String),
+      undefined,
+    );
+  });
+
   it('redirects on non-HTMX request', async () => {
     jest.mocked(contentService.reissueTestimonialToken).mockResolvedValue({} as any);
 
     const app = makeApp();
     const res = await request(app)
       .post('/admin/content/testimonials/t-1/resend')
-      .send({});
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .send('');
 
     expect(res.status).toBe(302);
     expect(res.headers['location']).toBe('/admin/content/testimonials');

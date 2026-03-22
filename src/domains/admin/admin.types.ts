@@ -147,27 +147,6 @@ export interface AdminLeadQueueResult {
   }>;
 }
 
-export interface AdminPipelineSeller {
-  id: string;
-  name: string;
-  phone: string | null;
-  town: string | null;
-  agentName: string | null;
-  askingPrice: number | null;
-  status: string;
-}
-
-export interface AdminPipelineStage {
-  status: string;
-  count: number;
-  sellers: AdminPipelineSeller[];
-}
-
-export interface AdminPipelineResult {
-  stages: AdminPipelineStage[];
-  totalSellers: number;
-}
-
 export interface AdminSellerDetail {
   seller: {
     id: string;

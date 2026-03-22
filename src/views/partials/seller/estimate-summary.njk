@@ -1,0 +1,60 @@
+{# Read-only sale proceeds summary card.
+   Expects: saleProceeds, commission (in parent scope)
+#}
+<div class="bg-white rounded-lg shadow p-6">
+  <div class="flex justify-between items-center mb-4">
+    <span class="text-2xl font-bold {% if saleProceeds.netProceeds >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+      ${{ saleProceeds.netProceeds | formatPrice }}
+    </span>
+    <button type="button"
+      hx-get="/seller/financial/estimate/edit"
+      hx-target="#estimate-section"
+      hx-swap="innerHTML"
+      class="text-sm text-blue-600 hover:underline">
+      {{ "Edit Estimate" | t }}
+    </button>
+  </div>
+
+  {% if saleProceeds.netProceeds < 0 %}
+    <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+      {{ "Your estimated sale proceeds are negative. You may need to top up the difference." | t }}
+    </div>
+  {% endif %}
+
+  <table class="w-full text-sm">
+    <tbody>
+      <tr class="border-b border-gray-100">
+        <td class="py-2 text-gray-600">{{ "Selling Price" | t }}</td>
+        <td class="py-2 text-right font-medium">${{ saleProceeds.sellingPrice | formatPrice }}</td>
+      </tr>
+      <tr class="border-b border-gray-100">
+        <td class="py-2 text-gray-600">{{ "Outstanding Loan" | t }}</td>
+        <td class="py-2 text-right text-red-600">-${{ saleProceeds.outstandingLoan | formatPrice }}</td>
+      </tr>
+      <tr class="border-b border-gray-100">
+        <td class="py-2 text-gray-600">{{ "CPF Refund" | t }}</td>
+        <td class="py-2 text-right text-red-600">-${{ (saleProceeds.cpfSeller1 + (saleProceeds.cpfSeller2 or 0) + (saleProceeds.cpfSeller3 or 0) + (saleProceeds.cpfSeller4 or 0)) | formatPrice }}</td>
+      </tr>
+      {% if saleProceeds.resaleLevy > 0 %}
+      <tr class="border-b border-gray-100">
+        <td class="py-2 text-gray-600">{{ "Resale Levy" | t }}</td>
+        <td class="py-2 text-right text-red-600">-${{ saleProceeds.resaleLevy | formatPrice }}</td>
+      </tr>
+      {% endif %}
+      {% if saleProceeds.otherDeductions > 0 %}
+      <tr class="border-b border-gray-100">
+        <td class="py-2 text-gray-600">{{ "Other Deductions" | t }}</td>
+        <td class="py-2 text-right text-red-600">-${{ saleProceeds.otherDeductions | formatPrice }}</td>
+      </tr>
+      {% endif %}
+      <tr class="border-b border-gray-100">
+        <td class="py-2 text-gray-600">{{ "Agent Commission" | t }}</td>
+        <td class="py-2 text-right text-red-600">-${{ saleProceeds.commission | formatPrice }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="mt-3 text-xs text-gray-400 italic">
+    {{ "This is an estimate based on your inputs. Actual proceeds depend on final figures from HDB and CPF Board. This is not financial advice." | t }}
+  </p>
+</div>

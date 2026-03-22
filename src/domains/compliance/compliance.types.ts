@@ -25,6 +25,7 @@ export interface ConsentWithdrawalResult {
   retentionRule?: string;
 }
 
+// Used only for marketing consent grants — type is implicit. Service consent is set at registration, never re-granted.
 export interface GrantConsentInput {
   sellerId: string;
   channel: string; // 'web' | 'email' | 'whatsapp' | 'phone' | 'in_person'

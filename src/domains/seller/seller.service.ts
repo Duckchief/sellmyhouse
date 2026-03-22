@@ -1,9 +1,11 @@
 import * as sellerRepo from './seller.repository';
 import * as notificationService from '../notification/notification.service';
 import * as auditService from '../shared/audit.service';
+import * as authService from '../auth/auth.service';
 import * as settingsService from '../shared/settings.service';
 import * as viewingService from '../viewing/viewing.service';
 import { NotFoundError, ValidationError } from '../shared/errors';
+import { logger } from '../../infra/logger';
 import type { Seller, SellerStatus } from '@prisma/client';
 import {
   TOTAL_ONBOARDING_STEPS,
@@ -572,6 +574,15 @@ export async function updateSellerStatus(
     entityId: sellerId,
     details: { previousStatus: seller.status, newStatus, ...(note ? { note } : {}) },
   });
+
+  // Send account setup email when transitioning lead→engaged with verified email
+  if (seller.status === 'lead' && newStatus === 'engaged' && seller.emailVerified && seller.email) {
+    try {
+      await authService.sendAccountSetupEmail(seller.id, seller.name, seller.email);
+    } catch (err) {
+      logger.warn({ sellerId, err }, 'Failed to send account setup email');
+    }
+  }
 
   return updated;
 }

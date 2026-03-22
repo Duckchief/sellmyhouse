@@ -5,6 +5,7 @@ import * as notificationService from '../../notification/notification.service';
 import * as auditService from '../../shared/audit.service';
 import * as settingsService from '../../shared/settings.service';
 import * as viewingService from '../../viewing/viewing.service';
+import * as authService from '../../auth/auth.service';
 import { NotFoundError, ValidationError } from '../../shared/errors';
 import { TOTAL_ONBOARDING_STEPS } from '../seller.types';
 import type { Seller } from '@prisma/client';
@@ -18,15 +19,20 @@ jest.mock('../../notification/notification.service');
 jest.mock('../../shared/audit.service');
 jest.mock('../../shared/settings.service');
 jest.mock('../../viewing/viewing.service');
+jest.mock('../../auth/auth.service');
 
 const mockedSellerRepo = jest.mocked(sellerRepo);
 const mockedNotificationService = jest.mocked(notificationService);
 const mockedAuditService = jest.mocked(auditService);
 const mockedSettings = jest.mocked(settingsService);
 const mockedViewingService = viewingService as jest.Mocked<typeof viewingService>;
+const mockedAuthService = jest.mocked(authService);
 
 describe('seller.service', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedAuthService.sendAccountSetupEmail.mockResolvedValue(undefined);
+  });
 
   describe('getOnboardingStatus', () => {
     it('returns not started when step is 0', async () => {
@@ -607,6 +613,65 @@ describe('seller.service', () => {
           details: expect.not.objectContaining({ note: expect.anything() }),
         }),
       );
+    });
+
+    it('sends account setup email when transitioning lead→engaged with verified email', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({
+        id: 'seller-1',
+        status: 'lead',
+        email: 'peanuts@example.com',
+        emailVerified: true,
+        name: 'Peanuts Malone',
+      } as Seller);
+      mockedSellerRepo.updateSellerStatus = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        status: 'engaged',
+        consultationCompletedAt: new Date(),
+      } as Seller);
+
+      await sellerService.updateSellerStatus('seller-1', 'engaged', 'agent-1', 'Contacted');
+
+      expect(mockedAuthService.sendAccountSetupEmail).toHaveBeenCalledWith(
+        'seller-1',
+        'Peanuts Malone',
+        'peanuts@example.com',
+      );
+    });
+
+    it('does not send account setup email when email is not verified', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({
+        id: 'seller-1',
+        status: 'lead',
+        email: 'peanuts@example.com',
+        emailVerified: false,
+        name: 'Peanuts Malone',
+      } as Seller);
+      mockedSellerRepo.updateSellerStatus = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        status: 'engaged',
+      } as Seller);
+
+      await sellerService.updateSellerStatus('seller-1', 'engaged', 'agent-1', 'Contacted');
+
+      expect(mockedAuthService.sendAccountSetupEmail).not.toHaveBeenCalled();
+    });
+
+    it('does not send account setup email for non lead→engaged transitions', async () => {
+      mockedSellerRepo.findById.mockResolvedValue({
+        id: 'seller-1',
+        status: 'engaged',
+        email: 'peanuts@example.com',
+        emailVerified: true,
+        name: 'Peanuts Malone',
+      } as Seller);
+      mockedSellerRepo.updateSellerStatus = jest.fn().mockResolvedValue({
+        id: 'seller-1',
+        status: 'active',
+      } as Seller);
+
+      await sellerService.updateSellerStatus('seller-1', 'active', 'agent-1', 'Activating');
+
+      expect(mockedAuthService.sendAccountSetupEmail).not.toHaveBeenCalled();
     });
   });
 

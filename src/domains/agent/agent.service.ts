@@ -92,6 +92,7 @@ export async function getSellerDetail(sellerId: string, agentId?: string): Promi
     countryCode: seller.countryCode,
     nationalNumber: seller.nationalNumber,
     emailVerified: seller.emailVerified,
+    hasPassword: !!seller.passwordHash,
     sellingTimeline: seller.sellingTimeline,
     sellingReason: seller.sellingReason,
     sellingReasonOther: seller.sellingReasonOther,

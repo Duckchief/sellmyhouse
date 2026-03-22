@@ -93,9 +93,10 @@ export interface SellerDetail {
   name: string;
   email: string | null;
   phone: string;
-  countryCode: string;
-  nationalNumber: string;
+  countryCode: string | null;
+  nationalNumber: string | null;
   emailVerified: boolean;
+  hasPassword: boolean;
   sellingTimeline: string | null;
   sellingReason: string | null;
   sellingReasonOther: string | null;

@@ -122,13 +122,23 @@ agentRouter.get(
         limit: req.query['limit'] ? parseInt(req.query['limit'] as string, 10) : undefined,
       };
 
-      const result = await agentService.getSellerList(filter, getAgentFilter(user));
+      const [result, statusCounts] = await Promise.all([
+        agentService.getSellerList(filter, getAgentFilter(user)),
+        agentService.getSellerStatusCounts(getAgentFilter(user)),
+      ]);
 
       if (req.headers['hx-request']) {
-        return res.render('partials/agent/seller-list', { result });
+        return res.render('partials/agent/seller-list', { result, statusCounts });
       }
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/agent/sellers', { pageTitle: 'Sellers', user, hasAvatar, result });
+      res.render('pages/agent/sellers', {
+        pageTitle: 'Sellers',
+        user,
+        hasAvatar,
+        result,
+        statusCounts,
+        currentStatus: filter.status ?? '',
+      });
     } catch (err) {
       next(err);
     }

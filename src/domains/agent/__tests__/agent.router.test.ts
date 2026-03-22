@@ -133,6 +133,24 @@ describe('agent.router', () => {
         'agent-1',
       );
     });
+
+    it('calls getSellerStatusCounts with the agent id', async () => {
+      const app = createTestApp({ id: 'agent-1', role: 'agent' });
+      mockService.getSellerList.mockResolvedValue({
+        sellers: [],
+        total: 0,
+        page: 1,
+        limit: 25,
+        totalPages: 0,
+      });
+      mockService.getSellerStatusCounts.mockResolvedValue({
+        lead: 3, engaged: 1, active: 2, completed: 0, archived: 0,
+      });
+
+      await request(app).get('/agent/sellers');
+
+      expect(mockService.getSellerStatusCounts).toHaveBeenCalledWith('agent-1');
+    });
   });
 
   describe('GET /agent/sellers/:id', () => {

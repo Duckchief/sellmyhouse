@@ -1754,6 +1754,7 @@ describe('grantMarketingConsent', () => {
         subjectId: 'seller-1',
         purposeMarketing: true,
         purposeService: true,
+        withdrawalChannel: 'web',
       }),
     );
     expect(mockRepo.updateSellerConsent).toHaveBeenCalledWith('seller-1', {

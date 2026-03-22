@@ -211,6 +211,7 @@ export async function grantMarketingConsent(
     purposeMarketing: true,
     ipAddress: input.ipAddress,
     userAgent: input.userAgent,
+    withdrawalChannel: input.channel, // schema field is named for withdrawal but stores the interaction channel for both grant and withdraw
   });
 
   await complianceRepo.updateSellerConsent(input.sellerId, { consentMarketing: true });

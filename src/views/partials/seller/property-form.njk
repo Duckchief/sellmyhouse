@@ -53,9 +53,16 @@
     </div>
 
     <div>
-      <label for="storeyRange" class="block text-sm font-medium text-gray-700 mb-1">{{ "Storey Range" | t }}</label>
-      <input type="text" id="storeyRange" name="storeyRange" value="{{ property.storeyRange if property else '' }}" required
-        placeholder="e.g. 07 TO 09"
+      <label for="level" class="block text-sm font-medium text-gray-700 mb-1">{{ "Level" | t }}</label>
+      <input type="text" id="level" name="level" value="{{ property.level if property else '' }}" required
+        placeholder="e.g. 07"
+        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    </div>
+
+    <div>
+      <label for="unitNumber" class="block text-sm font-medium text-gray-700 mb-1">{{ "Unit Number" | t }}</label>
+      <input type="text" id="unitNumber" name="unitNumber" value="{{ property.unitNumber if property else '' }}" required
+        placeholder="e.g. 123"
         class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
     </div>
 
@@ -63,12 +70,6 @@
       <label for="floorAreaSqm" class="block text-sm font-medium text-gray-700 mb-1">{{ "Floor Area (sqm)" | t }}</label>
       <input type="number" id="floorAreaSqm" name="floorAreaSqm" value="{{ property.floorAreaSqm if property else '' }}" required
         min="30" max="300" step="0.1"
-        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-    </div>
-
-    <div>
-      <label for="flatModel" class="block text-sm font-medium text-gray-700 mb-1">{{ "Flat Model" | t }}</label>
-      <input type="text" id="flatModel" name="flatModel" value="{{ property.flatModel if property else '' }}" required
         class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
     </div>
 

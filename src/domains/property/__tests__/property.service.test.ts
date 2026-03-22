@@ -46,9 +46,9 @@ describe('property.service', () => {
         street: 'Ang Mo Kio Ave 3',
         block: '123',
         flatType: '4 ROOM',
-        storeyRange: '04 TO 06',
+        level: '04',
+        unitNumber: '56',
         floorAreaSqm: 90,
-        flatModel: 'Model A',
         leaseCommenceDate: 1990,
       };
 
@@ -80,9 +80,9 @@ describe('property.service', () => {
         street: 'Ang Mo Kio Ave 3',
         block: '123',
         flatType: '4 ROOM',
-        storeyRange: '04 TO 06',
+        level: '04',
+        unitNumber: '56',
         floorAreaSqm: 90,
-        flatModel: 'Model A',
         leaseCommenceDate: 1990,
       };
 
@@ -109,9 +109,9 @@ describe('property.service', () => {
         street: 'Ang Mo Kio Ave 3',
         block: '123',
         flatType: '4 ROOM',
-        storeyRange: '04 TO 06',
+        level: '04',
+        unitNumber: '56',
         floorAreaSqm: 90,
-        flatModel: 'Model A',
         leaseCommenceDate: 1990,
       };
 
@@ -148,10 +148,10 @@ describe('property.service', () => {
           street: 'Ang Mo Kio Ave 3',
           block: '123',
           flatType: '4 ROOM',
-          storeyRange: '04 TO 06',
+          level: '04',
+        unitNumber: '56',
           floorAreaSqm: 90,
-          flatModel: 'Model A',
-          leaseCommenceDate: 1990,
+            leaseCommenceDate: 1990,
         }),
       ).rejects.toThrow(ComplianceError);
 
@@ -170,9 +170,9 @@ describe('property.service', () => {
         street: 'Ang Mo Kio Ave 3',
         block: '123',
         flatType: '4 ROOM',
-        storeyRange: '04 TO 06',
+        level: '04',
+        unitNumber: '56',
         floorAreaSqm: 90,
-        flatModel: 'Model A',
         leaseCommenceDate: 1990,
         mopOverrideReason: 'HDB hardship exemption granted — ref HDB/2026/001',
         agentId: 'agent-1',
@@ -205,9 +205,9 @@ describe('property.service', () => {
           street: 'ANG MO KIO AVE 3',
           block: '123',
           flatType: 'four_room',
-          storeyRange: '07 TO 09',
+          level: '07',
+          unitNumber: '09',
           floorAreaSqm: 90,
-          flatModel: 'Improved',
           leaseCommenceDate: 1985,
           askingPrice: 450000,
         }),

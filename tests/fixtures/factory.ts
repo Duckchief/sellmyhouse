@@ -96,9 +96,9 @@ export const factory = {
     street?: string;
     block?: string;
     flatType?: string;
-    storeyRange?: string;
+    level?: string;
+    unitNumber?: string;
     floorAreaSqm?: number;
-    flatModel?: string;
     leaseCommenceDate?: number;
     askingPrice?: number;
     status?:
@@ -118,9 +118,9 @@ export const factory = {
         street: overrides.street ?? 'TAMPINES ST 21',
         block: overrides.block ?? '123',
         flatType: overrides.flatType ?? '4 ROOM',
-        storeyRange: overrides.storeyRange ?? '07 TO 09',
+        level: overrides.level ?? '07',
+        unitNumber: overrides.unitNumber ?? '123',
         floorAreaSqm: overrides.floorAreaSqm ?? 93,
-        flatModel: overrides.flatModel ?? 'Model A',
         leaseCommenceDate: overrides.leaseCommenceDate ?? 1995,
         askingPrice: overrides.askingPrice,
         status: overrides.status ?? 'draft',

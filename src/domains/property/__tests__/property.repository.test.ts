@@ -34,9 +34,9 @@ describe('property.repository', () => {
         street: 'ANG MO KIO AVE 3',
         block: '123',
         flatType: '4 ROOM',
-        storeyRange: '07 TO 09',
+        level: '07',
+        unitNumber: '09',
         floorAreaSqm: 92,
-        flatModel: 'Model A',
         leaseCommenceDate: 1985,
         askingPrice: 580000,
       };
@@ -127,12 +127,14 @@ describe('property.repository', () => {
     it('updates property and returns with listings', async () => {
       const updateData: UpdatePropertyInput = {
         askingPrice: 600000,
-        storeyRange: '10 TO 12',
+        level: '10',
+        unitNumber: '12',
       };
       const mockUpdated = {
         id: 'prop-1',
         askingPrice: 600000,
-        storeyRange: '10 TO 12',
+        level: '10',
+        unitNumber: '12',
         listings: [],
       };
       prisma.property.update.mockResolvedValue(mockUpdated);

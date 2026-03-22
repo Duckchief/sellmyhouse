@@ -67,9 +67,9 @@ const mockProperty = {
   street: 'TAMPINES ST 21',
   block: '123',
   flatType: '4 ROOM',
-  storeyRange: '07 TO 09',
+  level: '07',
+  unitNumber: '123',
   floorAreaSqm: 93,
-  flatModel: 'Model A',
   leaseCommenceDate: 1995,
   remainingLease: null,
   askingPrice: null,
@@ -124,9 +124,9 @@ describe('property.router', () => {
       street: 'TAMPINES ST 21',
       block: '123',
       flatType: '4 ROOM',
-      storeyRange: '07 TO 09',
+      level: '07',
+      unitNumber: '123',
       floorAreaSqm: '93',
-      flatModel: 'Model A',
       leaseCommenceDate: '1995',
     };
 

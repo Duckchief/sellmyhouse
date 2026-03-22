@@ -155,9 +155,9 @@ describe('Seller Dashboard Integration', () => {
         street: 'ANG MO KIO AVE 3',
         block: '123',
         flatType: '4 ROOM',
-        storeyRange: '07 TO 09',
+        level: '07',
+        unitNumber: '123',
         floorAreaSqm: '93',
-        flatModel: 'New Generation',
         leaseCommenceDate: '1985',
       };
 

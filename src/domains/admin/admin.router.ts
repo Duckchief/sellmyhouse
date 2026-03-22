@@ -66,31 +66,8 @@ adminRouter.get(
 adminRouter.get(
   '/admin/pipeline',
   ...adminAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const stage = req.query['stage'] as string | undefined;
-      const [pipeline, stageCounts] = await Promise.all([
-        adminService.getAdminPipeline(stage),
-        adminService.getAdminPipelineCounts(),
-      ]);
-
-      if (req.headers['hx-request']) {
-        return res.render('partials/admin/pipeline-table', { pipeline, stage });
-      }
-      const user = req.user as AuthenticatedUser;
-      const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/admin/pipeline', {
-        pageTitle: 'Pipeline',
-        user,
-        hasAvatar,
-        pipeline,
-        stageCounts,
-        stage,
-        currentPath: '/admin/pipeline',
-      });
-    } catch (err) {
-      next(err);
-    }
+  (_req: Request, res: Response) => {
+    res.redirect('/admin/sellers');
   },
 );
 

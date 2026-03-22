@@ -1060,3 +1060,12 @@ describe('GET /admin/sellers', () => {
     expect(mockAdminService.getAdminSellerStatusCounts).toHaveBeenCalled();
   });
 });
+
+describe('GET /admin/pipeline', () => {
+  it('redirects to /admin/sellers', async () => {
+    const app = makeApp();
+    const res = await request(app).get('/admin/pipeline');
+    expect(res.status).toBe(302);
+    expect(res.headers['location']).toBe('/admin/sellers');
+  });
+});

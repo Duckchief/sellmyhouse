@@ -318,7 +318,31 @@ adminRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      await adminService.deactivateAgent(req.params['id'] as string, user.id);
+      const agentId = req.params['id'] as string;
+      const newDefaultAgentId = req.body?.newDefaultAgentId as string | undefined;
+
+      // Guard: if this agent is the default, require a replacement first
+      const currentDefault = await adminService.getDefaultAgentId();
+      if (currentDefault === agentId && !newDefaultAgentId) {
+        const team = await adminService.getTeam();
+        const activeAgents = team.filter((a) => a.isActive && a.id !== agentId);
+        return res.render('partials/admin/reassign-default-modal', {
+          agentId,
+          action: 'deactivate',
+          activeAgents,
+        });
+      }
+
+      // Handle default replacement
+      if (currentDefault === agentId && newDefaultAgentId) {
+        if (newDefaultAgentId === 'unassigned') {
+          await adminService.clearDefaultAgent(user.id);
+        } else {
+          await adminService.setDefaultAgent(newDefaultAgentId, user.id);
+        }
+      }
+
+      await adminService.deactivateAgent(agentId, user.id);
       if (req.headers['hx-request']) {
         return res.render('partials/admin/team-action-result', {
           message: 'Agent deactivated.',
@@ -353,12 +377,55 @@ adminRouter.post(
 );
 
 adminRouter.post(
+  '/admin/team/:id/set-default',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      await adminService.setDefaultAgent(req.params['id'] as string, user.id);
+      const [team, defaultAgentId] = await Promise.all([
+        adminService.getTeam(),
+        adminService.getDefaultAgentId(),
+      ]);
+      if (req.headers['hx-request']) {
+        return res.render('partials/admin/team-list', { team, defaultAgentId });
+      }
+      res.redirect('/admin/team');
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+adminRouter.post(
   '/admin/team/:id/anonymise',
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      await adminService.anonymiseAgent(req.params['id'] as string, user.id);
+      const agentId = req.params['id'] as string;
+      const newDefaultAgentId = req.body?.newDefaultAgentId as string | undefined;
+
+      const currentDefault = await adminService.getDefaultAgentId();
+      if (currentDefault === agentId && !newDefaultAgentId) {
+        const team = await adminService.getTeam();
+        const activeAgents = team.filter((a) => a.isActive && a.id !== agentId);
+        return res.render('partials/admin/reassign-default-modal', {
+          agentId,
+          action: 'anonymise',
+          activeAgents,
+        });
+      }
+
+      if (currentDefault === agentId && newDefaultAgentId) {
+        if (newDefaultAgentId === 'unassigned') {
+          await adminService.clearDefaultAgent(user.id);
+        } else {
+          await adminService.setDefaultAgent(newDefaultAgentId, user.id);
+        }
+      }
+
+      await adminService.anonymiseAgent(agentId, user.id);
       if (req.headers['hx-request']) {
         return res.render('partials/admin/team-action-result', {
           message: 'Agent anonymised. This action is irreversible.',
@@ -508,6 +575,7 @@ adminRouter.post(
         user.id,
       );
       if (req.headers['hx-request']) {
+        res.setHeader('HX-Trigger', 'sellerAssigned');
         return res.render('partials/admin/team-action-result', {
           message: 'Lead assigned.',
           type: 'success',
@@ -537,6 +605,7 @@ adminRouter.post(
         user.id,
       );
       if (req.headers['hx-request']) {
+        res.setHeader('HX-Trigger', 'sellerAssigned');
         return res.render('partials/admin/team-action-result', {
           message: 'Seller reassigned.',
           type: 'success',

@@ -837,3 +837,103 @@ describe('GET /admin/hdb/sync/poll — polling endpoint', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('POST /admin/team/:id/set-default', () => {
+  it('sets the agent as default and returns team-list partial', async () => {
+    mockAdminService.setDefaultAgent.mockResolvedValue(undefined);
+    mockAdminService.getTeam.mockResolvedValue([]);
+    mockAdminService.getDefaultAgentId.mockResolvedValue('agent-1');
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/team/agent-1/set-default')
+      .set('hx-request', 'true');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.setDefaultAgent).toHaveBeenCalledWith('agent-1', expect.any(String));
+  });
+
+  it('returns 404 for unknown agent', async () => {
+    const { NotFoundError } = await import('@/domains/shared/errors');
+    mockAdminService.setDefaultAgent.mockRejectedValue(new NotFoundError('Agent', 'bad-id'));
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/team/bad-id/set-default')
+      .set('hx-request', 'true');
+
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('POST /admin/team/:id/deactivate (default agent guard)', () => {
+  it('returns modal partial when agent is default and no replacement provided', async () => {
+    mockAdminService.getDefaultAgentId.mockResolvedValue('agent-1');
+    mockAdminService.getTeam.mockResolvedValue([
+      { id: 'agent-2', name: 'Bob', isActive: true } as any,
+    ]);
+
+    // Use a render stub that echoes the view name so we can assert on it
+    const appWithViewName = express();
+    appWithViewName.use(express.urlencoded({ extended: true }));
+    appWithViewName.use((req, _res, next) => {
+      Object.assign(req, {
+        isAuthenticated: () => true,
+        user: { id: 'admin-1', role: 'admin', twoFactorEnabled: false, twoFactorVerified: true },
+      });
+      next();
+    });
+    appWithViewName.use((_req, res, next) => {
+      res.render = ((view: string, _options?: object) => {
+        res.status(200).send(view);
+      }) as typeof res.render;
+      next();
+    });
+    appWithViewName.use(adminRouter);
+    appWithViewName.use(
+      (err: Error & { statusCode?: number }, _req: Request, res: Response, _next: NextFunction) => {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      },
+    );
+
+    const res = await request(appWithViewName)
+      .post('/admin/team/agent-1/deactivate')
+      .set('hx-request', 'true');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.deactivateAgent).not.toHaveBeenCalled();
+    expect(res.text).toContain('reassign-default-modal');
+  });
+
+  it('clears default and deactivates when newDefaultAgentId=unassigned', async () => {
+    mockAdminService.getDefaultAgentId.mockResolvedValue('agent-1');
+    mockAdminService.clearDefaultAgent.mockResolvedValue(undefined);
+    mockAdminService.deactivateAgent.mockResolvedValue(undefined);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/team/agent-1/deactivate')
+      .send('newDefaultAgentId=unassigned')
+      .set('hx-request', 'true');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.clearDefaultAgent).toHaveBeenCalled();
+    expect(mockAdminService.deactivateAgent).toHaveBeenCalled();
+  });
+
+  it('sets new default and deactivates when newDefaultAgentId is a UUID', async () => {
+    mockAdminService.getDefaultAgentId.mockResolvedValue('agent-1');
+    mockAdminService.setDefaultAgent.mockResolvedValue(undefined);
+    mockAdminService.deactivateAgent.mockResolvedValue(undefined);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/team/agent-1/deactivate')
+      .send('newDefaultAgentId=agent-2')
+      .set('hx-request', 'true');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.setDefaultAgent).toHaveBeenCalledWith('agent-2', expect.any(String));
+    expect(mockAdminService.deactivateAgent).toHaveBeenCalled();
+  });
+});

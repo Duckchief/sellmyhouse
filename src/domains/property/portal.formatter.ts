@@ -11,7 +11,7 @@ export interface PortalContent {
     town: string;
     flatType: string;
     floorAreaSqm: number;
-    storeyRange: string;
+    unitAddress: string;
     remainingLease: string | null;
     askingPrice: number;
     block: string;
@@ -68,7 +68,7 @@ export function formatForPortal(input: PortalFormatterInput): PortalContent {
       town: property.town,
       flatType: property.flatType,
       floorAreaSqm: property.floorAreaSqm,
-      storeyRange: property.storeyRange,
+      unitAddress: `#${property.level}-${property.unitNumber}`,
       remainingLease: property.remainingLease ?? null,
       askingPrice: Number(property.askingPrice),
       block: property.block,

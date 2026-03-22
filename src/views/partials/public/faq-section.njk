@@ -59,7 +59,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
         </svg>
       </button>
-      <div class="faq-panel overflow-hidden transition-[max-height] duration-200 ease-in-out {{ 'max-h-96' if loop.first else 'max-h-0' }}" id="faq-panel-{{ loop.index }}">
+      <div class="faq-panel overflow-hidden transition-[max-height] duration-200 ease-in-out {{ 'max-h-[500px]' if loop.first else 'max-h-0' }}" id="faq-panel-{{ loop.index }}">
         <p class="px-6 pb-5 text-sm text-gray-600 leading-relaxed">{{ item.a | t }}</p>
       </div>
     </div>
@@ -88,7 +88,7 @@
       var otherPanel = otherItem.querySelector('.faq-panel');
       var otherChevron = otherItem.querySelector('.faq-chevron');
       otherTrigger.setAttribute('aria-expanded', 'false');
-      otherPanel.classList.remove('max-h-96');
+      otherPanel.classList.remove('max-h-[500px]');
       otherPanel.classList.add('max-h-0');
       otherChevron.classList.remove('rotate-180');
     });
@@ -97,7 +97,7 @@
     if (!isOpen) {
       trigger.setAttribute('aria-expanded', 'true');
       panel.classList.remove('max-h-0');
-      panel.classList.add('max-h-96');
+      panel.classList.add('max-h-[500px]');
       chevron.classList.add('rotate-180');
     }
   });

@@ -116,3 +116,7 @@ export async function findAdminAgents() {
     select: { id: true, notificationPreference: true },
   });
 }
+
+export async function assignAgent(sellerId: string, agentId: string): Promise<void> {
+  await prisma.seller.update({ where: { id: sellerId }, data: { agentId } });
+}

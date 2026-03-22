@@ -52,6 +52,23 @@ verificationRouter.get('/verify-email', async (req: Request, res: Response, next
   }
 });
 
+// DEV ONLY: GET /dev/lead-details/:sellerId — render details form for a verified seller
+if (process.env.NODE_ENV !== 'production') {
+  verificationRouter.get(
+    '/dev/lead-details/:sellerId',
+    (req: Request, res: Response) => {
+      const sellerId = req.params['sellerId'] as string;
+      const signature = signSellerId(sellerId);
+      res.render('pages/public/verify-email', {
+        pageTitle: 'Complete Your Submission',
+        sellerId,
+        signature,
+        towns: HDB_TOWNS,
+      });
+    },
+  );
+}
+
 // POST /verify-email/details — submit lead details
 verificationRouter.post(
   '/verify-email/details',

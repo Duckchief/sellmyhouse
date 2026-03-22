@@ -17,6 +17,7 @@ const config: Config = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@paralleldrive/cuid2$': '<rootDir>/tests/mocks/cuid2.ts',
     '^otplib$': '<rootDir>/tests/mocks/otplib.ts',
+    '^file-type$': '<rootDir>/tests/mocks/file-type.ts',
     '^\\.\\./\\.\\./\\.\\./tests/(.*)$': '<rootDir>/tests/$1',
   },
   globalSetup: '<rootDir>/tests/helpers/setup.ts',

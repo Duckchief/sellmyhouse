@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import * as authRepo from './auth.repository';
 import * as auditService from '../shared/audit.service';
 import { encrypt, decrypt } from '../shared/encryption';
-import { ValidationError, ConflictError, UnauthorizedError } from '../shared/errors';
+import { ValidationError, ConflictError, UnauthorizedError, NotFoundError } from '../shared/errors';
 import { maskEmail } from '../shared/nric';
 import { sendSystemEmail } from '../../infra/email/system-mailer';
 import type {
@@ -511,6 +511,25 @@ export async function sendAccountSetupEmail(
     entityId: sellerId,
     details: { email: maskEmail(email) },
     actorType: 'system' as const,
+  });
+}
+
+export async function resendAccountSetup(sellerId: string, agentId: string): Promise<void> {
+  const seller = await authRepo.findSellerById(sellerId);
+  if (!seller) throw new NotFoundError('Seller', sellerId);
+  if (!seller.email) throw new ValidationError('Seller has no email');
+  if (!seller.emailVerified) throw new ValidationError('Seller email is not verified');
+  if (seller.passwordHash) throw new ValidationError('Seller already has an account');
+
+  await sendAccountSetupEmail(sellerId, seller.name, seller.email);
+
+  await auditService.log({
+    action: 'lead.account_setup_resent',
+    entityType: 'seller',
+    entityId: sellerId,
+    details: { agentId },
+    actorType: 'agent' as const,
+    actorId: agentId,
   });
 }
 

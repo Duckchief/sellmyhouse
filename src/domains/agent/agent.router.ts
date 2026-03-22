@@ -17,6 +17,7 @@ import type { SellerListFilter } from './agent.types';
 import { getHasAvatar } from '../profile/profile.service';
 import * as complianceService from '@/domains/compliance/compliance.service';
 import * as verificationService from '../lead/verification.service';
+import * as authService from '../auth/auth.service';
 
 export const agentRouter = Router();
 
@@ -430,6 +431,26 @@ agentRouter.post(
 
       if (req.headers['hx-request']) {
         return res.send('<span class="text-green-600 text-sm">Verification email resent!</span>');
+      }
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /agent/sellers/:id/resend-account-setup — agent resends account setup email
+agentRouter.post(
+  '/agent/sellers/:id/resend-account-setup',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const sellerId = req.params['id'] as string;
+      await authService.resendAccountSetup(sellerId, user.id);
+
+      if (req.headers['hx-request']) {
+        return res.send('<span class="text-green-600 text-sm">Account setup email sent!</span>');
       }
       res.json({ success: true });
     } catch (err) {

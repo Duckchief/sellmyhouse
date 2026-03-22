@@ -1061,3 +1061,20 @@ describe('getDefaultAgentId', () => {
     expect(result).toBeNull();
   });
 });
+
+// ─── clearDefaultAgent ───────────────────────────────────────
+
+describe('clearDefaultAgent', () => {
+  it('upserts empty string and writes audit log', async () => {
+    mockSettingsService.upsert.mockResolvedValue(undefined as any);
+
+    await adminService.clearDefaultAgent('admin-1');
+
+    expect(mockSettingsService.upsert).toHaveBeenCalledWith(
+      'default_agent_id', '', 'Default agent for new lead assignment', 'admin-1',
+    );
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'agent.default_cleared' }),
+    );
+  });
+});

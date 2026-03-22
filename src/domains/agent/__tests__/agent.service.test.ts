@@ -515,6 +515,29 @@ describe('agent.service', () => {
     });
   });
 
+  describe('getSellerStatusCounts (repo boundary)', () => {
+    it('returns zero-filled counts when no sellers exist', async () => {
+      mockRepo.getSellerStatusCounts.mockResolvedValue({
+        lead: 0, engaged: 0, active: 0, completed: 0, archived: 0,
+      });
+
+      const result = await agentService.getSellerStatusCounts('agent-1');
+
+      expect(mockRepo.getSellerStatusCounts).toHaveBeenCalledWith('agent-1');
+      expect(result).toEqual({ lead: 0, engaged: 0, active: 0, completed: 0, archived: 0 });
+    });
+
+    it('passes undefined agentId for admin (no filter)', async () => {
+      mockRepo.getSellerStatusCounts.mockResolvedValue({
+        lead: 5, engaged: 2, active: 3, completed: 1, archived: 0,
+      });
+
+      await agentService.getSellerStatusCounts(undefined);
+
+      expect(mockRepo.getSellerStatusCounts).toHaveBeenCalledWith(undefined);
+    });
+  });
+
   describe('getNotificationHistory', () => {
     it('returns paginated result with items, total, page, totalPages', async () => {
       const item = {

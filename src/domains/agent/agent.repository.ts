@@ -412,3 +412,16 @@ export async function getPendingCorrectionRequests() {
     orderBy: { createdAt: 'asc' },
   });
 }
+
+export async function getSellerStatusCounts(agentId?: string): Promise<Record<string, number>> {
+  const rows = await prisma.seller.groupBy({
+    by: ['status'],
+    where: agentId ? { agentId } : {},
+    _count: { id: true },
+  });
+  const counts: Record<string, number> = { lead: 0, engaged: 0, active: 0, completed: 0, archived: 0 };
+  for (const row of rows) {
+    counts[row.status] = row._count.id;
+  }
+  return counts;
+}

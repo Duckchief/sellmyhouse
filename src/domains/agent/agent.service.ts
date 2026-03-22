@@ -230,3 +230,7 @@ export async function processCorrectionRequest(input: {
 }): Promise<void> {
   await complianceService.processCorrectionRequest(input);
 }
+
+export async function getSellerStatusCounts(agentId?: string): Promise<Record<string, number>> {
+  return agentRepo.getSellerStatusCounts(agentId);
+}

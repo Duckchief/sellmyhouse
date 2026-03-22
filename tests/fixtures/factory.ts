@@ -579,6 +579,37 @@ export const factory = {
     });
   },
 
+  async saleProceeds(overrides: {
+    sellerId: string;
+    sellingPrice?: number;
+    outstandingLoan?: number;
+    cpfSeller1?: number;
+    cpfSeller2?: number;
+    cpfSeller3?: number;
+    cpfSeller4?: number;
+    resaleLevy?: number;
+    otherDeductions?: number;
+    commission?: number;
+    netProceeds?: number;
+  }) {
+    return testPrisma.saleProceeds.create({
+      data: {
+        id: createId(),
+        sellerId: overrides.sellerId,
+        sellingPrice: overrides.sellingPrice ?? 500000,
+        outstandingLoan: overrides.outstandingLoan ?? 200000,
+        cpfSeller1: overrides.cpfSeller1 ?? 50000,
+        cpfSeller2: overrides.cpfSeller2 ?? null,
+        cpfSeller3: overrides.cpfSeller3 ?? null,
+        cpfSeller4: overrides.cpfSeller4 ?? null,
+        resaleLevy: overrides.resaleLevy ?? 0,
+        otherDeductions: overrides.otherDeductions ?? 0,
+        commission: overrides.commission ?? 1633.91,
+        netProceeds: overrides.netProceeds ?? 248366.09,
+      },
+    });
+  },
+
   async commissionInvoice(overrides: {
     transactionId: string;
     status?: 'pending_upload' | 'uploaded' | 'sent_to_client' | 'paid';

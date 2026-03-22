@@ -18,6 +18,7 @@ describe('lead.service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSettings.getNumber.mockResolvedValue(6);
+    mockSettings.get.mockResolvedValue(''); // default: no default agent
   });
 
   const validInput = {
@@ -169,5 +170,36 @@ describe('lead.service', () => {
     // Here we verify the service propagates the error without swallowing it,
     // and does NOT proceed to write the audit log.
     expect(mockAudit.log).not.toHaveBeenCalled();
+  });
+
+  it('auto-assigns default agent when default_agent_id is set', async () => {
+    mockLeadRepo.findActiveSellerByPhone.mockResolvedValue(null);
+    mockLeadRepo.submitLeadAtomically.mockResolvedValue(sellerFixture);
+    mockLeadRepo.findAdminAgents.mockResolvedValue([]);
+    mockLeadRepo.assignAgent = jest.fn().mockResolvedValue(undefined);
+    mockAudit.log.mockResolvedValue(undefined);
+    mockNotification.send.mockResolvedValue(undefined);
+    mockSettings.get.mockResolvedValue('agent-default-1');
+
+    await submitLead(validInput);
+
+    expect(mockLeadRepo.assignAgent).toHaveBeenCalledWith('seller-1', 'agent-default-1');
+    expect(mockAudit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'lead.auto_assigned' }),
+    );
+  });
+
+  it('does not assign agent when no default_agent_id is set', async () => {
+    mockLeadRepo.findActiveSellerByPhone.mockResolvedValue(null);
+    mockLeadRepo.submitLeadAtomically.mockResolvedValue(sellerFixture);
+    mockLeadRepo.findAdminAgents.mockResolvedValue([]);
+    mockLeadRepo.assignAgent = jest.fn().mockResolvedValue(undefined);
+    mockAudit.log.mockResolvedValue(undefined);
+    mockNotification.send.mockResolvedValue(undefined);
+    mockSettings.get.mockResolvedValue('');
+
+    await submitLead(validInput);
+
+    expect(mockLeadRepo.assignAgent).not.toHaveBeenCalled();
   });
 });

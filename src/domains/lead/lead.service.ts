@@ -67,6 +67,19 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     });
   }
 
+  // Auto-assign to default agent if configured
+  const defaultAgentId = await settingsService.get('default_agent_id', '');
+  if (defaultAgentId) {
+    await leadRepo.assignAgent(seller.id, defaultAgentId);
+    await auditService.log({
+      action: 'lead.auto_assigned',
+      entityType: 'Seller',
+      entityId: seller.id,
+      details: { agentId: defaultAgentId, reason: 'default_agent' },
+      actorType: 'system' as const,
+    });
+  }
+
   // N1: Send welcome notification to seller
   await notificationService.send(
     {

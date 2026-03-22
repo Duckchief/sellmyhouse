@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { prisma, createId } from '../../infra/database/prisma';
 import type { Prisma } from '@prisma/client';
 
@@ -132,6 +133,55 @@ export async function findAdminAgents() {
   return prisma.agent.findMany({
     where: { role: 'admin', isActive: true },
     select: { id: true, notificationPreference: true },
+  });
+}
+
+export async function findSellerByVerificationToken(rawToken: string) {
+  const hashed = crypto.createHash('sha256').update(rawToken).digest('hex');
+  return prisma.seller.findFirst({
+    where: { emailVerificationToken: hashed },
+    select: {
+      id: true,
+      emailVerified: true,
+      emailVerificationExpiry: true,
+      agentId: true,
+    },
+  });
+}
+
+export async function markEmailVerified(sellerId: string): Promise<void> {
+  await prisma.seller.update({
+    where: { id: sellerId },
+    data: {
+      emailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationExpiry: null,
+    },
+  });
+}
+
+export async function findSellerById(sellerId: string) {
+  return prisma.seller.findUnique({
+    where: { id: sellerId },
+    select: { id: true, emailVerified: true, agentId: true },
+  });
+}
+
+export async function updateSellingIntent(
+  sellerId: string,
+  data: {
+    sellingTimeline: string;
+    sellingReason: string;
+    sellingReasonOther?: string;
+  },
+): Promise<void> {
+  await prisma.seller.update({
+    where: { id: sellerId },
+    data: {
+      sellingTimeline: data.sellingTimeline as 'one_to_three_months' | 'three_to_six_months' | 'just_thinking',
+      sellingReason: data.sellingReason as 'upgrading' | 'downsizing' | 'relocating' | 'financial' | 'investment' | 'other',
+      sellingReasonOther: data.sellingReasonOther ?? null,
+    },
   });
 }
 

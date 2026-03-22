@@ -67,6 +67,17 @@ export async function findAllForSeller(sellerId: string) {
   return records.map(withDecryptedReportData);
 }
 
+export async function findApprovedForSeller(sellerId: string) {
+  const records = await prisma.financialReport.findMany({
+    where: {
+      sellerId,
+      status: { in: ['approved', 'sent'] },
+    },
+    orderBy: { version: 'desc' },
+  });
+  return records.map(withDecryptedReportData);
+}
+
 export async function updateNarrative(
   id: string,
   data: { aiNarrative: string; aiProvider: string; aiModel: string },

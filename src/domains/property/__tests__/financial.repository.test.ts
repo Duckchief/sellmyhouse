@@ -180,4 +180,33 @@ describe('financial.repository', () => {
       expect(result).toEqual(expected);
     });
   });
+
+  describe('findApprovedForSeller', () => {
+    it('queries for approved and sent reports only', async () => {
+      (mockPrisma.financialReport.findMany as jest.Mock).mockResolvedValue([]);
+
+      await financialRepo.findApprovedForSeller('seller-1');
+
+      expect(mockPrisma.financialReport.findMany).toHaveBeenCalledWith({
+        where: {
+          sellerId: 'seller-1',
+          status: { in: ['approved', 'sent'] },
+        },
+        orderBy: { version: 'desc' },
+      });
+    });
+
+    it('returns decrypted report data', async () => {
+      const encryptedJson = `encrypted:${JSON.stringify(sampleReportData)}`;
+      (mockPrisma.financialReport.findMany as jest.Mock).mockResolvedValue([
+        { id: 'r1', reportData: encryptedJson },
+      ]);
+
+      const result = await financialRepo.findApprovedForSeller('seller-1');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('r1');
+      expect(result[0].reportData).toEqual(sampleReportData);
+    });
+  });
 });

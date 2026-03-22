@@ -176,7 +176,7 @@ describe('lead.service', () => {
     mockLeadRepo.findActiveSellerByPhone.mockResolvedValue(null);
     mockLeadRepo.submitLeadAtomically.mockResolvedValue(sellerFixture);
     mockLeadRepo.findAdminAgents.mockResolvedValue([]);
-    mockLeadRepo.assignAgent = jest.fn().mockResolvedValue(undefined);
+    mockLeadRepo.assignAgent.mockResolvedValue(undefined);
     mockAudit.log.mockResolvedValue(undefined);
     mockNotification.send.mockResolvedValue(undefined);
     mockSettings.get.mockResolvedValue('agent-default-1');
@@ -193,7 +193,7 @@ describe('lead.service', () => {
     mockLeadRepo.findActiveSellerByPhone.mockResolvedValue(null);
     mockLeadRepo.submitLeadAtomically.mockResolvedValue(sellerFixture);
     mockLeadRepo.findAdminAgents.mockResolvedValue([]);
-    mockLeadRepo.assignAgent = jest.fn().mockResolvedValue(undefined);
+    mockLeadRepo.assignAgent.mockResolvedValue(undefined);
     mockAudit.log.mockResolvedValue(undefined);
     mockNotification.send.mockResolvedValue(undefined);
     mockSettings.get.mockResolvedValue('');

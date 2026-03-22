@@ -8,11 +8,15 @@ jest.mock('../lead.repository');
 jest.mock('../../shared/settings.service');
 jest.mock('../../shared/audit.service');
 jest.mock('../../notification/notification.service');
+jest.mock('../../../infra/email/system-mailer');
+
+import * as systemMailer from '../../../infra/email/system-mailer';
 
 const mockLeadRepo = leadRepo as jest.Mocked<typeof leadRepo>;
 const mockSettings = settingsService as jest.Mocked<typeof settingsService>;
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 const mockNotification = notificationService as jest.Mocked<typeof notificationService>;
+const mockMailer = systemMailer as jest.Mocked<typeof systemMailer>;
 
 describe('lead.service', () => {
   beforeEach(() => {
@@ -23,6 +27,7 @@ describe('lead.service', () => {
 
   const validInput = {
     name: 'John Tan',
+    email: 'grogu@example.com',
     countryCode: '+65',
     nationalNumber: '91234567',
     phone: '+6591234567',
@@ -39,7 +44,7 @@ describe('lead.service', () => {
     countryCode: '+65',
     nationalNumber: '91234567',
     phone: '+6591234567',
-    email: null,
+    email: 'grogu@example.com',
     passwordHash: null,
     agentId: null,
     status: 'lead',
@@ -81,6 +86,7 @@ describe('lead.service', () => {
     // Atomic creation of seller + consent is now handled inside the repository
     expect(mockLeadRepo.submitLeadAtomically).toHaveBeenCalledWith({
       name: 'John Tan',
+      email: 'grogu@example.com',
       countryCode: '+65',
       nationalNumber: '91234567',
       phone: '+6591234567',
@@ -186,6 +192,29 @@ describe('lead.service', () => {
     expect(mockLeadRepo.assignAgent).toHaveBeenCalledWith('seller-1', 'agent-default-1');
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'lead.auto_assigned' }),
+    );
+  });
+
+  it('generates verification token and sends verification email after lead creation', async () => {
+    mockLeadRepo.findActiveSellerByPhone.mockResolvedValue(null);
+    mockLeadRepo.submitLeadAtomically.mockResolvedValue(sellerFixture);
+    mockLeadRepo.findAdminAgents.mockResolvedValue([]);
+    mockLeadRepo.setEmailVerificationToken.mockResolvedValue(undefined);
+    mockMailer.sendSystemEmail.mockResolvedValue(undefined);
+    mockAudit.log.mockResolvedValue(undefined);
+    mockNotification.send.mockResolvedValue(undefined);
+
+    await submitLead(validInput);
+
+    expect(mockLeadRepo.setEmailVerificationToken).toHaveBeenCalledWith(
+      'seller-1',
+      expect.any(String), // hashed token
+      expect.any(Date), // expiry ~72 hours from now
+    );
+    expect(mockMailer.sendSystemEmail).toHaveBeenCalledWith(
+      'grogu@example.com',
+      'Verify your SellMyHomeNow email address',
+      expect.stringContaining('/verify-email?token='),
     );
   });
 

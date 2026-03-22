@@ -114,6 +114,20 @@ export async function submitLeadAtomically(data: {
   });
 }
 
+export async function setEmailVerificationToken(
+  sellerId: string,
+  hashedToken: string,
+  expiry: Date,
+): Promise<void> {
+  await prisma.seller.update({
+    where: { id: sellerId },
+    data: {
+      emailVerificationToken: hashedToken,
+      emailVerificationExpiry: expiry,
+    },
+  });
+}
+
 export async function findAdminAgents() {
   return prisma.agent.findMany({
     where: { role: 'admin', isActive: true },

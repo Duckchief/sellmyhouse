@@ -1,6 +1,8 @@
 // src/domains/lead/lead.service.ts
+import crypto from 'crypto';
 import { ConflictError } from '../shared/errors';
 import { logger } from '../../infra/logger';
+import { sendSystemEmail } from '../../infra/email/system-mailer';
 import * as leadRepo from './lead.repository';
 import * as settingsService from '../shared/settings.service';
 import * as auditService from '../shared/audit.service';
@@ -24,6 +26,7 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
   // the seller row is rolled back (PDPA: no personal data without consent audit trail)
   const seller = await leadRepo.submitLeadAtomically({
     name: input.name.trim(),
+    email: input.email.trim(),
     countryCode: input.countryCode,
     nationalNumber: input.nationalNumber,
     phone: input.phone,
@@ -33,6 +36,31 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     retentionExpiresAt,
     ipAddress: input.ipAddress,
     userAgent: input.userAgent,
+  });
+
+  // Generate email verification token
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const verificationExpiry = new Date();
+  verificationExpiry.setHours(verificationExpiry.getHours() + 72);
+
+  await leadRepo.setEmailVerificationToken(seller.id, hashedToken, verificationExpiry);
+
+  // Send verification email
+  const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
+  const verificationUrl = `${appUrl}/verify-email?token=${rawToken}`;
+  await sendSystemEmail(
+    input.email,
+    'Verify your SellMyHomeNow email address',
+    `<p>Click the link below to verify your email and complete your submission:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p><p>This link expires in 72 hours.</p><p>If you did not submit a lead on SellMyHomeNow, please ignore this email.</p>`,
+  );
+
+  await auditService.log({
+    action: 'lead.verification_sent',
+    entityType: 'Seller',
+    entityId: seller.id,
+    details: { email: input.email },
+    actorType: 'system' as const,
   });
 
   // Audit log

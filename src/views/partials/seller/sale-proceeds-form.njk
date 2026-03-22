@@ -1,0 +1,114 @@
+{% if error %}
+  <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+    {{ error }}
+  </div>
+{% endif %}
+
+<form id="sale-proceeds-form"
+  hx-post="{{ postTarget }}"
+  hx-target="{{ swapTarget }}"
+  hx-swap="innerHTML"
+  class="space-y-4"
+>
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1" for="sellingPrice">{{ "Selling Price ($)" | t }} *</label>
+    <input type="number" id="sellingPrice" name="sellingPrice"
+      value="{{ saleProceeds.sellingPrice if saleProceeds else (askingPrice if askingPrice else '') }}"
+      placeholder="e.g. 500000" min="0" step="0.01" required
+      class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sale-proceeds-input">
+  </div>
+
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1" for="outstandingLoan">{{ "Outstanding Mortgage Loan ($)" | t }} *</label>
+    <input type="number" id="outstandingLoan" name="outstandingLoan"
+      value="{{ saleProceeds.outstandingLoan if saleProceeds else '' }}"
+      placeholder="e.g. 200000" min="0" step="0.01" required
+      class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sale-proceeds-input">
+    <p class="text-xs text-gray-500 mt-1">{{ "Check your latest HDB or bank statement" | t }}</p>
+  </div>
+
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">{{ "CPF Used + Accrued Interest ($)" | t }} *</label>
+    <div class="space-y-2" id="cpf-contributors">
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-gray-500 w-16">{{ "Seller 1" | t }}</span>
+        <input type="number" id="cpfSeller1" name="cpfSeller1"
+          value="{{ saleProceeds.cpfSeller1 if saleProceeds else '' }}"
+          placeholder="e.g. 50000" min="0" step="0.01" required
+          class="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sale-proceeds-input">
+      </div>
+      <div class="flex items-center gap-2 {% if not saleProceeds or not saleProceeds.cpfSeller2 %}hidden{% endif %}" id="cpf-row-2">
+        <span class="text-xs text-gray-500 w-16">{{ "Seller 2" | t }}</span>
+        <input type="number" id="cpfSeller2" name="cpfSeller2"
+          value="{{ saleProceeds.cpfSeller2 if saleProceeds and saleProceeds.cpfSeller2 else '' }}"
+          placeholder="e.g. 30000" min="0" step="0.01"
+          class="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sale-proceeds-input">
+      </div>
+      <div class="flex items-center gap-2 {% if not saleProceeds or not saleProceeds.cpfSeller3 %}hidden{% endif %}" id="cpf-row-3">
+        <span class="text-xs text-gray-500 w-16">{{ "Seller 3" | t }}</span>
+        <input type="number" id="cpfSeller3" name="cpfSeller3"
+          value="{{ saleProceeds.cpfSeller3 if saleProceeds and saleProceeds.cpfSeller3 else '' }}"
+          placeholder="e.g. 0" min="0" step="0.01"
+          class="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sale-proceeds-input">
+      </div>
+      <div class="flex items-center gap-2 {% if not saleProceeds or not saleProceeds.cpfSeller4 %}hidden{% endif %}" id="cpf-row-4">
+        <span class="text-xs text-gray-500 w-16">{{ "Seller 4" | t }}</span>
+        <input type="number" id="cpfSeller4" name="cpfSeller4"
+          value="{{ saleProceeds.cpfSeller4 if saleProceeds and saleProceeds.cpfSeller4 else '' }}"
+          placeholder="e.g. 0" min="0" step="0.01"
+          class="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sale-proceeds-input">
+      </div>
+    </div>
+    <button type="button" id="add-cpf-contributor"
+      class="text-xs text-blue-600 hover:underline mt-1">{{ "+ Add contributor" | t }}</button>
+    <p class="text-xs text-gray-500 mt-1">
+      <a href="https://www.cpf.gov.sg/member" target="_blank" rel="noopener" class="text-blue-600 hover:underline">{{ "Not sure? Check www.cpf.gov.sg/member" | t }} &rarr;</a>
+    </p>
+  </div>
+
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1" for="resaleLevy">{{ "Resale Levy ($)" | t }}</label>
+    <input type="number" id="resaleLevy" name="resaleLevy"
+      value="{{ saleProceeds.resaleLevy if saleProceeds else '0' }}"
+      placeholder="0" min="0" step="0.01"
+      class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sale-proceeds-input">
+    <p class="text-xs text-gray-500 mt-1">{{ "Applies if you previously bought a subsidised flat" | t }}</p>
+  </div>
+
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1" for="otherDeductions">{{ "Other Deductions ($)" | t }}</label>
+    <input type="number" id="otherDeductions" name="otherDeductions"
+      value="{{ saleProceeds.otherDeductions if saleProceeds else '0' }}"
+      placeholder="0" min="0" step="0.01"
+      class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sale-proceeds-input">
+    <p class="text-xs text-gray-500 mt-1">{{ "Upgrading levies, outstanding costs, etc." | t }}</p>
+  </div>
+
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">{{ "Agent Commission ($)" | t }}</label>
+    <input type="text" id="commissionDisplay"
+      value="${{ commission.total }}" disabled
+      class="w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-500">
+    <input type="hidden" name="commissionTotal" value="{{ commission.total }}">
+    <p class="text-xs text-gray-500 mt-1">{{ "Fixed fee: $" | t }}{{ commission.amount }}{{ " + GST" | t }}</p>
+  </div>
+
+  <div class="border-t border-gray-200 pt-4 mt-4">
+    <div class="flex justify-between items-center">
+      <span class="text-lg font-semibold text-gray-900">{{ "Estimated Net Proceeds" | t }}</span>
+      <span id="net-proceeds-display" class="text-2xl font-bold text-green-600">$0.00</span>
+    </div>
+    <div id="negative-warning" class="hidden mt-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+      {{ "Your estimated sale proceeds are negative. You may need to top up the difference." | t }}
+    </div>
+  </div>
+
+  <p class="text-xs text-gray-400 italic">{{ "This is an estimate based on your inputs. Actual proceeds depend on final figures from HDB and CPF Board. This is not financial advice." | t }}</p>
+
+  <div class="mt-6">
+    <button type="submit"
+      class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition">
+      {{ submitLabel | default("Save Estimate") | t }}
+    </button>
+  </div>
+</form>

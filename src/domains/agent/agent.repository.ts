@@ -259,6 +259,7 @@ export async function getSellerDetail(sellerId: string, agentId?: string) {
   return prisma.seller.findFirst({
     where,
     include: {
+      saleProceeds: true,
       properties: {
         take: 1,
         include: {

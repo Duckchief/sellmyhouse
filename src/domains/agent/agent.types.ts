@@ -108,6 +108,15 @@ export interface SellerDetail {
   consentMarketing: boolean;
   createdAt: Date;
   updatedAt: Date;
+  saleProceeds: {
+    sellingPrice: number;
+    outstandingLoan: number;
+    cpfTotal: number;
+    resaleLevy: number;
+    otherDeductions: number;
+    commission: number;
+    netProceeds: number;
+  } | null;
   property: {
     id: string;
     town: string;

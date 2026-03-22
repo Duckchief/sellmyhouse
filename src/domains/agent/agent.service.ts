@@ -104,6 +104,18 @@ export async function getSellerDetail(sellerId: string, agentId?: string): Promi
     consentMarketing: seller.consentMarketing,
     createdAt: seller.createdAt,
     updatedAt: seller.updatedAt,
+    saleProceeds: seller.saleProceeds ? {
+      sellingPrice: Number(seller.saleProceeds.sellingPrice),
+      outstandingLoan: Number(seller.saleProceeds.outstandingLoan),
+      cpfTotal: Number(seller.saleProceeds.cpfSeller1)
+        + Number(seller.saleProceeds.cpfSeller2 ?? 0)
+        + Number(seller.saleProceeds.cpfSeller3 ?? 0)
+        + Number(seller.saleProceeds.cpfSeller4 ?? 0),
+      resaleLevy: Number(seller.saleProceeds.resaleLevy),
+      otherDeductions: Number(seller.saleProceeds.otherDeductions),
+      commission: Number(seller.saleProceeds.commission),
+      netProceeds: Number(seller.saleProceeds.netProceeds),
+    } : null,
     property: property
       ? {
           id: property.id,

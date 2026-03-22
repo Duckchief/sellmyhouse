@@ -163,7 +163,8 @@ export interface AdminSellerDetail {
     town: string;
     flatType: string;
     floorAreaSqm: number;
-    storeyRange: string;
+    level: string;
+    unitNumber: string;
     askingPrice: number | null;
   } | null;
   agent: {

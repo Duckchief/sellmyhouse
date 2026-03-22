@@ -705,7 +705,8 @@ export async function getAdminSellerDetail(id: string): Promise<AdminSellerDetai
           town: property.town,
           flatType: property.flatType,
           floorAreaSqm: property.floorAreaSqm,
-          storeyRange: property.storeyRange,
+          level: property.level,
+          unitNumber: property.unitNumber,
           askingPrice: property.askingPrice ? property.askingPrice.toNumber() : null,
         }
       : null,

@@ -114,9 +114,9 @@ export interface SellerDetail {
     street: string;
     block: string;
     flatType: string;
-    storeyRange: string;
+    level: string;
+    unitNumber: string;
     floorAreaSqm: number;
-    flatModel: string;
     leaseCommenceDate: number;
     askingPrice: number | null;
     priceHistory: unknown;

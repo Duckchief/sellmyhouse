@@ -1,15 +1,14 @@
 import * as leadRepo from '../lead.repository';
 
-jest.mock('../../../infra/database/prisma', () => ({
+jest.mock('@/infra/database/prisma', () => ({
   prisma: {
     seller: {
       update: jest.fn(),
     },
   },
-  createId: jest.fn().mockReturnValue('test-id'),
 }));
 
-const { prisma: mockPrisma } = jest.requireMock('../../../infra/database/prisma');
+const { prisma: mockPrisma } = jest.requireMock('@/infra/database/prisma');
 
 describe('lead.repository', () => {
   beforeEach(() => jest.clearAllMocks());

@@ -14,6 +14,7 @@ import * as contentService from '../content/content.service';
 import * as notificationService from '../notification/notification.service';
 import * as accountDeleteService from './account-delete.service';
 import * as complianceService from '../compliance/compliance.service';
+import * as complianceRepo from '../compliance/compliance.repository';
 import { UnauthorizedError } from '../shared/errors';
 
 export const sellerRouter = Router();
@@ -341,12 +342,18 @@ sellerRouter.get('/seller/tutorials', async (req: Request, res: Response, next: 
 sellerRouter.get('/seller/settings', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = req.user as AuthenticatedUser;
-    const settings = await sellerService.getSellerSettings(user.id);
+    const [settings, consent] = await Promise.all([
+      sellerService.getSellerSettings(user.id),
+      complianceRepo.findSellerConsent(user.id),
+    ]);
 
     if (req.headers['hx-request']) {
       return res.render('partials/seller/settings-notifications', { settings });
     }
-    res.render('pages/seller/settings', { settings });
+    res.render('pages/seller/settings', {
+      settings,
+      consentMarketing: consent?.consentMarketing ?? false,
+    });
   } catch (err) {
     next(err);
   }

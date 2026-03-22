@@ -1,7 +1,38 @@
-<div id="settings-consent">
-  {% if consentMarketing %}
-    <p>{{ "Marketing consent is active." | t }}</p>
-  {% else %}
-    <p>{{ "Marketing consent is not active." | t }}</p>
-  {% endif %}
+<div class="bg-white rounded-xl border border-slate-200 p-6 mt-6" id="settings-consent">
+  <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">{{ "Marketing" | t }}</p>
+  <p class="text-sm text-gray-500 mb-4">
+    {{ "Market updates and referral programme." | t }}
+  </p>
+
+  <div class="flex items-center justify-between">
+    <span class="text-sm font-medium text-gray-900">{{ "Marketing Communications" | t }}</span>
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-gray-500">
+        {% if consentMarketing %}{{ "On" | t }}{% else %}{{ "Off" | t }}{% endif %}
+      </span>
+      {% if consentMarketing %}
+        <button
+          hx-post="/seller/compliance/consent/withdraw"
+          hx-vals='{"type": "marketing", "channel": "web", "source": "settings"}'
+          hx-target="#settings-consent"
+          hx-swap="outerHTML"
+          class="relative inline-flex h-6 w-11 items-center rounded-full bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          aria-pressed="true"
+        >
+          <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow translate-x-6 transition-transform"></span>
+        </button>
+      {% else %}
+        <button
+          hx-post="/seller/compliance/consent/grant"
+          hx-vals='{"type": "marketing", "channel": "web", "source": "settings"}'
+          hx-target="#settings-consent"
+          hx-swap="outerHTML"
+          class="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          aria-pressed="false"
+        >
+          <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow translate-x-1 transition-transform"></span>
+        </button>
+      {% endif %}
+    </div>
+  </div>
 </div>

@@ -597,6 +597,33 @@ describe('POST /admin/content/market/:id/reject', () => {
   });
 });
 
+describe('GET /admin/team', () => {
+  it('calls getDefaultAgentId and passes it to the team-list render', async () => {
+    mockAdminService.getTeam.mockResolvedValue([]);
+    mockAdminService.getDefaultAgentId.mockResolvedValue('agent-1');
+
+    const app = makeApp();
+    const res = await request(app)
+      .get('/admin/team')
+      .set('hx-request', 'true');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.getDefaultAgentId).toHaveBeenCalled();
+  });
+
+  it('returns 200 on non-HTMX request and calls getTeam and getDefaultAgentId', async () => {
+    mockAdminService.getTeam.mockResolvedValue([]);
+    mockAdminService.getDefaultAgentId.mockResolvedValue('agent-1');
+
+    const app = makeApp();
+    const res = await request(app).get('/admin/team');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.getTeam).toHaveBeenCalled();
+    expect(mockAdminService.getDefaultAgentId).toHaveBeenCalled();
+  });
+});
+
 describe('GET /admin/dashboard — preset param', () => {
   beforeEach(() => {
     mockAdminService.getAnalytics.mockResolvedValue({

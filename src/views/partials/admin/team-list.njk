@@ -55,7 +55,7 @@
               <button
                 class="text-xs text-indigo-600 hover:underline"
                 hx-post="/admin/team/{{ member.id }}/set-default"
-                hx-target="#action-result"
+                hx-target="#team-list"
               >{{ "Set Default" | t }}</button>
             {% endif %}
           </div>

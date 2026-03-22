@@ -1,30 +1,38 @@
 import nodemailer from 'nodemailer';
+import { logger } from '../logger';
+
+function isSmtpConfigured(): boolean {
+  return !!(
+    process.env.SMTP_HOST &&
+    process.env.SMTP_PORT &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASS &&
+    process.env.SMTP_FROM
+  );
+}
 
 export async function sendSystemEmail(
   to: string,
   subject: string,
   html: string,
 ): Promise<void> {
-  const host = process.env.SMTP_HOST;
-  const port = process.env.SMTP_PORT;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM;
-
-  if (!host || !port || !user || !pass || !from) {
-    throw new Error('System SMTP not configured');
+  if (!isSmtpConfigured()) {
+    logger.info({ to, subject, html }, '[EMAIL_STUB] Email not sent — SMTP not configured');
+    return;
   }
 
-  const portNum = parseInt(port, 10);
-  if (isNaN(portNum)) {
-    throw new Error('System SMTP not configured');
+  const port = parseInt(process.env.SMTP_PORT!, 10);
+  if (isNaN(port)) {
+    logger.info({ to, subject, html }, '[EMAIL_STUB] Email not sent — SMTP_PORT invalid');
+    return;
   }
+
   const transporter = nodemailer.createTransport({
-    host,
-    port: portNum,
-    secure: portNum === 465,
-    auth: { user, pass },
+    host: process.env.SMTP_HOST!,
+    port,
+    secure: port === 465,
+    auth: { user: process.env.SMTP_USER!, pass: process.env.SMTP_PASS! },
   });
 
-  await transporter.sendMail({ from, to, subject, html });
+  await transporter.sendMail({ from: process.env.SMTP_FROM!, to, subject, html });
 }

@@ -46,19 +46,52 @@ describe('sendSystemEmail', () => {
     );
   });
 
-  it('throws if SMTP_HOST is missing', async () => {
+  it('logs via stub when SMTP_HOST is missing', async () => {
     delete process.env.SMTP_HOST;
+    jest.resetModules();
+    const loggerModule = await import('../../../infra/logger');
+    const logSpy = jest.spyOn(loggerModule.logger, 'info');
     const { sendSystemEmail } = await import('../system-mailer');
-    await expect(
-      sendSystemEmail('seller@example.com', 'Subject', 'body'),
-    ).rejects.toThrow('System SMTP not configured');
+
+    await sendSystemEmail('seller@example.com', 'Subject', 'body');
+
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'seller@example.com' }),
+      expect.stringContaining('[EMAIL_STUB]'),
+    );
+    expect(mockSendMail).not.toHaveBeenCalled();
+    logSpy.mockRestore();
+  });
+
+  it('logs email via logger when SMTP is not configured', async () => {
+    delete process.env.SMTP_HOST;
+    jest.resetModules();
+    const loggerModule = await import('../../../infra/logger');
+    const logSpy = jest.spyOn(loggerModule.logger, 'info');
+    const { sendSystemEmail } = await import('../system-mailer');
+
+    await sendSystemEmail('seller@example.com', 'Verify Email', '<p>Click here</p>');
+
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'seller@example.com', subject: 'Verify Email' }),
+      expect.stringContaining('[EMAIL_STUB]'),
+    );
+    expect(mockSendMail).not.toHaveBeenCalled();
+    logSpy.mockRestore();
   });
 
   it('sets secure to true for port 465', async () => {
     process.env.SMTP_PORT = '465';
+    jest.resetModules();
+    jest.mock('nodemailer');
+    const nm = await import('nodemailer');
+    const localMockSendMail = jest.fn().mockResolvedValue({ messageId: 'test-id' });
+    const localMockCreateTransport = nm.default.createTransport as jest.Mock;
+    localMockCreateTransport.mockReturnValue({ sendMail: localMockSendMail });
+
     const { sendSystemEmail } = await import('../system-mailer');
     await sendSystemEmail('seller@example.com', 'Subject', 'body');
-    expect(mockCreateTransport).toHaveBeenCalledWith(
+    expect(localMockCreateTransport).toHaveBeenCalledWith(
       expect.objectContaining({ secure: true, port: 465 }),
     );
   });

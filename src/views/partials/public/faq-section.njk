@@ -52,13 +52,14 @@
         type="button"
         class="faq-trigger w-full flex items-center justify-between px-6 py-5 text-left font-semibold text-[#1a1a2e] hover:bg-gray-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c8553d]"
         aria-expanded="{{ 'true' if loop.first else 'false' }}"
+        aria-controls="faq-panel-{{ loop.index }}"
       >
         <span>{{ item.q | t }}</span>
         <svg class="faq-chevron w-5 h-5 text-[#c8553d] flex-shrink-0 ml-4 transition-transform duration-200 {{ 'rotate-180' if loop.first else '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
         </svg>
       </button>
-      <div class="faq-panel overflow-hidden transition-all duration-200 ease-in-out {{ '' if loop.first else 'hidden' }}">
+      <div class="faq-panel overflow-hidden transition-[max-height] duration-200 ease-in-out {{ 'max-h-96' if loop.first else 'max-h-0' }}" id="faq-panel-{{ loop.index }}">
         <p class="px-6 pb-5 text-sm text-gray-600 leading-relaxed">{{ item.a | t }}</p>
       </div>
     </div>
@@ -67,7 +68,7 @@
   </div>
 </section>
 
-<script>
+<script nonce="{{ cspNonce }}">
 (function () {
   var accordion = document.getElementById('faq-accordion');
   if (!accordion) return;
@@ -87,14 +88,16 @@
       var otherPanel = otherItem.querySelector('.faq-panel');
       var otherChevron = otherItem.querySelector('.faq-chevron');
       otherTrigger.setAttribute('aria-expanded', 'false');
-      otherPanel.classList.add('hidden');
+      otherPanel.classList.remove('max-h-96');
+      otherPanel.classList.add('max-h-0');
       otherChevron.classList.remove('rotate-180');
     });
 
     // Open clicked if it was closed
     if (!isOpen) {
       trigger.setAttribute('aria-expanded', 'true');
-      panel.classList.remove('hidden');
+      panel.classList.remove('max-h-0');
+      panel.classList.add('max-h-96');
       chevron.classList.add('rotate-180');
     }
   });

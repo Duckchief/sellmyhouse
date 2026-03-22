@@ -4,6 +4,7 @@ jest.mock('@/infra/database/prisma', () => ({
   prisma: {
     testimonial: {
       create: jest.fn(),
+      update: jest.fn(),
     },
   },
 }));
@@ -13,6 +14,29 @@ const { prisma } = jest.requireMock('@/infra/database/prisma');
 describe('content.repository', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('reissueTestimonialToken', () => {
+    it('updates status, submissionToken, and tokenExpiresAt on the correct record', async () => {
+      const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      prisma.testimonial.update.mockResolvedValue({
+        id: 't-1',
+        status: 'pending_submission',
+        submissionToken: 'new-token',
+        tokenExpiresAt: expiry,
+      });
+
+      await contentRepo.reissueTestimonialToken('t-1', 'new-token', expiry);
+
+      expect(prisma.testimonial.update).toHaveBeenCalledWith({
+        where: { id: 't-1' },
+        data: {
+          status: 'pending_submission',
+          submissionToken: 'new-token',
+          tokenExpiresAt: expiry,
+        },
+      });
+    });
   });
 
   describe('createManualTestimonial', () => {

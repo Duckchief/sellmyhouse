@@ -222,6 +222,21 @@ export async function updateTestimonialStatus(
   });
 }
 
+export async function reissueTestimonialToken(
+  id: string,
+  token: string,
+  tokenExpiresAt: Date,
+) {
+  return prisma.testimonial.update({
+    where: { id },
+    data: {
+      status: 'pending_submission',
+      submissionToken: token,
+      tokenExpiresAt,
+    },
+  });
+}
+
 export async function setTestimonialDisplay(id: string, displayOnWebsite: boolean) {
   return prisma.testimonial.update({ where: { id }, data: { displayOnWebsite } });
 }

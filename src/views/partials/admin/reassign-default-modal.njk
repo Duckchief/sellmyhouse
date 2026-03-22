@@ -1,0 +1,31 @@
+<div id="reassign-default-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+    <h2 class="text-base font-semibold text-gray-900 mb-2">{{ "Reassign Default Agent" | t }}</h2>
+    <p class="text-sm text-gray-600 mb-4">
+      {{ "This agent is the default for new leads. Select a replacement before proceeding." | t }}
+    </p>
+    <form
+      hx-post="/admin/team/{{ agentId }}/{{ action }}"
+      hx-target="#action-result"
+      hx-on::after-request="document.getElementById('reassign-default-modal').remove()"
+    >
+      <label class="block text-sm font-medium text-gray-700 mb-1">{{ "New Default Agent" | t }}</label>
+      <select name="newDefaultAgentId" class="w-full border rounded px-3 py-2 text-sm mb-4">
+        <option value="unassigned">{{ "— Unassigned (no default)" | t }}</option>
+        {% for a in activeAgents %}
+          <option value="{{ a.id }}">{{ a.name }}</option>
+        {% endfor %}
+      </select>
+      <div class="flex gap-2 justify-end">
+        <button
+          type="button"
+          class="text-sm text-gray-500 hover:underline"
+          onclick="document.getElementById('reassign-default-modal').remove()"
+        >{{ "Cancel" | t }}</button>
+        <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded text-sm">
+          {{ "Confirm" | t }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

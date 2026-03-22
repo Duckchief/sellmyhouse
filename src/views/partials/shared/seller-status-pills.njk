@@ -26,13 +26,13 @@
     hx-target="#seller-list"
     hx-include="#{{ formId }}"
     hx-vals='{"status": "{{ p.value }}"}'
-    class="flex-1 px-4 py-2 rounded-lg text-sm font-medium border-0 cursor-pointer transition {{ p.bg }}
+    class="flex-1 p-6 rounded-lg text-sm font-medium border-0 cursor-pointer transition {{ p.bg }}
       {%- if currentStatus == p.value %} ring-2 ring-offset-1 {{ p.ring }}
       {%- else %} hover:ring-2 hover:ring-offset-1 hover:{{ p.ring }}
       {%- endif %}"
   >
     <p class="text-xs font-medium text-gray-500 uppercase text-center">{{ p.label | t }}</p>
-    <p class="text-2xl font-bold text-center {{ p.countColor }}">
+    <p class="text-2xl font-bold mt-1 text-center {{ p.countColor }}">
       {%- if p.value == '' -%}
         {{ (statusCounts.lead or 0) + (statusCounts.engaged or 0) + (statusCounts.active or 0) + (statusCounts.completed or 0) + (statusCounts.archived or 0) }}
       {%- else -%}

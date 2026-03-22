@@ -829,6 +829,70 @@
     if (blockInput && streetInput && blockInput.value && streetInput.value && leaseInput && (!leaseInput.value || leaseInput.value === '0')) {
       lookupPropertyInfo();
     }
+
+    // Trigger sale proceeds calculation on HTMX load (step 3 loaded with existing data)
+    if (document.getElementById('sale-proceeds-form')) {
+      calculateProceeds();
+    }
+  });
+
+  // ── Sale Proceeds Calculator ──────────────────────────────────
+  function calculateProceeds() {
+    var form = document.getElementById('sale-proceeds-form');
+    if (!form) return;
+
+    var val = function (id) {
+      var el = document.getElementById(id);
+      return el ? (parseFloat(el.value) || 0) : 0;
+    };
+
+    var selling = val('sellingPrice');
+    var loan = val('outstandingLoan');
+    var cpf1 = val('cpfSeller1');
+    var cpf2 = val('cpfSeller2');
+    var cpf3 = val('cpfSeller3');
+    var cpf4 = val('cpfSeller4');
+    var levy = val('resaleLevy');
+    var other = val('otherDeductions');
+
+    var commissionEl = form.querySelector('[name="commissionTotal"]');
+    var commission = commissionEl ? parseFloat(commissionEl.value) || 0 : 0;
+
+    var net = selling - loan - cpf1 - cpf2 - cpf3 - cpf4 - levy - other - commission;
+    net = Math.round(net * 100) / 100;
+
+    var display = document.getElementById('net-proceeds-display');
+    var warning = document.getElementById('negative-warning');
+    if (display) {
+      display.textContent = '$' + net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      display.className = 'text-2xl font-bold ' + (net >= 0 ? 'text-green-600' : 'text-red-600');
+    }
+    if (warning) {
+      warning.classList.toggle('hidden', net >= 0);
+    }
+  }
+
+  document.body.addEventListener('input', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('sale-proceeds-input')) {
+      calculateProceeds();
+    }
+  });
+
+  // CPF "Add contributor" button
+  document.body.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'add-cpf-contributor') {
+      var rows = ['cpf-row-2', 'cpf-row-3', 'cpf-row-4'];
+      for (var i = 0; i < rows.length; i++) {
+        var row = document.getElementById(rows[i]);
+        if (row && row.classList.contains('hidden')) {
+          row.classList.remove('hidden');
+          if (i === rows.length - 1) {
+            e.target.classList.add('hidden');
+          }
+          break;
+        }
+      }
+    }
   });
 
 })();

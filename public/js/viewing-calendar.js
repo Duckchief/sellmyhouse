@@ -68,6 +68,7 @@
     todayBtn.type = 'button';
     todayBtn.className = 'px-2 py-1 text-xs rounded border border-gray-300 text-gray-600 hover:bg-gray-50';
     todayBtn.textContent = 'Today';
+    todayBtn.setAttribute('aria-label', 'Go to today');
     todayBtn.addEventListener('click', function () { self.goToToday(); });
 
     var nextBtn = document.createElement('button');

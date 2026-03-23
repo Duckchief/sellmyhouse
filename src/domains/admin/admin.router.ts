@@ -2,7 +2,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import * as adminService from './admin.service';
-import { validateAgentCreate, validateSettingUpdate, validateAssign } from './admin.validator';
+import { validateAgentCreate, validateSettingUpdate, validateAssign, validateBulkAssign } from './admin.validator';
 import {
   validateTutorialCreate,
   validateTutorialUpdate,
@@ -507,6 +507,74 @@ adminRouter.get(
         currentSearch: filter.search ?? '',
         currentPath: '/admin/sellers',
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// GET route for loading the bulk assign modal
+adminRouter.get(
+  '/admin/sellers/bulk-assign-modal',
+  ...adminAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const sellerIds = (req.query['sellerIds'] as string) || '';
+      const team = await adminService.getTeam();
+      const count = sellerIds.split(',').filter(Boolean).length;
+      res.render('partials/admin/assign-bulk-modal', {
+        team,
+        sellerIds,
+        sellerCount: count,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST route for bulk assigning sellers
+adminRouter.post(
+  '/admin/sellers/bulk-assign',
+  ...adminAuth,
+  ...validateBulkAssign,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+      const user = req.user as AuthenticatedUser;
+      const sellerIds = (req.body.sellerIds as string).split(',').filter(Boolean);
+      const agentId = req.body.agentId as string;
+
+      // Fetch all sellers to determine assign vs reassign
+      const { sellers } = await adminService.getAllSellers({});
+      const sellerMap = new Map(sellers.map((s) => [s.id, s]));
+
+      let successCount = 0;
+      for (const sellerId of sellerIds) {
+        try {
+          const seller = sellerMap.get(sellerId);
+          if (seller?.agent) {
+            await adminService.reassignSeller(sellerId, agentId, user.id);
+          } else {
+            await adminService.assignSeller(sellerId, agentId, user.id);
+          }
+          successCount++;
+        } catch {
+          // Continue on individual failure
+        }
+      }
+
+      if (req.headers['hx-request']) {
+        res.setHeader('HX-Trigger', 'sellerAssigned');
+        return res.render('partials/admin/team-action-result', {
+          message: `${successCount} of ${sellerIds.length} sellers assigned.`,
+          type: 'success',
+        });
+      }
+      res.redirect('/admin/sellers');
     } catch (err) {
       next(err);
     }

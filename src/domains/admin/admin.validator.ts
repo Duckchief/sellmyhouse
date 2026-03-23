@@ -67,3 +67,8 @@ export const validateSettingUpdate = [
 export const validateAssign = [
   body('agentId').trim().notEmpty().withMessage('Agent ID is required'),
 ];
+
+export const validateBulkAssign = [
+  body('sellerIds').trim().notEmpty().withMessage('Seller IDs are required'),
+  body('agentId').trim().notEmpty().withMessage('Agent ID is required'),
+];

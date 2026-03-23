@@ -1141,3 +1141,55 @@ describe('GET /admin/pipeline', () => {
     expect(res.headers['location']).toBe('/admin/sellers');
   });
 });
+
+describe('GET /admin/sellers/bulk-assign-modal', () => {
+  it('renders the bulk assign modal with seller count', async () => {
+    mockAdminService.getTeam.mockResolvedValue([
+      { id: 'agent-1', name: 'Agent One', isActive: true },
+    ] as any);
+
+    const app = makeApp();
+    const res = await request(app)
+      .get('/admin/sellers/bulk-assign-modal?sellerIds=s1,s2,s3')
+      .set('hx-request', 'true');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.getTeam).toHaveBeenCalled();
+  });
+});
+
+describe('POST /admin/sellers/bulk-assign', () => {
+  it('assigns multiple sellers and returns success count', async () => {
+    mockAdminService.getAllSellers.mockResolvedValue({
+      sellers: [
+        { id: 's1', agent: null },
+        { id: 's2', agent: { id: 'old-agent', name: 'Old' } },
+      ],
+      total: 2, page: 1, limit: 25,
+    } as any);
+    mockAdminService.assignSeller.mockResolvedValue(undefined);
+    mockAdminService.reassignSeller.mockResolvedValue(undefined);
+
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/sellers/bulk-assign')
+      .set('hx-request', 'true')
+      .type('form')
+      .send({ sellerIds: 's1,s2', agentId: 'agent-1' });
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.assignSeller).toHaveBeenCalledWith('s1', 'agent-1', expect.any(String));
+    expect(mockAdminService.reassignSeller).toHaveBeenCalledWith('s2', 'agent-1', expect.any(String));
+  });
+
+  it('returns 400 when sellerIds is empty', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .post('/admin/sellers/bulk-assign')
+      .set('hx-request', 'true')
+      .type('form')
+      .send({ sellerIds: '', agentId: 'agent-1' });
+
+    expect(res.status).toBe(400);
+  });
+});

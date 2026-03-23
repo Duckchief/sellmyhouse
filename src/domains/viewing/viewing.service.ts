@@ -768,6 +768,98 @@ export async function getSellerDashboard(propertyId: string, sellerId: string) {
   return { stats, slots };
 }
 
+export async function getSlotsForDate(propertyId: string, dateStr: string, sellerId: string) {
+  await verifyPropertyOwnership(propertyId, sellerId);
+  const date = new Date(dateStr);
+
+  const slots = await viewingRepo.findSlotsByPropertyAndDateRange(propertyId, date, date);
+
+  const suggestedTimes = findNextAvailableGap(slots as { startTime: string; endTime: string }[]);
+
+  return {
+    slots: slots.map((s) => ({
+      id: (s as { id: string }).id,
+      startTime: (s as { startTime: string }).startTime,
+      endTime: (s as { endTime: string }).endTime,
+      slotType: (s as { slotType: string }).slotType,
+      maxViewers: (s as { maxViewers: number }).maxViewers,
+      currentBookings: (s as { currentBookings: number }).currentBookings,
+      status: (s as { status: string }).status,
+    })),
+    suggestedStart: suggestedTimes.start,
+    suggestedEnd: suggestedTimes.end,
+    date: dateStr,
+  };
+}
+
+export async function getMonthSlotMeta(
+  propertyId: string,
+  year: number,
+  month: number,
+  sellerId: string,
+): Promise<Record<string, { available: number; full: number }>> {
+  await verifyPropertyOwnership(propertyId, sellerId);
+  const slots = await viewingRepo.findSlotsByPropertyAndMonth(propertyId, year, month);
+
+  const meta: Record<string, { available: number; full: number }> = {};
+  for (const slot of slots) {
+    const dateKey = (slot as { date: Date }).date.toISOString().split('T')[0];
+    if (!meta[dateKey]) meta[dateKey] = { available: 0, full: 0 };
+    if (
+      (slot as { status: string }).status === 'full' ||
+      ((slot as { slotType: string }).slotType === 'single' &&
+        (slot as { currentBookings: number }).currentBookings >= 1)
+    ) {
+      meta[dateKey].full++;
+    } else {
+      meta[dateKey].available++;
+    }
+  }
+  return meta;
+}
+
+function findNextAvailableGap(slots: { startTime: string; endTime: string }[]): {
+  start: string;
+  end: string;
+} {
+  if (slots.length === 0) return { start: '10:00', end: '11:00' };
+
+  const sorted = [...slots].sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+  // Try gap after each slot
+  for (let i = 0; i < sorted.length; i++) {
+    const gapStart = sorted[i].endTime;
+    const gapEnd = addMinutes(gapStart, 60);
+    const nextSlotStart = sorted[i + 1]?.startTime ?? '23:59';
+
+    if (gapEnd <= nextSlotStart && gapEnd <= '22:00') {
+      return { start: gapStart, end: gapEnd };
+    }
+  }
+
+  // Try gap before first slot
+  const firstStart = sorted[0].startTime;
+  if (firstStart >= '11:00') {
+    const beforeEnd = firstStart;
+    const beforeStart = subtractMinutes(beforeEnd, 60);
+    if (beforeStart >= '08:00') return { start: beforeStart, end: beforeEnd };
+  }
+
+  // Fallback: after last slot
+  const lastEnd = sorted[sorted.length - 1].endTime;
+  return { start: lastEnd, end: addMinutes(lastEnd, 60) };
+}
+
+function addMinutes(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const total = h * 60 + m + minutes;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+function subtractMinutes(time: string, minutes: number): string {
+  return addMinutes(time, -minutes);
+}
+
 export async function getPublicBookingPage(slug: string) {
   const property = await viewingRepo.findPropertyBySlug(slug);
   if (!property) return null;

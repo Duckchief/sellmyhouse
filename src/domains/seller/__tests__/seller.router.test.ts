@@ -69,6 +69,12 @@ describe('seller.router', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default: middleware needs getOnboardingStatus for res.locals.onboardingComplete
+    mockedService.getOnboardingStatus.mockResolvedValue({
+      currentStep: 5,
+      isComplete: true,
+      completedSteps: [1, 2, 3, 4, 5],
+    });
     app = createTestApp();
   });
 

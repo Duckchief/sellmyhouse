@@ -34,10 +34,12 @@ sellerRouter.use(
       const user = req.user as AuthenticatedUser;
       res.locals.user = user;
       res.locals.hasAvatar = false;
-      res.locals.unreadCount = await notificationService.countUnreadNotifications(
-        'seller',
-        user.id,
-      );
+      const [unreadCount, onboardingStatus] = await Promise.all([
+        notificationService.countUnreadNotifications('seller', user.id),
+        sellerService.getOnboardingStatus(user.id),
+      ]);
+      res.locals.unreadCount = unreadCount;
+      res.locals.onboardingComplete = onboardingStatus.isComplete;
       next();
     } catch (err) {
       next(err);

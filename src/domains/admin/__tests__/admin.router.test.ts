@@ -1113,6 +1113,24 @@ describe('GET /admin/sellers', () => {
     expect(res.status).toBe(200);
     expect(mockAdminService.getAdminSellerStatusCounts).toHaveBeenCalled();
   });
+
+  it('passes currentAgentId to render context', async () => {
+    mockAdminService.getAllSellers.mockResolvedValue({
+      sellers: [], total: 0, page: 1, limit: 25,
+    } as any);
+    mockAdminService.getTeam.mockResolvedValue([] as any);
+    mockAdminService.getAdminSellerStatusCounts.mockResolvedValue({
+      lead: 0, engaged: 0, active: 0, completed: 0, archived: 0,
+    });
+
+    const app = makeApp();
+    const res = await request(app).get('/admin/sellers?agentId=unassigned');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminService.getAllSellers).toHaveBeenCalledWith(
+      expect.objectContaining({ agentId: 'unassigned' }),
+    );
+  });
 });
 
 describe('GET /admin/pipeline', () => {

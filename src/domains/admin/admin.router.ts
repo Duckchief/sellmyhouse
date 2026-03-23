@@ -491,7 +491,7 @@ adminRouter.get(
         adminService.getAdminSellerStatusCounts(),
       ]);
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/seller-list', { result, team, statusCounts });
+        return res.render('partials/admin/seller-list', { result, team, statusCounts, currentAgentId: filter.agentId ?? '' });
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
@@ -503,6 +503,8 @@ adminRouter.get(
         team,
         statusCounts,
         currentStatus: filter.status ?? '',
+        currentAgentId: filter.agentId ?? '',
+        currentSearch: filter.search ?? '',
         currentPath: '/admin/sellers',
       });
     } catch (err) {

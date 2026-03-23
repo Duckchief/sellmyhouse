@@ -51,7 +51,7 @@
   {# Single slot form — calendar + sidebar layout #}
   <div id="panel-single" class="flex flex-col sm:flex-row gap-0">
     {# Calendar (60%) #}
-    <div class="w-full sm:w-[60%] sm:border-r border-gray-200 sm:pr-4">
+    <div class="w-full sm:w-1/2 sm:border-r border-gray-200 sm:pr-4">
       <div id="viewing-calendar"
            data-property-id="{{ propertyId }}"
            data-slots-by-date="{{ slotsByDate | dump | safe }}"
@@ -60,7 +60,7 @@
     </div>
 
     {# Sidebar (40%) #}
-    <div id="date-sidebar" class="w-full sm:w-[40%] sm:pl-4 min-h-[200px] flex items-center justify-center">
+    <div id="date-sidebar" class="w-full sm:w-1/2 sm:pl-4 min-h-[200px] flex items-center justify-center">
       <p class="text-sm text-gray-400 text-center">{{ "Select a date on the calendar to add a viewing slot." | t }}</p>
     </div>
   </div>

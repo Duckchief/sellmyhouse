@@ -127,13 +127,15 @@
       var isSelected = dateStr === this.selectedDate;
       var meta = this.slotsByDate[dateStr];
 
+      var hasSlots = meta && (meta.available > 0 || meta.full > 0);
+
       var cell = document.createElement('button');
       cell.type = 'button';
       cell.dataset.date = dateStr;
       cell.className = 'relative flex flex-col items-center justify-center p-1.5 rounded-lg text-sm transition '
         + (isPast ? 'text-gray-300 ' : 'text-gray-700 hover:bg-blue-50 cursor-pointer ')
         + (isToday ? 'font-bold ' : '')
-        + (isSelected ? 'ring-2 ring-blue-500 bg-blue-50 ' : '');
+        + (isSelected ? 'ring-2 ring-blue-500 bg-blue-50 ' : (hasSlots && !isPast ? 'bg-green-50 ' : ''));
 
       var dayNum = document.createElement('span');
       dayNum.textContent = d;

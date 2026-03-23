@@ -898,7 +898,7 @@
   // ── Viewing Calendar ──────────────────────────────────
   var calendarEl = document.getElementById('viewing-calendar');
   if (calendarEl && window.ViewingCalendar) {
-    new window.ViewingCalendar(calendarEl);
+    calendarEl._viewingCalendar = new window.ViewingCalendar(calendarEl);
   }
 
   // After a slot is added, refresh the date sidebar to show updated schedule
@@ -911,11 +911,17 @@
     var date = dateInput ? dateInput.value : '';
     var propertyId = propertyInput ? propertyInput.value : '';
     if (date && propertyId) {
+      // Refresh the day's schedule in the sidebar
       htmx.ajax('GET',
         '/seller/viewings/slots/date-sidebar?date=' + encodeURIComponent(date)
         + '&propertyId=' + encodeURIComponent(propertyId),
         { target: '#date-sidebar', swap: 'innerHTML' }
       );
+      // Refresh calendar month metadata so green backgrounds update
+      var calendarEl = document.getElementById('viewing-calendar');
+      if (calendarEl && calendarEl._viewingCalendar) {
+        calendarEl._viewingCalendar.fetchMonthMeta();
+      }
     }
   });
 

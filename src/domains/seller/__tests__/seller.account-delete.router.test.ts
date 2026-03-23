@@ -7,6 +7,13 @@ jest.mock('../../notification/notification.repository', () => ({
   countUnreadForRecipient: jest.fn().mockResolvedValue(0),
   findUnreadForRecipient: jest.fn().mockResolvedValue([]),
 }));
+jest.mock('../seller.service', () => ({
+  getOnboardingStatus: jest.fn().mockResolvedValue({
+    currentStep: 5,
+    isComplete: true,
+    completedSteps: [1, 2, 3, 4, 5],
+  }),
+}));
 
 const mockService = accountDeleteService as jest.Mocked<typeof accountDeleteService>;
 

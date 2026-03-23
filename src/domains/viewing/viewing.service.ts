@@ -772,7 +772,12 @@ export async function getViewingStats(propertyId: string, sellerId: string) {
   return viewingRepo.getViewingStats(propertyId);
 }
 
-export async function getSellerDashboard(propertyId: string, sellerId: string) {
+export async function getSellerDashboard(
+  propertyId: string,
+  sellerId: string,
+  page: number = 1,
+  pageSize: number = 20,
+) {
   await verifyPropertyOwnership(propertyId, sellerId);
   const stats = await viewingRepo.getViewingStats(propertyId);
   const allSlots = await viewingRepo.findSlotsByPropertyAndDateRange(
@@ -780,8 +785,10 @@ export async function getSellerDashboard(propertyId: string, sellerId: string) {
     new Date(),
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
   );
-  const slots = allSlots.filter((s) => (s as { status: string }).status !== 'cancelled');
-  return { stats, slots };
+  const activeSlots = allSlots.filter((s) => (s as { status: string }).status !== 'cancelled');
+  const totalSlots = activeSlots.length;
+  const slots = activeSlots.slice((page - 1) * pageSize, page * pageSize);
+  return { stats, slots, totalSlots, page, pageSize };
 }
 
 export async function getSlotsForDate(propertyId: string, dateStr: string, sellerId: string) {

@@ -40,13 +40,17 @@ viewingRouter.get(
         propertyId = (property as { id: string } | null)?.id;
       }
 
+      const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+      const pageSize = 20;
+
       const dashboard = propertyId
-        ? await viewingService.getSellerDashboard(propertyId, user.id)
-        : { stats: null, slots: [] };
+        ? await viewingService.getSellerDashboard(propertyId, user.id, page, pageSize)
+        : { stats: null, slots: [], totalSlots: 0, page: 1, pageSize };
 
-      const { stats, slots } = dashboard;
+      const { stats, slots, totalSlots } = dashboard;
+      const hasMore = page * pageSize < (totalSlots ?? 0);
 
-      // Build slot metadata for calendar dot indicators
+      // Build slot metadata for calendar dot indicators (uses month-meta route for full data)
       const slotsByDate: Record<string, { available: number; full: number }> = {};
       for (const s of slots) {
         const sl = s as unknown as {
@@ -66,15 +70,36 @@ viewingRouter.get(
         }
       }
 
+      // HTMX "load more" request — return just the slot rows + next button
+      if (req.headers['hx-request'] && page > 1) {
+        return res.render('partials/seller/slots-page', {
+          slots,
+          propertyId,
+          page,
+          hasMore,
+        });
+      }
+
       if (req.headers['hx-request']) {
         return res.render('partials/seller/viewings-dashboard', {
           stats,
           slots,
           propertyId,
           slotsByDate,
+          page,
+          hasMore,
+          totalSlots,
         });
       }
-      return res.render('pages/seller/viewings', { stats, slots, propertyId, slotsByDate });
+      return res.render('pages/seller/viewings', {
+        stats,
+        slots,
+        propertyId,
+        slotsByDate,
+        page,
+        hasMore,
+        totalSlots,
+      });
     } catch (err) {
       next(err);
     }

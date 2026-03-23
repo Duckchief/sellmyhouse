@@ -230,8 +230,24 @@
     {% for slot in slots %}
     {% include "partials/seller/slot-row.njk" %}
     {% endfor %}
+
+    {% if hasMore %}
+    <div id="load-more-slots" class="text-center pt-2">
+      <button type="button"
+              hx-get="/seller/viewings?propertyId={{ propertyId }}&page={{ page + 1 }}"
+              hx-target="#load-more-slots"
+              hx-swap="outerHTML"
+              class="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
+        {{ "Load more" | t }}
+      </button>
+    </div>
+    {% endif %}
     {% endif %}
   </div>
+
+  {% if totalSlots %}
+  <p class="text-xs text-gray-400 mt-3 text-right">{{ "Showing" | t }} {{ slots.length }} {{ "of" | t }} {{ totalSlots }} {{ "slots" | t }}</p>
+  {% endif %}
 </div>
 
 

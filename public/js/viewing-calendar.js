@@ -135,7 +135,8 @@
       cell.className = 'relative flex flex-col items-center justify-center p-1.5 rounded-lg text-sm transition '
         + (isPast ? 'text-gray-300 ' : 'text-gray-700 cursor-pointer ')
         + (isToday ? 'font-bold ' : '')
-        + (isSelected ? 'ring-2 ring-blue-500 bg-blue-50 '
+        + (isSelected
+          ? (hasSlots ? 'ring-2 ring-blue-500 bg-green-100 ' : 'ring-2 ring-blue-500 bg-blue-50 ')
           : (hasSlots && !isPast ? 'bg-green-50 hover:bg-green-100 ' : 'hover:bg-blue-50 '));
 
       var dayNum = document.createElement('span');

@@ -791,8 +791,10 @@ export async function getSlotsForDate(propertyId: string, dateStr: string, selle
 
   const suggestedTimes = findNextAvailableGap(slots as { startTime: string; endTime: string }[]);
 
+  const activeSlots = slots.filter((s) => (s as { status: string }).status !== 'cancelled');
+
   return {
-    slots: slots.map((s) => ({
+    slots: activeSlots.map((s) => ({
       id: (s as { id: string }).id,
       startTime: (s as { startTime: string }).startTime,
       endTime: (s as { endTime: string }).endTime,

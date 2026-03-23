@@ -13,7 +13,7 @@
       <span>{{ overview.property.floorAreaSqm }} sqm</span>
     </div>
     {% if overview.property.askingPrice %}
-    <p class="text-xl font-bold text-accent">${{ overview.property.askingPrice | formatPrice }}</p>
+    <p class="text-xl text-accent"><span class="font-normal text-gray-900">{{ "Asking Price:" | t }}</span> <span class="font-bold">${{ overview.property.askingPrice | formatPrice }}</span></p>
     {% endif %}
   </div>
   <div class="flex items-center gap-2">

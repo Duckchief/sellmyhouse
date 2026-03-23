@@ -10,7 +10,17 @@
 
 <form id="admin-seller-filter-form" class="flex gap-3 mb-6" hx-get="/admin/sellers" hx-target="#seller-list" hx-trigger="submit">
   <input type="hidden" name="status" id="status-input" value="{{ currentStatus }}" />
-  <input type="text" name="search" placeholder="{{ 'Search by name, email, phone' | t }}" class="border rounded px-3 py-2 text-sm flex-1" />
+  <input type="text" name="search" placeholder="{{ 'Search by name, email, phone' | t }}" class="border rounded px-3 py-2 text-sm flex-1" value="{{ currentSearch }}" />
+  <select name="agentId" class="border rounded px-3 py-2 text-sm">
+    <option value="">{{ "All Agents" | t }}</option>
+    <option value="unassigned" {% if currentAgentId == 'unassigned' %}selected{% endif %}>{{ "Unassigned" | t }}</option>
+    <option disabled>─────────</option>
+    {% for agent in team %}
+      {% if agent.isActive %}
+        <option value="{{ agent.id }}" {% if currentAgentId == agent.id %}selected{% endif %}>{{ agent.name }}</option>
+      {% endif %}
+    {% endfor %}
+  </select>
   <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm">{{ "Filter" | t }}</button>
 </form>
 <div id="action-result" class="mb-4"></div>

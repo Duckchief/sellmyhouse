@@ -226,7 +226,7 @@ export async function reorderPhotos(
 export async function getPhotosForProperty(propertyId: string): Promise<PhotoRecord[]> {
   const listing = await propertyRepo.findActiveListingForProperty(propertyId);
   if (!listing) {
-    throw new NotFoundError('Listing', propertyId);
+    return [];
   }
 
   const photos: PhotoRecord[] = listing.photos

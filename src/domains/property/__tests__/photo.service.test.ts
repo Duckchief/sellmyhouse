@@ -590,10 +590,11 @@ describe('photo.service', () => {
       expect(result).toEqual([]);
     });
 
-    it('throws NotFoundError when no active listing exists', async () => {
+    it('returns empty array when no active listing exists', async () => {
       mockedRepo.findActiveListingForProperty.mockResolvedValue(null);
 
-      await expect(photoService.getPhotosForProperty('bad-prop')).rejects.toThrow(NotFoundError);
+      const result = await photoService.getPhotosForProperty('bad-prop');
+      expect(result).toEqual([]);
     });
   });
 });

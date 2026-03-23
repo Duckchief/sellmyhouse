@@ -17,6 +17,18 @@ function createTestApp() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Mock res.render for template routes
+  app.use((_req, res, next) => {
+    const originalRender = res.render.bind(res);
+    res.render = function (view: string, options?: object, callback?: (err: Error, html: string) => void) {
+      if (typeof callback === 'function') {
+        return originalRender(view, options, callback);
+      }
+      return res.status(200).json({ _view: view, ...options });
+    } as typeof res.render;
+    next();
+  });
+
   app.use((req, _res, next) => {
     Object.assign(req, {
       isAuthenticated: () => true,
@@ -189,6 +201,59 @@ describe('viewing.router', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+    });
+  });
+
+  describe('GET /seller/viewings/slots/date-sidebar', () => {
+    it('returns 200 with sidebar data', async () => {
+      mockService.getSlotsForDate.mockResolvedValue({
+        slots: [],
+        suggestedStart: '10:00',
+        suggestedEnd: '11:00',
+        date: '2026-03-17',
+      });
+
+      const res = await request(app)
+        .get('/seller/viewings/slots/date-sidebar?date=2026-03-17&propertyId=prop-1');
+
+      expect(res.status).toBe(200);
+      expect(mockService.getSlotsForDate).toHaveBeenCalledWith('prop-1', '2026-03-17', 'seller-1');
+    });
+
+    it('returns 400 when date is missing', async () => {
+      const res = await request(app)
+        .get('/seller/viewings/slots/date-sidebar?propertyId=prop-1');
+
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 400 when propertyId is missing', async () => {
+      const res = await request(app)
+        .get('/seller/viewings/slots/date-sidebar?date=2026-03-17');
+
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('GET /seller/viewings/slots/month-meta', () => {
+    it('returns JSON slot metadata for a month', async () => {
+      mockService.getMonthSlotMeta.mockResolvedValue({
+        '2026-03-17': { available: 2, full: 1 },
+      });
+
+      const res = await request(app)
+        .get('/seller/viewings/slots/month-meta?month=2026-03&propertyId=prop-1');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ '2026-03-17': { available: 2, full: 1 } });
+      expect(mockService.getMonthSlotMeta).toHaveBeenCalledWith('prop-1', 2026, 3, 'seller-1');
+    });
+
+    it('returns 400 when month format is invalid', async () => {
+      const res = await request(app)
+        .get('/seller/viewings/slots/month-meta?month=invalid&propertyId=prop-1');
+
+      expect(res.status).toBe(400);
     });
   });
 

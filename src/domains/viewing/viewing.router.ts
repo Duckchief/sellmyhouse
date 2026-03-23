@@ -49,6 +49,55 @@ viewingRouter.get(
   },
 );
 
+viewingRouter.get(
+  '/seller/viewings/slots/date-sidebar',
+  requireAuth(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const date = req.query.date as string;
+      const propertyId = req.query.propertyId as string;
+
+      if (!date || !propertyId) {
+        return res.status(400).json({ error: 'date and propertyId are required' });
+      }
+
+      const data = await viewingService.getSlotsForDate(propertyId, date, user.id);
+      return res.render('partials/seller/viewing-date-sidebar', { ...data, propertyId });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+viewingRouter.get(
+  '/seller/viewings/slots/month-meta',
+  requireAuth(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const monthStr = req.query.month as string;
+      const propertyId = req.query.propertyId as string;
+
+      if (!propertyId || !monthStr) {
+        return res.status(400).json({ error: 'month and propertyId are required' });
+      }
+
+      const match = monthStr.match(/^(\d{4})-(\d{2})$/);
+      if (!match) {
+        return res.status(400).json({ error: 'month must be YYYY-MM format' });
+      }
+
+      const year = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10);
+      const meta = await viewingService.getMonthSlotMeta(propertyId, year, month, user.id);
+      return res.json(meta);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 viewingRouter.post(
   '/seller/viewings/slots',
   requireAuth(),

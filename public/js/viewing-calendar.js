@@ -241,6 +241,132 @@
       + String(d.getDate()).padStart(2, '0');
   }
 
+  // ── DatePickerCalendar ─────────────────────────────────
+  // Lightweight calendar that sets a hidden input + display on date click.
+  // Usage: <div id="my-cal" data-target-input="#hidden-input"></div>
+  //        new DatePickerCalendar(el, { displayId: 'my-display' });
+
+  function DatePickerCalendar(el, opts) {
+    this.el = el;
+    this.targetInput = document.querySelector(el.dataset.targetInput);
+    this.displayId = (opts && opts.displayId) || null;
+    this.selectedDate = null;
+    this.onSelect = (opts && opts.onSelect) || null;
+
+    var now = new Date();
+    this.year = now.getFullYear();
+    this.month = now.getMonth();
+
+    this.render();
+  }
+
+  DatePickerCalendar.prototype.render = function () {
+    this.el.innerHTML = '';
+    this.el.appendChild(this.buildHeader());
+    this.el.appendChild(this.buildDayLabels());
+    this.el.appendChild(this.buildGrid());
+  };
+
+  DatePickerCalendar.prototype.buildHeader = function () {
+    var self = this;
+    var header = document.createElement('div');
+    header.className = 'flex items-center justify-between mb-2';
+
+    var prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.className = 'p-1 rounded hover:bg-gray-100 text-gray-600';
+    prevBtn.innerHTML = '&#9664;';
+    prevBtn.setAttribute('aria-label', 'Previous month');
+    prevBtn.addEventListener('click', function () { self.changeMonth(-1); });
+
+    var title = document.createElement('span');
+    title.className = 'text-xs font-semibold text-gray-900';
+    title.textContent = MONTHS[this.month] + ' ' + this.year;
+
+    var nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'p-1 rounded hover:bg-gray-100 text-gray-600';
+    nextBtn.innerHTML = '&#9654;';
+    nextBtn.setAttribute('aria-label', 'Next month');
+    nextBtn.addEventListener('click', function () { self.changeMonth(1); });
+
+    header.appendChild(prevBtn);
+    header.appendChild(title);
+    header.appendChild(nextBtn);
+    return header;
+  };
+
+  DatePickerCalendar.prototype.buildDayLabels = function () {
+    var row = document.createElement('div');
+    row.className = 'grid grid-cols-7 mb-1';
+    for (var i = 0; i < 7; i++) {
+      var cell = document.createElement('div');
+      cell.className = 'text-center text-[10px] font-medium text-gray-400 py-0.5';
+      cell.textContent = DAYS[i];
+      row.appendChild(cell);
+    }
+    return row;
+  };
+
+  DatePickerCalendar.prototype.buildGrid = function () {
+    var self = this;
+    var grid = document.createElement('div');
+    grid.className = 'grid grid-cols-7';
+
+    var firstDay = new Date(this.year, this.month, 1).getDay();
+    var daysInMonth = new Date(this.year, this.month + 1, 0).getDate();
+    var today = new Date();
+    var todayStr = formatDate(today);
+
+    for (var e = 0; e < firstDay; e++) {
+      var empty = document.createElement('div');
+      empty.className = 'p-1';
+      grid.appendChild(empty);
+    }
+
+    for (var d = 1; d <= daysInMonth; d++) {
+      var dateObj = new Date(this.year, this.month, d);
+      var dateStr = formatDate(dateObj);
+      var isPast = dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      var isToday = dateStr === todayStr;
+      var isSelected = dateStr === this.selectedDate;
+
+      var cell = document.createElement('button');
+      cell.type = 'button';
+      cell.dataset.date = dateStr;
+      cell.className = 'flex items-center justify-center p-1 rounded text-xs transition '
+        + (isPast ? 'text-gray-300 ' : 'text-gray-700 hover:bg-blue-50 cursor-pointer ')
+        + (isToday ? 'font-bold ' : '')
+        + (isSelected ? 'ring-2 ring-blue-500 bg-blue-50 ' : '');
+
+      cell.textContent = d;
+      cell.addEventListener('click', function () {
+        self.selectDate(this.dataset.date);
+      });
+      grid.appendChild(cell);
+    }
+    return grid;
+  };
+
+  DatePickerCalendar.prototype.selectDate = function (dateStr) {
+    this.selectedDate = dateStr;
+    if (this.targetInput) this.targetInput.value = dateStr;
+    if (this.displayId) {
+      var disp = document.getElementById(this.displayId);
+      if (disp) disp.value = dateStr;
+    }
+    if (this.onSelect) this.onSelect(dateStr);
+    this.render();
+  };
+
+  DatePickerCalendar.prototype.changeMonth = function (delta) {
+    this.month += delta;
+    if (this.month > 11) { this.month = 0; this.year++; }
+    if (this.month < 0) { this.month = 11; this.year--; }
+    this.render();
+  };
+
   // Expose globally
   window.ViewingCalendar = ViewingCalendar;
+  window.DatePickerCalendar = DatePickerCalendar;
 })();

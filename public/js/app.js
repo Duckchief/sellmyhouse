@@ -918,6 +918,16 @@
     calendarEl._viewingCalendar = new window.ViewingCalendar(calendarEl);
   }
 
+  // ── Bulk date picker calendars ─────────────────────────
+  var bulkStartEl = document.getElementById('bulk-start-calendar');
+  if (bulkStartEl && window.DatePickerCalendar) {
+    new window.DatePickerCalendar(bulkStartEl, { displayId: 'bulk-start-display' });
+  }
+  var bulkEndEl = document.getElementById('bulk-end-calendar');
+  if (bulkEndEl && window.DatePickerCalendar) {
+    new window.DatePickerCalendar(bulkEndEl, { displayId: 'bulk-end-display' });
+  }
+
   // After a slot is added, refresh the date sidebar to show updated schedule
   document.body.addEventListener('htmx:afterRequest', function (evt) {
     var form = evt.detail.elt;

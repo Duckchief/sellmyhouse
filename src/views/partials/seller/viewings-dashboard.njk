@@ -208,7 +208,20 @@
 
 {# ── Slot list (next 30 days) ────────────────────────────── #}
 <div class="bg-white rounded-lg shadow p-6">
-  <h2 class="font-semibold text-gray-900 mb-4">{{ "Upcoming Slots" | t }}</h2>
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-semibold text-gray-900">{{ "Upcoming Slots" | t }}</h2>
+    <div class="flex items-center gap-3">
+      <label class="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+        <input type="checkbox" id="select-all-slots"
+               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+        {{ "Select all" | t }}
+      </label>
+      <button type="button" id="delete-selected-slots"
+              class="hidden px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-md hover:bg-red-700 transition">
+        {{ "Delete selected" | t }}
+      </button>
+    </div>
+  </div>
 
   <div id="slots-list" class="space-y-3">
     {% if not slots or slots.length == 0 %}

@@ -1009,4 +1009,84 @@
     if (modal) modal.classList.add('hidden');
   });
 
+  // ── Bulk slot selection & delete ───────────────────────
+  function updateDeleteButtonVisibility() {
+    var checked = document.querySelectorAll('.slot-checkbox:checked');
+    var deleteBtn = document.getElementById('delete-selected-slots');
+    if (deleteBtn) {
+      deleteBtn.classList.toggle('hidden', checked.length === 0);
+      deleteBtn.textContent = checked.length > 1
+        ? 'Delete selected (' + checked.length + ')'
+        : 'Delete selected';
+    }
+  }
+
+  // Select all checkbox
+  document.body.addEventListener('change', function (e) {
+    if (e.target.id === 'select-all-slots') {
+      var boxes = document.querySelectorAll('.slot-checkbox');
+      for (var i = 0; i < boxes.length; i++) {
+        boxes[i].checked = e.target.checked;
+      }
+      updateDeleteButtonVisibility();
+    }
+    if (e.target.classList.contains('slot-checkbox')) {
+      // Uncheck select-all if any individual box is unchecked
+      var selectAll = document.getElementById('select-all-slots');
+      if (selectAll) {
+        var allBoxes = document.querySelectorAll('.slot-checkbox');
+        var allChecked = true;
+        for (var j = 0; j < allBoxes.length; j++) {
+          if (!allBoxes[j].checked) { allChecked = false; break; }
+        }
+        selectAll.checked = allChecked;
+      }
+      updateDeleteButtonVisibility();
+    }
+  });
+
+  // Delete selected slots
+  document.body.addEventListener('click', function (e) {
+    if (e.target.id !== 'delete-selected-slots' && !e.target.closest('#delete-selected-slots')) return;
+    var checked = document.querySelectorAll('.slot-checkbox:checked');
+    if (checked.length === 0) return;
+
+    var count = checked.length;
+    if (!confirm('Cancel ' + count + ' slot' + (count > 1 ? 's' : '') + '? This cannot be undone.')) return;
+
+    var promises = [];
+    for (var i = 0; i < checked.length; i++) {
+      var slotId = checked[i].value;
+      var row = checked[i].closest('[data-slot-id]');
+      promises.push(
+        htmx.ajax('DELETE', '/seller/viewings/slots/' + slotId, {
+          target: row || document.body,
+          swap: row ? 'outerHTML' : 'none'
+        })
+      );
+    }
+
+    Promise.all(promises).then(function () {
+      // Uncheck select-all
+      var selectAll = document.getElementById('select-all-slots');
+      if (selectAll) selectAll.checked = false;
+      updateDeleteButtonVisibility();
+
+      // Refresh sidebar and calendar
+      var dateInput = document.getElementById('add-slot-date');
+      var propInput = document.querySelector('input[name="propertyId"]');
+      var date = dateInput ? dateInput.value : '';
+      var propertyId = propInput ? propInput.value : '';
+      if (date && propertyId) {
+        htmx.ajax('GET',
+          '/seller/viewings/slots/date-sidebar?date=' + encodeURIComponent(date)
+          + '&propertyId=' + encodeURIComponent(propertyId),
+          { target: '#date-sidebar', swap: 'innerHTML' }
+        );
+      }
+      var calEl = document.getElementById('viewing-calendar');
+      if (calEl && calEl._viewingCalendar) calEl._viewingCalendar.fetchMonthMeta();
+    });
+  });
+
 })();

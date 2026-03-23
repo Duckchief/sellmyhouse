@@ -22,6 +22,8 @@ import {
   MIN_FORM_SUBMIT_SECONDS,
   BOOKINGS_PER_PHONE_PER_DAY,
   DEFAULT_SLOT_DURATION_MINUTES,
+  MAX_SLOTS_PER_DAY,
+  MAX_ACTIVE_SLOTS,
 } from './viewing.types';
 import type {
   CreateSlotInput,
@@ -38,15 +40,32 @@ import type { ViewingStatus, SlotStatus } from '@prisma/client';
 export async function createSlot(input: CreateSlotInput, sellerId: string) {
   await verifyPropertyOwnership(input.propertyId, sellerId);
 
-  // Prevent overlapping slots on the same date
+  // Check per-day limit
   const existingSlots = await viewingRepo.findSlotsByPropertyAndDateRange(
     input.propertyId,
     input.date,
     input.date,
   );
-  const hasOverlap = existingSlots.some((s) => {
-    const existing = s as unknown as { startTime: string; endTime: string; status: string };
-    if (existing.status === 'cancelled') return false;
+  const activeOnDay = existingSlots.filter(
+    (s) => (s as unknown as { status: string }).status !== 'cancelled',
+  );
+  if (activeOnDay.length >= MAX_SLOTS_PER_DAY) {
+    throw new ValidationError(
+      `Maximum ${MAX_SLOTS_PER_DAY} slots per day. Please cancel existing slots first.`,
+    );
+  }
+
+  // Check total active slots limit
+  const allActive = await viewingRepo.findActiveSlotsByPropertyId(input.propertyId);
+  if (allActive.length >= MAX_ACTIVE_SLOTS) {
+    throw new ValidationError(
+      `Maximum ${MAX_ACTIVE_SLOTS} active slots. Please cancel existing slots first.`,
+    );
+  }
+
+  // Prevent overlapping slots on the same date
+  const hasOverlap = activeOnDay.some((s) => {
+    const existing = s as unknown as { startTime: string; endTime: string };
     return input.startTime < existing.endTime && input.endTime > existing.startTime;
   });
   if (hasOverlap) {
@@ -80,6 +99,14 @@ export async function createSlot(input: CreateSlotInput, sellerId: string) {
 
 export async function createBulkSlots(input: CreateBulkSlotsInput, sellerId: string) {
   await verifyPropertyOwnership(input.propertyId, sellerId);
+
+  // Check total active slots limit before generating
+  const currentActive = await viewingRepo.findActiveSlotsByPropertyId(input.propertyId);
+  if (currentActive.length >= MAX_ACTIVE_SLOTS) {
+    throw new ValidationError(
+      `Maximum ${MAX_ACTIVE_SLOTS} active slots reached. Please cancel existing slots first.`,
+    );
+  }
 
   const slots: {
     id: string;
@@ -124,6 +151,14 @@ export async function createBulkSlots(input: CreateBulkSlotsInput, sellerId: str
       }
     }
     current.setDate(current.getDate() + 1);
+  }
+
+  // Verify total won't exceed limit
+  if (currentActive.length + slots.length > MAX_ACTIVE_SLOTS) {
+    const remaining = MAX_ACTIVE_SLOTS - currentActive.length;
+    throw new ValidationError(
+      `This would create ${slots.length} slots but only ${remaining} more allowed (limit: ${MAX_ACTIVE_SLOTS}).`,
+    );
   }
 
   await viewingRepo.createManySlots(slots);

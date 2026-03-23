@@ -117,3 +117,5 @@ export const OTP_MAX_REQUESTS_PER_HOUR = 3;
 export const BOOKINGS_PER_PHONE_PER_DAY = 3;
 export const BOOKING_ATTEMPTS_PER_IP_PER_HOUR = 10;
 export const MIN_FORM_SUBMIT_SECONDS = 3;
+export const MAX_SLOTS_PER_DAY = 10;
+export const MAX_ACTIVE_SLOTS = 200;

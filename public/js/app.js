@@ -906,8 +906,10 @@
     var form = evt.detail.elt;
     if (form.id !== 'add-slot-form') return;
     if (!evt.detail.successful) return;
-    var date = form.dataset.sidebarDate;
-    var propertyId = form.dataset.sidebarProperty;
+    var dateInput = document.getElementById('add-slot-date');
+    var propertyInput = form.querySelector('input[name="propertyId"]');
+    var date = dateInput ? dateInput.value : '';
+    var propertyId = propertyInput ? propertyInput.value : '';
     if (date && propertyId) {
       htmx.ajax('GET',
         '/seller/viewings/slots/date-sidebar?date=' + encodeURIComponent(date)

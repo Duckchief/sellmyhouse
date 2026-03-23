@@ -170,7 +170,7 @@
     this.selectedDate = dateStr;
     this.render();
 
-    // Trigger HTMX fetch for sidebar
+    // Trigger HTMX fetch for sidebar schedule
     var sidebar = document.querySelector(this.sidebarTarget);
     if (sidebar && typeof htmx !== 'undefined') {
       htmx.ajax('GET',
@@ -178,6 +178,23 @@
         + '&propertyId=' + encodeURIComponent(this.propertyId),
         { target: this.sidebarTarget, swap: 'innerHTML' }
       );
+    }
+
+    // Show and populate the add-slot form below the calendar
+    var section = document.getElementById('add-slot-section');
+    var dateInput = document.getElementById('add-slot-date');
+    var dateDisplay = document.getElementById('add-slot-date-display');
+    var startInput = document.getElementById('add-slot-start');
+    var endInput = document.getElementById('add-slot-end');
+    if (section) section.classList.remove('hidden');
+    if (dateInput) dateInput.value = dateStr;
+    if (dateDisplay) dateDisplay.value = dateStr;
+
+    // Pre-fill suggested times from slot metadata
+    var meta = this.slotsByDate[dateStr];
+    if (!meta || (meta.available === 0 && meta.full === 0)) {
+      if (startInput) startInput.value = '10:00';
+      if (endInput) endInput.value = '11:00';
     }
   };
 

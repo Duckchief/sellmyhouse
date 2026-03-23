@@ -140,15 +140,15 @@
 <div class="bg-white rounded-lg shadow p-6">
   <h2 class="font-semibold text-gray-900 mb-4">{{ "Upcoming Slots" | t }}</h2>
 
-  {% if not slots or slots.length == 0 %}
-  <p class="text-sm text-gray-500 text-center py-4">{{ "No slots scheduled in the next 30 days." | t }}</p>
-  {% else %}
   <div id="slots-list" class="space-y-3">
+    {% if not slots or slots.length == 0 %}
+    <p class="text-sm text-gray-500 text-center py-4">{{ "No slots scheduled in the next 30 days." | t }}</p>
+    {% else %}
     {% for slot in slots %}
     {% include "partials/seller/slot-row.njk" %}
     {% endfor %}
+    {% endif %}
   </div>
-  {% endif %}
 </div>
 
 

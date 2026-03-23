@@ -433,6 +433,7 @@ model Seller {
   weeklyUpdates           WeeklyUpdate[]
   documentChecklists      DocumentChecklist[]
   saleProceeds            SaleProceeds?
+  sellerDocuments         SellerDocument[]
 
   @@index([agentId, status])
   @@index([leadSource])
@@ -1142,4 +1143,25 @@ model DocumentChecklist {
   @@index([status])
   @@index([sellerId, status])
   @@map("document_checklists")
+}
+
+model SellerDocument {
+  id           String    @id @default(cuid())
+  sellerId     String    @map("seller_id")
+  seller       Seller    @relation(fields: [sellerId], references: [id])
+  docType      String    @map("doc_type")
+  slotIndex    Int?      @map("slot_index")
+  path         String
+  wrappedKey   String    @map("wrapped_key")
+  mimeType     String    @map("mime_type")
+  sizeBytes    Int       @map("size_bytes")
+  uploadedAt   DateTime  @default(now()) @map("uploaded_at")
+  uploadedBy   String    @map("uploaded_by")
+  downloadedAt DateTime? @map("downloaded_at")
+  downloadedBy String?   @map("downloaded_by")
+  deletedAt    DateTime? @map("deleted_at")
+
+  @@index([sellerId, docType])
+  @@index([sellerId, deletedAt])
+  @@map("seller_documents")
 }

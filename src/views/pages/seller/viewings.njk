@@ -1,0 +1,13 @@
+{% extends "layouts/seller.njk" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  {% set pageTitle = "Viewings" %}
+  {% set pageSubtitle = "Manage viewing slots and track booked viewings for your property." %}
+  {% include "partials/shared/page-header.njk" %}
+
+  <div id="viewings-container">
+    {% include "partials/seller/viewings-dashboard.njk" %}
+  </div>
+</div>
+{% endblock %}

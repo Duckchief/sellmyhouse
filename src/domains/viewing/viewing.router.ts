@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import * as viewingService from './viewing.service';
+import * as propertyService from '@/domains/property/property.service';
 import {
   validateCreateSlot,
   validateCreateBulkSlots,
@@ -31,7 +32,13 @@ viewingRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const propertyId = req.query.propertyId as string;
+      let propertyId = req.query.propertyId as string | undefined;
+
+      // Auto-resolve property from seller when not provided
+      if (!propertyId) {
+        const property = await propertyService.getPropertyForSeller(user.id);
+        propertyId = (property as { id: string } | null)?.id;
+      }
 
       const dashboard = propertyId
         ? await viewingService.getSellerDashboard(propertyId, user.id)
@@ -67,7 +74,7 @@ viewingRouter.get(
           slotsByDate,
         });
       }
-      return res.json({ success: true, stats, slots });
+      return res.render('pages/seller/viewings', { stats, slots, propertyId });
     } catch (err) {
       next(err);
     }

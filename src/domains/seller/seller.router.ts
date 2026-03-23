@@ -108,6 +108,10 @@ sellerRouter.get('/seller/onboarding', async (req: Request, res: Response, next:
     const user = req.user as AuthenticatedUser;
     const status = await sellerService.getOnboardingStatus(user.id);
 
+    if (status.isComplete) {
+      return res.redirect('/seller/dashboard');
+    }
+
     res.render('pages/seller/onboarding', { status });
   } catch (err) {
     next(err);

@@ -172,7 +172,7 @@ describe('seller.router', () => {
       expect(res.status).toBe(200);
     });
 
-    it('renders onboarding page even if onboarding is complete (allows back navigation)', async () => {
+    it('redirects to dashboard when onboarding is complete', async () => {
       mockedService.getOnboardingStatus.mockResolvedValue({
         currentStep: TOTAL_ONBOARDING_STEPS,
         isComplete: true,
@@ -181,7 +181,8 @@ describe('seller.router', () => {
 
       const res = await request(app).get('/seller/onboarding');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toBe('/seller/dashboard');
     });
   });
 

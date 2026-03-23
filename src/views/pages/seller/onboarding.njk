@@ -9,7 +9,7 @@
   {% include "partials/seller/progress-bar.njk" %}
 
   <div id="onboarding-step"
-       hx-get="/seller/onboarding/step/{{ status.currentStep + 1 }}"
+       hx-get="/seller/onboarding/step/{{ status.currentStep + 1 if status.currentStep < 5 else 5 }}"
        hx-trigger="load"
        hx-swap="innerHTML">
     <div class="flex items-center justify-center p-8">

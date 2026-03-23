@@ -32,15 +32,24 @@
       <span class="text-sm text-gray-700">{{ "I consent to my personal data being transferred to Huttons Asia Pte Ltd for the purpose of processing my HDB resale transaction." | t }}</span>
     </label>
 
-    <button
-      id="complete-btn"
-      hx-post="/seller/onboarding/step/5"
-      hx-target="#onboarding-step"
-      hx-swap="innerHTML"
-      class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-      disabled
-    >
-      {{ "Complete Onboarding" | t }}
-    </button>
+    <div class="flex items-center gap-3">
+      <button type="button"
+        hx-get="/seller/onboarding/step/4"
+        hx-target="#onboarding-step"
+        hx-swap="innerHTML"
+        class="text-gray-500 hover:text-gray-700 text-sm py-3 px-4 transition">
+        {{ "← Back" | t }}
+      </button>
+      <button
+        id="complete-btn"
+        hx-post="/seller/onboarding/step/5"
+        hx-target="#onboarding-step"
+        hx-swap="innerHTML"
+        class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled
+      >
+        {{ "Complete Onboarding" | t }}
+      </button>
+    </div>
   </div>
 </div>

@@ -91,7 +91,7 @@ export interface DocumentChecklistItem {
   label: string;
   description: string;
   required: boolean;
-  status: 'not_uploaded' | 'uploaded' | 'verified';
+  status: 'not_uploaded' | 'uploaded' | 'received_by_agent';
   applicableStages: string[];
 }
 
@@ -154,4 +154,53 @@ export interface SaleProceedsInput {
   resaleLevy: number;
   otherDeductions: number;
   commission: number;
+}
+
+// ─── Seller Document Upload ─────────────────────────────────────────────────
+
+export const SELLER_DOC_TYPES = [
+  'nric',
+  'marriage_cert',
+  'eligibility_letter',
+  'otp_scan',
+  'eaa',
+  'other',
+] as const;
+
+export type SellerDocType = (typeof SELLER_DOC_TYPES)[number];
+
+export const SELLER_DOC_MAX_FILES: Record<SellerDocType, number> = {
+  nric: 2,
+  marriage_cert: 3,
+  eligibility_letter: 1,
+  otp_scan: 1,
+  eaa: 1,
+  other: 5,
+};
+
+export const SELLER_DOC_MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+export const SELLER_DOC_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'application/pdf'];
+
+export interface UploadSellerDocumentInput {
+  sellerId: string;
+  docType: SellerDocType;
+  fileBuffer: Buffer;
+  mimeType: string;
+  originalFilename: string;
+  uploadedBy: string;
+  uploadedByRole: 'seller' | 'agent';
+}
+
+export interface SellerDocumentRecord {
+  id: string;
+  sellerId: string;
+  docType: string;
+  slotIndex: number | null;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: Date;
+  uploadedBy: string;
+  downloadedAt: Date | null;
+  downloadedBy: string | null;
+  deletedAt: Date | null;
 }

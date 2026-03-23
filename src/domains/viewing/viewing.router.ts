@@ -39,8 +39,33 @@ viewingRouter.get(
 
       const { stats, slots } = dashboard;
 
+      // Build slot metadata for calendar dot indicators
+      const slotsByDate: Record<string, { available: number; full: number }> = {};
+      for (const s of slots) {
+        const sl = s as unknown as {
+          date: Date | string;
+          status: string;
+          slotType: string;
+          currentBookings: number;
+        };
+        const dateKey = (sl.date instanceof Date ? sl.date : new Date(sl.date))
+          .toISOString()
+          .split('T')[0];
+        if (!slotsByDate[dateKey]) slotsByDate[dateKey] = { available: 0, full: 0 };
+        if (sl.status === 'full' || (sl.slotType === 'single' && sl.currentBookings >= 1)) {
+          slotsByDate[dateKey].full++;
+        } else {
+          slotsByDate[dateKey].available++;
+        }
+      }
+
       if (req.headers['hx-request']) {
-        return res.render('partials/seller/viewings-dashboard', { stats, slots, propertyId });
+        return res.render('partials/seller/viewings-dashboard', {
+          stats,
+          slots,
+          propertyId,
+          slotsByDate,
+        });
       }
       return res.json({ success: true, stats, slots });
     } catch (err) {

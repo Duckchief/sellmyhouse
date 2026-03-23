@@ -33,7 +33,9 @@ describe('property.service', () => {
     jest.clearAllMocks();
     mockedReviewService.checkComplianceGate.mockResolvedValue(undefined);
     mockedRepo.findBySlug.mockResolvedValue(null); // slug not taken by default
-    mockedAuthRepo.findSellerById = jest.fn().mockResolvedValue({ id: 'seller-1', emailVerified: true });
+    mockedAuthRepo.findSellerById = jest
+      .fn()
+      .mockResolvedValue({ id: 'seller-1', emailVerified: true });
   });
 
   // ─── createProperty ────────────────────────────────────────
@@ -149,9 +151,9 @@ describe('property.service', () => {
           block: '123',
           flatType: '4 ROOM',
           level: '04',
-        unitNumber: '56',
+          unitNumber: '56',
           floorAreaSqm: 90,
-            leaseCommenceDate: 1990,
+          leaseCommenceDate: 1990,
         }),
       ).rejects.toThrow(ComplianceError);
 

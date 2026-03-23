@@ -144,7 +144,11 @@ describe('agent.router', () => {
         totalPages: 0,
       });
       mockService.getSellerStatusCounts.mockResolvedValue({
-        lead: 3, engaged: 1, active: 2, completed: 0, archived: 0,
+        lead: 3,
+        engaged: 1,
+        active: 2,
+        completed: 0,
+        archived: 0,
       });
 
       await request(app).get('/agent/sellers');

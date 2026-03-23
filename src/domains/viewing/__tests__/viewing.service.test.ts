@@ -844,7 +844,10 @@ describe('viewing.service', () => {
 
   describe('getSlotsForDate', () => {
     it('returns slots for a specific date with next available gap', async () => {
-      mockedRepo.findPropertyById.mockResolvedValue({ id: 'prop-1', sellerId: 'seller-1' } as never);
+      mockedRepo.findPropertyById.mockResolvedValue({
+        id: 'prop-1',
+        sellerId: 'seller-1',
+      } as never);
       mockedRepo.findSlotsByPropertyAndDateRange.mockResolvedValue([
         {
           id: 's1',
@@ -876,7 +879,10 @@ describe('viewing.service', () => {
     });
 
     it('suggests 10:00-11:00 when no slots exist', async () => {
-      mockedRepo.findPropertyById.mockResolvedValue({ id: 'prop-1', sellerId: 'seller-1' } as never);
+      mockedRepo.findPropertyById.mockResolvedValue({
+        id: 'prop-1',
+        sellerId: 'seller-1',
+      } as never);
       mockedRepo.findSlotsByPropertyAndDateRange.mockResolvedValue([] as never);
 
       const result = await viewingService.getSlotsForDate('prop-1', '2026-03-17', 'seller-1');
@@ -887,10 +893,31 @@ describe('viewing.service', () => {
     });
 
     it('finds gap between non-adjacent slots', async () => {
-      mockedRepo.findPropertyById.mockResolvedValue({ id: 'prop-1', sellerId: 'seller-1' } as never);
+      mockedRepo.findPropertyById.mockResolvedValue({
+        id: 'prop-1',
+        sellerId: 'seller-1',
+      } as never);
       mockedRepo.findSlotsByPropertyAndDateRange.mockResolvedValue([
-        { id: 's1', startTime: '10:00', endTime: '11:00', slotType: 'single', maxViewers: 1, currentBookings: 0, status: 'available', viewings: [] },
-        { id: 's2', startTime: '13:00', endTime: '14:00', slotType: 'single', maxViewers: 1, currentBookings: 0, status: 'available', viewings: [] },
+        {
+          id: 's1',
+          startTime: '10:00',
+          endTime: '11:00',
+          slotType: 'single',
+          maxViewers: 1,
+          currentBookings: 0,
+          status: 'available',
+          viewings: [],
+        },
+        {
+          id: 's2',
+          startTime: '13:00',
+          endTime: '14:00',
+          slotType: 'single',
+          maxViewers: 1,
+          currentBookings: 0,
+          status: 'available',
+          viewings: [],
+        },
       ] as never);
 
       const result = await viewingService.getSlotsForDate('prop-1', '2026-03-17', 'seller-1');
@@ -902,11 +929,38 @@ describe('viewing.service', () => {
 
   describe('getMonthSlotMeta', () => {
     it('returns slot metadata grouped by date', async () => {
-      mockedRepo.findPropertyById.mockResolvedValue({ id: 'prop-1', sellerId: 'seller-1' } as never);
+      mockedRepo.findPropertyById.mockResolvedValue({
+        id: 'prop-1',
+        sellerId: 'seller-1',
+      } as never);
       mockedRepo.findSlotsByPropertyAndMonth.mockResolvedValue([
-        { id: 's1', date: new Date('2026-03-17'), status: 'available', slotType: 'single', maxViewers: 1, currentBookings: 0, viewings: [] },
-        { id: 's2', date: new Date('2026-03-17'), status: 'full', slotType: 'single', maxViewers: 1, currentBookings: 1, viewings: [{ status: 'scheduled' }] },
-        { id: 's3', date: new Date('2026-03-20'), status: 'available', slotType: 'group', maxViewers: 5, currentBookings: 2, viewings: [] },
+        {
+          id: 's1',
+          date: new Date('2026-03-17'),
+          status: 'available',
+          slotType: 'single',
+          maxViewers: 1,
+          currentBookings: 0,
+          viewings: [],
+        },
+        {
+          id: 's2',
+          date: new Date('2026-03-17'),
+          status: 'full',
+          slotType: 'single',
+          maxViewers: 1,
+          currentBookings: 1,
+          viewings: [{ status: 'scheduled' }],
+        },
+        {
+          id: 's3',
+          date: new Date('2026-03-20'),
+          status: 'available',
+          slotType: 'group',
+          maxViewers: 5,
+          currentBookings: 2,
+          viewings: [],
+        },
       ] as never);
 
       const result = await viewingService.getMonthSlotMeta('prop-1', 2026, 3, 'seller-1');

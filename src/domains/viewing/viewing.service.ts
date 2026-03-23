@@ -232,7 +232,8 @@ export async function bulkCancelSlots(slotIds: string[], sellerId: string) {
   // Send notifications only for slots that had booked viewers
   for (const slot of slotsWithViewers) {
     const property = slot as unknown as { property: { town: string; street: string } };
-    const viewings = (slot as unknown as { viewings: { verifiedViewer: { id: string } }[] }).viewings;
+    const viewings = (slot as unknown as { viewings: { verifiedViewer: { id: string } }[] })
+      .viewings;
     for (const viewing of viewings) {
       await notificationService.send(
         {

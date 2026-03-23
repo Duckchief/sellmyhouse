@@ -974,9 +974,17 @@ describe('setMaintenanceEta', () => {
 
 describe('setDefaultAgent', () => {
   const agentFixture = {
-    id: 'agent-1', name: 'Alice', email: 'alice@test.com', phone: null,
-    ceaRegNo: 'R001', role: 'agent', isActive: true,
-    activeSellersCount: 0, completedCount: 0, stageCounts: {}, createdAt: new Date(),
+    id: 'agent-1',
+    name: 'Alice',
+    email: 'alice@test.com',
+    phone: null,
+    ceaRegNo: 'R001',
+    role: 'agent',
+    isActive: true,
+    activeSellersCount: 0,
+    completedCount: 0,
+    stageCounts: {},
+    createdAt: new Date(),
   };
 
   it('upserts default_agent_id setting and writes audit log', async () => {
@@ -986,7 +994,10 @@ describe('setDefaultAgent', () => {
     await adminService.setDefaultAgent('agent-1', 'admin-1');
 
     expect(mockSettingsService.upsert).toHaveBeenCalledWith(
-      'default_agent_id', 'agent-1', 'Default agent for new lead assignment', 'admin-1',
+      'default_agent_id',
+      'agent-1',
+      'Default agent for new lead assignment',
+      'admin-1',
     );
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'agent.set_as_default', entityId: 'agent-1' }),
@@ -1001,7 +1012,9 @@ describe('setDefaultAgent', () => {
   it('throws ValidationError if agent is inactive', async () => {
     mockAdminRepo.findAgentById.mockResolvedValue({ ...agentFixture, isActive: false } as never);
     const { ValidationError } = await import('@/domains/shared/errors');
-    await expect(adminService.setDefaultAgent('agent-1', 'admin-1')).rejects.toThrow(ValidationError);
+    await expect(adminService.setDefaultAgent('agent-1', 'admin-1')).rejects.toThrow(
+      ValidationError,
+    );
   });
 });
 
@@ -1031,7 +1044,10 @@ describe('clearDefaultAgent', () => {
     await adminService.clearDefaultAgent('admin-1');
 
     expect(mockSettingsService.upsert).toHaveBeenCalledWith(
-      'default_agent_id', '', 'Default agent for new lead assignment', 'admin-1',
+      'default_agent_id',
+      '',
+      'Default agent for new lead assignment',
+      'admin-1',
     );
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'agent.default_cleared' }),

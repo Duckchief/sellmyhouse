@@ -2,7 +2,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import * as adminService from './admin.service';
-import { validateAgentCreate, validateSettingUpdate, validateAssign, validateBulkAssign } from './admin.validator';
+import {
+  validateAgentCreate,
+  validateSettingUpdate,
+  validateAssign,
+  validateBulkAssign,
+} from './admin.validator';
 import {
   validateTutorialCreate,
   validateTutorialUpdate,
@@ -63,13 +68,9 @@ adminRouter.get(
 );
 
 // ─── Pipeline ────────────────────────────────────────────────
-adminRouter.get(
-  '/admin/pipeline',
-  ...adminAuth,
-  (_req: Request, res: Response) => {
-    res.redirect('/admin/sellers');
-  },
-);
+adminRouter.get('/admin/pipeline', ...adminAuth, (_req: Request, res: Response) => {
+  res.redirect('/admin/sellers');
+});
 
 // ─── Leads ───────────────────────────────────────────────────
 adminRouter.get(
@@ -491,7 +492,12 @@ adminRouter.get(
         adminService.getAdminSellerStatusCounts(),
       ]);
       if (req.headers['hx-request']) {
-        return res.render('partials/admin/seller-list', { result, team, statusCounts, currentAgentId: filter.agentId ?? '' });
+        return res.render('partials/admin/seller-list', {
+          result,
+          team,
+          statusCounts,
+          currentAgentId: filter.agentId ?? '',
+        });
       }
       const user = req.user as AuthenticatedUser;
       const hasAvatar = await getHasAvatar(user.id);
@@ -1565,9 +1571,10 @@ adminRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const feedback = typeof req.body.feedback === 'string' && req.body.feedback.trim()
-        ? req.body.feedback.trim()
-        : undefined;
+      const feedback =
+        typeof req.body.feedback === 'string' && req.body.feedback.trim()
+          ? req.body.feedback.trim()
+          : undefined;
       await contentService.reissueTestimonialToken(req.params['id'] as string, user.id, feedback);
       if (req.headers['hx-request']) {
         const [records, hasPendingReview] = await Promise.all([

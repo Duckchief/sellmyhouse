@@ -32,7 +32,14 @@ describe('seller-document.repository', () => {
         sizeBytes: 1024,
         uploadedBy: 'seller-1',
       };
-      const expected = { id: 'doc-1', ...input, uploadedAt: new Date(), downloadedAt: null, downloadedBy: null, deletedAt: null };
+      const expected = {
+        id: 'doc-1',
+        ...input,
+        uploadedAt: new Date(),
+        downloadedAt: null,
+        downloadedBy: null,
+        deletedAt: null,
+      };
       (mockPrisma.sellerDocument.create as jest.Mock).mockResolvedValue(expected);
 
       const result = await sellerDocRepo.create(input);

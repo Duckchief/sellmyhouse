@@ -4,7 +4,10 @@ import * as verificationService from './verification.service';
 import { ValidationError } from '../shared/errors';
 import { HDB_TOWNS } from '../property/property.types';
 import { HdbService } from '../hdb/service';
-import { leadRateLimiter, resendVerificationRateLimiter } from '../../infra/http/middleware/rate-limit';
+import {
+  leadRateLimiter,
+  resendVerificationRateLimiter,
+} from '../../infra/http/middleware/rate-limit';
 
 export const verificationRouter = Router();
 const hdbService = new HdbService();
@@ -55,18 +58,15 @@ verificationRouter.get('/verify-email', async (req: Request, res: Response, next
 
 // DEV ONLY: GET /dev/lead-details/:sellerId — render details form for a verified seller
 if (process.env.NODE_ENV !== 'production') {
-  verificationRouter.get(
-    '/dev/lead-details/:sellerId',
-    (req: Request, res: Response) => {
-      const sellerId = req.params['sellerId'] as string;
-      const signature = signSellerId(sellerId);
-      res.render('pages/public/verify-email', {
-        pageTitle: 'Complete Your Submission',
-        sellerId,
-        signature,
-      });
-    },
-  );
+  verificationRouter.get('/dev/lead-details/:sellerId', (req: Request, res: Response) => {
+    const sellerId = req.params['sellerId'] as string;
+    const signature = signSellerId(sellerId);
+    res.render('pages/public/verify-email', {
+      pageTitle: 'Complete Your Submission',
+      sellerId,
+      signature,
+    });
+  });
 }
 
 // POST /verify-email/details — submit lead details
@@ -75,7 +75,16 @@ verificationRouter.post(
   leadRateLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { sellerId, signature, block, street, askingPrice, sellingTimeline, sellingReason, sellingReasonOther } = req.body;
+      const {
+        sellerId,
+        signature,
+        block,
+        street,
+        askingPrice,
+        sellingTimeline,
+        sellingReason,
+        sellingReasonOther,
+      } = req.body;
 
       if (!sellerId || !signature || !verifySellerId(sellerId, signature)) {
         throw new ValidationError('Invalid form submission');
@@ -88,8 +97,10 @@ verificationRouter.post(
       // Derive town from HDB transaction data
       const info = await hdbService.getPropertyInfo(block.trim(), street.trim());
       const town = info?.town;
-      if (!town || !HDB_TOWNS.includes(town as typeof HDB_TOWNS[number])) {
-        throw new ValidationError('Could not determine town from your address. Please check your block and street.');
+      if (!town || !HDB_TOWNS.includes(town as (typeof HDB_TOWNS)[number])) {
+        throw new ValidationError(
+          'Could not determine town from your address. Please check your block and street.',
+        );
       }
 
       if (!VALID_TIMELINES.includes(sellingTimeline)) {

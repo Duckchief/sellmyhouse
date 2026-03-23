@@ -152,9 +152,9 @@ describe('financial.router', () => {
     });
 
     it('renders financial-hub partial for HTMX requests', async () => {
-      mockService.getApprovedReportsForSeller = jest.fn().mockResolvedValue([
-        { id: 'r1', version: 2 },
-      ] as unknown as FinancialReport[]);
+      mockService.getApprovedReportsForSeller = jest
+        .fn()
+        .mockResolvedValue([{ id: 'r1', version: 2 }] as unknown as FinancialReport[]);
 
       const app = createTestApp();
       const res = await request(app).get('/seller/financial').set('HX-Request', 'true');

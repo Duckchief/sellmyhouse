@@ -534,7 +534,11 @@ describe('agent.service', () => {
   describe('getSellerStatusCounts (repo boundary)', () => {
     it('returns zero-filled counts when no sellers exist', async () => {
       mockRepo.getSellerStatusCounts.mockResolvedValue({
-        lead: 0, engaged: 0, active: 0, completed: 0, archived: 0,
+        lead: 0,
+        engaged: 0,
+        active: 0,
+        completed: 0,
+        archived: 0,
       });
 
       const result = await agentService.getSellerStatusCounts('agent-1');
@@ -545,7 +549,11 @@ describe('agent.service', () => {
 
     it('passes undefined agentId for admin (no filter)', async () => {
       mockRepo.getSellerStatusCounts.mockResolvedValue({
-        lead: 5, engaged: 2, active: 3, completed: 1, archived: 0,
+        lead: 5,
+        engaged: 2,
+        active: 3,
+        completed: 1,
+        archived: 0,
       });
 
       await agentService.getSellerStatusCounts(undefined);

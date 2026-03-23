@@ -492,7 +492,9 @@ export async function sendAccountSetupEmail(
 
   await authRepo.setSellerPasswordResetToken(sellerId, hashedToken, expiry);
 
-  const appUrl = process.env.APP_URL || (process.env.NODE_ENV === 'production' ? 'https://sellmyhomenow.sg' : 'http://localhost:3000');
+  const appUrl =
+    process.env.APP_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://sellmyhomenow.sg' : 'http://localhost:3000');
   const setupUrl = `${appUrl}/auth/setup-account?token=${rawToken}`;
 
   await sendSystemEmail(

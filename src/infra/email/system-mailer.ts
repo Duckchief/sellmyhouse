@@ -11,11 +11,7 @@ function isSmtpConfigured(): boolean {
   );
 }
 
-export async function sendSystemEmail(
-  to: string,
-  subject: string,
-  html: string,
-): Promise<void> {
+export async function sendSystemEmail(to: string, subject: string, html: string): Promise<void> {
   if (!isSmtpConfigured()) {
     logger.info({ to, subject, html }, '[EMAIL_STUB] Email not sent — SMTP not configured');
     return;

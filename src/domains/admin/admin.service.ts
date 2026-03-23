@@ -64,7 +64,12 @@ export async function setDefaultAgent(agentId: string, adminId: string): Promise
 }
 
 export async function clearDefaultAgent(adminId: string): Promise<void> {
-  await settingsService.upsert('default_agent_id', '', 'Default agent for new lead assignment', adminId);
+  await settingsService.upsert(
+    'default_agent_id',
+    '',
+    'Default agent for new lead assignment',
+    adminId,
+  );
   await auditService.log({
     agentId: adminId,
     action: 'agent.default_cleared',

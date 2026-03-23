@@ -178,8 +178,17 @@ export async function updateSellingIntent(
   await prisma.seller.update({
     where: { id: sellerId },
     data: {
-      sellingTimeline: data.sellingTimeline as 'one_to_three_months' | 'three_to_six_months' | 'just_thinking',
-      sellingReason: data.sellingReason as 'upgrading' | 'downsizing' | 'relocating' | 'financial' | 'investment' | 'other',
+      sellingTimeline: data.sellingTimeline as
+        | 'one_to_three_months'
+        | 'three_to_six_months'
+        | 'just_thinking',
+      sellingReason: data.sellingReason as
+        | 'upgrading'
+        | 'downsizing'
+        | 'relocating'
+        | 'financial'
+        | 'investment'
+        | 'other',
       sellingReasonOther: data.sellingReasonOther ?? null,
     },
   });

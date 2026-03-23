@@ -6,7 +6,16 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_FORM_TIME_MS = 3000;
 
 const VALID_COUNTRY_CODES = [
-  '+65', '+60', '+62', '+66', '+63', '+84', '+95', '+855', '+856', '+673',
+  '+65',
+  '+60',
+  '+62',
+  '+66',
+  '+63',
+  '+84',
+  '+95',
+  '+855',
+  '+856',
+  '+673',
 ];
 
 export function validateLeadInput(
@@ -38,7 +47,10 @@ export function validateLeadInput(
 
   if (input.countryCode === '+65') {
     if (!SG_MOBILE_REGEX.test(input.nationalNumber)) {
-      return { nationalNumber: 'Please enter a valid Singapore mobile number (starts with 8 or 9, 8 digits)' };
+      return {
+        nationalNumber:
+          'Please enter a valid Singapore mobile number (starts with 8 or 9, 8 digits)',
+      };
     }
   } else {
     if (!LOOSE_PHONE_REGEX.test(input.nationalNumber)) {

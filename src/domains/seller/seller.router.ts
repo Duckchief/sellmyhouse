@@ -6,7 +6,11 @@ import * as sellerDocService from './seller-document.service';
 import * as caseFlagService from './case-flag.service';
 import { validateOnboardingStep } from './seller.validator';
 import { uploadSellerDocumentValidator } from './seller-document.validator';
-import { TOTAL_ONBOARDING_STEPS, SELLER_DOC_MAX_SIZE_BYTES, SELLER_DOC_ALLOWED_MIMES } from './seller.types';
+import {
+  TOTAL_ONBOARDING_STEPS,
+  SELLER_DOC_MAX_SIZE_BYTES,
+  SELLER_DOC_ALLOWED_MIMES,
+} from './seller.types';
 import type { TimelineInput } from './seller.types';
 import type { PropertyStatus, TransactionStatus, HdbApplicationStatus } from '@prisma/client';
 import { requireAuth, requireRole } from '@/infra/http/middleware/require-auth';
@@ -195,15 +199,8 @@ sellerRouter.post(
       const step = parseInt(req.params['step'] as string, 10);
 
       if (step === 2) {
-        const {
-          street,
-          block,
-          flatType,
-          level,
-          unitNumber,
-          floorAreaSqm,
-          leaseCommenceDate,
-        } = req.body;
+        const { street, block, flatType, level, unitNumber, floorAreaSqm, leaseCommenceDate } =
+          req.body;
 
         if (
           !street ||
@@ -229,7 +226,8 @@ sellerRouter.post(
         if (!town || !HDB_TOWNS.includes(town)) {
           return res.status(400).render('partials/seller/onboarding-step-2', {
             flatTypes: HDB_FLAT_TYPES,
-            error: 'Could not determine town from your address. Please check your block and street.',
+            error:
+              'Could not determine town from your address. Please check your block and street.',
           });
         }
 
@@ -437,7 +435,9 @@ sellerRouter.post(
 
       if (!req.file) {
         if (req.headers['hx-request']) {
-          return res.status(422).send('<div class="text-sm text-red-600 p-2">Please select a file first</div>');
+          return res
+            .status(422)
+            .send('<div class="text-sm text-red-600 p-2">Please select a file first</div>');
         }
         return next(new ValidationError('No file uploaded'));
       }
@@ -490,7 +490,10 @@ sellerRouter.delete(
       );
       const deletedDocType = doc?.docType;
 
-      await sellerDocService.deleteSellerDocumentBySeller(req.params['documentId'] as string, user.id);
+      await sellerDocService.deleteSellerDocumentBySeller(
+        req.params['documentId'] as string,
+        user.id,
+      );
 
       const overview = await sellerService.getDashboardOverview(user.id);
       const checklist = await sellerDocService.getDocumentChecklistWithStatus(

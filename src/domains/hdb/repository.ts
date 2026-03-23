@@ -198,7 +198,10 @@ export class HdbRepository {
     return results.map((r) => r.storeyRange);
   }
 
-  async findPropertyInfo(block: string, street: string): Promise<{ leaseCommenceDate: number; town: string } | null> {
+  async findPropertyInfo(
+    block: string,
+    street: string,
+  ): Promise<{ leaseCommenceDate: number; town: string } | null> {
     const normalised = this.normaliseStreetName(street);
     const result = await prisma.hdbTransaction.findFirst({
       where: {

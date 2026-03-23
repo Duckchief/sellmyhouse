@@ -89,13 +89,22 @@ agentRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const { unassigned, verified, unverified } = await agentService.getLeadQueue(getAgentFilter(user));
+      const { unassigned, verified, unverified } = await agentService.getLeadQueue(
+        getAgentFilter(user),
+      );
 
       if (req.headers['hx-request']) {
         return res.render('partials/agent/lead-queue', { unassigned, verified, unverified });
       }
       const hasAvatar = await getHasAvatar(user.id);
-      res.render('pages/agent/leads', { pageTitle: 'Leads', user, hasAvatar, unassigned, verified, unverified });
+      res.render('pages/agent/leads', {
+        pageTitle: 'Leads',
+        user,
+        hasAvatar,
+        unassigned,
+        verified,
+        unverified,
+      });
     } catch (err) {
       next(err);
     }
@@ -159,13 +168,14 @@ agentRouter.get(
       const sellerId = req.params['id'] as string;
       const agentId = getAgentFilter(user);
 
-      const [seller, compliance, notifications, timelineInput, activeSellerDocs] = await Promise.all([
-        agentService.getSellerDetail(sellerId, agentId),
-        agentService.getComplianceStatus(sellerId, agentId),
-        agentService.getNotificationHistory(sellerId, agentId, { page: 1, limit: 10 }),
-        agentService.getTimelineInput(sellerId, agentId),
-        sellerDocService.getActiveDocumentsForSeller(sellerId),
-      ]);
+      const [seller, compliance, notifications, timelineInput, activeSellerDocs] =
+        await Promise.all([
+          agentService.getSellerDetail(sellerId, agentId),
+          agentService.getComplianceStatus(sellerId, agentId),
+          agentService.getNotificationHistory(sellerId, agentId, { page: 1, limit: 10 }),
+          agentService.getTimelineInput(sellerId, agentId),
+          sellerDocService.getActiveDocumentsForSeller(sellerId),
+        ]);
       const milestones = sellerService.getTimelineMilestones(
         timelineInput,
         user.role as 'agent' | 'admin',
@@ -509,7 +519,11 @@ agentRouter.post(
         user.id,
       );
 
-      const extMap: Record<string, string> = { 'image/jpeg': '.jpg', 'image/png': '.png', 'application/pdf': '.pdf' };
+      const extMap: Record<string, string> = {
+        'image/jpeg': '.jpg',
+        'image/png': '.png',
+        'application/pdf': '.pdf',
+      };
       const ext = extMap[mimeType] || '';
       res.setHeader('Content-Type', mimeType);
       res.setHeader('Content-Disposition', `attachment; filename="${docType}-${documentId}${ext}"`);

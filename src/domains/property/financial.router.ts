@@ -133,7 +133,16 @@ financialRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const { sellingPrice, outstandingLoan, cpfSeller1, cpfSeller2, cpfSeller3, cpfSeller4, resaleLevy, otherDeductions } = req.body;
+      const {
+        sellingPrice,
+        outstandingLoan,
+        cpfSeller1,
+        cpfSeller2,
+        cpfSeller3,
+        cpfSeller4,
+        resaleLevy,
+        otherDeductions,
+      } = req.body;
 
       if (!sellingPrice || !outstandingLoan || !cpfSeller1) {
         const commission = await settingsService.getCommission();

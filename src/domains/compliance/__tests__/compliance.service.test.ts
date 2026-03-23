@@ -244,7 +244,10 @@ describe('withdrawConsent', () => {
     };
 
     beforeEach(() => {
-      mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: false });
+      mockRepo.findSellerConsent.mockResolvedValue({
+        consentService: true,
+        consentMarketing: false,
+      });
       mockRepo.findSellerWithTransactions.mockResolvedValue({ status: 'lead', transactions: [] });
       mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
       mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
@@ -265,16 +268,28 @@ describe('withdrawConsent', () => {
       const pendingOffer = { id: 'offer-1', status: 'pending', buyerAgentName: null };
       mockOfferRepo.findByPropertyId.mockResolvedValue([pendingOffer] as never);
 
-      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+      await complianceService.withdrawConsent({
+        sellerId: 'seller1',
+        type: 'service',
+        channel: 'web',
+      });
 
       expect(mockOfferRepo.updateStatus).toHaveBeenCalledWith('offer-1', 'expired');
     });
 
     it('voids countered offers on service consent withdrawal', async () => {
-      const counteredOffer = { id: 'offer-2', status: 'countered', buyerAgentName: 'External Agent' };
+      const counteredOffer = {
+        id: 'offer-2',
+        status: 'countered',
+        buyerAgentName: 'External Agent',
+      };
       mockOfferRepo.findByPropertyId.mockResolvedValue([counteredOffer] as never);
 
-      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+      await complianceService.withdrawConsent({
+        sellerId: 'seller1',
+        type: 'service',
+        channel: 'web',
+      });
 
       expect(mockOfferRepo.updateStatus).toHaveBeenCalledWith('offer-2', 'expired');
     });
@@ -286,7 +301,11 @@ describe('withdrawConsent', () => {
       ];
       mockOfferRepo.findByPropertyId.mockResolvedValue(offers as never);
 
-      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+      await complianceService.withdrawConsent({
+        sellerId: 'seller1',
+        type: 'service',
+        channel: 'web',
+      });
 
       expect(mockOfferRepo.updateStatus).not.toHaveBeenCalled();
     });
@@ -295,7 +314,11 @@ describe('withdrawConsent', () => {
       const slot = { id: 'slot-1', status: 'available' };
       mockViewingRepo.findActiveSlotsByPropertyId.mockResolvedValue([slot] as never);
 
-      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+      await complianceService.withdrawConsent({
+        sellerId: 'seller1',
+        type: 'service',
+        channel: 'web',
+      });
 
       expect(mockViewingRepo.cancelSlotAndViewings).toHaveBeenCalledWith('slot-1');
     });
@@ -304,7 +327,11 @@ describe('withdrawConsent', () => {
       const listing = { id: 'listing-1', status: 'listed' };
       mockPropertyRepo.findActiveListingForProperty.mockResolvedValue(listing as never);
 
-      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+      await complianceService.withdrawConsent({
+        sellerId: 'seller1',
+        type: 'service',
+        channel: 'web',
+      });
 
       expect(mockPropertyRepo.updateListingStatus).toHaveBeenCalledWith('listing-1', 'closed');
     });
@@ -313,7 +340,11 @@ describe('withdrawConsent', () => {
       const activeTx = { id: 'tx-1', status: 'option_issued' };
       mockTxRepo.findTransactionBySellerId.mockResolvedValue(activeTx as never);
 
-      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+      await complianceService.withdrawConsent({
+        sellerId: 'seller1',
+        type: 'service',
+        channel: 'web',
+      });
 
       expect(mockTxRepo.updateFallenThrough).toHaveBeenCalledWith(
         'tx-1',
@@ -322,10 +353,18 @@ describe('withdrawConsent', () => {
     });
 
     it('sends notification to listing agent for each co-broke voided offer', async () => {
-      const coBrokeOffer = { id: 'offer-5', status: 'pending', buyerAgentName: 'External Agent Ltd' };
+      const coBrokeOffer = {
+        id: 'offer-5',
+        status: 'pending',
+        buyerAgentName: 'External Agent Ltd',
+      };
       mockOfferRepo.findByPropertyId.mockResolvedValue([coBrokeOffer] as never);
 
-      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'service', channel: 'web' });
+      await complianceService.withdrawConsent({
+        sellerId: 'seller1',
+        type: 'service',
+        channel: 'web',
+      });
 
       expect(mockNotificationService.send).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -351,7 +390,11 @@ describe('withdrawConsent', () => {
     });
 
     it('does not run side effects for marketing consent withdrawal', async () => {
-      await complianceService.withdrawConsent({ sellerId: 'seller1', type: 'marketing', channel: 'web' });
+      await complianceService.withdrawConsent({
+        sellerId: 'seller1',
+        type: 'marketing',
+        channel: 'web',
+      });
 
       expect(mockPropertyRepo.findBySellerId).not.toHaveBeenCalled();
     });
@@ -1533,7 +1576,11 @@ describe('purgeSensitiveDocs', () => {
         id: 'tx-daily-1',
         sellerId: 'seller-daily-1',
         completionDate: oldDate,
-        otp: { id: 'otp-1', scannedCopyPathSeller: 'otp/seller.pdf', scannedCopyPathReturned: null },
+        otp: {
+          id: 'otp-1',
+          scannedCopyPathSeller: 'otp/seller.pdf',
+          scannedCopyPathReturned: null,
+        },
         commissionInvoice: { id: 'inv-1', invoiceFilePath: 'invoices/inv.pdf' },
       },
     ]);
@@ -1543,7 +1590,10 @@ describe('purgeSensitiveDocs', () => {
 
     const result = await complianceService.purgeSensitiveDocs();
 
-    expect(mockRepo.purgeTransactionSensitiveDocs).toHaveBeenCalledWith('tx-daily-1', 'seller-daily-1');
+    expect(mockRepo.purgeTransactionSensitiveDocs).toHaveBeenCalledWith(
+      'tx-daily-1',
+      'seller-daily-1',
+    );
     expect(mockStorage.delete).toHaveBeenCalledWith('otp/seller.pdf');
     expect(mockStorage.delete).toHaveBeenCalledWith('invoices/inv.pdf');
     expect(mockAudit.log).toHaveBeenCalledWith(
@@ -1671,9 +1721,9 @@ describe('confirmHuttonsSubmission', () => {
       seller: { agentId: 'agent-1' },
     } as any);
 
-    await expect(
-      complianceService.confirmHuttonsSubmission('tx-1', 'agent-1'),
-    ).rejects.toThrow('completed');
+    await expect(complianceService.confirmHuttonsSubmission('tx-1', 'agent-1')).rejects.toThrow(
+      'completed',
+    );
   });
 
   it('throws ForbiddenError when agent does not own the transaction', async () => {
@@ -1684,9 +1734,7 @@ describe('confirmHuttonsSubmission', () => {
       huttonsSubmittedAt: null,
     } as any);
 
-    await expect(
-      complianceService.confirmHuttonsSubmission('tx-1', 'agent-1'),
-    ).rejects.toThrow();
+    await expect(complianceService.confirmHuttonsSubmission('tx-1', 'agent-1')).rejects.toThrow();
   });
 
   it('throws ConflictError when already submitted', async () => {
@@ -1697,9 +1745,7 @@ describe('confirmHuttonsSubmission', () => {
       huttonsSubmittedAt: new Date(),
     } as any);
 
-    await expect(
-      complianceService.confirmHuttonsSubmission('tx-1', 'agent-1'),
-    ).rejects.toThrow();
+    await expect(complianceService.confirmHuttonsSubmission('tx-1', 'agent-1')).rejects.toThrow();
   });
 });
 

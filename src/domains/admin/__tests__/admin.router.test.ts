@@ -657,9 +657,7 @@ describe('GET /admin/team', () => {
     mockAdminService.getDefaultAgentId.mockResolvedValue('agent-1');
 
     const app = makeApp();
-    const res = await request(app)
-      .get('/admin/team')
-      .set('hx-request', 'true');
+    const res = await request(app).get('/admin/team').set('hx-request', 'true');
 
     expect(res.status).toBe(200);
     expect(mockAdminService.getDefaultAgentId).toHaveBeenCalled();
@@ -939,9 +937,7 @@ describe('POST /admin/team/:id/set-default', () => {
     mockAdminService.setDefaultAgent.mockRejectedValue(new NotFoundError('Agent', 'bad-id'));
 
     const app = makeApp();
-    const res = await request(app)
-      .post('/admin/team/bad-id/set-default')
-      .set('hx-request', 'true');
+    const res = await request(app).post('/admin/team/bad-id/set-default').set('hx-request', 'true');
 
     expect(res.status).toBe(404);
   });
@@ -1100,11 +1096,18 @@ describe('POST /admin/team/:id/anonymise (default agent guard)', () => {
 describe('GET /admin/sellers', () => {
   it('calls getAdminSellerStatusCounts and passes statusCounts to render', async () => {
     mockAdminService.getAllSellers.mockResolvedValue({
-      sellers: [], total: 0, page: 1, limit: 25,
+      sellers: [],
+      total: 0,
+      page: 1,
+      limit: 25,
     } as any);
     mockAdminService.getTeam.mockResolvedValue([] as any);
     mockAdminService.getAdminSellerStatusCounts.mockResolvedValue({
-      lead: 2, engaged: 1, active: 3, completed: 0, archived: 0,
+      lead: 2,
+      engaged: 1,
+      active: 3,
+      completed: 0,
+      archived: 0,
     });
 
     const app = makeApp();
@@ -1116,11 +1119,18 @@ describe('GET /admin/sellers', () => {
 
   it('passes currentAgentId to render context', async () => {
     mockAdminService.getAllSellers.mockResolvedValue({
-      sellers: [], total: 0, page: 1, limit: 25,
+      sellers: [],
+      total: 0,
+      page: 1,
+      limit: 25,
     } as any);
     mockAdminService.getTeam.mockResolvedValue([] as any);
     mockAdminService.getAdminSellerStatusCounts.mockResolvedValue({
-      lead: 0, engaged: 0, active: 0, completed: 0, archived: 0,
+      lead: 0,
+      engaged: 0,
+      active: 0,
+      completed: 0,
+      archived: 0,
     });
 
     const app = makeApp();
@@ -1165,7 +1175,9 @@ describe('POST /admin/sellers/bulk-assign', () => {
         { id: 's1', agent: null },
         { id: 's2', agent: { id: 'old-agent', name: 'Old' } },
       ],
-      total: 2, page: 1, limit: 25,
+      total: 2,
+      page: 1,
+      limit: 25,
     } as any);
     mockAdminService.assignSeller.mockResolvedValue(undefined);
     mockAdminService.reassignSeller.mockResolvedValue(undefined);
@@ -1179,7 +1191,11 @@ describe('POST /admin/sellers/bulk-assign', () => {
 
     expect(res.status).toBe(200);
     expect(mockAdminService.assignSeller).toHaveBeenCalledWith('s1', 'agent-1', expect.any(String));
-    expect(mockAdminService.reassignSeller).toHaveBeenCalledWith('s2', 'agent-1', expect.any(String));
+    expect(mockAdminService.reassignSeller).toHaveBeenCalledWith(
+      's2',
+      'agent-1',
+      expect.any(String),
+    );
   });
 
   it('returns 400 when sellerIds is empty', async () => {

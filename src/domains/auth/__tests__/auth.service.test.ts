@@ -694,7 +694,7 @@ describe('AuthService', () => {
       expect(authRepo.setSellerPasswordResetToken).toHaveBeenCalledWith(
         'seller-1',
         expect.any(String), // hashed token
-        expect.any(Date),   // expiry
+        expect.any(Date), // expiry
       );
       expect(systemMailer.sendSystemEmail).toHaveBeenCalledWith(
         'peanuts@example.com',
@@ -727,7 +727,9 @@ describe('AuthService', () => {
   describe('registerSeller — sends verification email', () => {
     it('calls sendVerificationEmail after creating seller', async () => {
       authRepo.findSellerByEmail = jest.fn().mockResolvedValue(null);
-      authRepo.createSeller = jest.fn().mockResolvedValue({ id: 'new-seller', email: 'test@example.com' });
+      authRepo.createSeller = jest
+        .fn()
+        .mockResolvedValue({ id: 'new-seller', email: 'test@example.com' });
       authRepo.createConsentRecord = jest.fn().mockResolvedValue({});
       authRepo.setSellerEmailVerificationToken = jest.fn().mockResolvedValue({});
       systemMailer.sendSystemEmail = jest.fn().mockResolvedValue(undefined);

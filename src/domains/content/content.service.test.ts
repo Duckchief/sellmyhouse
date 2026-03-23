@@ -973,9 +973,9 @@ describe('reissueTestimonialToken', () => {
 
   it('throws NotFoundError when testimonial does not exist', async () => {
     mockedRepo.findTestimonialById.mockResolvedValue(null);
-    await expect(
-      contentService.reissueTestimonialToken('bad-id', 'agent-1'),
-    ).rejects.toThrow(NotFoundError);
+    await expect(contentService.reissueTestimonialToken('bad-id', 'agent-1')).rejects.toThrow(
+      NotFoundError,
+    );
   });
 
   it('throws ValidationError when testimonial is not rejected', async () => {
@@ -983,9 +983,9 @@ describe('reissueTestimonialToken', () => {
       ...baseTestimonial,
       status: 'pending_review',
     } as unknown as Testimonial);
-    await expect(
-      contentService.reissueTestimonialToken('t-1', 'agent-1'),
-    ).rejects.toThrow(ValidationError);
+    await expect(contentService.reissueTestimonialToken('t-1', 'agent-1')).rejects.toThrow(
+      ValidationError,
+    );
   });
 
   it('resets status and issues a new token', async () => {
@@ -1000,7 +1000,7 @@ describe('reissueTestimonialToken', () => {
     expect(mockedRepo.reissueTestimonialToken).toHaveBeenCalledWith(
       't-1',
       expect.any(String), // new token
-      expect.any(Date),   // new expiry
+      expect.any(Date), // new expiry
     );
   });
 
@@ -1033,7 +1033,9 @@ describe('reissueTestimonialToken', () => {
     await Promise.resolve();
 
     // Capture the token that was generated and passed to the repo
-    const passedToken = (mockedRepo.reissueTestimonialToken.mock.calls[0] as unknown[])[1] as string;
+    const passedToken = (
+      mockedRepo.reissueTestimonialToken.mock.calls[0] as unknown[]
+    )[1] as string;
 
     expect(mockedNotification.send).toHaveBeenCalledWith(
       expect.objectContaining({

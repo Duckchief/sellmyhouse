@@ -362,11 +362,7 @@ export async function approveTestimonial(id: string, agentId: string) {
   return contentRepo.updateTestimonialStatus(id, 'approved', agentId);
 }
 
-export async function reissueTestimonialToken(
-  id: string,
-  agentId: string,
-  feedback?: string,
-) {
+export async function reissueTestimonialToken(id: string, agentId: string, feedback?: string) {
   const testimonial = await contentRepo.findTestimonialById(id);
   if (!testimonial) throw new NotFoundError('Testimonial', id);
   if (testimonial.status !== 'rejected')

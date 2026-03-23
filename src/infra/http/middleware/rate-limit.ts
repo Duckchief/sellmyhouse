@@ -68,7 +68,9 @@ export const resendVerificationRateLimiter = rateLimit({
   keyGenerator: (req) => req.body?.email ?? ipKeyGenerator(req.ip ?? ''),
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: { code: 'RATE_LIMITED', message: 'Too many resend attempts. Please try again later.' } },
+  message: {
+    error: { code: 'RATE_LIMITED', message: 'Too many resend attempts. Please try again later.' },
+  },
   skip: () => process.env.NODE_ENV === 'test',
 });
 

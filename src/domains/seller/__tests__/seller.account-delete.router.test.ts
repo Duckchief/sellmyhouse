@@ -86,16 +86,12 @@ describe('seller account delete routes', () => {
 
   describe('POST /seller/account/delete', () => {
     it('returns 400 when confirm checkbox is missing', async () => {
-      const res = await request(app)
-        .post('/seller/account/delete')
-        .send({ password: 'mypass' }); // no confirm field
+      const res = await request(app).post('/seller/account/delete').send({ password: 'mypass' }); // no confirm field
       expect(res.status).toBe(400);
     });
 
     it('returns 400 when password is missing', async () => {
-      const res = await request(app)
-        .post('/seller/account/delete')
-        .send({ confirm: 'true' }); // no password
+      const res = await request(app).post('/seller/account/delete').send({ confirm: 'true' }); // no password
       expect(res.status).toBe(400);
     });
 

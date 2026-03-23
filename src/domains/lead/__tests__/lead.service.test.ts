@@ -139,7 +139,11 @@ describe('lead.service', () => {
     mockLeadRepo.findAdminAgents.mockResolvedValue([]);
     mockAudit.log.mockResolvedValue(undefined);
 
-    const result = await submitLead({ ...validInput, nationalNumber: '81234567', phone: '+6581234567' });
+    const result = await submitLead({
+      ...validInput,
+      nationalNumber: '81234567',
+      phone: '+6581234567',
+    });
 
     expect(result.sellerId).toBe('seller-2');
     // Only the welcome_seller notification should be sent — no admin notifications

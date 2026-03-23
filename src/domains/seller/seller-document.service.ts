@@ -176,7 +176,8 @@ export async function deleteSellerDocumentBySeller(
   const doc = await sellerDocRepo.findById(documentId);
   if (!doc) throw new NotFoundError('SellerDocument', documentId);
   if (doc.sellerId !== sellerId) throw new ForbiddenError('You do not own this document');
-  if (doc.downloadedAt) throw new ForbiddenError('This document has already been received by your agent');
+  if (doc.downloadedAt)
+    throw new ForbiddenError('This document has already been received by your agent');
 
   await encryptedStorage.delete(doc.path);
   await sellerDocRepo.hardDelete(documentId);
@@ -191,9 +192,7 @@ export async function deleteSellerDocumentBySeller(
   });
 }
 
-export async function getActiveDocumentsForSeller(
-  sellerId: string,
-): Promise<SellerDocument[]> {
+export async function getActiveDocumentsForSeller(sellerId: string): Promise<SellerDocument[]> {
   return sellerDocRepo.findActiveBySeller(sellerId);
 }
 

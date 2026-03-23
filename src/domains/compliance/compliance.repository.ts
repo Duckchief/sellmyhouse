@@ -1269,9 +1269,7 @@ export async function deleteOldWeeklyUpdates(ids: string[]): Promise<number> {
 // Returns CDD records for completed/fallen-through transactions past the cutoff
 // where nricLast4 has not yet been redacted. Covers the gap where the main
 // purgeSensitiveDocs loop skips transactions with no OTP/invoice files.
-export async function findCddRecordsForNricRedaction(
-  cutoffDate: Date,
-): Promise<{ id: string }[]> {
+export async function findCddRecordsForNricRedaction(cutoffDate: Date): Promise<{ id: string }[]> {
   const completedTxs = await prisma.transaction.findMany({
     where: {
       status: { in: ['completed', 'fallen_through'] },

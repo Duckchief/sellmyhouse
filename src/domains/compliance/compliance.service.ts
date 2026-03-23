@@ -196,9 +196,7 @@ export async function withdrawConsent(
 
 // ─── Consent Grant ────────────────────────────────────────────────────────────
 
-export async function grantMarketingConsent(
-  input: GrantConsentInput,
-): Promise<ConsentGrantResult> {
+export async function grantMarketingConsent(input: GrantConsentInput): Promise<ConsentGrantResult> {
   const currentConsent = await complianceRepo.findSellerConsent(input.sellerId);
   if (!currentConsent) {
     throw new NotFoundError('Seller', input.sellerId);
@@ -254,7 +252,10 @@ async function executeConsentWithdrawalSideEffects(sellerId: string): Promise<vo
               seller.agentId,
             );
           } catch (notifyErr) {
-            logger.warn({ err: notifyErr, offerId: offer.id }, 'Failed to notify agent of voided offer');
+            logger.warn(
+              { err: notifyErr, offerId: offer.id },
+              'Failed to notify agent of voided offer',
+            );
           }
         }
       }
@@ -465,7 +466,10 @@ export interface ScanRetentionResult {
 // ─── Tier 1: Daily Sensitive Document Purge ──────────────────────────────────
 
 export async function purgeSensitiveDocs(): Promise<{ purgedCount: number }> {
-  const sensitiveDocRetentionDays = await settingsService.getNumber('sensitive_doc_retention_days', 7);
+  const sensitiveDocRetentionDays = await settingsService.getNumber(
+    'sensitive_doc_retention_days',
+    7,
+  );
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - sensitiveDocRetentionDays);
 
@@ -527,7 +531,10 @@ export async function confirmHuttonsSubmission(
   await txRepo.confirmHuttonsHandoff(transactionId, agentId);
 
   // Immediate Tier 1 purge — same logic as the 7-day auto-purge
-  const { filePaths } = await complianceRepo.purgeTransactionSensitiveDocs(transactionId, tx.sellerId);
+  const { filePaths } = await complianceRepo.purgeTransactionSensitiveDocs(
+    transactionId,
+    tx.sellerId,
+  );
   for (const filePath of filePaths) {
     try {
       await localStorage.delete(filePath);

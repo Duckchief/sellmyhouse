@@ -641,17 +641,16 @@ export async function findById(sellerId: string) {
 }
 
 export async function saveSaleProceeds(input: SaleProceedsInput) {
-  const cpfTotal = input.cpfSeller1
-    + (input.cpfSeller2 ?? 0)
-    + (input.cpfSeller3 ?? 0)
-    + (input.cpfSeller4 ?? 0);
+  const cpfTotal =
+    input.cpfSeller1 + (input.cpfSeller2 ?? 0) + (input.cpfSeller3 ?? 0) + (input.cpfSeller4 ?? 0);
 
-  const netProceeds = input.sellingPrice
-    - input.outstandingLoan
-    - cpfTotal
-    - input.resaleLevy
-    - input.otherDeductions
-    - input.commission;
+  const netProceeds =
+    input.sellingPrice -
+    input.outstandingLoan -
+    cpfTotal -
+    input.resaleLevy -
+    input.otherDeductions -
+    input.commission;
 
   return sellerRepo.upsertSaleProceeds({
     ...input,

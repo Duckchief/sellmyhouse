@@ -33,9 +33,7 @@ export async function createProperty(input: CreatePropertyInput) {
 
   const seller = await authRepo.findSellerById(input.sellerId);
   if (!seller?.emailVerified) {
-    throw new ValidationError(
-      'Please verify your email address before creating a listing.',
-    );
+    throw new ValidationError('Please verify your email address before creating a listing.');
   }
 
   const baseSlug = generatePropertySlug(input.block, input.street, input.town);

@@ -46,24 +46,21 @@ describe('validateLeadInput', () => {
   it('rejects SG phone not starting with 8 or 9', () => {
     const result = validateLeadInput({ ...validInput, nationalNumber: '61234567' });
     expect(result).toEqual({
-      nationalNumber:
-        'Please enter a valid Singapore mobile number (starts with 8 or 9, 8 digits)',
+      nationalNumber: 'Please enter a valid Singapore mobile number (starts with 8 or 9, 8 digits)',
     });
   });
 
   it('rejects SG phone with wrong length', () => {
     const result = validateLeadInput({ ...validInput, nationalNumber: '9123456' });
     expect(result).toEqual({
-      nationalNumber:
-        'Please enter a valid Singapore mobile number (starts with 8 or 9, 8 digits)',
+      nationalNumber: 'Please enter a valid Singapore mobile number (starts with 8 or 9, 8 digits)',
     });
   });
 
   it('rejects SG phone with non-digits', () => {
     const result = validateLeadInput({ ...validInput, nationalNumber: '9123abcd' });
     expect(result).toEqual({
-      nationalNumber:
-        'Please enter a valid Singapore mobile number (starts with 8 or 9, 8 digits)',
+      nationalNumber: 'Please enter a valid Singapore mobile number (starts with 8 or 9, 8 digits)',
     });
   });
 
@@ -132,5 +129,4 @@ describe('validateLeadInput', () => {
     const result = validateLeadInput(input);
     expect(result).toBeNull();
   });
-
 });

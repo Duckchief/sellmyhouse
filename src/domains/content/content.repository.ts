@@ -222,11 +222,7 @@ export async function updateTestimonialStatus(
   });
 }
 
-export async function reissueTestimonialToken(
-  id: string,
-  token: string,
-  tokenExpiresAt: Date,
-) {
+export async function reissueTestimonialToken(id: string, token: string, tokenExpiresAt: Date) {
   return prisma.testimonial.update({
     where: { id },
     data: {

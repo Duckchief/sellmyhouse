@@ -26,7 +26,8 @@ export function validateCreateSlot(body: Record<string, unknown>): CreateSlotInp
 
   const startTime = String(body.startTime || '');
   if (!TIME_REGEX.test(startTime)) throw new ValidationError('Start time must be HH:MM format');
-  if (startTime < EARLIEST_START || startTime > LATEST_END) throw new ValidationError(TIME_BOUNDS_MSG);
+  if (startTime < EARLIEST_START || startTime > LATEST_END)
+    throw new ValidationError(TIME_BOUNDS_MSG);
 
   const endTime = String(body.endTime || '');
   if (!TIME_REGEX.test(endTime)) throw new ValidationError('End time must be HH:MM format');
@@ -74,7 +75,8 @@ export function validateCreateBulkSlots(body: Record<string, unknown>): CreateBu
 
   const startTime = String(body.startTime || '');
   if (!TIME_REGEX.test(startTime)) throw new ValidationError('Start time must be HH:MM format');
-  if (startTime < EARLIEST_START || startTime > LATEST_END) throw new ValidationError(TIME_BOUNDS_MSG);
+  if (startTime < EARLIEST_START || startTime > LATEST_END)
+    throw new ValidationError(TIME_BOUNDS_MSG);
 
   const endTime = String(body.endTime || '');
   if (!TIME_REGEX.test(endTime)) throw new ValidationError('End time must be HH:MM format');

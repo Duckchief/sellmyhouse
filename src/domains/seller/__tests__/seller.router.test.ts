@@ -194,7 +194,11 @@ describe('seller.router', () => {
 
   describe('POST /seller/onboarding/step/:step', () => {
     it('completes step and returns next step partial for HTMX', async () => {
-      mockedService.getOnboardingStatus.mockResolvedValue({ currentStep: 1, isComplete: false, completedSteps: [1] });
+      mockedService.getOnboardingStatus.mockResolvedValue({
+        currentStep: 1,
+        isComplete: false,
+        completedSteps: [1],
+      });
       mockedService.completeOnboardingStep.mockResolvedValue({ onboardingStep: 2 });
       mockedPropertyService.getPropertyForSeller.mockResolvedValue(null);
       mockedPropertyService.createProperty.mockResolvedValue({} as never);
@@ -222,8 +226,16 @@ describe('seller.router', () => {
 
     it('redirects to dashboard after completing last step', async () => {
       mockedService.getOnboardingStatus
-        .mockResolvedValueOnce({ currentStep: TOTAL_ONBOARDING_STEPS - 1, isComplete: false, completedSteps: [] })
-        .mockResolvedValueOnce({ currentStep: TOTAL_ONBOARDING_STEPS, isComplete: true, completedSteps: [] });
+        .mockResolvedValueOnce({
+          currentStep: TOTAL_ONBOARDING_STEPS - 1,
+          isComplete: false,
+          completedSteps: [],
+        })
+        .mockResolvedValueOnce({
+          currentStep: TOTAL_ONBOARDING_STEPS,
+          isComplete: true,
+          completedSteps: [],
+        });
       mockedService.completeOnboardingStep.mockResolvedValue({
         onboardingStep: TOTAL_ONBOARDING_STEPS,
       });
@@ -238,15 +250,21 @@ describe('seller.router', () => {
 
     it('records Huttons transfer consent when completing step 5', async () => {
       mockedService.getOnboardingStatus
-        .mockResolvedValueOnce({ currentStep: TOTAL_ONBOARDING_STEPS - 1, isComplete: false, completedSteps: [] })
-        .mockResolvedValueOnce({ currentStep: TOTAL_ONBOARDING_STEPS, isComplete: true, completedSteps: [] });
+        .mockResolvedValueOnce({
+          currentStep: TOTAL_ONBOARDING_STEPS - 1,
+          isComplete: false,
+          completedSteps: [],
+        })
+        .mockResolvedValueOnce({
+          currentStep: TOTAL_ONBOARDING_STEPS,
+          isComplete: true,
+          completedSteps: [],
+        });
       mockedService.completeOnboardingStep.mockResolvedValue({
         onboardingStep: TOTAL_ONBOARDING_STEPS,
       });
 
-      const res = await request(app)
-        .post(`/seller/onboarding/step/5`)
-        .set('HX-Request', 'true');
+      const res = await request(app).post(`/seller/onboarding/step/5`).set('HX-Request', 'true');
 
       expect(res.status).toBe(200);
       expect(mockedComplianceService.recordHuttonsTransferConsent).toHaveBeenCalledWith('seller-1');
@@ -268,10 +286,7 @@ describe('seller.router', () => {
     it('does not call grantMarketingConsent when checkbox is absent on step 4', async () => {
       mockedService.completeOnboardingStep.mockResolvedValue({ onboardingStep: 4 });
 
-      await request(app)
-        .post('/seller/onboarding/step/4')
-        .send('')
-        .set('HX-Request', 'true');
+      await request(app).post('/seller/onboarding/step/4').send('').set('HX-Request', 'true');
 
       expect(mockedComplianceService.grantMarketingConsent).not.toHaveBeenCalled();
     });

@@ -33,7 +33,10 @@ export class HdbService {
     return this.repo.getDistinctStoreyRangesByTownAndFlatType(town, flatType);
   }
 
-  async getPropertyInfo(block: string, street: string): Promise<{ leaseCommenceDate: number; town: string } | null> {
+  async getPropertyInfo(
+    block: string,
+    street: string,
+  ): Promise<{ leaseCommenceDate: number; town: string } | null> {
     return this.repo.findPropertyInfo(block, street);
   }
 

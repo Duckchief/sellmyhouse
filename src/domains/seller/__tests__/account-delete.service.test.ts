@@ -41,9 +41,9 @@ describe('deleteSellerAccount', () => {
     } as never);
     mockBcrypt.compare.mockResolvedValue(false as never);
 
-    await expect(
-      accountDeleteService.deleteSellerAccount('seller-1', 'wrongpass'),
-    ).rejects.toThrow('Incorrect password');
+    await expect(accountDeleteService.deleteSellerAccount('seller-1', 'wrongpass')).rejects.toThrow(
+      'Incorrect password',
+    );
   });
 
   it('audit logs, hard deletes seller, and removes files when password is correct', async () => {

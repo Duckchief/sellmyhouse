@@ -32,6 +32,7 @@ import type {
   VerifyOtpInput,
   ViewingFeedbackInput,
   BookingResult,
+  SlotSummary,
 } from './viewing.types';
 import type { ViewingStatus, SlotStatus } from '@prisma/client';
 
@@ -41,14 +42,12 @@ export async function createSlot(input: CreateSlotInput, sellerId: string) {
   await verifyPropertyOwnership(input.propertyId, sellerId);
 
   // Check per-day limit
-  const existingSlots = await viewingRepo.findSlotsByPropertyAndDateRange(
+  const existingSlots = (await viewingRepo.findSlotsByPropertyAndDateRange(
     input.propertyId,
     input.date,
     input.date,
-  );
-  const activeOnDay = existingSlots.filter(
-    (s) => (s as unknown as { status: string }).status !== 'cancelled',
-  );
+  )) as SlotSummary[];
+  const activeOnDay = existingSlots.filter((s) => s.status !== 'cancelled');
   if (activeOnDay.length >= MAX_SLOTS_PER_DAY) {
     throw new ValidationError(
       `Maximum ${MAX_SLOTS_PER_DAY} slots per day. Please cancel existing slots first.`,
@@ -64,10 +63,9 @@ export async function createSlot(input: CreateSlotInput, sellerId: string) {
   }
 
   // Prevent overlapping slots on the same date
-  const hasOverlap = activeOnDay.some((s) => {
-    const existing = s as unknown as { startTime: string; endTime: string };
-    return input.startTime < existing.endTime && input.endTime > existing.startTime;
-  });
+  const hasOverlap = activeOnDay.some(
+    (s) => input.startTime < s.endTime && input.endTime > s.startTime,
+  );
   if (hasOverlap) {
     throw new ConflictError('A slot already exists that overlaps with this time range');
   }
@@ -214,17 +212,19 @@ export async function cancelSlot(slotId: string, sellerId: string) {
 export async function bulkCancelSlots(slotIds: string[], sellerId: string) {
   if (slotIds.length === 0) return { cancelled: 0 };
 
-  // Verify ownership: fetch slots that have booked viewers (need notifications)
-  // and confirm they belong to this seller
-  const slotsWithViewers = await viewingRepo.findSlotsWithBookedViewers(slotIds);
-
-  // Verify all slots belong to this seller
-  for (const slot of slotsWithViewers) {
-    const prop = slot as unknown as { property: { sellerId: string } };
-    if (prop.property.sellerId !== sellerId) {
+  // Verify ownership of ALL requested slots (not just those with viewers)
+  const allRequestedSlots = await viewingRepo.findSlotsByIds(slotIds);
+  if (allRequestedSlots.length !== slotIds.length) {
+    throw new NotFoundError('ViewingSlot', 'one or more slot IDs not found');
+  }
+  for (const slot of allRequestedSlots) {
+    if (slot.property.sellerId !== sellerId) {
       throw new ForbiddenError('You do not own one or more of these slots');
     }
   }
+
+  // Fetch slots that have booked viewers (need notifications)
+  const slotsWithViewers = await viewingRepo.findSlotsWithBookedViewers(slotIds);
 
   // Batch cancel all slots + viewings in one transaction (2 queries)
   await viewingRepo.bulkCancelSlotsAndViewings(slotIds);
@@ -863,37 +863,54 @@ export async function getSellerDashboard(
   pageSize: number = 20,
 ) {
   await verifyPropertyOwnership(propertyId, sellerId);
-  const stats = await viewingRepo.getViewingStats(propertyId);
-  const allSlots = await viewingRepo.findSlotsByPropertyAndDateRange(
+  const now = new Date();
+  const thirtyDaysOut = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  const [stats, { slots, total: totalSlots }] = await Promise.all([
+    viewingRepo.getViewingStats(propertyId),
+    viewingRepo.findActiveSlotsPaginated(
+      propertyId,
+      now,
+      thirtyDaysOut,
+      (page - 1) * pageSize,
+      pageSize,
+    ),
+  ]);
+
+  // Build slot metadata for calendar — uses current month via month-meta route
+  // for full data; this is just the initial page's slots for quick dot rendering
+  const slotsByDate = await getMonthSlotMeta(
     propertyId,
-    new Date(),
-    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    now.getFullYear(),
+    now.getMonth() + 1,
+    sellerId,
   );
-  const activeSlots = allSlots.filter((s) => (s as { status: string }).status !== 'cancelled');
-  const totalSlots = activeSlots.length;
-  const slots = activeSlots.slice((page - 1) * pageSize, page * pageSize);
-  return { stats, slots, totalSlots, page, pageSize };
+
+  return { stats, slots, totalSlots, page, pageSize, slotsByDate };
 }
 
 export async function getSlotsForDate(propertyId: string, dateStr: string, sellerId: string) {
   await verifyPropertyOwnership(propertyId, sellerId);
   const date = new Date(dateStr);
 
-  const slots = await viewingRepo.findSlotsByPropertyAndDateRange(propertyId, date, date);
+  const slots = (await viewingRepo.findSlotsByPropertyAndDateRange(
+    propertyId,
+    date,
+    date,
+  )) as SlotSummary[];
 
-  const suggestedTimes = findNextAvailableGap(slots as { startTime: string; endTime: string }[]);
-
-  const activeSlots = slots.filter((s) => (s as { status: string }).status !== 'cancelled');
+  const activeSlots = slots.filter((s) => s.status !== 'cancelled');
+  const suggestedTimes = findNextAvailableGap(activeSlots);
 
   return {
     slots: activeSlots.map((s) => ({
-      id: (s as { id: string }).id,
-      startTime: (s as { startTime: string }).startTime,
-      endTime: (s as { endTime: string }).endTime,
-      slotType: (s as { slotType: string }).slotType,
-      maxViewers: (s as { maxViewers: number }).maxViewers,
-      currentBookings: (s as { currentBookings: number }).currentBookings,
-      status: (s as { status: string }).status,
+      id: s.id,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      slotType: s.slotType,
+      maxViewers: s.maxViewers,
+      currentBookings: s.currentBookings,
+      status: s.status,
     })),
     suggestedStart: suggestedTimes.start,
     suggestedEnd: suggestedTimes.end,
@@ -911,14 +928,10 @@ export async function getMonthSlotMeta(
   const slots = await viewingRepo.findSlotsByPropertyAndMonth(propertyId, year, month);
 
   const meta: Record<string, { available: number; full: number }> = {};
-  for (const slot of slots) {
-    const dateKey = (slot as { date: Date }).date.toISOString().split('T')[0];
+  for (const s of slots as SlotSummary[]) {
+    const dateKey = s.date.toISOString().split('T')[0];
     if (!meta[dateKey]) meta[dateKey] = { available: 0, full: 0 };
-    if (
-      (slot as { status: string }).status === 'full' ||
-      ((slot as { slotType: string }).slotType === 'single' &&
-        (slot as { currentBookings: number }).currentBookings >= 1)
-    ) {
+    if (s.status === 'full' || (s.slotType === 'single' && s.currentBookings >= 1)) {
       meta[dateKey].full++;
     } else {
       meta[dateKey].available++;
@@ -926,6 +939,9 @@ export async function getMonthSlotMeta(
   }
   return meta;
 }
+
+const SLOT_BOUND_START = '10:00';
+const SLOT_BOUND_END = '20:00';
 
 function findNextAvailableGap(slots: { startTime: string; endTime: string }[]): {
   start: string;
@@ -935,28 +951,38 @@ function findNextAvailableGap(slots: { startTime: string; endTime: string }[]): 
 
   const sorted = [...slots].sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-  // Try gap after each slot
+  // Try gap after each slot (within bounds)
   for (let i = 0; i < sorted.length; i++) {
     const gapStart = sorted[i].endTime;
+    if (gapStart >= SLOT_BOUND_END) continue;
     const gapEnd = addMinutes(gapStart, 60);
-    const nextSlotStart = sorted[i + 1]?.startTime ?? '23:59';
+    const nextSlotStart = sorted[i + 1]?.startTime ?? SLOT_BOUND_END;
+    const clampedEnd = gapEnd > SLOT_BOUND_END ? SLOT_BOUND_END : gapEnd;
 
-    if (gapEnd <= nextSlotStart && gapEnd <= '22:00') {
-      return { start: gapStart, end: gapEnd };
+    if (clampedEnd <= nextSlotStart && clampedEnd > gapStart) {
+      return { start: gapStart, end: clampedEnd };
     }
   }
 
-  // Try gap before first slot
+  // Try gap before first slot (within bounds)
   const firstStart = sorted[0].startTime;
-  if (firstStart >= '11:00') {
-    const beforeEnd = firstStart;
-    const beforeStart = subtractMinutes(beforeEnd, 60);
-    if (beforeStart >= '08:00') return { start: beforeStart, end: beforeEnd };
+  if (firstStart > SLOT_BOUND_START) {
+    const beforeStart = firstStart >= '11:00' ? subtractMinutes(firstStart, 60) : SLOT_BOUND_START;
+    const clampedStart = beforeStart < SLOT_BOUND_START ? SLOT_BOUND_START : beforeStart;
+    if (clampedStart < firstStart) {
+      return { start: clampedStart, end: firstStart };
+    }
   }
 
-  // Fallback: after last slot
+  // Fallback: after last slot, clamped to bounds
   const lastEnd = sorted[sorted.length - 1].endTime;
-  return { start: lastEnd, end: addMinutes(lastEnd, 60) };
+  if (lastEnd < SLOT_BOUND_END) {
+    const fallbackEnd = addMinutes(lastEnd, 60);
+    return { start: lastEnd, end: fallbackEnd > SLOT_BOUND_END ? SLOT_BOUND_END : fallbackEnd };
+  }
+
+  // Day is fully packed — return default (form validation will catch issues)
+  return { start: '10:00', end: '11:00' };
 }
 
 function addMinutes(time: string, minutes: number): string {
@@ -973,13 +999,13 @@ export async function getPublicBookingPage(slug: string) {
   const property = await viewingRepo.findPropertyBySlug(slug);
   if (!property) return null;
 
-  const slots = await viewingRepo.findSlotsByPropertyAndDateRange(
+  const slots = (await viewingRepo.findSlotsByPropertyAndDateRange(
     (property as { id: string }).id,
     new Date(),
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-  );
+  )) as SlotSummary[];
 
-  const availableSlots = slots.filter((s) => (s as { status: string }).status === 'available');
+  const availableSlots = slots.filter((s) => s.status === 'available');
 
   return { property, availableSlots };
 }

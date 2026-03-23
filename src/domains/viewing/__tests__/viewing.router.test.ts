@@ -103,6 +103,37 @@ describe('viewing.router', () => {
     });
   });
 
+  describe('POST /seller/viewings/slots/bulk-delete', () => {
+    it('bulk cancels slots and returns count', async () => {
+      mockService.bulkCancelSlots.mockResolvedValue({ cancelled: 3 });
+
+      const res = await request(app)
+        .post('/seller/viewings/slots/bulk-delete')
+        .send({ slotIds: ['slot-1', 'slot-2', 'slot-3'] });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ success: true, cancelled: 3 });
+      expect(mockService.bulkCancelSlots).toHaveBeenCalledWith(
+        ['slot-1', 'slot-2', 'slot-3'],
+        'seller-1',
+      );
+    });
+
+    it('returns 400 when slotIds is missing', async () => {
+      const res = await request(app).post('/seller/viewings/slots/bulk-delete').send({});
+
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 400 when slotIds is empty', async () => {
+      const res = await request(app)
+        .post('/seller/viewings/slots/bulk-delete')
+        .send({ slotIds: [] });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe('DELETE /seller/viewings/slots/:id', () => {
     it('cancels a slot', async () => {
       mockService.cancelSlot.mockResolvedValue(undefined);

@@ -1,5 +1,9 @@
 {% extends "layouts/seller.njk" %}
 
+{% block head %}
+<script src="/js/viewing-calendar.js" nonce="{{ cspNonce }}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-4xl mx-auto">
   {% set pageTitle = "Viewings" %}

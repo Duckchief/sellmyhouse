@@ -71,6 +71,31 @@ export async function findSlotsByPropertyAndMonth(
   });
 }
 
+export async function findActiveSlotsPaginated(
+  propertyId: string,
+  startDate: Date,
+  endDate: Date,
+  skip: number,
+  take: number,
+) {
+  const where = {
+    propertyId,
+    date: { gte: startDate, lte: endDate },
+    status: { not: 'cancelled' as SlotStatus },
+  };
+  const [slots, total] = await Promise.all([
+    prisma.viewingSlot.findMany({
+      where,
+      include: { viewings: { include: { verifiedViewer: true } } },
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+      skip,
+      take,
+    }),
+    prisma.viewingSlot.count({ where }),
+  ]);
+  return { slots, total };
+}
+
 export async function updateSlotStatus(
   id: string,
   data: { status?: SlotStatus; currentBookings?: number },
@@ -125,6 +150,15 @@ export async function bulkCancelSlotsAndViewings(slotIds: string[]) {
     });
 
     return { cancelled: slotIds.length };
+  });
+}
+
+export async function findSlotsByIds(slotIds: string[]) {
+  return prisma.viewingSlot.findMany({
+    where: { id: { in: slotIds } },
+    include: {
+      property: { select: { sellerId: true } },
+    },
   });
 }
 

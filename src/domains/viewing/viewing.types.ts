@@ -106,6 +106,21 @@ export function computeSlotStatus(
   return 'booked';
 }
 
+// ─── Repository Return Types ─────────────────────────────
+// Lightweight interfaces matching Prisma return shapes, used in the service
+// layer to avoid `as unknown as` casts.
+
+export interface SlotSummary {
+  id: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  slotType: string;
+  maxViewers: number;
+  currentBookings: number;
+  status: string;
+}
+
 // ─── Constants ────────────────────────────────────────────
 
 export const DEFAULT_SLOT_DURATION_MINUTES = 15;

@@ -247,6 +247,98 @@ describe('viewing.service', () => {
     });
   });
 
+  // ─── Bulk Cancel Slots ─────────────────────────────────
+
+  describe('bulkCancelSlots', () => {
+    it('returns { cancelled: 0 } for empty array', async () => {
+      const result = await viewingService.bulkCancelSlots([], 'seller-1');
+      expect(result).toEqual({ cancelled: 0 });
+      expect(mockedRepo.bulkCancelSlotsAndViewings).not.toHaveBeenCalled();
+    });
+
+    it('cancels slots owned by the seller', async () => {
+      mockedRepo.findSlotsByIds.mockResolvedValue([
+        { id: 'slot-1', property: { sellerId: 'seller-1' } },
+        { id: 'slot-2', property: { sellerId: 'seller-1' } },
+      ] as never);
+      mockedRepo.findSlotsWithBookedViewers.mockResolvedValue([] as never);
+      mockedRepo.bulkCancelSlotsAndViewings.mockResolvedValue({ cancelled: 2 } as never);
+
+      const result = await viewingService.bulkCancelSlots(['slot-1', 'slot-2'], 'seller-1');
+
+      expect(result).toEqual({ cancelled: 2 });
+      expect(mockedRepo.bulkCancelSlotsAndViewings).toHaveBeenCalledWith(['slot-1', 'slot-2']);
+    });
+
+    it('throws ForbiddenError when a slot belongs to another seller', async () => {
+      mockedRepo.findSlotsByIds.mockResolvedValue([
+        { id: 'slot-1', property: { sellerId: 'seller-1' } },
+        { id: 'slot-2', property: { sellerId: 'seller-OTHER' } },
+      ] as never);
+
+      await expect(
+        viewingService.bulkCancelSlots(['slot-1', 'slot-2'], 'seller-1'),
+      ).rejects.toThrow('You do not own one or more of these slots');
+
+      expect(mockedRepo.bulkCancelSlotsAndViewings).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundError when a slot ID does not exist', async () => {
+      mockedRepo.findSlotsByIds.mockResolvedValue([
+        { id: 'slot-1', property: { sellerId: 'seller-1' } },
+      ] as never);
+
+      await expect(
+        viewingService.bulkCancelSlots(['slot-1', 'slot-missing'], 'seller-1'),
+      ).rejects.toThrow();
+
+      expect(mockedRepo.bulkCancelSlotsAndViewings).not.toHaveBeenCalled();
+    });
+
+    it('sends notifications for slots with booked viewers', async () => {
+      mockedRepo.findSlotsByIds.mockResolvedValue([
+        { id: 'slot-1', property: { sellerId: 'seller-1' } },
+      ] as never);
+      mockedRepo.findSlotsWithBookedViewers.mockResolvedValue([
+        {
+          id: 'slot-1',
+          property: { town: 'BISHAN', street: 'Bishan St 23', sellerId: 'seller-1' },
+          viewings: [{ verifiedViewer: { id: 'viewer-1' } }],
+        },
+      ] as never);
+      mockedRepo.bulkCancelSlotsAndViewings.mockResolvedValue({ cancelled: 1 } as never);
+
+      await viewingService.bulkCancelSlots(['slot-1'], 'seller-1');
+
+      expect(mockedNotification.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipientType: 'viewer',
+          recipientId: 'viewer-1',
+          templateName: 'viewing_cancelled',
+        }),
+        'system',
+      );
+    });
+
+    it('logs an audit entry', async () => {
+      mockedRepo.findSlotsByIds.mockResolvedValue([
+        { id: 'slot-1', property: { sellerId: 'seller-1' } },
+      ] as never);
+      mockedRepo.findSlotsWithBookedViewers.mockResolvedValue([] as never);
+      mockedRepo.bulkCancelSlotsAndViewings.mockResolvedValue({ cancelled: 1 } as never);
+
+      await viewingService.bulkCancelSlots(['slot-1'], 'seller-1');
+
+      expect(mockedAudit.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'viewing.bulk_slots_cancelled',
+          entityType: 'viewing_slot',
+          details: expect.objectContaining({ slotCount: 1, sellerId: 'seller-1' }),
+        }),
+      );
+    });
+  });
+
   // ─── Booking Flow ──────────────────────────────────────
 
   describe('initiateBooking', () => {

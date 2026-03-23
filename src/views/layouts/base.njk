@@ -21,7 +21,6 @@
       hx-headers='{"x-csrf-token": "{{ csrfToken }}"}'>
   {% block body %}{% endblock %}
   {% include "partials/cookie-consent.njk" %}
-  <script src="/js/viewing-calendar.js"></script>
-  <script src="/js/app.js"></script>
+  <script src="/js/app.js" nonce="{{ cspNonce }}"></script>
 </body>
 </html>

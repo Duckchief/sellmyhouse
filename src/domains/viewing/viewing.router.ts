@@ -45,30 +45,10 @@ viewingRouter.get(
 
       const dashboard = propertyId
         ? await viewingService.getSellerDashboard(propertyId, user.id, page, pageSize)
-        : { stats: null, slots: [], totalSlots: 0, page: 1, pageSize };
+        : { stats: null, slots: [], totalSlots: 0, page: 1, pageSize, slotsByDate: {} };
 
-      const { stats, slots, totalSlots } = dashboard;
+      const { stats, slots, totalSlots, slotsByDate } = dashboard;
       const hasMore = page * pageSize < (totalSlots ?? 0);
-
-      // Build slot metadata for calendar dot indicators (uses month-meta route for full data)
-      const slotsByDate: Record<string, { available: number; full: number }> = {};
-      for (const s of slots) {
-        const sl = s as unknown as {
-          date: Date | string;
-          status: string;
-          slotType: string;
-          currentBookings: number;
-        };
-        const dateKey = (sl.date instanceof Date ? sl.date : new Date(sl.date))
-          .toISOString()
-          .split('T')[0];
-        if (!slotsByDate[dateKey]) slotsByDate[dateKey] = { available: 0, full: 0 };
-        if (sl.status === 'full' || (sl.slotType === 'single' && sl.currentBookings >= 1)) {
-          slotsByDate[dateKey].full++;
-        } else {
-          slotsByDate[dateKey].available++;
-        }
-      }
 
       // HTMX "load more" request — return just the slot rows + next button
       if (req.headers['hx-request'] && page > 1) {

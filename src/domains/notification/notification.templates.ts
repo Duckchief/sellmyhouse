@@ -108,6 +108,10 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationTemplateName, Notificati
     subject: 'Your Testimonial — Please Resubmit',
     body: "We'd love to publish your testimonial. Please use the link below to resubmit:\n{{submissionUrl}}\n\n{{feedback}}",
   },
+  seller_document_uploaded: {
+    subject: 'New Document Uploaded',
+    body: 'A seller has uploaded a new document. Please review it in your dashboard.',
+  },
   password_reset: {
     subject: 'Reset your SellMyHomeNow password',
     body: 'We received a request to reset the password for your SellMyHomeNow account.\n\nClick the link below to set a new password:\n{{resetUrl}}\n\nThis link expires in 1 hour.\n\nIf you did not request a password reset, please ignore this email — your password will not change.',
@@ -149,6 +153,7 @@ export const WHATSAPP_TEMPLATE_STATUS: Record<NotificationTemplateName, WhatsApp
   financial_report_ready: 'pending',
   testimonial_rejected: 'pending',
   testimonial_reissued: 'pending',
+  seller_document_uploaded: 'pending',
   password_reset: 'pending',
   viewing_followup_viewer: 'pending',
   generic: 'pending',

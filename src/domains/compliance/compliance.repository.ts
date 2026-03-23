@@ -977,6 +977,15 @@ export async function collectSellerFilePaths(sellerId: string): Promise<string[]
     }
   }
 
+  // 5. Seller-uploaded documents (.enc files)
+  const sellerDocs = await prisma.sellerDocument.findMany({
+    where: { sellerId, deletedAt: null },
+    select: { path: true },
+  });
+  for (const doc of sellerDocs) {
+    paths.push(doc.path);
+  }
+
   return paths;
 }
 

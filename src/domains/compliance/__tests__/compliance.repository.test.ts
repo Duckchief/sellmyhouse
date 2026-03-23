@@ -32,6 +32,9 @@ jest.mock('@/infra/database/prisma', () => ({
       update: jest.fn(),
       delete: jest.fn(),
     },
+    sellerDocument: {
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -550,6 +553,8 @@ describe('collectSellerFilePaths — CDD documents', () => {
     mockPrisma.cddRecord.findMany.mockResolvedValue([
       { id: 'cdd-1', documents: cddDocs },
     ] as unknown as CddRecord[]);
+    // Mock seller documents query
+    (mockPrisma.sellerDocument.findMany as jest.Mock).mockResolvedValue([]);
 
     const paths = await complianceRepo.collectSellerFilePaths('seller-1');
 

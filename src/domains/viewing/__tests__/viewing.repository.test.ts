@@ -163,6 +163,26 @@ describe('viewing.repository', () => {
     });
   });
 
+  describe('findSlotsByPropertyAndMonth', () => {
+    it('returns slots for the given month', async () => {
+      mockedPrisma.viewingSlot.findMany.mockResolvedValue([] as never);
+
+      await viewingRepo.findSlotsByPropertyAndMonth('prop-1', 2026, 3);
+
+      expect(mockedPrisma.viewingSlot.findMany).toHaveBeenCalledWith({
+        where: {
+          propertyId: 'prop-1',
+          date: {
+            gte: new Date('2026-03-01T00:00:00.000Z'),
+            lt: new Date('2026-04-01T00:00:00.000Z'),
+          },
+        },
+        include: { viewings: { where: { status: { not: 'cancelled' } } } },
+        orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+      });
+    });
+  });
+
   describe('updateViewingStatus', () => {
     it('updates viewing status', async () => {
       mockedPrisma.viewing.update.mockResolvedValue({

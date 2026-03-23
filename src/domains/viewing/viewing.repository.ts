@@ -54,6 +54,23 @@ export async function findSlotsByPropertyAndDateRange(
   });
 }
 
+export async function findSlotsByPropertyAndMonth(
+  propertyId: string,
+  year: number,
+  month: number, // 1-12
+) {
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(year, month, 1));
+  return prisma.viewingSlot.findMany({
+    where: {
+      propertyId,
+      date: { gte: start, lt: end },
+    },
+    include: { viewings: { where: { status: { not: 'cancelled' } } } },
+    orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+  });
+}
+
 export async function updateSlotStatus(
   id: string,
   data: { status?: SlotStatus; currentBookings?: number },

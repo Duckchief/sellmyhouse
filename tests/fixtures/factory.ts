@@ -71,6 +71,7 @@ export const factory = {
     consentMarketing?: boolean;
     leadSource?: 'website' | 'tiktok' | 'instagram' | 'referral' | 'walkin' | 'other';
     onboardingStep?: number;
+    emailVerified?: boolean;
   }) {
     const id = createId();
     return testPrisma.seller.create({
@@ -86,6 +87,7 @@ export const factory = {
         consentMarketing: overrides?.consentMarketing ?? false,
         leadSource: overrides?.leadSource ?? 'website',
         onboardingStep: overrides?.onboardingStep ?? 0,
+        emailVerified: overrides?.emailVerified ?? true,
       },
     });
   },

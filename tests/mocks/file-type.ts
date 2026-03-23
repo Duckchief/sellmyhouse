@@ -1,1 +1,1 @@
-export const fileTypeFromBuffer = jest.fn();
+export const fileTypeFromBuffer = jest.fn().mockResolvedValue({ mime: 'application/pdf' });

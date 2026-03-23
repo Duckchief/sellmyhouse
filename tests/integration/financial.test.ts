@@ -9,6 +9,7 @@ process.env.DATABASE_URL =
 // We test the service layer directly since financial routes require auth sessions.
 // Unit tests cover route-level behavior; integration tests verify DB operations.
 import * as financialService from '../../src/domains/property/financial.service';
+import * as financialRepo from '../../src/domains/property/financial.repository';
 
 beforeEach(async () => {
   await cleanDatabase();
@@ -68,10 +69,8 @@ describe('Financial Engine — Integration', () => {
       expect(report.id).toBeDefined();
       expect(report.version).toBe(1);
 
-      // Verify it's in the database
-      const fromDb = await testPrisma.financialReport.findUnique({
-        where: { id: report.id },
-      });
+      // Verify it's in the database (use repo to get decrypted reportData)
+      const fromDb = await financialRepo.findById(report.id);
       expect(fromDb).not.toBeNull();
       expect(fromDb!.sellerId).toBe(seller.id);
       expect(fromDb!.propertyId).toBe(property.id);

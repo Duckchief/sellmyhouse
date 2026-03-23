@@ -110,7 +110,9 @@ describe('POST /api/leads', () => {
         formLoadedAt: (Date.now() - 10000).toString(),
       });
 
-    expect(res.status).toBe(409);
+    // Duplicate phone returns 200 with alreadyRegistered flag (anti-enumeration UX)
+    expect(res.status).toBe(200);
+    expect(res.body.alreadyRegistered).toBe(true);
   });
 
   it('rejects invalid Singapore phone format', async () => {

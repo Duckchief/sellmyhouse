@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss';
 
 const config: Config = {
-  content: ['./src/views/**/*.njk', './src/views/**/*.html'],
+  content: ['./src/views/**/*.njk', './src/views/**/*.html', './public/js/**/*.js'],
   darkMode: 'class',
   theme: {
     extend: {

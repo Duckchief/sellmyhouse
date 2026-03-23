@@ -159,3 +159,107 @@ describe('uploadSellerDocument', () => {
     );
   });
 });
+
+describe('downloadAndDeleteSellerDocument', () => {
+  const mockDoc = {
+    id: 'doc-1',
+    sellerId: 'seller-1',
+    path: 'seller-docs/seller-1/nric-abc.enc',
+    wrappedKey: 'wrapped-key',
+    mimeType: 'image/jpeg',
+    docType: 'nric',
+    deletedAt: null,
+    downloadedAt: null,
+  };
+
+  it('decrypts file, marks as downloaded+deleted, audits', async () => {
+    mockSellerDocRepo.findById.mockResolvedValue(mockDoc as any);
+    (encryptedStorage.read as jest.Mock).mockResolvedValue(Buffer.from('decrypted'));
+    (encryptedStorage.delete as jest.Mock).mockResolvedValue(undefined);
+    mockSellerDocRepo.markDownloadedAndDeleted.mockResolvedValue({} as any);
+
+    const result = await sellerDocService.downloadAndDeleteSellerDocument('doc-1', 'agent-1');
+
+    expect(encryptedStorage.read).toHaveBeenCalledWith(mockDoc.path, mockDoc.wrappedKey);
+    expect(encryptedStorage.delete).toHaveBeenCalledWith(mockDoc.path);
+    expect(mockSellerDocRepo.markDownloadedAndDeleted).toHaveBeenCalledWith('doc-1', 'agent-1');
+    expect(result.buffer).toEqual(Buffer.from('decrypted'));
+    expect(result.mimeType).toBe('image/jpeg');
+  });
+
+  it('rejects if document not found', async () => {
+    mockSellerDocRepo.findById.mockResolvedValue(null);
+
+    await expect(
+      sellerDocService.downloadAndDeleteSellerDocument('bad-id', 'agent-1'),
+    ).rejects.toThrow('SellerDocument');
+  });
+
+  it('rejects if already deleted', async () => {
+    mockSellerDocRepo.findById.mockResolvedValue({ ...mockDoc, deletedAt: new Date() } as any);
+
+    await expect(
+      sellerDocService.downloadAndDeleteSellerDocument('doc-1', 'agent-1'),
+    ).rejects.toThrow('already been deleted');
+  });
+});
+
+describe('deleteSellerDocumentBySeller', () => {
+  const mockDoc = {
+    id: 'doc-1',
+    sellerId: 'seller-1',
+    path: 'seller-docs/seller-1/nric-abc.enc',
+    wrappedKey: 'wrapped-key',
+    downloadedAt: null,
+    deletedAt: null,
+  };
+
+  it('deletes file and removes DB row if not yet downloaded', async () => {
+    mockSellerDocRepo.findById.mockResolvedValue(mockDoc as any);
+    (encryptedStorage.delete as jest.Mock).mockResolvedValue(undefined);
+    mockSellerDocRepo.hardDelete.mockResolvedValue(undefined);
+
+    await sellerDocService.deleteSellerDocumentBySeller('doc-1', 'seller-1');
+
+    expect(encryptedStorage.delete).toHaveBeenCalledWith(mockDoc.path);
+    expect(mockSellerDocRepo.hardDelete).toHaveBeenCalledWith('doc-1');
+  });
+
+  it('rejects if seller does not own document', async () => {
+    mockSellerDocRepo.findById.mockResolvedValue({ ...mockDoc, sellerId: 'other' } as any);
+
+    await expect(
+      sellerDocService.deleteSellerDocumentBySeller('doc-1', 'seller-1'),
+    ).rejects.toThrow();
+  });
+
+  it('rejects if already downloaded by agent', async () => {
+    mockSellerDocRepo.findById.mockResolvedValue({
+      ...mockDoc,
+      downloadedAt: new Date(),
+    } as any);
+
+    await expect(
+      sellerDocService.deleteSellerDocumentBySeller('doc-1', 'seller-1'),
+    ).rejects.toThrow('already been received');
+  });
+});
+
+describe('getDocumentChecklistWithStatus', () => {
+  it('derives status from DB records', async () => {
+    mockSellerDocRepo.findAllBySeller.mockResolvedValue([
+      { docType: 'nric', deletedAt: null } as any,
+      { docType: 'eaa', deletedAt: new Date() } as any,
+    ]);
+
+    const result = await sellerDocService.getDocumentChecklistWithStatus('seller-1', 'draft');
+
+    const nric = result.find((i) => i.id === 'nric');
+    const eaa = result.find((i) => i.id === 'estate-agency-agreement');
+    const marriage = result.find((i) => i.id === 'marriage-cert');
+
+    expect(nric?.status).toBe('uploaded');
+    expect(eaa?.status).toBe('received_by_agent');
+    expect(marriage?.status).toBe('not_uploaded');
+  });
+});

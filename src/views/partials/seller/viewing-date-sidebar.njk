@@ -1,0 +1,76 @@
+{#
+  Variables (from getSlotsForDate):
+    date: string (YYYY-MM-DD)
+    slots: { id, startTime, endTime, slotType, maxViewers, currentBookings, status }[]
+    suggestedStart: string (HH:MM)
+    suggestedEnd: string (HH:MM)
+    propertyId: string (from query param, forwarded by router)
+#}
+
+<div class="p-4">
+  {# Date heading #}
+  <h3 class="text-sm font-semibold text-gray-900 mb-3">{{ date }}</h3>
+
+  {# Existing slots summary #}
+  {% if slots.length > 0 %}
+  <div class="mb-4">
+    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">{{ "Existing Slots" | t }}</p>
+    <div class="space-y-1.5">
+      {% for slot in slots %}
+      <div class="flex items-center justify-between text-xs bg-gray-50 rounded px-2.5 py-1.5">
+        <span class="font-medium text-gray-700">{{ slot.startTime }}–{{ slot.endTime }}</span>
+        <span class="text-gray-500">{{ slot.slotType | capitalize }}</span>
+        {% if slot.status == 'full' or (slot.slotType == 'single' and slot.currentBookings >= 1) %}
+          <span class="w-2 h-2 rounded-full bg-red-500" title="{{ 'Full' | t }}"></span>
+        {% else %}
+          <span class="w-2 h-2 rounded-full bg-green-500" title="{{ 'Available' | t }}"></span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# Add new slot form #}
+  <div class="border-t border-gray-200 pt-3">
+    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">{{ "Add New Slot" | t }}</p>
+    <form
+      hx-post="/seller/viewings/slots"
+      hx-target="#slots-list"
+      hx-swap="beforeend"
+      data-reset-on-success
+      class="space-y-3"
+    >
+      <input type="hidden" name="propertyId" value="{{ propertyId }}">
+      <input type="hidden" name="date" value="{{ date }}">
+
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">{{ "Start" | t }}</label>
+        <input type="time" name="startTime" value="{{ suggestedStart }}" required
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">{{ "End" | t }}</label>
+        <input type="time" name="endTime" value="{{ suggestedEnd }}" required
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">{{ "Type" | t }}</label>
+        <select name="slotType"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="single">{{ "Single viewer" | t }}</option>
+          <option value="group">{{ "Group viewing" | t }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">{{ "Max viewers (group only)" | t }}</label>
+        <input type="number" name="maxViewers" min="2" max="20" placeholder="2"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <button type="submit"
+              class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition">
+        {{ "Add Slot" | t }}
+      </button>
+    </form>
+  </div>
+</div>

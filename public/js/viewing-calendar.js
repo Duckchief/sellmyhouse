@@ -133,9 +133,10 @@
       cell.type = 'button';
       cell.dataset.date = dateStr;
       cell.className = 'relative flex flex-col items-center justify-center p-1.5 rounded-lg text-sm transition '
-        + (isPast ? 'text-gray-300 ' : 'text-gray-700 hover:bg-blue-50 cursor-pointer ')
+        + (isPast ? 'text-gray-300 ' : 'text-gray-700 cursor-pointer ')
         + (isToday ? 'font-bold ' : '')
-        + (isSelected ? 'ring-2 ring-blue-500 bg-blue-50 ' : (hasSlots && !isPast ? 'bg-green-50 ' : ''));
+        + (isSelected ? 'ring-2 ring-blue-500 bg-blue-50 '
+          : (hasSlots && !isPast ? 'bg-green-50 hover:bg-green-100 ' : 'hover:bg-blue-50 '));
 
       var dayNum = document.createElement('span');
       dayNum.textContent = d;

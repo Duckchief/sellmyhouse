@@ -163,6 +163,13 @@ export async function downloadAllAndDeleteSellerDocuments(
   return { files, sellerId };
 }
 
+export async function getSellerDocumentById(
+  documentId: string,
+  sellerId: string,
+): Promise<SellerDocument | null> {
+  return sellerDocRepo.findByIdAndSeller(documentId, sellerId);
+}
+
 export async function deleteSellerDocumentBySeller(
   documentId: string,
   sellerId: string,
@@ -193,7 +200,7 @@ export async function getActiveDocumentsForSeller(
 
 // ─── Checklist Status Derivation ─────────────────────────────────────────────
 
-const DOC_TYPE_TO_CHECKLIST_ID: Record<string, string> = {
+export const DOC_TYPE_TO_CHECKLIST_ID: Record<string, string> = {
   nric: 'nric',
   marriage_cert: 'marriage-cert',
   eligibility_letter: 'eligibility-letter',

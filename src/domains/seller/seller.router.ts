@@ -436,6 +436,9 @@ sellerRouter.post(
       }
 
       if (!req.file) {
+        if (req.headers['hx-request']) {
+          return res.status(422).send('<div class="text-sm text-red-600 p-2">Please select a file first</div>');
+        }
         return next(new ValidationError('No file uploaded'));
       }
 
@@ -457,7 +460,16 @@ sellerRouter.post(
       );
       const activeDocuments = await sellerDocService.getActiveDocumentsForSeller(user.id);
 
-      res.render('partials/seller/document-checklist', { checklist, activeDocuments });
+      // Find the specific checklist item that was uploaded
+      const checklistId = sellerDocService.DOC_TYPE_TO_CHECKLIST_ID[docType];
+      const item = checklist.find((c) => c.id === checklistId);
+
+      if (item) {
+        res.render('partials/seller/document-checklist-row', { item, activeDocuments });
+      } else {
+        // Fallback: re-render full checklist (shouldn't happen)
+        res.render('partials/seller/document-checklist', { checklist, activeDocuments });
+      }
     } catch (err) {
       next(err);
     }
@@ -470,6 +482,14 @@ sellerRouter.delete(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
+
+      // Look up document before deleting to know the docType
+      const doc = await sellerDocService.getSellerDocumentById(
+        req.params['documentId'] as string,
+        user.id,
+      );
+      const deletedDocType = doc?.docType;
+
       await sellerDocService.deleteSellerDocumentBySeller(req.params['documentId'] as string, user.id);
 
       const overview = await sellerService.getDashboardOverview(user.id);
@@ -479,6 +499,16 @@ sellerRouter.delete(
       );
       const activeDocuments = await sellerDocService.getActiveDocumentsForSeller(user.id);
 
+      // Render single row if we know which doc type was deleted
+      if (deletedDocType) {
+        const checklistId = sellerDocService.DOC_TYPE_TO_CHECKLIST_ID[deletedDocType];
+        const item = checklist.find((c) => c.id === checklistId);
+        if (item) {
+          return res.render('partials/seller/document-checklist-row', { item, activeDocuments });
+        }
+      }
+
+      // Fallback: full checklist
       res.render('partials/seller/document-checklist', { checklist, activeDocuments });
     } catch (err) {
       next(err);

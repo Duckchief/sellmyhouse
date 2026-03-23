@@ -18,6 +18,15 @@ export async function findById(id: string): Promise<SellerDocument | null> {
   return prisma.sellerDocument.findFirst({ where: { id } });
 }
 
+export async function findByIdAndSeller(
+  documentId: string,
+  sellerId: string,
+): Promise<SellerDocument | null> {
+  return prisma.sellerDocument.findFirst({
+    where: { id: documentId, sellerId, deletedAt: null },
+  });
+}
+
 export async function findActiveBySeller(sellerId: string): Promise<SellerDocument[]> {
   return prisma.sellerDocument.findMany({
     where: { sellerId, deletedAt: null },

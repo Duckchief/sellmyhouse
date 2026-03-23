@@ -11,8 +11,10 @@ import {
 } from '@/domains/seller/case-flag.validator';
 import { processCorrectionValidator } from '../compliance/compliance.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
-import { ValidationError } from '@/domains/shared/errors';
+import { ValidationError, NotFoundError, ForbiddenError } from '@/domains/shared/errors';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
+import * as sellerDocService from '@/domains/seller/seller-document.service';
+import archiver from 'archiver';
 import type { SellerListFilter } from './agent.types';
 import { getHasAvatar } from '../profile/profile.service';
 import * as complianceService from '@/domains/compliance/compliance.service';
@@ -453,6 +455,98 @@ agentRouter.post(
         return res.send('<span class="text-green-600 text-sm">Account setup email sent!</span>');
       }
       res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ─── Seller Document Download Routes ──────────────────────────────────────────
+
+// GET /agent/sellers/:id/documents — View seller's uploaded documents
+agentRouter.get(
+  '/agent/sellers/:id/documents',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const sellerId = req.params['id'] as string;
+      const agentId = getAgentFilter(user);
+
+      // Verify agent owns this seller (throws NotFoundError if not)
+      const seller = await agentService.getSellerDetail(sellerId, agentId);
+      const documents = await sellerDocService.getActiveDocumentsForSeller(sellerId);
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/agent/seller-documents', { documents, seller });
+      }
+      res.render('pages/agent/seller-documents', { documents, seller });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /agent/sellers/:id/documents/:documentId/download — Download and delete single document
+agentRouter.post(
+  '/agent/sellers/:id/documents/:documentId/download',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const sellerId = req.params['id'] as string;
+      const documentId = req.params['documentId'] as string;
+      const agentId = getAgentFilter(user);
+
+      // Verify agent owns this seller (throws NotFoundError if not)
+      await agentService.getSellerDetail(sellerId, agentId);
+
+      const { buffer, mimeType, docType } = await sellerDocService.downloadAndDeleteSellerDocument(
+        documentId,
+        user.id,
+      );
+
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${docType}-${documentId}"`);
+      res.setHeader('Cache-Control', 'no-store');
+      res.send(buffer);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /agent/sellers/:id/documents/download-all — Download all as ZIP and delete
+agentRouter.post(
+  '/agent/sellers/:id/documents/download-all',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const sellerId = req.params['id'] as string;
+      const agentId = getAgentFilter(user);
+
+      // Verify agent owns this seller (throws NotFoundError if not)
+      await agentService.getSellerDetail(sellerId, agentId);
+
+      const { files } = await sellerDocService.downloadAllAndDeleteSellerDocuments(
+        sellerId,
+        user.id,
+      );
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="seller-documents-${sellerId}.zip"`,
+      );
+      res.setHeader('Cache-Control', 'no-store');
+
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      archive.pipe(res);
+      for (const file of files) {
+        archive.append(file.buffer, { name: file.filename });
+      }
+      await archive.finalize();
     } catch (err) {
       next(err);
     }

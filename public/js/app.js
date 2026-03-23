@@ -895,4 +895,10 @@
     }
   });
 
+  // ── Viewing Calendar ──────────────────────────────────
+  var calendarEl = document.getElementById('viewing-calendar');
+  if (calendarEl && window.ViewingCalendar) {
+    new window.ViewingCalendar(calendarEl);
+  }
+
 })();

@@ -2,18 +2,6 @@
    Expects: saleProceeds, commission (in parent scope)
 #}
 <div class="bg-white rounded-lg shadow p-6">
-  <div class="flex justify-between items-center mb-4">
-    <span class="text-2xl font-bold {% if saleProceeds.netProceeds >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-      ${{ saleProceeds.netProceeds | formatPrice }}
-    </span>
-    <button type="button"
-      hx-get="/seller/financial/estimate/edit"
-      hx-target="#estimate-section"
-      hx-swap="innerHTML"
-      class="text-sm text-blue-600 hover:underline">
-      {{ "Edit Estimate" | t }}
-    </button>
-  </div>
 
   {% if saleProceeds.netProceeds < 0 %}
     <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
@@ -50,6 +38,23 @@
       <tr class="border-b border-gray-100">
         <td class="py-2 text-gray-600">{{ "Agent Commission" | t }}</td>
         <td class="py-2 text-right text-red-600">-${{ saleProceeds.commission | formatPrice }}</td>
+      </tr>
+      <tr>
+        <td class="pt-4 text-lg font-semibold text-gray-900">{{ "Estimated Sales Proceeds" | t }}</td>
+        <td class="pt-4 text-right">
+          <span class="text-2xl font-bold {% if saleProceeds.netProceeds >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+            ${{ saleProceeds.netProceeds | formatPrice }}
+          </span>
+          <div class="mt-1">
+            <button type="button"
+              hx-get="/seller/financial/estimate/edit"
+              hx-target="#estimate-section"
+              hx-swap="innerHTML"
+              class="text-sm text-blue-600 hover:underline">
+              {{ "Edit Estimate" | t }}
+            </button>
+          </div>
+        </td>
       </tr>
     </tbody>
   </table>

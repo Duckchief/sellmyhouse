@@ -176,6 +176,19 @@ export async function cancelSlot(slotId: string, sellerId: string) {
   });
 }
 
+export async function bulkCancelSlots(slotIds: string[], sellerId: string) {
+  let cancelled = 0;
+  for (const slotId of slotIds) {
+    try {
+      await cancelSlot(slotId, sellerId);
+      cancelled++;
+    } catch {
+      // Skip slots that can't be cancelled (already cancelled, not owned, etc.)
+    }
+  }
+  return { cancelled };
+}
+
 export async function cancelSlotsForPropertyCascade(
   propertyId: string,
   agentId: string,

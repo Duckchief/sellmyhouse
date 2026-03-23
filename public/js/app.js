@@ -1045,7 +1045,7 @@
     }
   });
 
-  // Delete selected slots
+  // Delete selected slots (bulk)
   document.body.addEventListener('click', function (e) {
     if (e.target.id !== 'delete-selected-slots' && !e.target.closest('#delete-selected-slots')) return;
     var checked = document.querySelectorAll('.slot-checkbox:checked');
@@ -1054,19 +1054,36 @@
     var count = checked.length;
     if (!confirm('Cancel ' + count + ' slot' + (count > 1 ? 's' : '') + '? This cannot be undone.')) return;
 
-    var promises = [];
+    var slotIds = [];
     for (var i = 0; i < checked.length; i++) {
-      var slotId = checked[i].value;
-      var row = checked[i].closest('[data-slot-id]');
-      promises.push(
-        htmx.ajax('DELETE', '/seller/viewings/slots/' + slotId, {
-          target: row || document.body,
-          swap: row ? 'outerHTML' : 'none'
-        })
-      );
+      slotIds.push(checked[i].value);
     }
 
-    Promise.all(promises).then(function () {
+    // Get CSRF token
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    var csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+    fetch('/seller/viewings/slots/bulk-delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-csrf-token': csrfToken
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({ slotIds: slotIds })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.success) return;
+
+      // Remove deleted rows from DOM
+      for (var j = 0; j < slotIds.length; j++) {
+        var rows = document.querySelectorAll('[data-slot-id="' + slotIds[j] + '"]');
+        for (var k = 0; k < rows.length; k++) {
+          rows[k].remove();
+        }
+      }
+
       // Uncheck select-all
       var selectAll = document.getElementById('select-all-slots');
       if (selectAll) selectAll.checked = false;

@@ -156,6 +156,30 @@ viewingRouter.get(
 );
 
 viewingRouter.post(
+  '/seller/viewings/slots/bulk-delete',
+  requireAuth(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const slotIds = req.body.slotIds as string[];
+
+      if (!Array.isArray(slotIds) || slotIds.length === 0) {
+        return res.status(400).json({ error: 'slotIds array is required' });
+      }
+
+      const result = await viewingService.bulkCancelSlots(slotIds, user.id);
+
+      if (req.headers['hx-request']) {
+        return res.json({ success: true, cancelled: result.cancelled });
+      }
+      return res.json({ success: true, cancelled: result.cancelled });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+viewingRouter.post(
   '/seller/viewings/slots',
   requireAuth(),
   async (req: Request, res: Response, next: NextFunction) => {

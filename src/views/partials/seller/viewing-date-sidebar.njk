@@ -40,7 +40,7 @@
       hx-post="/seller/viewings/slots"
       hx-target="#slots-list"
       hx-swap="beforeend"
-      data-reset-on-success
+      hx-on::after-request="if(event.detail.successful) htmx.ajax('GET', '/seller/viewings/slots/date-sidebar?date={{ date }}&propertyId={{ propertyId }}', {target:'#date-sidebar', swap:'innerHTML'})"
       class="space-y-2"
     >
       <input type="hidden" name="propertyId" value="{{ propertyId }}">

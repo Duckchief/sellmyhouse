@@ -1,0 +1,46 @@
+<div class="flex items-center justify-between mb-3">
+  <h2 class="page-section-title mb-0">{{ "Seller Documents" | t }}</h2>
+  {% if sellerDocs.length > 0 %}
+  <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700">{{ sellerDocs.length }} {{ "pending" | t }}</span>
+  {% endif %}
+</div>
+
+{% if sellerDocs.length == 0 %}
+<p class="text-sm text-gray-500">{{ "No documents uploaded yet" | t }}</p>
+{% else %}
+<ul class="divide-y divide-gray-200 mb-3">
+  {% for doc in sellerDocs %}
+  <li class="py-3 flex items-center justify-between">
+    <div>
+      <p class="text-sm font-medium text-gray-900">{{ doc.docType }}</p>
+      <p class="text-xs text-gray-500">
+        {{ doc.mimeType }} &middot; {{ (doc.sizeBytes / 1024) | round }}KB &middot; {{ doc.uploadedAt | date }}
+      </p>
+    </div>
+    <form method="POST"
+          action="/agent/sellers/{{ seller.id }}/documents/{{ doc.id }}/download"
+
+          data-doc-download>
+      <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+      <button type="submit"
+              class="text-xs font-medium px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700">
+        {{ "Download & Delete" | t }}
+      </button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+
+{% if sellerDocs.length > 1 %}
+<form method="POST"
+      action="/agent/sellers/{{ seller.id }}/documents/download-all"
+      target="download-frame"
+      data-doc-download>
+  <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+  <button type="submit"
+          class="text-xs font-medium px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700">
+    {{ "Download All & Delete" | t }}
+  </button>
+</form>
+{% endif %}
+{% endif %}

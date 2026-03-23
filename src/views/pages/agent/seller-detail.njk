@@ -85,7 +85,12 @@
     </div>
   </div>
 
-  {# 2. Transaction Timeline #}
+  {# 2. Seller Documents #}
+  <div class="card" id="seller-documents-card">
+    {% include "partials/agent/seller-documents-inline.njk" %}
+  </div>
+
+  {# 3. Transaction Timeline #}
   <div class="card">
     <h2 class="page-section-title flex items-center gap-1">{{ "Transaction Timeline" | t }}<span class="relative group"><span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[10px] cursor-default select-none font-normal">?</span><span class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-44 bg-gray-800 text-white text-xs rounded px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-normal font-normal"><ul class="space-y-1"><li class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0"></span>{{ "Completed" | t }}</li><li class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0"></span>{{ "Current stage" | t }}</li><li class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-gray-300 flex-shrink-0"></span>{{ "Upcoming" | t }}</li></ul></span></span></h2>
     <div class="space-y-4">
@@ -227,6 +232,39 @@
     if (evt.detail.elt && evt.detail.elt.id === 'cdd-confirm-btn' && !evt.detail.failed) {
       clearModal();
     }
+  });
+  // Download & Delete: fetch-based so we can refresh the card after download completes
+  document.getElementById('seller-documents-card').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-doc-download] button[type="submit"]');
+    if (!btn) return;
+    e.preventDefault();
+    var form = btn.closest('form');
+    btn.disabled = true;
+    btn.textContent = 'Downloading…';
+    fetch(form.action, {
+      method: 'POST',
+      headers: { 'x-csrf-token': form.querySelector('[name="_csrf"]').value },
+      credentials: 'same-origin'
+    }).then(function (res) {
+      if (!res.ok) throw new Error('Download failed');
+      var cd = res.headers.get('content-disposition') || '';
+      var match = cd.match(/filename="?([^"]+)"?/);
+      var filename = match ? match[1] : 'download';
+      return res.blob().then(function (blob) { return { blob: blob, filename: filename }; });
+    }).then(function (result) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(result.blob);
+      a.download = result.filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      htmx.ajax('GET', '/agent/sellers/{{ seller.id }}/documents', {
+        target: '#seller-documents-card',
+        swap: 'innerHTML'
+      });
+    }).catch(function () {
+      btn.disabled = false;
+      btn.textContent = 'Retry';
+    });
   });
 })();
 </script>

@@ -159,11 +159,12 @@ agentRouter.get(
       const sellerId = req.params['id'] as string;
       const agentId = getAgentFilter(user);
 
-      const [seller, compliance, notifications, timelineInput] = await Promise.all([
+      const [seller, compliance, notifications, timelineInput, activeSellerDocs] = await Promise.all([
         agentService.getSellerDetail(sellerId, agentId),
         agentService.getComplianceStatus(sellerId, agentId),
         agentService.getNotificationHistory(sellerId, agentId, { page: 1, limit: 10 }),
         agentService.getTimelineInput(sellerId, agentId),
+        sellerDocService.getActiveDocumentsForSeller(sellerId),
       ]);
       const milestones = sellerService.getTimelineMilestones(
         timelineInput,
@@ -182,6 +183,7 @@ agentRouter.get(
         milestones,
         sellerId: seller.id,
         isAdmin,
+        sellerDocs: activeSellerDocs,
       });
     } catch (err) {
       next(err);
@@ -475,12 +477,13 @@ agentRouter.get(
 
       // Verify agent owns this seller (throws NotFoundError if not)
       const seller = await agentService.getSellerDetail(sellerId, agentId);
-      const documents = await sellerDocService.getActiveDocumentsForSeller(sellerId);
+      const sellerDocs = await sellerDocService.getActiveDocumentsForSeller(sellerId);
 
       if (req.headers['hx-request']) {
-        return res.render('partials/agent/seller-documents', { documents, seller });
+        return res.render('partials/agent/seller-documents-inline', { sellerDocs, seller });
       }
-      res.render('pages/agent/seller-documents', { documents, seller });
+      const hasAvatar = await getHasAvatar(user.id);
+      res.render('pages/agent/seller-documents', { sellerDocs, seller, user, hasAvatar });
     } catch (err) {
       next(err);
     }
@@ -506,8 +509,10 @@ agentRouter.post(
         user.id,
       );
 
+      const extMap: Record<string, string> = { 'image/jpeg': '.jpg', 'image/png': '.png', 'application/pdf': '.pdf' };
+      const ext = extMap[mimeType] || '';
       res.setHeader('Content-Type', mimeType);
-      res.setHeader('Content-Disposition', `attachment; filename="${docType}-${documentId}"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${docType}-${documentId}${ext}"`);
       res.setHeader('Cache-Control', 'no-store');
       res.send(buffer);
     } catch (err) {

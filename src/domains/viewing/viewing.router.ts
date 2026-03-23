@@ -74,7 +74,7 @@ viewingRouter.get(
           slotsByDate,
         });
       }
-      return res.render('pages/seller/viewings', { stats, slots, propertyId });
+      return res.render('pages/seller/viewings', { stats, slots, propertyId, slotsByDate });
     } catch (err) {
       next(err);
     }

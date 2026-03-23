@@ -18,6 +18,13 @@ jest.mock('../case-flag.service', () => ({
   getCaseFlagsForSeller: jest.fn().mockResolvedValue([]),
   getChecklistForType: jest.fn().mockReturnValue([]),
 }));
+jest.mock('../../compliance/compliance.repository', () => ({
+  findSellerConsent: jest.fn().mockResolvedValue(null),
+}));
+jest.mock('../../shared/settings.service', () => ({
+  getCommission: jest.fn().mockResolvedValue({ total: 1633.91, beforeGst: 1499, gst: 134.91 }),
+  getNumber: jest.fn().mockResolvedValue(7),
+}));
 
 const mockedService = jest.mocked(sellerService);
 const mockedPropertyService = jest.mocked(propertyService);

@@ -15,6 +15,9 @@ jest.mock('@/domains/compliance/compliance.service', () => ({
 jest.mock('@/domains/profile/profile.service', () => ({
   getHasAvatar: jest.fn().mockResolvedValue(false),
 }));
+jest.mock('@/domains/seller/seller-document.service', () => ({
+  getActiveDocumentsForSeller: jest.fn().mockResolvedValue([]),
+}));
 
 const mockService = agentService as jest.Mocked<typeof agentService>;
 const mockSellerService = sellerService as jest.Mocked<typeof sellerService>;

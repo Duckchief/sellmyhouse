@@ -3,6 +3,12 @@ import * as complianceService from '@/domains/compliance/compliance.service';
 
 jest.mock('@/domains/compliance/compliance.service');
 jest.mock('../../logger', () => ({ logger: { info: jest.fn(), error: jest.fn() } }));
+jest.mock('@/domains/shared/settings.service', () => ({
+  getNumber: jest.fn().mockResolvedValue(7),
+}));
+jest.mock('@/domains/seller/seller-document.service', () => ({
+  purgeExpiredSellerDocuments: jest.fn().mockResolvedValue(0),
+}));
 
 const mockComplianceService = jest.mocked(complianceService);
 

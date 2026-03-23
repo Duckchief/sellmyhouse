@@ -48,6 +48,7 @@ describe('viewing.service', () => {
         id: 'prop-1',
         sellerId: 'seller-1',
       } as never);
+      mockedRepo.findSlotsByPropertyAndDateRange.mockResolvedValue([] as never);
       mockedRepo.createSlot.mockResolvedValue({
         id: 'test-id-123',
         propertyId: 'prop-1',

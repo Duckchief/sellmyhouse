@@ -901,4 +901,20 @@
     new window.ViewingCalendar(calendarEl);
   }
 
+  // After a slot is added, refresh the date sidebar to show updated schedule
+  document.body.addEventListener('htmx:afterRequest', function (evt) {
+    var form = evt.detail.elt;
+    if (form.id !== 'add-slot-form') return;
+    if (!evt.detail.successful) return;
+    var date = form.dataset.sidebarDate;
+    var propertyId = form.dataset.sidebarProperty;
+    if (date && propertyId) {
+      htmx.ajax('GET',
+        '/seller/viewings/slots/date-sidebar?date=' + encodeURIComponent(date)
+        + '&propertyId=' + encodeURIComponent(propertyId),
+        { target: '#date-sidebar', swap: 'innerHTML' }
+      );
+    }
+  });
+
 })();

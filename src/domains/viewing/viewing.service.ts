@@ -38,6 +38,21 @@ import type { ViewingStatus, SlotStatus } from '@prisma/client';
 export async function createSlot(input: CreateSlotInput, sellerId: string) {
   await verifyPropertyOwnership(input.propertyId, sellerId);
 
+  // Prevent overlapping slots on the same date
+  const existingSlots = await viewingRepo.findSlotsByPropertyAndDateRange(
+    input.propertyId,
+    input.date,
+    input.date,
+  );
+  const hasOverlap = existingSlots.some((s) => {
+    const existing = s as unknown as { startTime: string; endTime: string; status: string };
+    if (existing.status === 'cancelled') return false;
+    return input.startTime < existing.endTime && input.endTime > existing.startTime;
+  });
+  if (hasOverlap) {
+    throw new ConflictError('A slot already exists that overlaps with this time range');
+  }
+
   const durationMinutes =
     input.durationMinutes ??
     (await settingsService.getNumber('viewing_slot_duration', DEFAULT_SLOT_DURATION_MINUTES));

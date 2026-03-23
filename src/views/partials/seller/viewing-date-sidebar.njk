@@ -37,10 +37,12 @@
   <div class="border-t border-gray-200 pt-3">
     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">{{ "Add New Slot" | t }}</p>
     <form
+      id="add-slot-form"
       hx-post="/seller/viewings/slots"
       hx-target="#slots-list"
       hx-swap="beforeend"
-      hx-on::after-request="if(event.detail.successful) htmx.ajax('GET', '/seller/viewings/slots/date-sidebar?date={{ date }}&propertyId={{ propertyId }}', {target:'#date-sidebar', swap:'innerHTML'})"
+      data-sidebar-date="{{ date }}"
+      data-sidebar-property="{{ propertyId }}"
       class="space-y-2"
     >
       <input type="hidden" name="propertyId" value="{{ propertyId }}">

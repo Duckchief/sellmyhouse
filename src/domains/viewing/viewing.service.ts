@@ -775,11 +775,12 @@ export async function getViewingStats(propertyId: string, sellerId: string) {
 export async function getSellerDashboard(propertyId: string, sellerId: string) {
   await verifyPropertyOwnership(propertyId, sellerId);
   const stats = await viewingRepo.getViewingStats(propertyId);
-  const slots = await viewingRepo.findSlotsByPropertyAndDateRange(
+  const allSlots = await viewingRepo.findSlotsByPropertyAndDateRange(
     propertyId,
     new Date(),
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
   );
+  const slots = allSlots.filter((s) => (s as { status: string }).status !== 'cancelled');
   return { stats, slots };
 }
 

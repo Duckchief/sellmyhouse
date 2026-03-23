@@ -158,7 +158,11 @@ export async function findAllSellers(filter: {
   const skip = ((filter.page ?? 1) - 1) * limit;
 
   const where: Record<string, unknown> = {};
-  if (filter.agentId) where.agentId = filter.agentId;
+  if (filter.agentId === 'unassigned') {
+    where.agentId = null;
+  } else if (filter.agentId) {
+    where.agentId = filter.agentId;
+  }
   if (filter.status) where.status = filter.status;
   if (filter.search) {
     where.OR = [

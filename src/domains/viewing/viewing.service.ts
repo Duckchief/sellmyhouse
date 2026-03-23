@@ -177,16 +177,51 @@ export async function cancelSlot(slotId: string, sellerId: string) {
 }
 
 export async function bulkCancelSlots(slotIds: string[], sellerId: string) {
-  let cancelled = 0;
-  for (const slotId of slotIds) {
-    try {
-      await cancelSlot(slotId, sellerId);
-      cancelled++;
-    } catch {
-      // Skip slots that can't be cancelled (already cancelled, not owned, etc.)
+  if (slotIds.length === 0) return { cancelled: 0 };
+
+  // Verify ownership: fetch slots that have booked viewers (need notifications)
+  // and confirm they belong to this seller
+  const slotsWithViewers = await viewingRepo.findSlotsWithBookedViewers(slotIds);
+
+  // Verify all slots belong to this seller
+  for (const slot of slotsWithViewers) {
+    const prop = slot as unknown as { property: { sellerId: string } };
+    if (prop.property.sellerId !== sellerId) {
+      throw new ForbiddenError('You do not own one or more of these slots');
     }
   }
-  return { cancelled };
+
+  // Batch cancel all slots + viewings in one transaction (2 queries)
+  await viewingRepo.bulkCancelSlotsAndViewings(slotIds);
+
+  // Send notifications only for slots that had booked viewers
+  for (const slot of slotsWithViewers) {
+    const property = slot as unknown as { property: { town: string; street: string } };
+    const viewings = (slot as unknown as { viewings: { verifiedViewer: { id: string } }[] }).viewings;
+    for (const viewing of viewings) {
+      await notificationService.send(
+        {
+          recipientType: 'viewer',
+          recipientId: viewing.verifiedViewer.id,
+          templateName: 'viewing_cancelled',
+          templateData: {
+            address: `${property.property.town} ${property.property.street}`,
+            date: 'bulk cancellation',
+          },
+        },
+        'system',
+      );
+    }
+  }
+
+  await auditService.log({
+    action: 'viewing.bulk_slots_cancelled',
+    entityType: 'viewing_slot',
+    entityId: sellerId,
+    details: { slotCount: slotIds.length, sellerId },
+  });
+
+  return { cancelled: slotIds.length };
 }
 
 export async function cancelSlotsForPropertyCascade(

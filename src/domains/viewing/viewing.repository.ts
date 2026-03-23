@@ -110,6 +110,40 @@ export async function cancelSlotAndViewings(slotId: string) {
   });
 }
 
+export async function bulkCancelSlotsAndViewings(slotIds: string[]) {
+  return prisma.$transaction(async (tx) => {
+    // Cancel all viewings across all slots in one query
+    await tx.viewing.updateMany({
+      where: { viewingSlotId: { in: slotIds }, status: { notIn: ['cancelled'] } },
+      data: { status: 'cancelled' },
+    });
+
+    // Cancel all slots in one query
+    await tx.viewingSlot.updateMany({
+      where: { id: { in: slotIds } },
+      data: { status: 'cancelled', currentBookings: 0 },
+    });
+
+    return { cancelled: slotIds.length };
+  });
+}
+
+export async function findSlotsWithBookedViewers(slotIds: string[]) {
+  return prisma.viewingSlot.findMany({
+    where: {
+      id: { in: slotIds },
+      viewings: { some: { status: { notIn: ['cancelled'] } } },
+    },
+    include: {
+      viewings: {
+        where: { status: { notIn: ['cancelled'] } },
+        include: { verifiedViewer: true },
+      },
+      property: { select: { town: true, street: true, sellerId: true } },
+    },
+  });
+}
+
 // ─── Bookings ────────────────────────────────────────────
 
 export async function createViewingWithLock(data: {

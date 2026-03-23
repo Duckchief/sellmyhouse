@@ -29,6 +29,7 @@ export type NotificationTemplateName =
   | 'post_completion_day14'
   | 'testimonial_rejected'
   | 'testimonial_reissued'
+  | 'seller_document_uploaded'
   | 'password_reset'
   | 'viewing_followup_viewer'
   | 'generic';

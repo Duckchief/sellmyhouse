@@ -1,0 +1,36 @@
+{% if documents.length == 0 %}
+<div class="p-6 text-center text-gray-500">
+  {{ "No documents uploaded by this seller yet" | t }}
+</div>
+{% else %}
+<div class="p-4">
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="text-sm font-medium text-gray-900">{{ "Uploaded Documents" | t }}</h3>
+    <form method="POST" action="/agent/sellers/{{ seller.id }}/documents/download-all">
+      <button type="submit"
+              class="text-xs font-medium px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700">
+        {{ "Download All & Delete" | t }}
+      </button>
+    </form>
+  </div>
+
+  <ul class="divide-y divide-gray-200">
+    {% for doc in documents %}
+    <li class="py-3 flex items-center justify-between">
+      <div>
+        <p class="text-sm font-medium text-gray-900">{{ doc.docType }}</p>
+        <p class="text-xs text-gray-500">
+          {{ doc.mimeType }} &middot; {{ (doc.sizeBytes / 1024) | round }}KB &middot; {{ doc.uploadedAt | dateformat }}
+        </p>
+      </div>
+      <form method="POST" action="/agent/sellers/{{ seller.id }}/documents/{{ doc.id }}/download">
+        <button type="submit"
+                class="text-xs font-medium px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700">
+          {{ "Download & Delete" | t }}
+        </button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}

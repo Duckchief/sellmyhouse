@@ -173,7 +173,7 @@ describe('AuthRouter', () => {
     });
 
     it('returns 400 on invalid/expired token', async () => {
-      const { ValidationError } = require('../../shared/errors');
+      const { ValidationError } = await import('../../shared/errors');
       authService.verifyEmail = jest
         .fn()
         .mockRejectedValue(new ValidationError('Invalid or expired verification link'));

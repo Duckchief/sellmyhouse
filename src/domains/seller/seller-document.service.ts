@@ -12,7 +12,6 @@ import {
   SELLER_DOC_TYPES,
   SELLER_DOC_MAX_FILES,
   SELLER_DOC_ALLOWED_MIMES,
-  type SellerDocType,
   type UploadSellerDocumentInput,
   type SellerDocumentRecord,
 } from './seller.types';

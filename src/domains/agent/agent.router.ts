@@ -11,7 +11,7 @@ import {
 } from '@/domains/seller/case-flag.validator';
 import { processCorrectionValidator } from '../compliance/compliance.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
-import { ValidationError, NotFoundError, ForbiddenError } from '@/domains/shared/errors';
+import { ValidationError } from '@/domains/shared/errors';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import * as sellerDocService from '@/domains/seller/seller-document.service';
 import archiver from 'archiver';

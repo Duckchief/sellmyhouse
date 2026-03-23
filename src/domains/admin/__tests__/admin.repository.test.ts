@@ -12,7 +12,7 @@ jest.mock('@/infra/database/prisma', () => ({
 import { prisma } from '@/infra/database/prisma';
 
 const mockFindMany = prisma.seller.findMany as jest.Mock;
-const mockCount = prisma.seller.count as jest.Mock;
+const _mockCount = prisma.seller.count as jest.Mock;
 
 describe('findAllSellers', () => {
   beforeEach(() => jest.clearAllMocks());

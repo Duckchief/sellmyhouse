@@ -101,7 +101,6 @@ describe('seller-document.repository', () => {
 
   describe('markDownloadedAndDeleted', () => {
     it('sets downloadedAt, downloadedBy, and deletedAt', async () => {
-      const now = new Date();
       (mockPrisma.sellerDocument.update as jest.Mock).mockResolvedValue({ id: 'doc-1' });
 
       await sellerDocRepo.markDownloadedAndDeleted('doc-1', 'agent-1');

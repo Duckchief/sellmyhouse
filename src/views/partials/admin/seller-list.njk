@@ -1,8 +1,21 @@
 {% if result and result.sellers.length > 0 %}
+<div id="bulk-action-bar" class="mb-3 px-4 py-2 bg-indigo-50 border border-indigo-200 rounded flex items-center gap-3 hidden">
+  <span class="text-sm text-indigo-700" id="bulk-count">0 selected</span>
+  <button
+    type="button"
+    class="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
+    id="bulk-assign-btn"
+    hx-get="/admin/sellers/bulk-assign-modal"
+    hx-target="#modal-container"
+  >{{ "Assign" | t }}</button>
+</div>
 <div class="overflow-x-auto">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
       <tr>
+        <th class="px-4 py-3 text-left w-10">
+          <input type="checkbox" id="select-all-sellers" class="rounded" />
+        </th>
         <th class="px-4 py-3 text-left">{{ "Seller" | t }}</th>
         <th class="px-4 py-3 text-left">{{ "Phone" | t }}</th>
         <th class="px-4 py-3 text-left">{{ "Town" | t }}</th>
@@ -15,6 +28,9 @@
     <tbody class="divide-y">
       {% for seller in result.sellers %}
       <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">
+          <input type="checkbox" class="seller-checkbox rounded" value="{{ seller.id }}" />
+        </td>
         <td class="px-4 py-3">
           <a href="/admin/sellers/{{ seller.id }}" class="font-medium text-accent hover:underline">{{ seller.name }}</a>
           <div class="text-xs text-gray-500">{{ seller.email }}</div>
@@ -45,6 +61,47 @@
     {{ "Showing" | t }} {{ result.sellers.length }} {{ "of" | t }} {{ result.total }}
   </div>
 </div>
+
+<script>
+(function() {
+  var list = document.getElementById('seller-list');
+  if (!list) return;
+
+  function getCheckboxes() {
+    return list.querySelectorAll('.seller-checkbox');
+  }
+
+  function getCheckedIds() {
+    return Array.from(getCheckboxes())
+      .filter(function(cb) { return cb.checked; })
+      .map(function(cb) { return cb.value; });
+  }
+
+  function updateBar() {
+    var ids = getCheckedIds();
+    var bar = document.getElementById('bulk-action-bar');
+    var countEl = document.getElementById('bulk-count');
+    var btn = document.getElementById('bulk-assign-btn');
+    if (!bar) return;
+    if (ids.length > 0) {
+      bar.classList.remove('hidden');
+      countEl.textContent = ids.length + ' selected';
+      btn.setAttribute('hx-vals', JSON.stringify({ sellerIds: ids.join(',') }));
+      htmx.process(btn);
+    } else {
+      bar.classList.add('hidden');
+    }
+  }
+
+  list.addEventListener('change', function(e) {
+    if (e.target.id === 'select-all-sellers') {
+      var checked = e.target.checked;
+      getCheckboxes().forEach(function(cb) { cb.checked = checked; });
+    }
+    updateBar();
+  });
+})();
+</script>
 {% else %}
 <p class="text-gray-400 text-sm">{{ "No sellers found." | t }}</p>
 {% endif %}

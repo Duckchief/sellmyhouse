@@ -1,9 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
+import multer from 'multer';
 import * as sellerService from './seller.service';
+import * as sellerDocService from './seller-document.service';
 import * as caseFlagService from './case-flag.service';
 import { validateOnboardingStep } from './seller.validator';
-import { TOTAL_ONBOARDING_STEPS } from './seller.types';
+import { uploadSellerDocumentValidator } from './seller-document.validator';
+import { TOTAL_ONBOARDING_STEPS, SELLER_DOC_MAX_SIZE_BYTES, SELLER_DOC_ALLOWED_MIMES } from './seller.types';
 import type { TimelineInput } from './seller.types';
 import type { PropertyStatus, TransactionStatus, HdbApplicationStatus } from '@prisma/client';
 import { requireAuth, requireRole } from '@/infra/http/middleware/require-auth';
@@ -23,6 +26,18 @@ export const sellerRouter = Router();
 const hdbService = new HdbService();
 
 const sellerAuth = [requireAuth(), requireRole('seller')];
+
+const sellerDocUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: SELLER_DOC_MAX_SIZE_BYTES },
+  fileFilter: (_req, file, cb) => {
+    if (SELLER_DOC_ALLOWED_MIMES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new ValidationError('Only JPEG, PNG, and PDF files are allowed'));
+    }
+  },
+});
 
 // Middleware: inject currentPath and unreadCount for all seller routes
 sellerRouter.use(
@@ -387,21 +402,89 @@ sellerRouter.get('/seller/my-data', async (req: Request, res: Response, next: Ne
   }
 });
 
-// Document checklist
+// Document checklist (with live status)
 sellerRouter.get('/seller/documents', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = req.user as AuthenticatedUser;
     const overview = await sellerService.getDashboardOverview(user.id);
-    const checklist = sellerService.getDocumentChecklist(overview.propertyStatus);
+    const checklist = await sellerDocService.getDocumentChecklistWithStatus(
+      user.id,
+      overview.propertyStatus,
+    );
+    const activeDocuments = await sellerDocService.getActiveDocumentsForSeller(user.id);
 
     if (req.headers['hx-request']) {
-      return res.render('partials/seller/document-checklist', { checklist });
+      return res.render('partials/seller/document-checklist', { checklist, activeDocuments });
     }
-    res.render('pages/seller/documents', { checklist });
+    res.render('pages/seller/documents', { checklist, activeDocuments });
   } catch (err) {
     next(err);
   }
 });
+
+// Upload seller document
+sellerRouter.post(
+  '/seller/documents',
+  sellerDocUpload.single('file'),
+  ...uploadSellerDocumentValidator,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      if (!req.file) {
+        return next(new ValidationError('No file uploaded'));
+      }
+
+      const docType = req.body.docType as string;
+      await sellerDocService.uploadSellerDocument({
+        sellerId: user.id,
+        docType: docType as any,
+        fileBuffer: req.file.buffer,
+        mimeType: req.file.mimetype,
+        originalFilename: req.file.originalname,
+        uploadedBy: user.id,
+        uploadedByRole: 'seller',
+      });
+
+      const overview = await sellerService.getDashboardOverview(user.id);
+      const checklist = await sellerDocService.getDocumentChecklistWithStatus(
+        user.id,
+        overview.propertyStatus,
+      );
+      const activeDocuments = await sellerDocService.getActiveDocumentsForSeller(user.id);
+
+      res.render('partials/seller/document-checklist', { checklist, activeDocuments });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// Delete seller document (before agent download)
+sellerRouter.delete(
+  '/seller/documents/:documentId',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      await sellerDocService.deleteSellerDocumentBySeller(req.params['documentId'] as string, user.id);
+
+      const overview = await sellerService.getDashboardOverview(user.id);
+      const checklist = await sellerDocService.getDocumentChecklistWithStatus(
+        user.id,
+        overview.propertyStatus,
+      );
+      const activeDocuments = await sellerDocService.getActiveDocumentsForSeller(user.id);
+
+      res.render('partials/seller/document-checklist', { checklist, activeDocuments });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // Video tutorials
 sellerRouter.get('/seller/tutorials', async (req: Request, res: Response, next: NextFunction) => {

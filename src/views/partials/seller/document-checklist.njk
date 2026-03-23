@@ -3,34 +3,84 @@
   {{ "No documents required at this stage" | t }}
 </div>
 {% else %}
-<ul class="divide-y divide-gray-200">
+<ul class="divide-y divide-gray-200" id="document-checklist">
   {% for item in checklist %}
-  <li class="p-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-6 h-6 rounded flex items-center justify-center
-        {% if item.status == 'verified' %}bg-green-100 text-green-600
-        {% elif item.status == 'uploaded' %}bg-blue-100 text-blue-600
-        {% else %}bg-gray-100 text-gray-400{% endif %}">
-        {% if item.status == 'verified' %}&#10003;
-        {% elif item.status == 'uploaded' %}&uarr;
-        {% else %}&middot;{% endif %}
+  <li class="p-4">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-3">
+        <div class="w-6 h-6 rounded flex items-center justify-center
+          {% if item.status == 'received_by_agent' %}bg-green-100 text-green-600
+          {% elif item.status == 'uploaded' %}bg-blue-100 text-blue-600
+          {% else %}bg-gray-100 text-gray-400{% endif %}">
+          {% if item.status == 'received_by_agent' %}&#10003;
+          {% elif item.status == 'uploaded' %}&uarr;
+          {% else %}&middot;{% endif %}
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-900">
+            {{ item.label | t }}
+            {% if item.required %}<span class="text-red-500">*</span>{% endif %}
+          </p>
+          <p class="text-xs text-gray-500">{{ item.description | t }}</p>
+        </div>
       </div>
-      <div>
-        <p class="text-sm font-medium text-gray-900">
-          {{ item.label | t }}
-          {% if item.required %}<span class="text-red-500">*</span>{% endif %}
-        </p>
-        <p class="text-xs text-gray-500">{{ item.description | t }}</p>
-      </div>
+      <span class="text-xs font-medium px-2 py-1 rounded
+        {% if item.status == 'received_by_agent' %}bg-green-100 text-green-700
+        {% elif item.status == 'uploaded' %}bg-blue-100 text-blue-700
+        {% else %}bg-gray-100 text-gray-500{% endif %}">
+        {% if item.status == 'received_by_agent' %}{{ "Received by Agent" | t }}
+        {% elif item.status == 'uploaded' %}{{ "Uploaded" | t }}
+        {% else %}{{ "Not Uploaded" | t }}{% endif %}
+      </span>
     </div>
-    <span class="text-xs font-medium px-2 py-1 rounded
-      {% if item.status == 'verified' %}bg-green-100 text-green-700
-      {% elif item.status == 'uploaded' %}bg-blue-100 text-blue-700
-      {% else %}bg-gray-100 text-gray-500{% endif %}">
-      {% if item.status == 'verified' %}{{ "Verified" | t }}
-      {% elif item.status == 'uploaded' %}{{ "Uploaded" | t }}
-      {% else %}{{ "Not Uploaded" | t }}{% endif %}
-    </span>
+
+    {# Show uploaded files for this item #}
+    {% set docTypeMap = {
+      'nric': 'nric',
+      'marriage-cert': 'marriage_cert',
+      'eligibility-letter': 'eligibility_letter',
+      'otp-scan': 'otp_scan',
+      'estate-agency-agreement': 'eaa'
+    } %}
+    {% set dbDocType = docTypeMap[item.id] %}
+    {% if activeDocuments %}
+      {% for doc in activeDocuments %}
+        {% if doc.docType == dbDocType %}
+        <div class="ml-9 mb-1 flex items-center justify-between text-xs text-gray-500 bg-gray-50 rounded px-3 py-2">
+          <span>{{ doc.mimeType }} &middot; {{ (doc.sizeBytes / 1024) | round }}KB &middot; {{ doc.uploadedAt | dateformat }}</span>
+          <button
+            hx-delete="/seller/documents/{{ doc.id }}"
+            hx-target="#document-checklist"
+            hx-swap="outerHTML"
+            hx-confirm="{{ 'Are you sure you want to remove this file?' | t }}"
+            class="text-red-500 hover:text-red-700 text-xs font-medium">
+            {{ "Remove" | t }}
+          </button>
+        </div>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {# Upload area — show if status is not_uploaded or uploaded (can add more files) #}
+    {% if item.status != 'received_by_agent' %}
+    <div class="ml-9 mt-2">
+      <form hx-post="/seller/documents"
+            hx-target="#document-checklist"
+            hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+            class="flex items-center gap-2">
+        <input type="hidden" name="docType" value="{{ dbDocType }}">
+        <input type="file"
+               name="file"
+               accept="image/jpeg,image/png,application/pdf"
+               class="text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+        <button type="submit"
+                class="text-xs font-medium px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">
+          {{ "Upload" | t }}
+        </button>
+      </form>
+    </div>
+    {% endif %}
   </li>
   {% endfor %}
 </ul>

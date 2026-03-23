@@ -76,8 +76,8 @@ export function validateCreateBulkSlots(body: Record<string, unknown>): CreateBu
   if (endTime <= startTime) throw new ValidationError('End time must be after start time');
 
   const slotDurationMinutes = Number(body.slotDurationMinutes);
-  if (isNaN(slotDurationMinutes) || slotDurationMinutes < 5 || slotDurationMinutes > 120) {
-    throw new ValidationError('Slot duration must be between 5 and 120 minutes');
+  if (isNaN(slotDurationMinutes) || slotDurationMinutes < 10 || slotDurationMinutes > 120) {
+    throw new ValidationError('Slot duration must be between 10 and 120 minutes');
   }
 
   const slotType = String(body.slotType || 'single') as 'single' | 'group';

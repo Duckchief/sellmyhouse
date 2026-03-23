@@ -13,6 +13,9 @@ beforeAll(() => {
 
 beforeEach(async () => {
   await cleanDatabase();
+  // Required for onboarding step 2 → HTMX renders step-3 partial (needs commission)
+  await factory.systemSetting({ key: 'commission_amount', value: '1499' });
+  await factory.systemSetting({ key: 'gst_rate', value: '0.09' });
 });
 
 afterAll(async () => {

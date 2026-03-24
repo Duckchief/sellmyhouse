@@ -28,12 +28,14 @@ import {
 import type {
   CreateSlotInput,
   CreateBulkSlotsInput,
+  CreateRecurringSlotsInput,
   BookingFormInput,
   VerifyOtpInput,
   ViewingFeedbackInput,
   BookingResult,
   SlotSummary,
 } from './viewing.types';
+import { calcOpenHouseMaxViewers } from './viewing.validator';
 import type { ViewingStatus, SlotStatus } from '@prisma/client';
 
 // ─── Slot Management ─────────────────────────────────────
@@ -169,6 +171,155 @@ export async function createBulkSlots(input: CreateBulkSlotsInput, sellerId: str
   });
 
   return { count: slots.length, slots };
+}
+
+// ─── Helpers for recurring slots ──────────────────────────
+
+function formatTimeFromMinutes(minutes: number): string {
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+function getSgtToday(): Date {
+  const sgtDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+  return new Date(sgtDateStr);
+}
+
+export async function createRecurringSlots(input: CreateRecurringSlotsInput, sellerId: string) {
+  await verifyPropertyOwnership(input.propertyId, sellerId);
+
+  // Early exit if already at limit
+  const currentActive = await viewingRepo.findActiveSlotsByPropertyId(input.propertyId);
+  if (currentActive.length >= MAX_ACTIVE_SLOTS) {
+    throw new ValidationError(
+      `Maximum ${MAX_ACTIVE_SLOTS} active slots reached. Please cancel existing slots first.`,
+    );
+  }
+
+  // Date range: SGT today → +1 month (using UTC methods to match UTC-midnight dates)
+  const startDate = getSgtToday();
+  const endDate = new Date(startDate);
+  endDate.setUTCMonth(endDate.getUTCMonth() + 1);
+
+  // Fetch existing active slots in range for overlap checking
+  const existingSlots = await viewingRepo.findActiveSlotsByDateRange(
+    input.propertyId,
+    startDate,
+    endDate,
+  );
+
+  // Build date-keyed map for fast overlap lookup
+  const existingByDate = new Map<string, { startTime: string; endTime: string }[]>();
+  for (const slot of existingSlots) {
+    const key = (slot.date as Date).toISOString().split('T')[0];
+    if (!existingByDate.has(key)) existingByDate.set(key, []);
+    existingByDate.get(key)!.push({
+      startTime: slot.startTime as string,
+      endTime: slot.endTime as string,
+    });
+  }
+
+  // Day-of-week config map: dayOfWeek → timeslots
+  const dayConfig = new Map(input.days.map((d) => [d.dayOfWeek, d.timeslots]));
+
+  const toInsert: {
+    id: string;
+    propertyId: string;
+    date: Date;
+    startTime: string;
+    endTime: string;
+    durationMinutes: number;
+    slotType: 'single' | 'group';
+    maxViewers: number;
+  }[] = [];
+
+  const current = new Date(startDate);
+  while (current <= endDate) {
+    const dow = current.getUTCDay(); // Use UTC day to match UTC-midnight date keys
+    const timeslots = dayConfig.get(dow);
+
+    if (timeslots) {
+      const dateKey = current.toISOString().split('T')[0];
+      const existingOnDate = existingByDate.get(dateKey) ?? [];
+
+      for (const ts of timeslots) {
+        if (ts.slotType === 'group') {
+          // One slot spanning the full window
+          const overlaps = existingOnDate.some(
+            (e) => e.startTime < ts.endTime && e.endTime > ts.startTime,
+          );
+          if (!overlaps) {
+            const [sh, sm] = ts.startTime.split(':').map(Number);
+            const [eh, em] = ts.endTime.split(':').map(Number);
+            const durationMinutes = eh * 60 + em - (sh * 60 + sm);
+            toInsert.push({
+              id: createId(),
+              propertyId: input.propertyId,
+              date: new Date(current),
+              startTime: ts.startTime,
+              endTime: ts.endTime,
+              durationMinutes,
+              slotType: 'group',
+              maxViewers: calcOpenHouseMaxViewers(ts.startTime, ts.endTime),
+            });
+          }
+        } else {
+          // 10-minute sub-slots
+          const [sh, sm] = ts.startTime.split(':').map(Number);
+          const [eh, em] = ts.endTime.split(':').map(Number);
+          const startMinutes = sh * 60 + sm;
+          const endMinutes = eh * 60 + em;
+
+          for (let t = startMinutes; t + 10 <= endMinutes; t += 10) {
+            const slotStart = formatTimeFromMinutes(t);
+            const slotEnd = formatTimeFromMinutes(t + 10);
+            const overlaps = existingOnDate.some(
+              (e) => e.startTime < slotEnd && e.endTime > slotStart,
+            );
+            if (!overlaps) {
+              toInsert.push({
+                id: createId(),
+                propertyId: input.propertyId,
+                date: new Date(current),
+                startTime: slotStart,
+                endTime: slotEnd,
+                durationMinutes: 10,
+                slotType: 'single',
+                maxViewers: 1,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+
+  // Post-check after overlap filtering
+  if (currentActive.length + toInsert.length > MAX_ACTIVE_SLOTS) {
+    const remaining = MAX_ACTIVE_SLOTS - currentActive.length;
+    throw new ValidationError(
+      `This would create ${toInsert.length} slots but only ${remaining} more allowed (limit: ${MAX_ACTIVE_SLOTS}).`,
+    );
+  }
+
+  if (toInsert.length > 0) {
+    await viewingRepo.createManySlots(toInsert);
+  }
+
+  await auditService.log({
+    action: 'viewing.recurring_slots_created',
+    entityType: 'viewing_slot',
+    entityId: input.propertyId,
+    details: { count: toInsert.length, sellerId },
+  });
+
+  return { count: toInsert.length };
+}
+
+export async function getLastUpcomingSlotDate(propertyId: string): Promise<Date | null> {
+  const slot = await viewingRepo.findLastUpcomingSlot(propertyId);
+  return slot ? (slot.date as Date) : null;
 }
 
 export async function cancelSlot(slotId: string, sellerId: string) {

@@ -9,7 +9,7 @@ The native `<input type="time">` widget is clunky — it forces users through a 
 
 ## Options
 
-22 options covering 10:00 AM to 8:00 PM in 30-minute increments:
+21 options covering 10:00 AM to 8:00 PM in 30-minute increments:
 
 | Value (submitted) | Label (displayed) |
 |-------------------|-------------------|
@@ -50,7 +50,7 @@ With:
 ```njk
 <select id="add-slot-start" name="startTime" required
         class="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-  <!-- 22 options: 10:00 AM → 8:00 PM in 30-min increments -->
+  <!-- 21 options: 10:00 AM → 8:00 PM in 30-min increments -->
 </select>
 ```
 
@@ -60,7 +60,7 @@ Remove the `.viewing-time-error` div (line 92) from this form.
 
 ### Recurring Slots form (`#recurring-slots-form`, lines 183–190)
 
-Replace both `<input type="time">` fields (`name="startTime"` Window Start, `name="endTime"` Window End) with `<select>` elements using the same 22 options.
+Replace both `<input type="time">` fields (`name="startTime"` Window Start, `name="endTime"` Window End) with `<select>` elements using the same 21 options. These selects do not need `id` attributes — no JS references them by ID (the `viewing-calendar.js` pre-fill only targets the Single Slot form's `add-slot-start` / `add-slot-end` IDs).
 
 Remove the `.viewing-time-error` div (line 191) from this form.
 

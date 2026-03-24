@@ -167,134 +167,124 @@
 
   {# Recurring slots form #}
   <div id="panel-bulk" class="hidden">
-    <div class="flex flex-col sm:flex-row gap-4 mb-4">
-      {# Start date calendar #}
-      <div class="w-full sm:w-[40%]">
-        <label class="block text-xs font-medium text-gray-700 mb-1">{{ "Start Date" | t }}</label>
-        <div id="bulk-start-calendar" data-target-input="#bulk-start-date"></div>
-      </div>
-      {# Divider #}
-      <div class="hidden sm:block w-px bg-gray-200"></div>
-      {# End date calendar #}
-      <div class="w-full sm:w-[40%]">
-        <label class="block text-xs font-medium text-gray-700 mb-1">{{ "End Date" | t }}</label>
-        <div id="bulk-end-calendar" data-target-input="#bulk-end-date"></div>
-      </div>
-    </div>
-
-    <form
-      id="recurring-slots-form"
-      hx-post="/seller/viewings/slots"
-      hx-target="#bulk-result"
-      hx-swap="innerHTML"
-      data-reset-on-success
-      class="grid grid-cols-1 sm:grid-cols-2 gap-4"
-    >
+    <form id="recurring-slots-form-new" data-property-id="{{ propertyId }}">
       <input type="hidden" name="propertyId" value="{{ propertyId }}">
-      <input type="hidden" name="bulk" value="true">
-      <input type="hidden" id="bulk-start-date" name="startDate" value="">
-      <input type="hidden" id="bulk-end-date" name="endDate" value="">
 
-      <div class="sm:col-span-2">
-        <label class="block text-xs font-medium text-gray-700 mb-1">{{ "Selected Range" | t }}</label>
-        <div class="flex gap-2">
-          <input type="text" id="bulk-start-display" readonly placeholder="{{ 'Start date' | t }}"
-                 class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-700">
-          <span class="self-center text-gray-400">→</span>
-          <input type="text" id="bulk-end-display" readonly placeholder="{{ 'End date' | t }}"
-                 class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-700">
+      {# 7-day row table #}
+      <div class="border border-gray-200 rounded-lg overflow-hidden mb-4">
+
+        {# Header #}
+        <div class="grid grid-cols-[44px_56px_1fr_1fr_120px] gap-0 px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <div></div>
+          <div>{{ "Day" | t }}</div>
+          <div>{{ "Start" | t }}</div>
+          <div>{{ "End" | t }}</div>
+          <div>{{ "Type" | t }}</div>
         </div>
+
+        {# Day rows — Mon(1) Tue(2) Wed(3) Thu(4) Fri(5) Sat(6) Sun(0) #}
+        {% set days = [
+          { dow: 1, label: "Mon", defaultStart: "18:00", defaultEnd: "20:00" },
+          { dow: 2, label: "Tue", defaultStart: "18:00", defaultEnd: "20:00" },
+          { dow: 3, label: "Wed", defaultStart: "18:00", defaultEnd: "20:00" },
+          { dow: 4, label: "Thu", defaultStart: "18:00", defaultEnd: "20:00" },
+          { dow: 5, label: "Fri", defaultStart: "18:00", defaultEnd: "20:00" },
+          { dow: 6, label: "Sat", defaultStart: "13:00", defaultEnd: "17:00" },
+          { dow: 0, label: "Sun", defaultStart: "13:00", defaultEnd: "17:00" }
+        ] %}
+
+        {% for day in days %}
+        <div class="recurring-day-row border-b border-gray-100 last:border-b-0"
+             data-dow="{{ day.dow }}"
+             data-default-start="{{ day.defaultStart }}"
+             data-default-end="{{ day.defaultEnd }}">
+
+          {# First timeslot row #}
+          <div class="recurring-timeslot grid grid-cols-[44px_56px_1fr_1fr_120px] gap-0 px-3 py-2 items-center bg-white">
+            {# Toggle — first slot carries the toggle #}
+            <div class="flex items-center">
+              <button type="button"
+                      class="recurring-day-toggle relative w-9 h-5 rounded-full transition-colors duration-200 bg-blue-500 focus:outline-none"
+                      aria-pressed="true"
+                      data-dow="{{ day.dow }}">
+                <span class="absolute top-0.5 right-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"></span>
+              </button>
+            </div>
+            <div class="text-sm font-semibold text-gray-800 recurring-day-label">{{ day.label }}</div>
+            <div class="pr-2">
+              <select name="startTime" class="recurring-time-select w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="10:00"{% if day.defaultStart == "10:00" %} selected{% endif %}>10:00 AM</option>
+                <option value="10:30"{% if day.defaultStart == "10:30" %} selected{% endif %}>10:30 AM</option>
+                <option value="11:00"{% if day.defaultStart == "11:00" %} selected{% endif %}>11:00 AM</option>
+                <option value="11:30"{% if day.defaultStart == "11:30" %} selected{% endif %}>11:30 AM</option>
+                <option value="12:00"{% if day.defaultStart == "12:00" %} selected{% endif %}>12:00 PM</option>
+                <option value="12:30"{% if day.defaultStart == "12:30" %} selected{% endif %}>12:30 PM</option>
+                <option value="13:00"{% if day.defaultStart == "13:00" %} selected{% endif %}>1:00 PM</option>
+                <option value="13:30"{% if day.defaultStart == "13:30" %} selected{% endif %}>1:30 PM</option>
+                <option value="14:00"{% if day.defaultStart == "14:00" %} selected{% endif %}>2:00 PM</option>
+                <option value="14:30"{% if day.defaultStart == "14:30" %} selected{% endif %}>2:30 PM</option>
+                <option value="15:00"{% if day.defaultStart == "15:00" %} selected{% endif %}>3:00 PM</option>
+                <option value="15:30"{% if day.defaultStart == "15:30" %} selected{% endif %}>3:30 PM</option>
+                <option value="16:00"{% if day.defaultStart == "16:00" %} selected{% endif %}>4:00 PM</option>
+                <option value="16:30"{% if day.defaultStart == "16:30" %} selected{% endif %}>4:30 PM</option>
+                <option value="17:00"{% if day.defaultStart == "17:00" %} selected{% endif %}>5:00 PM</option>
+                <option value="17:30"{% if day.defaultStart == "17:30" %} selected{% endif %}>5:30 PM</option>
+                <option value="18:00"{% if day.defaultStart == "18:00" %} selected{% endif %}>6:00 PM</option>
+                <option value="18:30"{% if day.defaultStart == "18:30" %} selected{% endif %}>6:30 PM</option>
+                <option value="19:00"{% if day.defaultStart == "19:00" %} selected{% endif %}>7:00 PM</option>
+                <option value="19:30"{% if day.defaultStart == "19:30" %} selected{% endif %}>7:30 PM</option>
+                <option value="20:00"{% if day.defaultStart == "20:00" %} selected{% endif %}>8:00 PM</option>
+              </select>
+            </div>
+            <div class="pr-2">
+              <select name="endTime" class="recurring-time-select w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="10:00"{% if day.defaultEnd == "10:00" %} selected{% endif %}>10:00 AM</option>
+                <option value="10:30"{% if day.defaultEnd == "10:30" %} selected{% endif %}>10:30 AM</option>
+                <option value="11:00"{% if day.defaultEnd == "11:00" %} selected{% endif %}>11:00 AM</option>
+                <option value="11:30"{% if day.defaultEnd == "11:30" %} selected{% endif %}>11:30 AM</option>
+                <option value="12:00"{% if day.defaultEnd == "12:00" %} selected{% endif %}>12:00 PM</option>
+                <option value="12:30"{% if day.defaultEnd == "12:30" %} selected{% endif %}>12:30 PM</option>
+                <option value="13:00"{% if day.defaultEnd == "13:00" %} selected{% endif %}>1:00 PM</option>
+                <option value="13:30"{% if day.defaultEnd == "13:30" %} selected{% endif %}>1:30 PM</option>
+                <option value="14:00"{% if day.defaultEnd == "14:00" %} selected{% endif %}>2:00 PM</option>
+                <option value="14:30"{% if day.defaultEnd == "14:30" %} selected{% endif %}>2:30 PM</option>
+                <option value="15:00"{% if day.defaultEnd == "15:00" %} selected{% endif %}>3:00 PM</option>
+                <option value="15:30"{% if day.defaultEnd == "15:30" %} selected{% endif %}>3:30 PM</option>
+                <option value="16:00"{% if day.defaultEnd == "16:00" %} selected{% endif %}>4:00 PM</option>
+                <option value="16:30"{% if day.defaultEnd == "16:30" %} selected{% endif %}>4:30 PM</option>
+                <option value="17:00"{% if day.defaultEnd == "17:00" %} selected{% endif %}>5:00 PM</option>
+                <option value="17:30"{% if day.defaultEnd == "17:30" %} selected{% endif %}>5:30 PM</option>
+                <option value="18:00"{% if day.defaultEnd == "18:00" %} selected{% endif %}>6:00 PM</option>
+                <option value="18:30"{% if day.defaultEnd == "18:30" %} selected{% endif %}>6:30 PM</option>
+                <option value="19:00"{% if day.defaultEnd == "19:00" %} selected{% endif %}>7:00 PM</option>
+                <option value="19:30"{% if day.defaultEnd == "19:30" %} selected{% endif %}>7:30 PM</option>
+                <option value="20:00"{% if day.defaultEnd == "20:00" %} selected{% endif %}>8:00 PM</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-1">
+              <select name="slotType" class="recurring-type-select flex-1 px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="single">{{ "Normal Viewing" | t }}</option>
+                <option value="group">{{ "Open House" | t }}</option>
+              </select>
+              <button type="button" class="recurring-add-btn flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-base font-bold flex items-center justify-center hover:bg-blue-200 transition">+</button>
+            </div>
+          </div>
+          {# Additional timeslot rows added dynamically by JS #}
+        </div>
+        {% endfor %}
+
       </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">{{ "Day of Week" | t }}</label>
-        <select name="dayOfWeek" required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="0">{{ "Sunday" | t }}</option>
-          <option value="1">{{ "Monday" | t }}</option>
-          <option value="2">{{ "Tuesday" | t }}</option>
-          <option value="3">{{ "Wednesday" | t }}</option>
-          <option value="4">{{ "Thursday" | t }}</option>
-          <option value="5">{{ "Friday" | t }}</option>
-          <option value="6">{{ "Saturday" | t }}</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">{{ "Slot Duration (minutes)" | t }}</label>
-        <input type="number" name="slotDurationMinutes" value="10" min="10" max="120" required
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">{{ "Window Start" | t }}</label>
-        <select name="startTime" required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">{{ "Select time" | t }}</option>
-          <option value="10:00">10:00 AM</option>
-          <option value="10:30">10:30 AM</option>
-          <option value="11:00">11:00 AM</option>
-          <option value="11:30">11:30 AM</option>
-          <option value="12:00">12:00 PM</option>
-          <option value="12:30">12:30 PM</option>
-          <option value="13:00">1:00 PM</option>
-          <option value="13:30">1:30 PM</option>
-          <option value="14:00">2:00 PM</option>
-          <option value="14:30">2:30 PM</option>
-          <option value="15:00">3:00 PM</option>
-          <option value="15:30">3:30 PM</option>
-          <option value="16:00">4:00 PM</option>
-          <option value="16:30">4:30 PM</option>
-          <option value="17:00">5:00 PM</option>
-          <option value="17:30">5:30 PM</option>
-          <option value="18:00">6:00 PM</option>
-          <option value="18:30">6:30 PM</option>
-          <option value="19:00">7:00 PM</option>
-          <option value="19:30">7:30 PM</option>
-          <option value="20:00">8:00 PM</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">{{ "Window End" | t }}</label>
-        <select name="endTime" required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">{{ "Select time" | t }}</option>
-          <option value="10:00">10:00 AM</option>
-          <option value="10:30">10:30 AM</option>
-          <option value="11:00">11:00 AM</option>
-          <option value="11:30">11:30 AM</option>
-          <option value="12:00">12:00 PM</option>
-          <option value="12:30">12:30 PM</option>
-          <option value="13:00">1:00 PM</option>
-          <option value="13:30">1:30 PM</option>
-          <option value="14:00">2:00 PM</option>
-          <option value="14:30">2:30 PM</option>
-          <option value="15:00">3:00 PM</option>
-          <option value="15:30">3:30 PM</option>
-          <option value="16:00">4:00 PM</option>
-          <option value="16:30">4:30 PM</option>
-          <option value="17:00">5:00 PM</option>
-          <option value="17:30">5:30 PM</option>
-          <option value="18:00">6:00 PM</option>
-          <option value="18:30">6:30 PM</option>
-          <option value="19:00">7:00 PM</option>
-          <option value="19:30">7:30 PM</option>
-          <option value="20:00">8:00 PM</option>
-        </select>
-      </div>
-      <div class="sm:col-span-2">
-        <label class="block text-xs font-medium text-gray-700 mb-1">{{ "Type" | t }}</label>
-        <select name="slotType"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="single">{{ "Single viewer" | t }}</option>
-          <option value="group">{{ "Open house" | t }}</option>
-        </select>
-      </div>
-      <div class="sm:col-span-2">
+
+      <div class="flex items-center gap-3">
         <button type="submit"
                 class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition">
           {{ "Create Recurring Slots" | t }}
         </button>
+        <span class="text-xs text-gray-400">{{ "Creates slots for 1 month from today" | t }}</span>
       </div>
     </form>
-    <div id="bulk-result" class="mt-3"></div>
+
+    <div id="recurring-result" class="mt-3"></div>
   </div>
 </div>
 

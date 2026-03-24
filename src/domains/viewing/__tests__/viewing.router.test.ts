@@ -199,7 +199,9 @@ describe('viewing.router', () => {
 
       expect(res.status).toBe(200);
       expect(mockService.saveSchedule).toHaveBeenCalledWith(
-        expect.any(Array),
+        expect.arrayContaining([
+          expect.objectContaining({ dayOfWeek: 1 }),
+        ]),
         expect.any(String), // sellerId
       );
     });

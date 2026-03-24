@@ -1,5 +1,5 @@
 import { prisma } from '@/infra/database/prisma';
-import type { SlotType, SlotStatus, ViewingStatus } from '@prisma/client';
+import type { SlotType, SlotStatus, ViewingStatus, Prisma } from '@prisma/client';
 import { NotFoundError, ConflictError } from '@/domains/shared/errors';
 
 // ─── Slots ───────────────────────────────────────────────
@@ -210,6 +210,85 @@ export async function findSlotsWithBookedViewers(slotIds: string[]) {
       property: { select: { town: true, street: true, sellerId: true } },
     },
   });
+}
+
+export async function findSlotsByPropertyAndDate(propertyId: string, date: Date) {
+  return prisma.viewingSlot.findMany({
+    where: {
+      propertyId,
+      date,
+      status: { not: 'cancelled' as SlotStatus },
+    },
+    orderBy: { startTime: 'asc' },
+  });
+}
+
+// ─── Recurring Schedule ───────────────────────────────────
+
+export async function findRecurringSchedule(propertyId: string) {
+  return prisma.recurringSchedule.findUnique({ where: { propertyId } });
+}
+
+export async function upsertRecurringSchedule(
+  propertyId: string,
+  id: string,
+  days: Prisma.InputJsonValue,
+) {
+  return prisma.recurringSchedule.upsert({
+    where: { propertyId },
+    update: { days },
+    create: { id, propertyId, days },
+  });
+}
+
+export async function deleteRecurringSchedule(propertyId: string) {
+  return prisma.recurringSchedule.deleteMany({ where: { propertyId } });
+}
+
+/**
+ * Materialises a virtual recurring slot as a real ViewingSlot row.
+ * Uses INSERT ON CONFLICT DO NOTHING so concurrent bookings are safe.
+ * Returns the UUID of the now-existing row (either newly inserted or pre-existing).
+ */
+export async function materialiseRecurringSlot(data: {
+  id: string;
+  propertyId: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  slotType: 'single' | 'group';
+  maxViewers: number;
+  durationMinutes: number;
+}): Promise<string> {
+  await prisma.$executeRaw`
+    INSERT INTO viewing_slots
+      (id, property_id, date, start_time, end_time,
+       duration_minutes, slot_type, max_viewers, current_bookings,
+       status, source, created_at)
+    VALUES
+      (${data.id}, ${data.propertyId}, ${data.date}, ${data.startTime}, ${data.endTime},
+       ${data.durationMinutes}, ${data.slotType}::"SlotType", ${data.maxViewers}, 0,
+       'available'::"SlotStatus", 'recurring'::"SlotSource", NOW())
+    ON CONFLICT (property_id, date, start_time, end_time) DO NOTHING
+  `;
+
+  const existing = await prisma.viewingSlot.findFirst({
+    where: {
+      propertyId: data.propertyId,
+      date: data.date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+    },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    throw new Error(
+      `materialiseRecurringSlot: row missing after insert for ${data.propertyId} ${data.startTime}`,
+    );
+  }
+
+  return existing.id;
 }
 
 // ─── Bookings ────────────────────────────────────────────

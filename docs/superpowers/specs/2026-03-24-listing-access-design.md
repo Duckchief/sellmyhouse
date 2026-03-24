@@ -35,7 +35,7 @@ Three UI additions that close the gap:
 - **Photos already downloaded** (`photosApprovedAt` set, `photos` is null): panel shows "Photos downloaded and deleted on [date]" — no re-download possible.
 - **Photos not yet approved** (`photosApprovedAt` is null, `photos` not null): panel shows "Awaiting photo approval".
 - **No photos** (`photos` is null, `photosApprovedAt` is null): panel shows "No photos uploaded".
-- Photo thumbnails served via the existing `/agent/reviews/listing_photos/:listingId/photos/:photoId` endpoint (already auth-gated).
+- Photo thumbnails served via the existing `/agent/listings/:listingId/photos/:photoId` endpoint in `portal.router.ts` (already auth-gated with ownership check via `photoService.getPhotoForAgent`).
 - The portal router already includes `requireAuth`, `requireRole('agent','admin')`, `requireTwoFactor()` — download route uses the same auth chain.
 
 ### Listing card on seller-detail
@@ -139,9 +139,9 @@ The router streams the ZIP using `archiver` (already imported) — same pattern 
 | Modify | `src/domains/agent/agent.repository.ts` |
 | Modify | `src/domains/agent/agent.service.ts` |
 
-## CSRF
+## CSRF & Download Handling
 
-`POST /agent/listings/:listingId/photos/download-all` requires CSRF. The download button is a standard form `POST` with the CSRF token in a hidden `_csrf` field — same pattern as all other destructive agent actions. Unlike the drag-and-drop reorder (which uses `fetch`), this is a form POST that triggers a file download via `Content-Disposition: attachment`.
+`POST /agent/listings/:listingId/photos/download-all` requires CSRF. The router receives a standard POST (CSRF middleware validates it normally). However, the client side **must use `fetch`** to submit this action — not a plain `<form>` submit — so the browser can intercept the binary blob and trigger `a.click()` to save the ZIP file, then update the photos panel via HTMX to show the "downloaded" state. This is identical to the existing `POST /agent/sellers/:id/documents/download-all` pattern in `seller-detail.njk` (lines 236–268). The `x-csrf-token` header value is read from the hidden `_csrf` input inside the form.
 
 ## Testing
 

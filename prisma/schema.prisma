@@ -510,6 +510,7 @@ model SaleProceeds {
   resaleLevy        Decimal  @default(0) @map("resale_levy") @db.Decimal(12, 2)
   otherDeductions   Decimal  @default(0) @map("other_deductions") @db.Decimal(12, 2)
   commission        Decimal  @map("commission") @db.Decimal(12, 2)
+  buyerDeposit      Decimal  @default(0) @map("buyer_deposit") @db.Decimal(12, 2)
   netProceeds       Decimal  @map("net_proceeds") @db.Decimal(12, 2)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")

@@ -157,6 +157,7 @@ export interface SaleProceedsInput {
   resaleLevy: number;
   otherDeductions: number;
   commission: number;
+  buyerDeposit?: number;
 }
 
 // ─── Seller Document Upload ─────────────────────────────────────────────────

@@ -97,4 +97,45 @@ describe('saveSaleProceeds', () => {
     const decimalPart = netProceeds.toString().split('.')[1] || '';
     expect(decimalPart.length).toBeLessThanOrEqual(2);
   });
+
+  it('deducts buyer deposit from net proceeds', async () => {
+    await saveSaleProceeds({
+      sellerId: 'seller5',
+      sellingPrice: 500000,
+      outstandingLoan: 200000,
+      cpfSeller1: 50000,
+      resaleLevy: 0,
+      otherDeductions: 0,
+      commission: 1633.91,
+      buyerDeposit: 3000,
+    });
+
+    expect(prisma.saleProceeds.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          netProceeds: 245366.09,
+        }),
+      }),
+    );
+  });
+
+  it('treats omitted buyer deposit as zero', async () => {
+    await saveSaleProceeds({
+      sellerId: 'seller6',
+      sellingPrice: 500000,
+      outstandingLoan: 200000,
+      cpfSeller1: 50000,
+      resaleLevy: 0,
+      otherDeductions: 0,
+      commission: 1633.91,
+    });
+
+    expect(prisma.saleProceeds.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          netProceeds: 248366.09,
+        }),
+      }),
+    );
+  });
 });

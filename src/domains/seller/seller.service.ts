@@ -650,7 +650,8 @@ export async function saveSaleProceeds(input: SaleProceedsInput) {
     cpfTotal -
     input.resaleLevy -
     input.otherDeductions -
-    input.commission;
+    input.commission -
+    (input.buyerDeposit ?? 0);
 
   return sellerRepo.upsertSaleProceeds({
     ...input,
@@ -672,6 +673,7 @@ export async function getSaleProceeds(sellerId: string) {
     resaleLevy: Number(record.resaleLevy),
     otherDeductions: Number(record.otherDeductions),
     commission: Number(record.commission),
+    buyerDeposit: Number(record.buyerDeposit),
     netProceeds: Number(record.netProceeds),
   };
 }

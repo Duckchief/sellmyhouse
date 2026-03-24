@@ -14,6 +14,14 @@ const EARLIEST_START = '10:00';
 const LATEST_END = '20:00';
 const TIME_BOUNDS_MSG = 'Viewing times must be between 10:00 AM and 8:00 PM';
 
+export function calcOpenHouseMaxViewers(startTime: string, endTime: string): number {
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  const durationMinutes = (eh * 60 + em) - (sh * 60 + sm);
+  const windowMinutes = Math.ceil(durationMinutes / 30) * 30;
+  return Math.round((windowMinutes / 60) * 20);
+}
+
 export function validateCreateSlot(body: Record<string, unknown>): CreateSlotInput {
   const propertyId = String(body.propertyId || '');
   if (!propertyId) throw new ValidationError('Property ID is required');
@@ -40,10 +48,7 @@ export function validateCreateSlot(body: Record<string, unknown>): CreateSlotInp
 
   let maxViewers = 1;
   if (slotType === 'group') {
-    maxViewers = Number(body.maxViewers);
-    if (!body.maxViewers || isNaN(maxViewers) || maxViewers < 2) {
-      throw new ValidationError('Group slots require maxViewers >= 2');
-    }
+    maxViewers = calcOpenHouseMaxViewers(startTime, endTime);
   }
 
   const durationMinutes = Number(body.durationMinutes) || undefined;

@@ -23,14 +23,14 @@ describe('viewing.validator', () => {
       expect(result.maxViewers).toBe(1);
     });
 
-    it('accepts group slot with maxViewers', () => {
+    it('computes maxViewers from window for group slots', () => {
+      // validInput: startTime '10:00', endTime '10:15' → 15 min → rounds to 30 min → 10 viewers
       const result = validateCreateSlot({
         ...validInput,
         slotType: 'group',
-        maxViewers: '5',
       });
       expect(result.slotType).toBe('group');
-      expect(result.maxViewers).toBe(5);
+      expect(result.maxViewers).toBe(10); // ceil(15/30)*30/60*20 = 30/60*20 = 10
     });
 
     it('rejects past date', () => {
@@ -51,10 +51,9 @@ describe('viewing.validator', () => {
       ).toThrow(ValidationError);
     });
 
-    it('requires maxViewers for group slots', () => {
-      expect(() => validateCreateSlot({ ...validInput, slotType: 'group' })).toThrow(
-        ValidationError,
-      );
+    it('accepts group slot without explicit maxViewers (computed from window)', () => {
+      const result = validateCreateSlot({ ...validInput, slotType: 'group' });
+      expect(result.maxViewers).toBeGreaterThanOrEqual(2);
     });
   });
 

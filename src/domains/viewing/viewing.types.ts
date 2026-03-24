@@ -54,6 +54,22 @@ export interface CreateBulkSlotsInput {
   maxViewers?: number;
 }
 
+export interface RecurringTimeslotConfig {
+  startTime: string; // HH:MM
+  endTime: string; // HH:MM
+  slotType: 'single' | 'group';
+}
+
+export interface RecurringDayConfig {
+  dayOfWeek: number; // 0=Sunday, 6=Saturday
+  timeslots: RecurringTimeslotConfig[];
+}
+
+export interface CreateRecurringSlotsInput {
+  propertyId: string;
+  days: RecurringDayConfig[];
+}
+
 export interface BookingFormInput {
   name: string;
   phone: string;

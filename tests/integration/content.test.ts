@@ -8,6 +8,7 @@ import { getIsoWeekPeriod } from '../../src/domains/content/content.service';
 import { getCsrfToken, withCsrf } from '../helpers/csrf';
 
 jest.mock('@/domains/shared/ai/ai.facade', () => ({
+  ...jest.requireActual('@/domains/shared/ai/ai.facade'),
   generateText: jest.fn().mockResolvedValue({
     text: JSON.stringify({
       narrative: 'HDB prices rose this week.',

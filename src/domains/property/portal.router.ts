@@ -3,7 +3,10 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import * as portalService from './portal.service';
 import * as photoService from './photo.service';
+import * as propertyService from './property.service';
+import * as propertyRepo from './property.repository';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
+import { descriptionGenerateLimiter } from '@/infra/http/middleware/rate-limit';
 import { getHasAvatar } from '../profile/profile.service';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import archiver from 'archiver';
@@ -172,6 +175,69 @@ portalRouter.post(
         return res.render('partials/agent/portal-panel', { portalListing });
       }
       res.json({ portalListing });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /agent/listings/:listingId/description/generate
+portalRouter.post(
+  '/agent/listings/:listingId/description/generate',
+  ...agentAuth,
+  descriptionGenerateLimiter,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const { listingId } = req.params as { listingId: string };
+
+      await propertyService.generateListingDescription(listingId, user.id, user.role);
+
+      const listingData = await propertyRepo.findListingCardData(listingId);
+      if (!listingData) return res.status(404).end();
+
+      const photoCount = (() => {
+        if (!listingData.photos) return null;
+        try {
+          const p = JSON.parse(listingData.photos as string);
+          return Array.isArray(p) ? p.length : null;
+        } catch { return null; }
+      })();
+
+      const listing = {
+        id: listingData.id,
+        status: listingData.status,
+        photosApprovedAt: listingData.photosApprovedAt,
+        photoCount,
+        descriptionApprovedAt: listingData.descriptionApprovedAt,
+        aiDescription: listingData.aiDescription,
+        description: listingData.description,
+        portalsPostedCount: listingData.portalListings.filter((pl) => pl.status === 'posted').length,
+      };
+
+      res.render('partials/agent/seller-listing-card.njk', { seller: { property: { listing } } });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /agent/listings/:listingId/description/draft
+portalRouter.post(
+  '/agent/listings/:listingId/description/draft',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const { listingId } = req.params as { listingId: string };
+      const text = req.body.text as string;
+
+      if (!text || !text.trim()) {
+        return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'text is required' } });
+      }
+
+      await propertyService.saveDescriptionDraft(listingId, text, user.id, user.role);
+      res.status(204).end();
     } catch (err) {
       next(err);
     }

@@ -1,6 +1,6 @@
 import { prisma } from '../../infra/database/prisma';
 import { createId } from '@paralleldrive/cuid2';
-import { $Enums } from '@prisma/client';
+import { $Enums, AiDescriptionStatus } from '@prisma/client';
 import type {
   CreatePropertyInput,
   UpdatePropertyInput,
@@ -141,6 +141,76 @@ export const propertyRepository = {
       data: { status: status as import('@prisma/client').$Enums.PropertyStatus },
     });
   },
+
+  async saveAiDescription(
+    listingId: string,
+    data: {
+      aiDescription: string;
+      aiDescriptionStatus: AiDescriptionStatus;
+      aiDescriptionProvider: string;
+      aiDescriptionModel: string;
+      aiDescriptionGeneratedAt: Date;
+      description: string;
+      descriptionApprovedAt: null;
+    },
+  ) {
+    return prisma.listing.update({
+      where: { id: listingId },
+      data,
+    });
+  },
+
+  async updateDescriptionDraft(listingId: string, text: string) {
+    return prisma.listing.update({
+      where: { id: listingId },
+      data: {
+        aiDescription: text,
+        description: text,
+      },
+    });
+  },
+
+  async findListingForDescriptionGeneration(listingId: string) {
+    return prisma.listing.findUnique({
+      where: { id: listingId },
+      select: {
+        id: true,
+        property: {
+          select: {
+            flatType: true,
+            town: true,
+            block: true,
+            street: true,
+            floorAreaSqm: true,
+            level: true,
+            leaseCommenceDate: true,
+            seller: { select: { agentId: true } },
+          },
+        },
+      },
+    });
+  },
+
+  async findListingCardData(listingId: string) {
+    return prisma.listing.findUnique({
+      where: { id: listingId },
+      select: {
+        id: true,
+        status: true,
+        photosApprovedAt: true,
+        photos: true,
+        descriptionApprovedAt: true,
+        aiDescription: true,
+        description: true,
+        portalListings: { select: { status: true } },
+        property: {
+          select: {
+            seller: { select: { agentId: true } },
+          },
+        },
+      },
+    });
+  },
 };
 
 // Named exports to match the function-based calling pattern in tests
@@ -163,3 +233,9 @@ export const updatePropertyStatus =
 export const findListingWithSeller =
   propertyRepository.findListingWithSeller.bind(propertyRepository);
 export const findByIdWithSeller = propertyRepository.findByIdWithSeller.bind(propertyRepository);
+export const saveAiDescription = propertyRepository.saveAiDescription.bind(propertyRepository);
+export const updateDescriptionDraft =
+  propertyRepository.updateDescriptionDraft.bind(propertyRepository);
+export const findListingForDescriptionGeneration =
+  propertyRepository.findListingForDescriptionGeneration.bind(propertyRepository);
+export const findListingCardData = propertyRepository.findListingCardData.bind(propertyRepository);

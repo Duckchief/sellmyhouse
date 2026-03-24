@@ -5,6 +5,7 @@ import * as auditService from '@/domains/shared/audit.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import { HdbApplicationStatus } from '@prisma/client';
 import * as portalService from '@/domains/property/portal.service';
+import * as propertyService from '@/domains/property/property.service';
 import {
   ValidationError,
   ComplianceError,
@@ -172,8 +173,9 @@ export async function approveItem(input: {
   entityId: string;
   agentId: string;
   callerRole?: string;
+  text?: string;
 }): Promise<void> {
-  const { entityType, entityId, agentId, callerRole = 'agent' } = input;
+  const { entityType, entityId, agentId, callerRole = 'agent', text } = input;
 
   await assertListingOwnership(entityType, entityId, agentId, callerRole);
 
@@ -185,6 +187,9 @@ export async function approveItem(input: {
       await reviewRepo.approveFinancialReport(entityId, agentId);
       break;
     case 'listing_description': {
+      if (text) {
+        await propertyService.saveDescriptionDraft(entityId, text, agentId, callerRole);
+      }
       await reviewRepo.approveListingDescription(entityId, agentId);
       const isFullyApprovedDesc = await reviewRepo.checkListingFullyApproved(entityId);
       if (isFullyApprovedDesc) {

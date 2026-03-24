@@ -45,6 +45,7 @@ export const SETTING_VALIDATORS: Record<SettingKey, (v: string) => boolean> = {
   platform_name: (v) => v.length > 0,
   support_email: (v) => v.length > 0,
   support_phone: (v) => v.length > 0,
+  listing_description_prompt: (v) => v.trim().length > 0,
   // Optional free-text settings — any value including empty string is valid
   maintenance_message: () => true,
   maintenance_eta: () => true,

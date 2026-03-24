@@ -15,12 +15,22 @@
           <div class="text-xs text-gray-500">{{ setting.description }}</div>
         </div>
         <form
-          class="{{ 'flex flex-col items-start gap-2' if setting.inputType == 'cron' else 'flex items-center gap-2' }}"
+          class="{{ 'flex flex-col items-start gap-2' if setting.inputType == 'cron' or setting.inputType == 'textarea' else 'flex items-center gap-2' }}"
           hx-post="/admin/settings/{{ setting.key }}"
           hx-target="#result-{{ setting.key }}"
         >
           {% if setting.inputType == 'cron' %}
             {% include "partials/admin/cron-picker.njk" %}
+          {% elif setting.inputType == 'textarea' %}
+            <div class="flex flex-col items-start gap-2 w-full">
+              <textarea name="value" rows="10"
+                class="border rounded px-2 py-1 text-sm w-full font-mono text-xs"
+              >{{ setting.value }}</textarea>
+              <div class="text-xs text-gray-400">
+                {{ "Placeholders:" | t }} {flatType} {town} {block} {street} {floorAreaSqm} {storey} {leaseCommencementDate}
+              </div>
+              <button type="submit" class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700">{{ "Save" | t }}</button>
+            </div>
           {% else %}
             <input type="text" name="value" value="{{ setting.value }}" class="border rounded px-2 py-1 text-sm w-48" />
             <button type="submit" class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700">{{ "Save" | t }}</button>

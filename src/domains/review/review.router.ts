@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import * as reviewService from './review.service';
-import { validateEntityParams, validateRejectBody } from './review.validator';
+import { validateEntityParams, validateRejectBody, validateApproveDescriptionBody } from './review.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import { getHasAvatar } from '../profile/profile.service';
 import { localStorage } from '@/infra/storage/local-storage';
@@ -121,6 +121,7 @@ reviewRouter.post(
   '/agent/reviews/:entityType/:entityId/approve',
   ...reviewAuth,
   ...validateEntityParams,
+  ...validateApproveDescriptionBody,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -129,12 +130,14 @@ reviewRouter.post(
       const user = req.user as AuthenticatedUser;
       const entityType = req.params['entityType'] as EntityType;
       const entityId = req.params['entityId'] as string;
+      const text = req.body.text as string | undefined;
 
       await reviewService.approveItem({
         entityType,
         entityId,
         agentId: user.id,
         callerRole: user.role,
+        text,
       });
 
       res.render('partials/agent/review-row', {

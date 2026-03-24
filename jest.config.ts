@@ -14,6 +14,7 @@ const config: Config = {
   testPathIgnorePatterns: [
     '/node_modules/',
     'src/domains/transaction/__tests__/transaction.repository.test.ts',
+    '\\.integration\\.test\\.ts$',
   ],
   clearMocks: true,
   collectCoverageFrom: [

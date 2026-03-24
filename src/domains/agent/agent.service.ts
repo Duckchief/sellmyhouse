@@ -139,6 +139,7 @@ export async function getSellerDetail(sellerId: string, agentId?: string): Promi
                 status: property.listings[0].status,
                 title: property.listings[0].title,
                 description: property.listings[0].description,
+                aiDescription: property.listings[0].aiDescription,
                 photosApprovedAt: property.listings[0].photosApprovedAt,
                 descriptionApprovedAt: property.listings[0].descriptionApprovedAt,
                 photoCount: (() => {

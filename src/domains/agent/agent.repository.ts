@@ -271,6 +271,7 @@ export async function getSellerDetail(sellerId: string, agentId?: string) {
               status: true,
               title: true,
               description: true,
+              aiDescription: true,
               photos: true,
               photosApprovedAt: true,
               descriptionApprovedAt: true,

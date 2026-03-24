@@ -1,0 +1,51 @@
+{# partials/agent/portal-photos.njk — listing photos panel on portals page #}
+{# Requires: listingData.id, listingData.photos (array), listingData.photosApprovedAt #}
+<div class="bg-white rounded-xl border border-slate-200 p-6 mb-4" id="portal-photos-panel">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-sm font-semibold text-gray-900">{{ "Listing Photos" | t }}</h2>
+    {% if listingData.photos | length > 0 %}
+    <span class="text-xs text-gray-500">{{ listingData.photos | length }} {{ "photos" | t }}</span>
+    {% endif %}
+  </div>
+
+  {% if listingData.photosApprovedAt and listingData.photos | length == 0 %}
+  {# Downloaded state: photosApprovedAt set but photos deleted from DB #}
+  <p class="text-sm text-gray-500 italic">{{ "Photos have been downloaded and deleted." | t }}</p>
+
+  {% elif listingData.photos | length > 0 %}
+  {# Photos present — show thumbnails and download button #}
+  <div class="grid grid-cols-4 gap-2 mb-4">
+    {% for photo in listingData.photos %}
+    {% if loop.index <= 8 %}
+    <div class="relative">
+      <img src="/agent/listings/{{ listingData.id }}/photos/{{ photo.id }}"
+           alt="{{ photo.originalFilename }}"
+           class="w-full h-20 object-cover rounded border">
+      {% if loop.first %}
+      <span class="absolute top-1 left-1 bg-yellow-400 text-yellow-900 text-xs font-semibold px-2 py-0.5 rounded-full">{{ "Cover" | t }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  <form id="photos-download-form"
+        action="/agent/listings/{{ listingData.id }}/photos/download-all"
+        method="POST">
+    <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+    <button type="submit" id="photos-download-btn"
+            class="w-full bg-purple-600 text-white py-2 rounded font-medium hover:bg-purple-700 text-sm">
+      {{ "⬇ Download All & Delete" | t }}
+    </button>
+  </form>
+
+  {% else %}
+  {# No photos uploaded or awaiting approval #}
+  <p class="text-sm text-yellow-700 bg-yellow-50 px-3 py-2 rounded">
+    {% if listingData.photosApprovedAt %}
+    {{ "No photos found." | t }}
+    {% else %}
+    {{ "Awaiting photo approval." | t }}
+    {% endif %}
+  </p>
+  {% endif %}
+</div>

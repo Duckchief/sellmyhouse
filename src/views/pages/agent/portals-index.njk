@@ -1,0 +1,12 @@
+{# pages/agent/portals-index.njk #}
+{% extends "layouts/agent.njk" %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  {% set pageSubtitle = "Active listings ready for portal posting" %}
+  {% include "partials/shared/page-header.njk" %}
+  <div id="portals-index-table">
+    {% include "partials/agent/portals-index-table.njk" %}
+  </div>
+</div>
+{% endblock %}

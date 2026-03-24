@@ -1,12 +1,54 @@
 {# pages/agent/portals.njk #}
 {% extends "layouts/agent.njk" %}
+
 {% block content %}
 <div class="portals-page">
   {% set pageTitle = "Portal Listings" %}
   {% set pageSubtitle = "Copy content for each portal below. Post manually, then paste the live URL back." %}
   {% include "partials/shared/page-header.njk" %}
+  {% include "partials/agent/portal-photos.njk" %}
   {% for portalListing in portalListings %}
     {% include "partials/agent/portal-panel.njk" %}
   {% endfor %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ cspNonce }}">
+(function () {
+  var form = document.getElementById('photos-download-form');
+  if (!form) return;
+  var btn = document.getElementById('photos-download-btn');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = '{{ "Downloading…" | t }}';
+    var csrfToken = form.querySelector('[name="_csrf"]').value;
+    fetch(form.action, {
+      method: 'POST',
+      headers: { 'x-csrf-token': csrfToken },
+      credentials: 'same-origin',
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error('Download failed ' + res.status);
+        var cd = res.headers.get('content-disposition') || '';
+        var match = cd.match(/filename="?([^"]+)"?/);
+        var filename = match ? match[1] : 'photos.zip';
+        return res.blob().then(function (blob) { return { blob: blob, filename: filename }; });
+      })
+      .then(function (result) {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(result.blob);
+        a.download = result.filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        window.location.reload();
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = '{{ "⬇ Download All & Delete" | t }}';
+      });
+  });
+})();
+</script>
 {% endblock %}

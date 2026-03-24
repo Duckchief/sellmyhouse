@@ -1,0 +1,51 @@
+{# partials/agent/portals-index-table.njk — HTMX-swappable table of portal listings #}
+{% if listings | length == 0 %}
+<div class="text-center py-16 text-gray-400">
+  <p class="text-lg">{{ "No listings ready for portal posting." | t }}</p>
+</div>
+{% else %}
+<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wider">
+      <tr>
+        <th class="px-4 py-3">{{ "Seller" | t }}</th>
+        <th class="px-4 py-3">{{ "Property" | t }}</th>
+        <th class="px-4 py-3">{{ "Photos" | t }}</th>
+        <th class="px-4 py-3">{{ "Description" | t }}</th>
+        <th class="px-4 py-3">{{ "Portals" | t }}</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for item in listings %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 font-medium text-gray-900">{{ item.sellerName or "—" }}</td>
+        <td class="px-4 py-3 text-gray-600 truncate max-w-xs">{{ item.address }}</td>
+        <td class="px-4 py-3">
+          {% if item.photosStatus == 'approved' %}
+          <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">{{ "✓ Approved" | t }}</span>
+          {% elif item.photosStatus == 'downloaded' %}
+          <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500">{{ "Downloaded" | t }}</span>
+          {% else %}
+          <span class="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">{{ "Pending" | t }}</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3">
+          {% if item.descriptionStatus == 'approved' %}
+          <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">{{ "✓ Approved" | t }}</span>
+          {% else %}
+          <span class="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">{{ "Pending" | t }}</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-gray-500 text-xs">{{ item.portalsPostedCount }} / 3</td>
+        <td class="px-4 py-3">
+          <a href="/agent/listings/{{ item.id }}/portals"
+             class="text-purple-600 hover:underline text-xs font-medium">{{ "Open →" | t }}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="px-4 py-2 text-xs text-gray-500">{{ listings | length }} {{ "listings" | t }}</div>
+</div>
+{% endif %}

@@ -90,7 +90,10 @@
     {% include "partials/agent/seller-documents-inline.njk" %}
   </div>
 
-  {# 3. Transaction Timeline #}
+  {# 3. Listing #}
+  {% include "partials/agent/seller-listing-card.njk" %}
+
+  {# 4. Transaction Timeline #}
   <div class="card">
     <h2 class="page-section-title flex items-center gap-1">{{ "Transaction Timeline" | t }}<span class="relative group"><span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[10px] cursor-default select-none font-normal">?</span><span class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-44 bg-gray-800 text-white text-xs rounded px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-normal font-normal"><ul class="space-y-1"><li class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0"></span>{{ "Completed" | t }}</li><li class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0"></span>{{ "Current stage" | t }}</li><li class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-gray-300 flex-shrink-0"></span>{{ "Upcoming" | t }}</li></ul></span></span></h2>
     <div class="space-y-4">
@@ -109,7 +112,7 @@
     </div>
   </div>
 
-  {# 3. Compliance — Consent + CDD + EAA #}
+  {# 5. Compliance — Consent + CDD + EAA #}
   <div class="card">
     <h2 class="page-section-title">{{ "Compliance" | t }}</h2>
 
@@ -162,7 +165,7 @@
     {% endif %}
   </div>
 
-  {# 5. Case Flags #}
+  {# 6. Case Flags #}
   <div class="card">
     <h2 class="page-section-title">{{ "Case Flags" | t }}</h2>
     {% if compliance.caseFlags.length == 0 %}
@@ -179,7 +182,7 @@
     {% endif %}
   </div>
 
-  {# 6. Notifications — full-width #}
+  {# 7. Notifications — full-width #}
   <div class="card md:col-span-2" id="notifications-section">
     <h2 class="page-section-title">{{ "Notifications" | t }}</h2>
     {% include "partials/agent/seller-notifications.njk" %}

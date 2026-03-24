@@ -121,17 +121,6 @@ export async function findActiveSlotsByPropertyId(propertyId: string) {
   });
 }
 
-export async function findLastUpcomingSlot(propertyId: string) {
-  return prisma.viewingSlot.findFirst({
-    where: {
-      propertyId,
-      status: { not: 'cancelled' as SlotStatus },
-      date: { gte: new Date() },
-    },
-    orderBy: { date: 'desc' },
-  });
-}
-
 export async function findActiveSlotsByDateRange(
   propertyId: string,
   startDate: Date,

@@ -228,32 +228,6 @@ describe('viewing.repository', () => {
     });
   });
 
-  describe('findLastUpcomingSlot', () => {
-    it('returns the last upcoming non-cancelled slot', async () => {
-      const mockSlot = { id: 'slot-1', date: new Date('2026-04-15') };
-      mockedPrisma.viewingSlot.findFirst.mockResolvedValue(mockSlot as never);
-
-      const result = await viewingRepo.findLastUpcomingSlot('prop-1');
-
-      expect(mockedPrisma.viewingSlot.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            propertyId: 'prop-1',
-            status: { not: 'cancelled' },
-          }),
-          orderBy: { date: 'desc' },
-        }),
-      );
-      expect(result).toEqual(mockSlot);
-    });
-
-    it('returns null when no upcoming slots', async () => {
-      mockedPrisma.viewingSlot.findFirst.mockResolvedValue(null);
-      const result = await viewingRepo.findLastUpcomingSlot('prop-1');
-      expect(result).toBeNull();
-    });
-  });
-
   describe('findActiveSlotsByDateRange', () => {
     it('returns active slots in date range without includes', async () => {
       const mockSlots = [

@@ -73,18 +73,6 @@ viewingRouter.get(
         });
       }
 
-      let lastSlotDate: Date | null = null;
-      let daysUntilExpiry: number | null = null;
-      if (propertyId) {
-        lastSlotDate = await viewingService.getLastUpcomingSlotDate(propertyId);
-        if (lastSlotDate) {
-          const msPerDay = 1000 * 60 * 60 * 24;
-          daysUntilExpiry = Math.ceil(
-            (lastSlotDate.getTime() - Date.now()) / msPerDay,
-          );
-        }
-      }
-
       return res.render('pages/seller/viewings', {
         stats,
         slots,
@@ -93,8 +81,6 @@ viewingRouter.get(
         page,
         hasMore,
         totalSlots,
-        lastSlotDate,
-        daysUntilExpiry,
       });
     } catch (err) {
       next(err);
@@ -182,12 +168,12 @@ viewingRouter.post(
     try {
       const user = req.user as AuthenticatedUser;
       const input = validateCreateRecurringSlots(req.body);
-      const result = await viewingService.createRecurringSlots(input, user.id);
+      const result = await viewingService.saveSchedule(input.days, user.id);
 
       if (req.headers['hx-request']) {
-        return res.render('partials/seller/slots-created', { count: result.count });
+        return res.render('partials/seller/slots-created', { schedule: result });
       }
-      return res.status(201).json({ success: true, count: result.count });
+      return res.status(201).json({ success: true, schedule: result });
     } catch (err) {
       next(err);
     }

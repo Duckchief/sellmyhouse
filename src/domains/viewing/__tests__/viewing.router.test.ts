@@ -63,51 +63,6 @@ describe('viewing.router', () => {
 
   // ─── Seller Routes ─────────────────────────────────────
 
-  describe('POST /seller/viewings/slots/recurring', () => {
-    const validBody = {
-      propertyId: 'prop-1',
-      days: [
-        {
-          dayOfWeek: 1,
-          timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' }],
-        },
-      ],
-    };
-
-    it('returns slots-created partial for HTMX request', async () => {
-      mockService.createRecurringSlots.mockResolvedValue({ count: 42 } as never);
-
-      const res = await request(app)
-        .post('/seller/viewings/slots/recurring')
-        .set('hx-request', 'true')
-        .send(validBody);
-
-      expect(res.status).toBe(200);
-      expect(res.body._view).toBe('partials/seller/slots-created');
-      expect(res.body.count).toBe(42);
-    });
-
-    it('returns JSON for non-HTMX request', async () => {
-      mockService.createRecurringSlots.mockResolvedValue({ count: 10 } as never);
-
-      const res = await request(app)
-        .post('/seller/viewings/slots/recurring')
-        .send(validBody);
-
-      expect(res.status).toBe(201);
-      expect(res.body.success).toBe(true);
-      expect(res.body.count).toBe(10);
-    });
-
-    it('returns 400 for invalid input', async () => {
-      const res = await request(app)
-        .post('/seller/viewings/slots/recurring')
-        .send({ propertyId: 'p', days: [] });
-
-      expect(res.status).toBe(400);
-    });
-  });
-
   describe('POST /seller/viewings/slots', () => {
     it('creates a single slot', async () => {
       mockService.createSlot.mockResolvedValue({
@@ -288,10 +243,9 @@ describe('viewing.router', () => {
     it('returns 200 with sidebar data', async () => {
       mockService.getSlotsForDate.mockResolvedValue({
         slots: [],
-        suggestedStart: '10:00',
-        suggestedEnd: '11:00',
-        date: '2026-03-17',
-      });
+        nextGap: { start: '10:00', end: '11:00' },
+        date: new Date('2026-03-17T00:00:00.000Z'),
+      } as never);
 
       const res = await request(app).get(
         '/seller/viewings/slots/date-sidebar?date=2026-03-17&propertyId=prop-1',

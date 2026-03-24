@@ -2,6 +2,8 @@ import * as propertyService from '../property.service';
 import * as propertyRepo from '../property.repository';
 import * as auditService from '../../shared/audit.service';
 import * as reviewService from '../../review/review.service';
+import * as aiFacade from '@/domains/shared/ai/ai.facade';
+import * as settingsService from '@/domains/shared/settings.service';
 import {
   NotFoundError,
   ForbiddenError,
@@ -19,6 +21,11 @@ jest.mock('../../seller/case-flag.service', () => ({
 }));
 jest.mock('@paralleldrive/cuid2', () => ({ createId: jest.fn().mockReturnValue('abcdef123456') }));
 jest.mock('@/domains/auth/auth.repository');
+jest.mock('@/domains/shared/ai/ai.facade', () => ({
+  generateText: jest.fn(),
+  AIUnavailableError: class AIUnavailableError extends Error {},
+}));
+jest.mock('@/domains/shared/settings.service');
 
 const mockedRepo = jest.mocked(propertyRepo);
 const mockedAudit = jest.mocked(auditService);
@@ -562,6 +569,163 @@ describe('property.service', () => {
         ComplianceError,
       );
       expect(mockedRepo.updateListingStatus).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── generateListingDescription ───────────────────────────
+
+  describe('generateListingDescription', () => {
+    const listingId = 'listing-1';
+    const agentId = 'agent-1';
+
+    const fakeListing = {
+      id: listingId,
+      property: {
+        flatType: '4 ROOM',
+        town: 'ANG MO KIO',
+        block: '123',
+        street: 'Ang Mo Kio Ave 3',
+        floorAreaSqm: 90,
+        level: '04',
+        leaseCommenceDate: 1990,
+        seller: { agentId },
+      },
+    };
+
+    const fakeTemplate = 'Type: {flatType}, Town: {town}, {block} {street}, {floorAreaSqm}sqm, {storey}, {leaseCommencementDate}';
+
+    beforeEach(() => {
+      mockedRepo.findListingForDescriptionGeneration.mockResolvedValue(fakeListing as never);
+      jest.mocked(settingsService.get).mockResolvedValue(fakeTemplate);
+      jest.mocked(aiFacade.generateText).mockResolvedValue({
+        text: 'Generated description text.',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-6',
+        tokensUsed: 100,
+      });
+      mockedRepo.saveAiDescription.mockResolvedValue({} as never);
+    });
+
+    it('calls generateText and saves all aiDescription fields plus staging description', async () => {
+      await propertyService.generateListingDescription(listingId, agentId, 'agent');
+
+      expect(aiFacade.generateText).toHaveBeenCalledWith(
+        expect.stringContaining('4 ROOM'),
+      );
+      expect(mockedRepo.saveAiDescription).toHaveBeenCalledWith(listingId, {
+        aiDescription: 'Generated description text.',
+        aiDescriptionStatus: 'ai_generated',
+        aiDescriptionProvider: 'anthropic',
+        aiDescriptionModel: 'claude-sonnet-4-6',
+        aiDescriptionGeneratedAt: expect.any(Date),
+        description: 'Generated description text.',
+        descriptionApprovedAt: null,
+      });
+      expect(mockedAudit.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'listing.description_generated' }),
+      );
+    });
+
+    it('throws ValidationError when prompt setting is empty', async () => {
+      jest.mocked(settingsService.get).mockResolvedValue('');
+      await expect(
+        propertyService.generateListingDescription(listingId, agentId, 'agent'),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('throws ForbiddenError when agent is not assigned', async () => {
+      mockedRepo.findListingForDescriptionGeneration.mockResolvedValue({
+        ...fakeListing,
+        property: { ...fakeListing.property, seller: { agentId: 'other-agent' } },
+      } as never);
+      await expect(
+        propertyService.generateListingDescription(listingId, agentId, 'agent'),
+      ).rejects.toThrow(ForbiddenError);
+    });
+
+    it('admin bypasses ownership check', async () => {
+      mockedRepo.findListingForDescriptionGeneration.mockResolvedValue({
+        ...fakeListing,
+        property: { ...fakeListing.property, seller: { agentId: 'other-agent' } },
+      } as never);
+      await expect(
+        propertyService.generateListingDescription(listingId, agentId, 'admin'),
+      ).resolves.not.toThrow();
+    });
+
+    it('always sets descriptionApprovedAt to null (handles regeneration after approval)', async () => {
+      await propertyService.generateListingDescription(listingId, agentId, 'agent');
+      expect(mockedRepo.saveAiDescription).toHaveBeenCalledWith(
+        listingId,
+        expect.objectContaining({ descriptionApprovedAt: null }),
+      );
+    });
+
+    it('throws NotFoundError when listing does not exist', async () => {
+      mockedRepo.findListingForDescriptionGeneration.mockResolvedValue(null);
+      await expect(
+        propertyService.generateListingDescription(listingId, agentId, 'agent'),
+      ).rejects.toThrow(NotFoundError);
+    });
+
+    it('propagates AIUnavailableError (does not swallow it)', async () => {
+      const { AIUnavailableError } = jest.requireMock('@/domains/shared/ai/ai.facade') as {
+        AIUnavailableError: new (msg: string) => Error;
+      };
+      jest.mocked(aiFacade.generateText).mockRejectedValue(new AIUnavailableError('all providers failed'));
+      await expect(
+        propertyService.generateListingDescription(listingId, agentId, 'agent'),
+      ).rejects.toThrow('all providers failed');
+    });
+  });
+
+  // ─── saveDescriptionDraft ─────────────────────────────────
+
+  describe('saveDescriptionDraft', () => {
+    const listingId = 'listing-1';
+    const agentId = 'agent-1';
+
+    beforeEach(() => {
+      mockedRepo.findListingForDescriptionGeneration.mockResolvedValue({
+        id: listingId,
+        property: { seller: { agentId } },
+      } as never);
+      mockedRepo.updateDescriptionDraft.mockResolvedValue({} as never);
+    });
+
+    it('updates aiDescription and description via repo', async () => {
+      await propertyService.saveDescriptionDraft(listingId, 'Edited text.', agentId, 'agent');
+      expect(mockedRepo.updateDescriptionDraft).toHaveBeenCalledWith(listingId, 'Edited text.');
+      expect(mockedAudit.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'listing.description_draft_saved' }),
+      );
+    });
+
+    it('throws ForbiddenError when agent is not assigned', async () => {
+      mockedRepo.findListingForDescriptionGeneration.mockResolvedValue({
+        id: listingId,
+        property: { seller: { agentId: 'other-agent' } },
+      } as never);
+      await expect(
+        propertyService.saveDescriptionDraft(listingId, 'text', agentId, 'agent'),
+      ).rejects.toThrow(ForbiddenError);
+    });
+
+    it('treats undefined callerRole as agent (conservative default)', async () => {
+      mockedRepo.findListingForDescriptionGeneration.mockResolvedValue({
+        id: listingId,
+        property: { seller: { agentId: 'other-agent' } },
+      } as never);
+      await expect(
+        propertyService.saveDescriptionDraft(listingId, 'text', agentId, undefined as never),
+      ).rejects.toThrow(ForbiddenError);
+    });
+
+    it('throws NotFoundError when listing does not exist', async () => {
+      mockedRepo.findListingForDescriptionGeneration.mockResolvedValue(null);
+      await expect(
+        propertyService.saveDescriptionDraft(listingId, 'text', agentId, 'agent'),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 });

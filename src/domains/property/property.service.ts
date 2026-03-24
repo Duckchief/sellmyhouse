@@ -7,6 +7,9 @@ import type { CreatePropertyInput, UpdatePropertyInput } from './property.types'
 import { checkComplianceGate } from '@/domains/review/review.service';
 import * as caseFlagService from '@/domains/seller/case-flag.service';
 import * as authRepo from '../auth/auth.repository';
+import * as settingsService from '@/domains/shared/settings.service';
+import * as aiFacade from '@/domains/shared/ai/ai.facade';
+import { buildListingDescriptionPrompt } from '@/domains/shared/ai/prompts/listing-description';
 
 export function generatePropertySlug(block: string, street: string, town: string): string {
   return `${block}-${street}-${town}`
@@ -208,4 +211,80 @@ export async function updateListingStatus(propertyId: string, newStatus: string)
   });
 
   return updated;
+}
+
+export async function generateListingDescription(
+  listingId: string,
+  agentId: string,
+  callerRole: string,
+): Promise<void> {
+  const listing = await propertyRepo.findListingForDescriptionGeneration(listingId);
+  if (!listing) throw new NotFoundError('Listing', listingId);
+
+  if (callerRole !== 'admin') {
+    const assignedAgentId = listing.property?.seller?.agentId ?? null;
+    if (assignedAgentId !== agentId) {
+      throw new ForbiddenError('You are not authorised to generate a description for this listing');
+    }
+  }
+
+  const template = await settingsService.get('listing_description_prompt');
+  // buildListingDescriptionPrompt throws ValidationError if template is empty
+  const prompt = buildListingDescriptionPrompt(template, {
+    flatType: listing.property.flatType,
+    town: listing.property.town,
+    block: listing.property.block,
+    street: listing.property.street,
+    floorAreaSqm: listing.property.floorAreaSqm,
+    storey: listing.property.level,
+    leaseCommencementDate: listing.property.leaseCommenceDate,
+  });
+
+  const result = await aiFacade.generateText(prompt);
+
+  await propertyRepo.saveAiDescription(listingId, {
+    aiDescription: result.text,
+    aiDescriptionStatus: 'ai_generated',
+    aiDescriptionProvider: result.provider,
+    aiDescriptionModel: result.model,
+    aiDescriptionGeneratedAt: new Date(),
+    description: result.text,
+    descriptionApprovedAt: null,
+  });
+
+  await auditService.log({
+    agentId,
+    action: 'listing.description_generated',
+    entityType: 'listing',
+    entityId: listingId,
+    details: { provider: result.provider, model: result.model },
+  });
+}
+
+export async function saveDescriptionDraft(
+  listingId: string,
+  text: string,
+  agentId: string,
+  callerRole: string,
+): Promise<void> {
+  const listing = await propertyRepo.findListingForDescriptionGeneration(listingId);
+  if (!listing) throw new NotFoundError('Listing', listingId);
+
+  const effectiveRole = callerRole ?? 'agent';
+  if (effectiveRole !== 'admin') {
+    const assignedAgentId = listing.property?.seller?.agentId ?? null;
+    if (assignedAgentId !== agentId) {
+      throw new ForbiddenError('You are not authorised to edit this listing description');
+    }
+  }
+
+  await propertyRepo.updateDescriptionDraft(listingId, text);
+
+  await auditService.log({
+    agentId,
+    action: 'listing.description_draft_saved',
+    entityType: 'listing',
+    entityId: listingId,
+    details: {},
+  });
 }

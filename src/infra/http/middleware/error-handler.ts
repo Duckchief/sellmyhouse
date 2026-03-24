@@ -1,12 +1,25 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../../logger';
 import { AppError, ConflictError } from '../../../domains/shared/errors';
+import { AIUnavailableError } from '../../../domains/shared/ai/ai.facade';
 
 function isBrowserRequest(req: Request): boolean {
   return !req.headers['hx-request'] && (req.headers['accept'] ?? '').includes('text/html');
 }
 
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction) {
+  if (err instanceof AIUnavailableError) {
+    logger.warn({ err, path: req.path }, 'AIUnavailableError: all providers failed');
+    if (req.headers['hx-request']) {
+      return res.status(502).render('partials/error-message', {
+        message: 'AI service is temporarily unavailable. Please try again.',
+      });
+    }
+    return res.status(502).json({
+      error: { code: 'AI_UNAVAILABLE', message: 'AI service is temporarily unavailable. Please try again.' },
+    });
+  }
+
   if (err instanceof AppError) {
     logger.warn({ err, path: req.path }, `${err.name}: ${err.message}`);
 

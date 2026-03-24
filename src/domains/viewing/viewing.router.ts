@@ -4,6 +4,7 @@ import * as propertyService from '@/domains/property/property.service';
 import {
   validateCreateSlot,
   validateCreateBulkSlots,
+  validateCreateRecurringSlots,
   validateBookingForm,
   validateOtp,
   validateFeedback,
@@ -71,6 +72,19 @@ viewingRouter.get(
           totalSlots,
         });
       }
+
+      let lastSlotDate: Date | null = null;
+      let daysUntilExpiry: number | null = null;
+      if (propertyId) {
+        lastSlotDate = await viewingService.getLastUpcomingSlotDate(propertyId);
+        if (lastSlotDate) {
+          const msPerDay = 1000 * 60 * 60 * 24;
+          daysUntilExpiry = Math.ceil(
+            (lastSlotDate.getTime() - Date.now()) / msPerDay,
+          );
+        }
+      }
+
       return res.render('pages/seller/viewings', {
         stats,
         slots,
@@ -79,6 +93,8 @@ viewingRouter.get(
         page,
         hasMore,
         totalSlots,
+        lastSlotDate,
+        daysUntilExpiry,
       });
     } catch (err) {
       next(err);
@@ -153,6 +169,25 @@ viewingRouter.post(
         return res.json({ success: true, cancelled: result.cancelled });
       }
       return res.json({ success: true, cancelled: result.cancelled });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+viewingRouter.post(
+  '/seller/viewings/slots/recurring',
+  requireAuth(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const input = validateCreateRecurringSlots(req.body);
+      const result = await viewingService.createRecurringSlots(input, user.id);
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/seller/slots-created', { count: result.count });
+      }
+      return res.status(201).json({ success: true, count: result.count });
     } catch (err) {
       next(err);
     }

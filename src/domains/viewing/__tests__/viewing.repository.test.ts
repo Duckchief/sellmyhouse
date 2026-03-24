@@ -7,6 +7,7 @@ jest.mock('@/infra/database/prisma', () => ({
       create: jest.fn(),
       createMany: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
     },
@@ -216,6 +217,57 @@ describe('viewing.repository', () => {
       expect(result.upcomingCount).toBe(3);
       expect(result.noShowCount).toBe(1);
       expect(result.averageInterestRating).toBe(3.5);
+    });
+  });
+
+  describe('findLastUpcomingSlot', () => {
+    it('returns the last upcoming non-cancelled slot', async () => {
+      const mockSlot = { id: 'slot-1', date: new Date('2026-04-15') };
+      mockedPrisma.viewingSlot.findFirst.mockResolvedValue(mockSlot as never);
+
+      const result = await viewingRepo.findLastUpcomingSlot('prop-1');
+
+      expect(mockedPrisma.viewingSlot.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            propertyId: 'prop-1',
+            status: { not: 'cancelled' },
+          }),
+          orderBy: { date: 'desc' },
+        }),
+      );
+      expect(result).toEqual(mockSlot);
+    });
+
+    it('returns null when no upcoming slots', async () => {
+      mockedPrisma.viewingSlot.findFirst.mockResolvedValue(null);
+      const result = await viewingRepo.findLastUpcomingSlot('prop-1');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findActiveSlotsByDateRange', () => {
+    it('returns active slots in date range without includes', async () => {
+      const mockSlots = [
+        { id: 's1', date: new Date('2026-04-01'), startTime: '10:00', endTime: '10:10', status: 'available' },
+      ];
+      mockedPrisma.viewingSlot.findMany.mockResolvedValue(mockSlots as never);
+
+      const result = await viewingRepo.findActiveSlotsByDateRange(
+        'prop-1',
+        new Date('2026-04-01'),
+        new Date('2026-05-01'),
+      );
+
+      expect(mockedPrisma.viewingSlot.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            propertyId: 'prop-1',
+            status: { in: ['available', 'booked', 'full'] },
+          }),
+        }),
+      );
+      expect(result).toEqual(mockSlots);
     });
   });
 });

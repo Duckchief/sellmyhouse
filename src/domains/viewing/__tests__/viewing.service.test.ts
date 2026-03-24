@@ -1061,4 +1061,135 @@ describe('viewing.service', () => {
       expect(result['2026-03-20']).toEqual({ available: 1, full: 0 });
     });
   });
+
+  describe('createRecurringSlots', () => {
+    const validInput = {
+      propertyId: 'prop-1',
+      days: [
+        {
+          dayOfWeek: 1, // Monday
+          timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' as const }],
+        },
+      ],
+    };
+
+    beforeEach(() => {
+      mockedRepo.findPropertyById.mockResolvedValue({
+        id: 'prop-1',
+        sellerId: 'seller-1',
+      } as never);
+      mockedRepo.findActiveSlotsByPropertyId.mockResolvedValue([] as never);
+      mockedRepo.findActiveSlotsByDateRange.mockResolvedValue([] as never);
+      mockedRepo.createManySlots.mockResolvedValue({ count: 1 } as never);
+    });
+
+    it('creates slots for enabled days', async () => {
+      const result = await viewingService.createRecurringSlots(validInput, 'seller-1');
+      expect(mockedRepo.createManySlots).toHaveBeenCalled();
+      expect(result.count).toBeGreaterThan(0);
+    });
+
+    it('sets durationMinutes to 10 for single slots', async () => {
+      await viewingService.createRecurringSlots(validInput, 'seller-1');
+      const insertedSlots = mockedRepo.createManySlots.mock.calls[0][0];
+      expect(insertedSlots[0].durationMinutes).toBe(10);
+      expect(insertedSlots[0].slotType).toBe('single');
+      expect(insertedSlots[0].maxViewers).toBe(1);
+    });
+
+    it('creates exactly 1 slot per day occurrence for group type', async () => {
+      const groupInput = {
+        propertyId: 'prop-1',
+        days: [{
+          dayOfWeek: 1,
+          timeslots: [{ startTime: '13:00', endTime: '17:00', slotType: 'group' as const }],
+        }],
+      };
+      await viewingService.createRecurringSlots(groupInput, 'seller-1');
+      const insertedSlots = mockedRepo.createManySlots.mock.calls[0][0];
+      // All inserted slots for group type should span the full window
+      const groupSlots = insertedSlots.filter((s: { slotType: string }) => s.slotType === 'group');
+      groupSlots.forEach((s: { startTime: string; endTime: string; durationMinutes: number }) => {
+        expect(s.startTime).toBe('13:00');
+        expect(s.endTime).toBe('17:00');
+        expect(s.durationMinutes).toBe(240); // 4 hours
+      });
+    });
+
+    it('skips slots that overlap with existing DB slots', async () => {
+      // Build UTC-midnight Monday dates matching what the service iterator produces
+      // The service uses getUTCDay() and toISOString() (UTC), so we match that here
+      const sgtDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+      const todayUtcMidnight = new Date(sgtDateStr); // parsed as UTC midnight
+      while (todayUtcMidnight.getUTCDay() !== 1) {
+        todayUtcMidnight.setUTCDate(todayUtcMidnight.getUTCDate() + 1);
+      }
+      // Cover all Mondays in the ~1 month range
+      const mondays: { id: string; date: Date; startTime: string; endTime: string; status: string }[] = [];
+      const d = new Date(todayUtcMidnight);
+      for (let i = 0; i < 6; i++) {
+        mondays.push({ id: `existing-${i}`, date: new Date(d), startTime: '18:00', endTime: '20:00', status: 'available' });
+        d.setUTCDate(d.getUTCDate() + 7);
+      }
+      mockedRepo.findActiveSlotsByDateRange.mockResolvedValue(mondays as never);
+      const result = await viewingService.createRecurringSlots(validInput, 'seller-1');
+      // All Mon 18:00–20:00 sub-slots should be skipped
+      expect(result.count).toBe(0);
+    });
+
+    it('throws when MAX_ACTIVE_SLOTS already reached', async () => {
+      mockedRepo.findActiveSlotsByPropertyId.mockResolvedValue(
+        Array(200).fill({ id: 'x' }) as never,
+      );
+      await expect(
+        viewingService.createRecurringSlots(validInput, 'seller-1'),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('throws when generation would exceed MAX_ACTIVE_SLOTS', async () => {
+      mockedRepo.findActiveSlotsByPropertyId.mockResolvedValue(
+        Array(199).fill({ id: 'x' }) as never,
+      );
+      // validInput generates many slots for a month of Mondays (several Mondays × 12 sub-slots each)
+      await expect(
+        viewingService.createRecurringSlots(validInput, 'seller-1'),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('throws ForbiddenError when seller does not own property', async () => {
+      mockedRepo.findPropertyById.mockResolvedValue({
+        id: 'prop-1',
+        sellerId: 'other-seller',
+      } as never);
+      await expect(
+        viewingService.createRecurringSlots(validInput, 'seller-1'),
+      ).rejects.toThrow();
+    });
+
+    it('logs audit event', async () => {
+      await viewingService.createRecurringSlots(validInput, 'seller-1');
+      expect(mockedAudit.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'viewing.recurring_slots_created' }),
+      );
+    });
+  });
+
+  describe('getLastUpcomingSlotDate', () => {
+    it('returns the date of the last upcoming slot', async () => {
+      const mockDate = new Date('2026-04-15');
+      mockedRepo.findLastUpcomingSlot.mockResolvedValue({ id: 'slot-1', date: mockDate } as never);
+
+      const result = await viewingService.getLastUpcomingSlotDate('prop-1');
+      expect(mockedRepo.findLastUpcomingSlot).toHaveBeenCalledWith('prop-1');
+      expect(result).toEqual(mockDate);
+    });
+
+    it('returns null when no upcoming slots', async () => {
+      mockedRepo.findLastUpcomingSlot.mockResolvedValue(null);
+
+      const result = await viewingService.getLastUpcomingSlotDate('prop-1');
+      expect(mockedRepo.findLastUpcomingSlot).toHaveBeenCalledWith('prop-1');
+      expect(result).toBeNull();
+    });
+  });
 });

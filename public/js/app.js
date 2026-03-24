@@ -1068,31 +1068,6 @@
     new window.DatePickerCalendar(bulkEndEl, { displayId: 'bulk-end-display' });
   }
 
-  // ── Open House duration auto-correct ──────────────────
-  var recurringForm = document.getElementById('recurring-slots-form');
-  if (recurringForm) {
-    var slotTypeSelect = recurringForm.querySelector('[name="slotType"]');
-    var durationInput = recurringForm.querySelector('[name="slotDurationMinutes"]');
-    if (slotTypeSelect && durationInput) {
-      slotTypeSelect.addEventListener('change', function () {
-        if (slotTypeSelect.value === 'group') {
-          durationInput.value = '60';
-        } else {
-          durationInput.value = '10';
-        }
-      });
-
-      recurringForm.addEventListener('submit', function (e) {
-        var duration = parseInt(durationInput.value, 10);
-        if (slotTypeSelect.value === 'group' && (isNaN(duration) || duration < 30)) {
-          e.preventDefault();
-          var guardModal = document.getElementById('open-house-duration-modal');
-          if (guardModal) guardModal.classList.remove('hidden');
-        }
-      });
-    }
-  }
-
   // After a slot is added, refresh the date sidebar to show updated schedule
   document.body.addEventListener('htmx:afterRequest', function (evt) {
     var form = evt.detail.elt;
@@ -1116,6 +1091,162 @@
       }
     }
   });
+
+  // ── Recurring Slots: toggle day rows ─────────────────────
+  document.body.addEventListener('click', function (e) {
+    var btn = e.target.closest('.recurring-day-toggle');
+    if (!btn) return;
+    var dayRow = btn.closest('.recurring-day-row');
+    if (!dayRow) return;
+    var isOn = btn.getAttribute('aria-pressed') === 'true';
+    var turnOn = !isOn;
+
+    btn.setAttribute('aria-pressed', String(turnOn));
+    if (turnOn) {
+      btn.classList.remove('bg-gray-300');
+      btn.classList.add('bg-blue-500');
+      btn.querySelector('span').style.transform = '';
+    } else {
+      btn.classList.remove('bg-blue-500');
+      btn.classList.add('bg-gray-300');
+      btn.querySelector('span').style.transform = 'translateX(-16px)';
+    }
+
+    dayRow.querySelectorAll('.recurring-time-select, .recurring-type-select').forEach(function (el) {
+      el.disabled = !turnOn;
+    });
+    dayRow.querySelectorAll('.recurring-timeslot').forEach(function (row) {
+      row.style.opacity = turnOn ? '' : '0.45';
+    });
+  });
+
+  // ── Recurring Slots: add timeslot row ────────────────────
+  document.body.addEventListener('click', function (e) {
+    var addBtn = e.target.closest('.recurring-add-btn');
+    if (!addBtn) return;
+    var dayRow = addBtn.closest('.recurring-day-row');
+    if (!dayRow) return;
+
+    var timeslots = dayRow.querySelectorAll('.recurring-timeslot');
+    if (timeslots.length >= 3) return;
+
+    // Clone the last timeslot row
+    var lastSlot = timeslots[timeslots.length - 1];
+    var clone = lastSlot.cloneNode(true);
+
+    // Reset selects to day defaults
+    var dayDefaultStart = dayRow.dataset.defaultStart;
+    var dayDefaultEnd = dayRow.dataset.defaultEnd;
+    var startSel = clone.querySelectorAll('.recurring-time-select')[0];
+    var endSel = clone.querySelectorAll('.recurring-time-select')[1];
+    if (startSel && dayDefaultStart) startSel.value = dayDefaultStart;
+    if (endSel && dayDefaultEnd) endSel.value = dayDefaultEnd;
+
+    // Remove toggle from cloned row (only first row has it)
+    var toggleInClone = clone.querySelector('.recurring-day-toggle');
+    if (toggleInClone) toggleInClone.closest('div').innerHTML = '';
+
+    // Remove day label from cloned row
+    var labelInClone = clone.querySelector('.recurring-day-label');
+    if (labelInClone) labelInClone.textContent = '';
+
+    // Show remove (×) button; hide add (+) on previous last row
+    addBtn.classList.add('hidden');
+    var removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'recurring-remove-btn flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 text-gray-400 text-sm font-bold flex items-center justify-center hover:bg-gray-200 transition';
+    removeBtn.textContent = '×';
+    addBtn.parentNode.insertBefore(removeBtn, addBtn.nextSibling);
+
+    // On clone: add button only if < 3 total
+    var cloneAddBtn = clone.querySelector('.recurring-add-btn');
+    if (cloneAddBtn) cloneAddBtn.classList.remove('hidden');
+
+    dayRow.appendChild(clone);
+
+    // Update add button visibility
+    var newTimeslots = dayRow.querySelectorAll('.recurring-timeslot');
+    if (newTimeslots.length >= 3) {
+      var lastAddBtn = dayRow.querySelector('.recurring-timeslot:last-child .recurring-add-btn');
+      if (lastAddBtn) lastAddBtn.classList.add('hidden');
+    }
+  });
+
+  // ── Recurring Slots: remove timeslot row ─────────────────
+  document.body.addEventListener('click', function (e) {
+    var removeBtn = e.target.closest('.recurring-remove-btn');
+    if (!removeBtn) return;
+    var timeslotRow = removeBtn.closest('.recurring-timeslot');
+    var dayRow = timeslotRow && timeslotRow.closest('.recurring-day-row');
+    if (!timeslotRow || !dayRow) return;
+
+    timeslotRow.remove();
+
+    // Show add button on new last timeslot
+    var remaining = dayRow.querySelectorAll('.recurring-timeslot');
+    if (remaining.length < 3) {
+      var lastSlot = remaining[remaining.length - 1];
+      var addBtn = lastSlot && lastSlot.querySelector('.recurring-add-btn');
+      if (addBtn) addBtn.classList.remove('hidden');
+    }
+  });
+
+  // ── Recurring Slots: JSON submit ─────────────────────────
+  var recurringForm = document.getElementById('recurring-slots-form-new');
+  if (recurringForm) {
+    recurringForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var propertyId = recurringForm.dataset.propertyId;
+      var days = [];
+
+      recurringForm.querySelectorAll('.recurring-day-row').forEach(function (dayRow) {
+        var toggle = dayRow.querySelector('.recurring-day-toggle');
+        if (!toggle || toggle.getAttribute('aria-pressed') !== 'true') return;
+
+        var dow = parseInt(dayRow.dataset.dow, 10);
+        var timeslots = [];
+
+        dayRow.querySelectorAll('.recurring-timeslot').forEach(function (tsRow) {
+          var selects = tsRow.querySelectorAll('.recurring-time-select');
+          var typeSel = tsRow.querySelector('.recurring-type-select');
+          var startTime = selects[0] ? selects[0].value : '';
+          var endTime = selects[1] ? selects[1].value : '';
+          var slotType = typeSel ? typeSel.value : 'single';
+          if (startTime && endTime) {
+            timeslots.push({ startTime: startTime, endTime: endTime, slotType: slotType });
+          }
+        });
+
+        if (timeslots.length > 0) {
+          days.push({ dayOfWeek: dow, timeslots: timeslots });
+        }
+      });
+
+      if (days.length === 0) return;
+
+      var resultDiv = document.getElementById('recurring-result');
+      if (resultDiv) resultDiv.innerHTML = '<p class="text-sm text-gray-400">Creating slots…</p>';
+
+      fetch('/seller/viewings/slots/recurring', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'hx-request': 'true',
+        },
+        body: JSON.stringify({ propertyId: propertyId, days: days }),
+      })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Server error');
+          return res.text();
+        })
+        .then(function (html) {
+          if (resultDiv) resultDiv.innerHTML = html;
+        })
+        .catch(function () {
+          if (resultDiv) resultDiv.innerHTML = '<p class="text-sm text-red-600">Something went wrong. Please try again.</p>';
+        });
+    });
+  }
 
   // Show server error under Add Slot button on failure; clear on success
   var addSlotErrorTimer = null;

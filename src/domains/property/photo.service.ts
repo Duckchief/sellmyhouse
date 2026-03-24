@@ -245,17 +245,24 @@ export async function reorderPhotos(
 
 // ─── Get Photos for Property ───────────────────────────────────────────────────
 
-export async function getPhotosForProperty(propertyId: string): Promise<PhotoRecord[]> {
+export async function getPhotosForProperty(
+  propertyId: string,
+): Promise<{ photos: PhotoRecord[]; photosDownloaded: boolean }> {
   const listing = await propertyRepo.findActiveListingForProperty(propertyId);
   if (!listing) {
-    return [];
+    return { photos: [], photosDownloaded: false };
   }
 
   const photos: PhotoRecord[] = listing.photos
-    ? (JSON.parse(listing.photos as string) as PhotoRecord[])
+    ? (JSON.parse(listing.photos as string) as PhotoRecord[]).sort(
+        (a, b) => a.displayOrder - b.displayOrder,
+      )
     : [];
 
-  return photos.sort((a, b) => a.displayOrder - b.displayOrder);
+  const photosDownloaded =
+    listing.photosApprovedAt !== null && listing.photosApprovedAt !== undefined && photos.length === 0;
+
+  return { photos, photosDownloaded };
 }
 
 // ─── Get Photo for Agent Review ────────────────────────────────────────────────

@@ -669,30 +669,64 @@ describe('photo.service', () => {
       const photo1 = makePhotoRecord({ id: 'photo-1', displayOrder: 2 });
       const photo2 = makePhotoRecord({ id: 'photo-2', displayOrder: 0 });
       const photo3 = makePhotoRecord({ id: 'photo-3', displayOrder: 1 });
-      const listing = makeListing([photo1, photo2, photo3]);
+      const listing = { ...makeListing([photo1, photo2, photo3]), photosApprovedAt: null };
       mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
 
       const result = await photoService.getPhotosForProperty('prop-1');
 
-      expect(result[0].id).toBe('photo-2');
-      expect(result[1].id).toBe('photo-3');
-      expect(result[2].id).toBe('photo-1');
+      expect(result.photos[0].id).toBe('photo-2');
+      expect(result.photos[1].id).toBe('photo-3');
+      expect(result.photos[2].id).toBe('photo-1');
+      expect(result.photosDownloaded).toBe(false);
     });
 
-    it('returns empty array when listing has no photos', async () => {
-      const listing = makeListing([]);
+    it('returns empty array and photosDownloaded false when listing has no photos', async () => {
+      const listing = { ...makeListing([]), photosApprovedAt: null };
       mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
 
       const result = await photoService.getPhotosForProperty('prop-1');
 
-      expect(result).toEqual([]);
+      expect(result.photos).toEqual([]);
+      expect(result.photosDownloaded).toBe(false);
     });
 
-    it('returns empty array when no active listing exists', async () => {
+    it('returns empty array and photosDownloaded false when no active listing exists', async () => {
       mockedRepo.findActiveListingForProperty.mockResolvedValue(null);
 
       const result = await photoService.getPhotosForProperty('bad-prop');
-      expect(result).toEqual([]);
+
+      expect(result.photos).toEqual([]);
+      expect(result.photosDownloaded).toBe(false);
+    });
+
+    it('returns photosDownloaded true when photosApprovedAt is set and photos is null', async () => {
+      const listing = {
+        id: 'listing-1',
+        propertyId: 'prop-1',
+        status: 'approved',
+        photos: null,
+        photosApprovedAt: new Date('2026-03-20'),
+      };
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
+
+      const result = await photoService.getPhotosForProperty('prop-1');
+
+      expect(result.photos).toEqual([]);
+      expect(result.photosDownloaded).toBe(true);
+    });
+
+    it('returns photosDownloaded false when photosApprovedAt is set but photos still exist', async () => {
+      const photo = makePhotoRecord({ displayOrder: 0 });
+      const listing = {
+        ...makeListing([photo]),
+        photosApprovedAt: new Date('2026-03-20'),
+      };
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
+
+      const result = await photoService.getPhotosForProperty('prop-1');
+
+      expect(result.photos).toHaveLength(1);
+      expect(result.photosDownloaded).toBe(false);
     });
   });
 });

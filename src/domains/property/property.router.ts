@@ -163,8 +163,8 @@ propertyRouter.get(
         throw new NotFoundError('Property', user.id);
       }
 
-      const photos = await photoService.getPhotosForProperty(property.id);
-      const templateData = { photos, photoCount: photos.length };
+      const { photos, photosDownloaded } = await photoService.getPhotosForProperty(property.id);
+      const templateData = { photos, photoCount: photos.length, photosDownloaded };
 
       if (req.headers['hx-request']) {
         return res.render('partials/seller/photo-grid', templateData);
@@ -201,7 +201,7 @@ propertyRouter.post(
       const validation = await photoService.validateImage(file.buffer, file.mimetype, file.size);
 
       if (!validation.valid) {
-        const photos = await photoService.getPhotosForProperty(property.id);
+        const { photos } = await photoService.getPhotosForProperty(property.id);
         return res.status(400).render('partials/seller/photo-grid', {
           photos,
           photoCount: photos.length,
@@ -321,7 +321,7 @@ propertyRouter.get(
       }
 
       const photoId = req.params['id'] as string;
-      const photos = await photoService.getPhotosForProperty(property.id);
+      const { photos } = await photoService.getPhotosForProperty(property.id);
       const photo = photos.find((p) => p.id === photoId);
 
       if (!photo) {

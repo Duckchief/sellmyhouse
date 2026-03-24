@@ -934,6 +934,32 @@
     new window.DatePickerCalendar(bulkEndEl, { displayId: 'bulk-end-display' });
   }
 
+  // ── Open House duration auto-correct ──────────────────
+  var recurringForm = document.getElementById('recurring-slots-form');
+  if (recurringForm) {
+    var slotTypeSelect = recurringForm.querySelector('[name="slotType"]');
+    var durationInput = recurringForm.querySelector('[name="slotDurationMinutes"]');
+    if (slotTypeSelect && durationInput) {
+      slotTypeSelect.addEventListener('change', function () {
+        if (slotTypeSelect.value === 'group') {
+          durationInput.value = '60';
+        } else {
+          durationInput.value = '10';
+        }
+      });
+    }
+
+    recurringForm.addEventListener('submit', function (e) {
+      var type = recurringForm.querySelector('[name="slotType"]').value;
+      var duration = parseInt(recurringForm.querySelector('[name="slotDurationMinutes"]').value, 10);
+      if (type === 'group' && duration < 30) {
+        e.preventDefault();
+        var guardModal = document.getElementById('open-house-duration-modal');
+        if (guardModal) guardModal.classList.remove('hidden');
+      }
+    });
+  }
+
   // ── Viewing time bounds validation (10:00–20:00) ────────
   document.body.addEventListener('change', function (e) {
     if (!e.target.classList.contains('viewing-time-input')) return;

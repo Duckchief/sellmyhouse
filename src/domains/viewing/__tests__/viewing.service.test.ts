@@ -981,6 +981,11 @@ describe('viewing.service', () => {
 
       expect(mockedRepo.deleteRecurringSchedule).toHaveBeenCalledWith('prop-1');
     });
+
+    it('throws NotFoundError if seller has no active property', async () => {
+      mockedPropertyService.getPropertyForSeller.mockResolvedValue(null as never);
+      await expect(viewingService.deleteSchedule('seller-1')).rejects.toThrow(NotFoundError);
+    });
   });
 
   describe('getMonthSlotMeta — with recurring schedule', () => {
@@ -1068,7 +1073,7 @@ describe('viewing.service', () => {
     it('includes virtual slots in merged list', async () => {
       const result = await viewingService.getSlotsForDate('prop-1', '2026-03-23', 'seller-1');
       // 18:00-19:00 single = 4 × 15-min sub-windows
-      expect(result.slots.length).toBeGreaterThanOrEqual(4);
+      expect(result.slots.length).toBe(4);
       // Virtual slots use rec: IDs
       expect(result.slots.some((s: { id: string }) => s.id.startsWith('rec:'))).toBe(true);
     });

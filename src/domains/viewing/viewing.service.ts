@@ -178,7 +178,7 @@ export async function createBulkSlots(input: CreateBulkSlotsInput, sellerId: str
 export async function saveSchedule(days: RecurringDayConfig[], sellerId: string) {
   const property = await propertyService.getPropertyForSeller(sellerId);
   if (!property) throw new NotFoundError('Property', sellerId);
-  const propertyId = (property as { id: string }).id;
+  const propertyId = property.id;
 
   return viewingRepo.upsertRecurringSchedule(propertyId, createId(), days);
 }
@@ -186,7 +186,7 @@ export async function saveSchedule(days: RecurringDayConfig[], sellerId: string)
 export async function deleteSchedule(sellerId: string) {
   const property = await propertyService.getPropertyForSeller(sellerId);
   if (!property) throw new NotFoundError('Property', sellerId);
-  const propertyId = (property as { id: string }).id;
+  const propertyId = property.id;
 
   return viewingRepo.deleteRecurringSchedule(propertyId);
 }
@@ -344,6 +344,9 @@ export async function initiateBooking(
     const parts = input.slotId.split(':');
     // Format: rec:YYYY-MM-DD:HH:MM:HH:MM
     // split(':') yields: ["rec", "2026-03-23", "18", "00", "18", "15"]
+    if (parts.length !== 6) {
+      throw new ValidationError('Invalid recurring slot ID format');
+    }
     const dateStr = parts[1];
     const startTime = `${parts[2]}:${parts[3]}`;
     const endTime = `${parts[4]}:${parts[5]}`;
@@ -1180,7 +1183,9 @@ export async function getPublicBookingPage(slug: string) {
     }
   }
 
-  // Public page only shows available or booked (not full)
+  // 'booked' slots are included because group slots accept multiple bookings
+  // while in 'booked' state (not yet 'full'). Single-slot 'booked' entries
+  // prevent double-booking at the DB layer via currentBookings check.
   const availableSlots = merged.filter(
     (s) => s.status === 'available' || s.status === 'booked',
   );

@@ -297,6 +297,121 @@ describe('agent.service', () => {
       expect(result.property?.listing?.photosApprovedAt).toEqual(new Date('2026-03-01'));
       expect(result.property?.listing?.descriptionApprovedAt).toEqual(new Date('2026-03-01'));
     });
+
+    it('returns photoCount as null when listing.photos is null', async () => {
+      mockRepo.getSellerDetail.mockResolvedValue({
+        id: 'seller-1',
+        name: 'John Tan',
+        email: null,
+        phone: '91234567',
+        countryCode: '+65',
+        nationalNumber: '91234567',
+        emailVerified: true,
+        passwordHash: 'hash',
+        sellingTimeline: null,
+        sellingReason: null,
+        sellingReasonOther: null,
+        status: 'active',
+        leadSource: null,
+        agentId: 'agent-1',
+        onboardingStep: 5,
+        consentService: true,
+        consentMarketing: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        saleProceeds: null,
+        properties: [
+          {
+            id: 'prop-1',
+            town: 'TAMPINES',
+            street: 'TAMPINES ST 21',
+            block: '123',
+            flatType: '4 ROOM',
+            level: '07',
+            unitNumber: '123',
+            floorAreaSqm: 93,
+            leaseCommenceDate: 1995,
+            askingPrice: null,
+            priceHistory: null,
+            status: 'active',
+            listings: [
+              {
+                id: 'listing-1',
+                status: 'approved',
+                title: 'Great flat',
+                description: 'Nice place',
+                photos: null,
+                photosApprovedAt: null,
+                descriptionApprovedAt: null,
+                portalListings: [],
+              },
+            ],
+          },
+        ],
+      } as unknown as Awaited<ReturnType<typeof agentRepo.getSellerDetail>>);
+
+      const result = await agentService.getSellerDetail('seller-1', 'agent-1');
+
+      expect(result.property?.listing?.photoCount).toBeNull();
+      expect(result.property?.listing?.portalsPostedCount).toBe(0);
+    });
+
+    it('returns photoCount as null when listing.photos is invalid JSON', async () => {
+      mockRepo.getSellerDetail.mockResolvedValue({
+        id: 'seller-1',
+        name: 'John Tan',
+        email: null,
+        phone: '91234567',
+        countryCode: '+65',
+        nationalNumber: '91234567',
+        emailVerified: true,
+        passwordHash: 'hash',
+        sellingTimeline: null,
+        sellingReason: null,
+        sellingReasonOther: null,
+        status: 'active',
+        leadSource: null,
+        agentId: 'agent-1',
+        onboardingStep: 5,
+        consentService: true,
+        consentMarketing: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        saleProceeds: null,
+        properties: [
+          {
+            id: 'prop-1',
+            town: 'TAMPINES',
+            street: 'TAMPINES ST 21',
+            block: '123',
+            flatType: '4 ROOM',
+            level: '07',
+            unitNumber: '123',
+            floorAreaSqm: 93,
+            leaseCommenceDate: 1995,
+            askingPrice: null,
+            priceHistory: null,
+            status: 'active',
+            listings: [
+              {
+                id: 'listing-1',
+                status: 'approved',
+                title: 'Great flat',
+                description: 'Nice place',
+                photos: 'not-valid-json{{{',
+                photosApprovedAt: new Date('2026-03-01'),
+                descriptionApprovedAt: null,
+                portalListings: [],
+              },
+            ],
+          },
+        ],
+      } as unknown as Awaited<ReturnType<typeof agentRepo.getSellerDetail>>);
+
+      const result = await agentService.getSellerDetail('seller-1', 'agent-1');
+
+      expect(result.property?.listing?.photoCount).toBeNull();
+    });
   });
 
   describe('getComplianceStatus', () => {

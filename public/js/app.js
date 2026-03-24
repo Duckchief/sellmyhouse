@@ -439,6 +439,52 @@
       if (form) form.requestSubmit();
     }
 
+    // Photo upload area: drag-and-drop onto #drop-zone
+    var dropZone = document.getElementById('drop-zone');
+    if (dropZone) {
+      var dragCounter = 0;
+
+      dropZone.addEventListener('dragenter', function (e) {
+        e.preventDefault();
+        dragCounter++;
+        dropZone.classList.add('border-blue-500', 'bg-blue-50');
+        dropZone.classList.remove('border-gray-300');
+      });
+
+      dropZone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      dropZone.addEventListener('dragleave', function () {
+        dragCounter--;
+        if (dragCounter <= 0) {
+          dragCounter = 0;
+          dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+          dropZone.classList.add('border-gray-300');
+        }
+      });
+
+      dropZone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        dragCounter = 0;
+        dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+        dropZone.classList.add('border-gray-300');
+
+        var file = e.dataTransfer.files[0];
+        if (!file) return;
+
+        var input = document.getElementById('photo-input');
+        var form = document.getElementById('photo-upload-form');
+        if (!input || !form) return;
+
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        form.requestSubmit();
+      });
+    }
+
     // Viewing booking: show/hide agent-only fields based on viewer type selection
     if (action === 'toggle-agent-fields') {
       var agentFields = document.getElementById('agent-fields');

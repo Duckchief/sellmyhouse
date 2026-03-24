@@ -85,7 +85,10 @@ export async function countPortalsReady(agentId?: string): Promise<number> {
       descriptionApprovedAt: { not: null },
       photos: { not: Prisma.JsonNull },
       ...(agentId ? { property: { seller: { agentId } } } : {}),
-      portalListings: { some: { status: { not: 'posted' as never } } },
+      OR: [
+        { portalListings: { none: {} } }, // no portal listings at all — needs action
+        { portalListings: { some: { status: { not: 'posted' as never } } } }, // at least one not posted
+      ],
     },
   });
 }
@@ -93,7 +96,7 @@ export async function countPortalsReady(agentId?: string): Promise<number> {
 export async function findListingsForPortalIndex(agentId?: string) {
   return prisma.listing.findMany({
     where: {
-      status: { notIn: ['archived', 'rejected'] as never[] },
+      status: { in: ['approved', 'live', 'paused'] as never[] },
       OR: [
         { photos: { not: Prisma.JsonNull } },
         { photosApprovedAt: { not: null } },

@@ -1173,4 +1173,21 @@ describe('viewing.service', () => {
       );
     });
   });
+
+  describe('getLastUpcomingSlotDate', () => {
+    it('returns the date of the last upcoming slot', async () => {
+      const mockDate = new Date('2026-04-15');
+      mockedRepo.findLastUpcomingSlot.mockResolvedValue({ id: 'slot-1', date: mockDate } as never);
+
+      const result = await viewingService.getLastUpcomingSlotDate('prop-1');
+      expect(result).toEqual(mockDate);
+    });
+
+    it('returns null when no upcoming slots', async () => {
+      mockedRepo.findLastUpcomingSlot.mockResolvedValue(null);
+
+      const result = await viewingService.getLastUpcomingSlotDate('prop-1');
+      expect(result).toBeNull();
+    });
+  });
 });

@@ -500,8 +500,8 @@
           form.requestSubmit();
         }
 
-        function onAfterRequest() {
-          if (uploadQueue.length === 0) {
+        function onAfterRequest(e) {
+          if (uploadQueue.length === 0 || !e.detail.successful) {
             form.removeEventListener('htmx:afterRequest', onAfterRequest);
             return;
           }

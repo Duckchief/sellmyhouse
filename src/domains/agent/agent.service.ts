@@ -139,6 +139,20 @@ export async function getSellerDetail(sellerId: string, agentId?: string): Promi
                 status: property.listings[0].status,
                 title: property.listings[0].title,
                 description: property.listings[0].description,
+                photosApprovedAt: property.listings[0].photosApprovedAt,
+                descriptionApprovedAt: property.listings[0].descriptionApprovedAt,
+                photoCount: (() => {
+                  if (!property.listings[0].photos) return null;
+                  try {
+                    const parsed = JSON.parse(property.listings[0].photos as string);
+                    return Array.isArray(parsed) ? parsed.length : null;
+                  } catch {
+                    return null;
+                  }
+                })(),
+                portalsPostedCount: property.listings[0].portalListings.filter(
+                  (pl) => pl.status === 'posted',
+                ).length,
               }
             : null,
         }

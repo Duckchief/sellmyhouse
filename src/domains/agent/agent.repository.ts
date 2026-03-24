@@ -263,7 +263,20 @@ export async function getSellerDetail(sellerId: string, agentId?: string) {
       properties: {
         take: 1,
         include: {
-          listings: { take: 1, orderBy: { createdAt: 'desc' } },
+          listings: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              status: true,
+              title: true,
+              description: true,
+              photos: true,
+              photosApprovedAt: true,
+              descriptionApprovedAt: true,
+              portalListings: { select: { id: true, status: true } },
+            },
+          },
         },
       },
     },

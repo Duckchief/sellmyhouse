@@ -135,6 +135,10 @@ export interface SellerDetail {
       status: string;
       title: string | null;
       description: string | null;
+      photosApprovedAt: Date | null;
+      descriptionApprovedAt: Date | null;
+      photoCount: number | null;
+      portalsPostedCount: number;
     } | null;
   } | null;
 }

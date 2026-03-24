@@ -72,6 +72,19 @@ viewingRouter.get(
           totalSlots,
         });
       }
+
+      let lastSlotDate: Date | null = null;
+      let daysUntilExpiry: number | null = null;
+      if (propertyId) {
+        lastSlotDate = await viewingService.getLastUpcomingSlotDate(propertyId);
+        if (lastSlotDate) {
+          const msPerDay = 1000 * 60 * 60 * 24;
+          daysUntilExpiry = Math.ceil(
+            (lastSlotDate.getTime() - Date.now()) / msPerDay,
+          );
+        }
+      }
+
       return res.render('pages/seller/viewings', {
         stats,
         slots,
@@ -80,6 +93,8 @@ viewingRouter.get(
         page,
         hasMore,
         totalSlots,
+        lastSlotDate,
+        daysUntilExpiry,
       });
     } catch (err) {
       next(err);

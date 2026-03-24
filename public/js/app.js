@@ -439,7 +439,20 @@
       if (form) form.requestSubmit();
     }
 
-    // Photo upload area: drag-and-drop onto #drop-zone
+    // Viewing booking: show/hide agent-only fields based on viewer type selection
+    if (action === 'toggle-agent-fields') {
+      var agentFields = document.getElementById('agent-fields');
+      if (!agentFields) return;
+      if (el.dataset.show === 'true') {
+        agentFields.classList.remove('hidden');
+      } else {
+        agentFields.classList.add('hidden');
+      }
+    }
+  });
+
+  // ── Photo upload area: drag-and-drop onto #drop-zone (one-time init) ──
+  (function () {
     var dropZone = document.getElementById('drop-zone');
     if (dropZone) {
       var dragCounter = 0;
@@ -484,18 +497,7 @@
         form.requestSubmit();
       });
     }
-
-    // Viewing booking: show/hide agent-only fields based on viewer type selection
-    if (action === 'toggle-agent-fields') {
-      var agentFields = document.getElementById('agent-fields');
-      if (!agentFields) return;
-      if (el.dataset.show === 'true') {
-        agentFields.classList.remove('hidden');
-      } else {
-        agentFields.classList.add('hidden');
-      }
-    }
-  });
+  })();
 
   // ── Submit event delegation ────────────────────────────────────
   document.addEventListener('submit', function (e) {

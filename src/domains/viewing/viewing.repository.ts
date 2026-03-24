@@ -119,6 +119,39 @@ export async function findActiveSlotsByPropertyId(propertyId: string) {
   });
 }
 
+export async function findLastUpcomingSlot(propertyId: string) {
+  return prisma.viewingSlot.findFirst({
+    where: {
+      propertyId,
+      status: { not: 'cancelled' as SlotStatus },
+      date: { gte: new Date() },
+    },
+    orderBy: { date: 'desc' },
+  });
+}
+
+export async function findActiveSlotsByDateRange(
+  propertyId: string,
+  startDate: Date,
+  endDate: Date,
+) {
+  return prisma.viewingSlot.findMany({
+    where: {
+      propertyId,
+      status: { in: ['available', 'booked', 'full'] as SlotStatus[] },
+      date: { gte: startDate, lte: endDate },
+    },
+    select: {
+      id: true,
+      date: true,
+      startTime: true,
+      endTime: true,
+      status: true,
+    },
+    orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+  });
+}
+
 export async function cancelSlotAndViewings(slotId: string) {
   return prisma.$transaction(async (tx) => {
     // Cancel all viewings for this slot

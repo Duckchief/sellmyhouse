@@ -108,6 +108,25 @@ portalRouter.post(
   },
 );
 
+// POST /agent/listings/:listingId/photos/reinstate — reinstate seller photo upload
+portalRouter.post(
+  '/agent/listings/:listingId/photos/reinstate',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const { listingId } = req.params as { listingId: string };
+
+      await portalService.reinstatePhotoUpload(listingId, user.id, user.role);
+
+      const listingData = await portalService.getListingForPortalsPage(listingId, user.id, user.role);
+      res.render('partials/agent/portal-photos', { listingData });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // GET /agent/listings/:listingId/photos/:photoId — agent views a listing photo (auth-gated, ownership-checked)
 portalRouter.get(
   '/agent/listings/:listingId/photos/:photoId',

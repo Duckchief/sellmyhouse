@@ -143,3 +143,10 @@ export async function clearListingPhotos(listingId: string) {
     data: { photos: Prisma.JsonNull },
   });
 }
+
+export async function reinstateListingPhotos(listingId: string) {
+  return prisma.listing.update({
+    where: { id: listingId },
+    data: { photosApprovedAt: null },
+  });
+}

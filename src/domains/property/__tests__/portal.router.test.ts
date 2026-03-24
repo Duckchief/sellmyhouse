@@ -98,4 +98,40 @@ describe('portal.router', () => {
       expect(res.status).toBe(400);
     });
   });
+
+  describe('POST /agent/listings/:listingId/photos/reinstate', () => {
+    it('returns 200 and re-renders portal-photos partial on success', async () => {
+      mockPortalService.reinstatePhotoUpload.mockResolvedValue(undefined);
+      mockPortalService.getListingForPortalsPage.mockResolvedValue({
+        id: 'listing-1',
+        photos: [],
+        photosApprovedAt: null,
+      } as never);
+
+      const res = await request(app).post('/agent/listings/listing-1/photos/reinstate');
+
+      expect(res.status).toBe(200);
+      expect(mockPortalService.reinstatePhotoUpload).toHaveBeenCalledWith(
+        'listing-1',
+        'agent-1',
+        'agent',
+      );
+      expect(mockPortalService.getListingForPortalsPage).toHaveBeenCalledWith(
+        'listing-1',
+        'agent-1',
+        'agent',
+      );
+    });
+
+    it('returns 403 when agent does not own the listing', async () => {
+      const { ForbiddenError } = await import('@/domains/shared/errors');
+      mockPortalService.reinstatePhotoUpload.mockRejectedValue(
+        new ForbiddenError('You are not authorised to manage this listing'),
+      );
+
+      const res = await request(app).post('/agent/listings/listing-1/photos/reinstate');
+
+      expect(res.status).toBe(403);
+    });
+  });
 });

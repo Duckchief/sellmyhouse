@@ -382,4 +382,56 @@ describe('portal.service', () => {
       expect(mockPortalRepo.clearListingPhotos).toHaveBeenCalledWith('listing-1'); // DB cleared
     });
   });
+
+  // ─── reinstatePhotoUpload ────────────────────────────────────────────────────
+
+  describe('reinstatePhotoUpload', () => {
+    beforeEach(() => {
+      mockPortalRepo.reinstateListingPhotos = jest.fn().mockResolvedValue({} as never);
+    });
+
+    it('calls reinstateListingPhotos and writes audit log', async () => {
+      mockPortalRepo.findListingById = jest.fn().mockResolvedValue({
+        id: 'listing-1',
+        photos: null,
+        photosApprovedAt: new Date(),
+        property: { seller: { agentId: 'agent-1' } },
+      });
+
+      await portalService.reinstatePhotoUpload('listing-1', 'agent-1', 'agent');
+
+      expect(mockPortalRepo.reinstateListingPhotos).toHaveBeenCalledWith('listing-1');
+      expect(mockAudit.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'listing_photos.upload_reinstated' }),
+      );
+    });
+
+    it('throws ForbiddenError when agent does not own the listing', async () => {
+      mockPortalRepo.findListingById = jest.fn().mockResolvedValue({
+        id: 'listing-1',
+        photos: null,
+        photosApprovedAt: new Date(),
+        property: { seller: { agentId: 'agent-2' } },
+      });
+
+      await expect(
+        portalService.reinstatePhotoUpload('listing-1', 'agent-1', 'agent'),
+      ).rejects.toThrow(ForbiddenError);
+
+      expect(mockPortalRepo.reinstateListingPhotos).not.toHaveBeenCalled();
+    });
+
+    it('allows admin to reinstate for any listing', async () => {
+      mockPortalRepo.findListingById = jest.fn().mockResolvedValue({
+        id: 'listing-1',
+        photos: null,
+        photosApprovedAt: new Date(),
+        property: { seller: { agentId: 'agent-2' } },
+      });
+
+      await portalService.reinstatePhotoUpload('listing-1', 'admin-1', 'admin');
+
+      expect(mockPortalRepo.reinstateListingPhotos).toHaveBeenCalledWith('listing-1');
+    });
+  });
 });

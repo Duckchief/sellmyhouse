@@ -211,3 +211,29 @@ export async function downloadAndDeletePhotos(
   await deletePhotosFromListing(listingId, photos, callerAgentId);
   return { files };
 }
+
+export async function reinstatePhotoUpload(
+  listingId: string,
+  callerAgentId: string,
+  callerRole: string,
+): Promise<void> {
+  const listing = await portalRepo.findListingById(listingId);
+  if (!listing) throw new NotFoundError('Listing', listingId);
+
+  if (callerRole !== 'admin') {
+    const assignedAgentId = listing.property?.seller?.agentId ?? null;
+    if (assignedAgentId !== callerAgentId) {
+      throw new ForbiddenError('You are not authorised to manage this listing');
+    }
+  }
+
+  await portalRepo.reinstateListingPhotos(listingId);
+
+  await auditService.log({
+    agentId: callerAgentId,
+    action: 'listing_photos.upload_reinstated',
+    entityType: 'listing',
+    entityId: listingId,
+    details: {},
+  });
+}

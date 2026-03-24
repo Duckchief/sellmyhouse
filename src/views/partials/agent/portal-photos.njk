@@ -11,6 +11,16 @@
   {% if listingData.photosApprovedAt and listingData.photos | length == 0 %}
   {# Downloaded state: photosApprovedAt set but photos deleted from DB #}
   <p class="text-sm text-gray-500 italic">{{ "Photos have been downloaded and deleted." | t }}</p>
+  <form hx-post="/agent/listings/{{ listingData.id }}/photos/reinstate"
+        hx-target="#portal-photos-panel"
+        hx-swap="outerHTML"
+        class="mt-3">
+    <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+    <button type="submit"
+            class="w-full bg-white border border-gray-300 text-gray-700 py-2 rounded text-sm hover:bg-gray-50">
+      {{ "↩ Reinstate seller photo upload" | t }}
+    </button>
+  </form>
 
   {% elif listingData.photos | length > 0 %}
   {# Photos present — show thumbnails and download button #}

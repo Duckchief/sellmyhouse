@@ -433,5 +433,15 @@ describe('portal.service', () => {
 
       expect(mockPortalRepo.reinstateListingPhotos).toHaveBeenCalledWith('listing-1');
     });
+
+    it('throws NotFoundError when listing does not exist', async () => {
+      mockPortalRepo.findListingById = jest.fn().mockResolvedValue(null);
+
+      await expect(
+        portalService.reinstatePhotoUpload('nonexistent-id', 'agent-1', 'agent'),
+      ).rejects.toThrow(NotFoundError);
+
+      expect(mockPortalRepo.reinstateListingPhotos).not.toHaveBeenCalled();
+    });
   });
 });

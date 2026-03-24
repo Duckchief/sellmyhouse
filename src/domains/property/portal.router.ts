@@ -119,6 +119,8 @@ portalRouter.post(
 
       await portalService.reinstatePhotoUpload(listingId, user.id, user.role);
 
+      // Re-fetch via getListingForPortalsPage to get the updated photosApprovedAt=null state.
+      // This performs a second ownership check, which is redundant but harmless.
       const listingData = await portalService.getListingForPortalsPage(listingId, user.id, user.role);
       res.render('partials/agent/portal-photos', { listingData });
     } catch (err) {

@@ -142,11 +142,11 @@ export async function getListingForPortalsPage(
   return { id: listing.id, photos, photosApprovedAt: listing.photosApprovedAt };
 }
 
-export async function downloadAndDeletePhotos(
+export async function readPhotosForDownload(
   listingId: string,
   callerAgentId: string,
   callerRole: string,
-): Promise<{ files: { buffer: Buffer; filename: string }[] }> {
+): Promise<{ files: { buffer: Buffer; filename: string }[]; photos: PhotoRecord[] }> {
   const listing = await portalRepo.findListingById(listingId);
   if (!listing) throw new NotFoundError('Listing', listingId);
 
@@ -169,7 +169,6 @@ export async function downloadAndDeletePhotos(
   if (photos.length === 0) throw new NotFoundError('Photos', listingId);
 
   const files: { buffer: Buffer; filename: string }[] = [];
-
   for (const photo of photos) {
     try {
       const buffer = await localStorage.read(photo.optimizedPath);
@@ -179,6 +178,14 @@ export async function downloadAndDeletePhotos(
     }
   }
 
+  return { files, photos };
+}
+
+export async function deletePhotosFromListing(
+  listingId: string,
+  photos: PhotoRecord[],
+  callerAgentId: string,
+): Promise<void> {
   for (const photo of photos) {
     await localStorage.delete(photo.optimizedPath);
     await localStorage.delete(photo.path);
@@ -193,6 +200,14 @@ export async function downloadAndDeletePhotos(
     entityId: listingId,
     details: { photoCount: photos.length },
   });
+}
 
+export async function downloadAndDeletePhotos(
+  listingId: string,
+  callerAgentId: string,
+  callerRole: string,
+): Promise<{ files: { buffer: Buffer; filename: string }[] }> {
+  const { files, photos } = await readPhotosForDownload(listingId, callerAgentId, callerRole);
+  await deletePhotosFromListing(listingId, photos, callerAgentId);
   return { files };
 }

@@ -82,7 +82,7 @@ portalRouter.post(
       const user = req.user as AuthenticatedUser;
       const { listingId } = req.params as { listingId: string };
 
-      const { files } = await portalService.downloadAndDeletePhotos(
+      const { files, photos } = await portalService.readPhotosForDownload(
         listingId,
         user.id,
         user.role,
@@ -99,6 +99,9 @@ portalRouter.post(
         archive.append(file.buffer, { name: file.filename });
       }
       await archive.finalize();
+
+      // Delete photos from disk and DB only after ZIP has been fully streamed
+      await portalService.deletePhotosFromListing(listingId, photos, user.id);
     } catch (err) {
       next(err);
     }

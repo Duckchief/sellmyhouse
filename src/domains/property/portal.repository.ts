@@ -96,7 +96,7 @@ export async function countPortalsReady(agentId?: string): Promise<number> {
 export async function findListingsForPortalIndex(agentId?: string) {
   return prisma.listing.findMany({
     where: {
-      status: { in: ['approved', 'live', 'paused'] as never[] },
+      status: { in: ['pending_review', 'approved', 'live', 'paused'] as never[] },
       OR: [
         { photos: { not: Prisma.JsonNull } },
         { photosApprovedAt: { not: null } },

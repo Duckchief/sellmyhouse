@@ -1132,7 +1132,7 @@ export async function getPublicBookingPage(slug: string) {
   const property = await viewingRepo.findPropertyBySlug(slug);
   if (!property) return null;
 
-  const propertyId = (property as { id: string }).id;
+  const propertyId = property.id;
   const now = new Date();
   const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 

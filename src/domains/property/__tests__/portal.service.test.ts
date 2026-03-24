@@ -365,5 +365,21 @@ describe('portal.service', () => {
       const result = await portalService.downloadAndDeletePhotos('listing-1', 'admin-1', 'admin');
       expect(result.files).toHaveLength(1);
     });
+
+    it('proceeds with deletion and DB clear even if a photo file is missing from disk', async () => {
+      mockPortalRepo.findListingById.mockResolvedValue({
+        id: 'listing-1',
+        photos: JSON.stringify(photos),
+        photosApprovedAt: new Date(),
+        property: { seller: { agentId: 'agent-1' } },
+      });
+      mockedStorage.read.mockRejectedValue(new Error('File not found'));
+
+      const result = await portalService.downloadAndDeletePhotos('listing-1', 'agent-1', 'agent');
+
+      expect(result.files).toHaveLength(0); // read failed, no buffers
+      expect(mockedStorage.delete).toHaveBeenCalled(); // but deletes still ran
+      expect(mockPortalRepo.clearListingPhotos).toHaveBeenCalledWith('listing-1'); // DB cleared
+    });
   });
 });

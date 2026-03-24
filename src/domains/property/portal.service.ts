@@ -159,12 +159,24 @@ export async function downloadAndDeletePhotos(
 
   if (!listing.photos) throw new NotFoundError('Photos', listingId);
 
-  const photos = JSON.parse(listing.photos as string) as PhotoRecord[];
+  let photos: PhotoRecord[];
+  try {
+    const parsed = JSON.parse(listing.photos as string);
+    photos = Array.isArray(parsed) ? (parsed as PhotoRecord[]) : [];
+  } catch {
+    photos = [];
+  }
+  if (photos.length === 0) throw new NotFoundError('Photos', listingId);
+
   const files: { buffer: Buffer; filename: string }[] = [];
 
   for (const photo of photos) {
-    const buffer = await localStorage.read(photo.optimizedPath);
-    files.push({ buffer, filename: `photo-${photo.displayOrder + 1}-${photo.id}.jpg` });
+    try {
+      const buffer = await localStorage.read(photo.optimizedPath);
+      files.push({ buffer, filename: `photo-${photo.displayOrder + 1}-${photo.id}.jpg` });
+    } catch {
+      // File missing from disk — still proceed with cleanup
+    }
   }
 
   for (const photo of photos) {

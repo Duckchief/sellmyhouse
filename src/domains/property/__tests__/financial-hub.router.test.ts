@@ -147,9 +147,13 @@ describe('POST /seller/financial/estimate', () => {
         cpfSeller1: '50000',
         resaleLevy: '0',
         otherDeductions: '0',
+        buyerDeposit: '3000',
       });
 
     expect(res.status).toBe(200);
+    expect(mockedSellerService.saveSaleProceeds).toHaveBeenCalledWith(
+      expect.objectContaining({ buyerDeposit: 3000 }),
+    );
     expect(mockedSellerService.saveSaleProceeds).toHaveBeenCalled();
   });
 
@@ -158,6 +162,22 @@ describe('POST /seller/financial/estimate', () => {
       .post('/seller/financial/estimate')
       .set('HX-Request', 'true')
       .send({ sellingPrice: '500000' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when buyer deposit exceeds $5000', async () => {
+    const res = await request(app)
+      .post('/seller/financial/estimate')
+      .set('HX-Request', 'true')
+      .send({
+        sellingPrice: '500000',
+        outstandingLoan: '200000',
+        cpfSeller1: '50000',
+        resaleLevy: '0',
+        otherDeductions: '0',
+        buyerDeposit: '9999',
+      });
 
     expect(res.status).toBe(400);
   });

@@ -142,12 +142,22 @@ financialRouter.post(
         cpfSeller4,
         resaleLevy,
         otherDeductions,
+        buyerDeposit: buyerDepositRaw,
       } = req.body;
 
       if (!sellingPrice || !outstandingLoan || !cpfSeller1) {
         const commission = await settingsService.getCommission();
         return res.status(400).render('partials/seller/financial-estimate-edit', {
           error: 'Selling price, outstanding loan, and CPF (Seller 1) are required.',
+          commission,
+        });
+      }
+
+      const buyerDeposit = parseFloat(buyerDepositRaw || '0');
+      if (isNaN(buyerDeposit) || buyerDeposit < 0 || buyerDeposit > 5000) {
+        const commission = await settingsService.getCommission();
+        return res.status(400).render('partials/seller/financial-estimate-edit', {
+          error: 'Buyer deposit must be between $0 and $5,000.',
           commission,
         });
       }
@@ -164,6 +174,7 @@ financialRouter.post(
         cpfSeller4: cpfSeller4 ? parseFloat(cpfSeller4) : undefined,
         resaleLevy: parseFloat(resaleLevy || '0'),
         otherDeductions: parseFloat(otherDeductions || '0'),
+        buyerDeposit,
         commission: commission.total,
       });
 

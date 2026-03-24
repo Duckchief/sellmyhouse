@@ -21,6 +21,7 @@ Three UI additions that close the gap:
 - New "Portals" entry in the agent sidebar, positioned after "Reviews".
 - Badge shows count of listings where both `photosApprovedAt` and `descriptionApprovedAt` are set, `photos` is not null (i.e. not yet downloaded), and at least one portal listing is not `posted`.
 - Admin sees all listings; agent sees only their assigned listings (existing `agentFilter` pattern).
+- **Badge population:** The badge count (`portalsReadyCount`) is injected into `res.locals` by a new small middleware applied to the agent router — identical in structure to how `cspNonce` and the CSRF token are injected globally. This ensures the badge is visible on every agent page (dashboard, sellers, seller-detail, portals, etc.) without updating each individual route handler. The middleware calls `portalService.getPortalsReadyCount(agentFilter)` — a lightweight count query. The `agentFilter` is derived from `req.user` inside the middleware.
 
 ### Portals index page (`GET /agent/portals`)
 - Table of active listings: seller name, property address, photos status, description status, portals progress (X/3 posted), "Open →" link to `/agent/listings/:listingId/portals`.
@@ -81,9 +82,15 @@ listing: property.listings[0]
       description: property.listings[0].description,
       photosApprovedAt: property.listings[0].photosApprovedAt,
       descriptionApprovedAt: property.listings[0].descriptionApprovedAt,
-      photoCount: property.listings[0].photos
-        ? (JSON.parse(property.listings[0].photos as string) as unknown[]).length
-        : null,
+      photoCount: (() => {
+        if (!property.listings[0].photos) return null;
+        try {
+          const parsed = JSON.parse(property.listings[0].photos as string);
+          return Array.isArray(parsed) ? parsed.length : null;
+        } catch {
+          return null;
+        }
+      })(),
       portalsPostedCount: property.listings[0].portalListings.filter(
         (pl) => pl.status === 'posted',
       ).length,
@@ -108,6 +115,9 @@ Response: application/zip — attachment; filename="photos-{listingId}.zip"
 ```
 
 ## New Service Functions
+
+### `portal.service.ts` — `getPortalsReadyCount(agentId?: string): Promise<number>`
+Lightweight count query: listings where `photosApprovedAt IS NOT NULL` AND `descriptionApprovedAt IS NOT NULL` AND `photos IS NOT NULL` AND at least one `portalListing.status != 'posted'`. Used by the sidebar badge middleware.
 
 ### `portal.service.ts` — `getPortalIndex(agentId?: string)`
 Queries all listings (filtered by agent) with photos or description pending/approved. Returns shaped data for the index table.
@@ -136,6 +146,7 @@ The router streams the ZIP using `archiver` (already imported) — same pattern 
 | Modify | `src/views/pages/agent/seller-detail.njk` |
 | Modify | `src/domains/property/portal.router.ts` |
 | Modify | `src/domains/property/portal.service.ts` |
+| Create | `src/infra/http/middleware/portals-badge.ts` |
 | Modify | `src/domains/agent/agent.repository.ts` |
 | Modify | `src/domains/agent/agent.service.ts` |
 

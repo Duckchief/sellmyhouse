@@ -167,7 +167,7 @@ propertyRouter.get(
       const templateData = { photos, photoCount: photos.length, photosDownloaded };
 
       if (req.headers['hx-request']) {
-        return res.render('partials/seller/photo-grid', templateData);
+        return res.render('partials/seller/photo-page-body', templateData);
       }
       res.render('pages/seller/photos', templateData);
     } catch (err) {

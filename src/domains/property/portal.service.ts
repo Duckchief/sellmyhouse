@@ -5,6 +5,7 @@ import * as auditService from '@/domains/shared/audit.service';
 import { formatForPortal } from './portal.formatter';
 import { NotFoundError, ForbiddenError } from '@/domains/shared/errors';
 import type { PhotoRecord } from './property.types';
+import { localStorage } from '@/infra/storage/local-storage';
 
 const PORTALS = ['propertyguru', 'ninety_nine_co', 'srx'] as const;
 
@@ -139,4 +140,47 @@ export async function getListingForPortalsPage(
     : [];
 
   return { id: listing.id, photos, photosApprovedAt: listing.photosApprovedAt };
+}
+
+export async function downloadAndDeletePhotos(
+  listingId: string,
+  callerAgentId: string,
+  callerRole: string,
+): Promise<{ files: { buffer: Buffer; filename: string }[] }> {
+  const listing = await portalRepo.findListingById(listingId);
+  if (!listing) throw new NotFoundError('Listing', listingId);
+
+  if (callerRole !== 'admin') {
+    const assignedAgentId = listing.property?.seller?.agentId ?? null;
+    if (assignedAgentId !== callerAgentId) {
+      throw new ForbiddenError('You are not authorised to manage this listing');
+    }
+  }
+
+  if (!listing.photos) throw new NotFoundError('Photos', listingId);
+
+  const photos = JSON.parse(listing.photos as string) as PhotoRecord[];
+  const files: { buffer: Buffer; filename: string }[] = [];
+
+  for (const photo of photos) {
+    const buffer = await localStorage.read(photo.optimizedPath);
+    files.push({ buffer, filename: `photo-${photo.displayOrder + 1}-${photo.id}.jpg` });
+  }
+
+  for (const photo of photos) {
+    await localStorage.delete(photo.optimizedPath);
+    await localStorage.delete(photo.path);
+  }
+
+  await portalRepo.clearListingPhotos(listingId);
+
+  await auditService.log({
+    agentId: callerAgentId,
+    action: 'listing_photos.downloaded_and_deleted',
+    entityType: 'listing',
+    entityId: listingId,
+    details: { photoCount: photos.length },
+  });
+
+  return { files };
 }

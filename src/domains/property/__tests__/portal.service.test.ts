@@ -9,6 +9,18 @@ jest.mock('../portal.repository');
 jest.mock('@/domains/shared/settings.service');
 jest.mock('@/domains/shared/audit.service');
 
+import { localStorage } from '../../../infra/storage/local-storage';
+
+jest.mock('../../../infra/storage/local-storage', () => ({
+  localStorage: {
+    read: jest.fn().mockResolvedValue(Buffer.from('img-data')),
+    delete: jest.fn().mockResolvedValue(undefined),
+    save: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+const mockedStorage = jest.mocked(localStorage);
+
 const mockPortalRepo = jest.mocked(portalRepo);
 const mockSettings = jest.mocked(settingsService);
 const mockAudit = jest.mocked(auditService);
@@ -255,6 +267,103 @@ describe('portal.service', () => {
 
       const result = await portalService.getListingForPortalsPage('listing-1', 'admin-1', 'admin');
       expect(result.photos).toHaveLength(0);
+    });
+  });
+
+  describe('downloadAndDeletePhotos', () => {
+    const photos = [
+      {
+        id: 'p1',
+        displayOrder: 0,
+        filename: 'p1.jpg',
+        originalFilename: 'living-room.jpg',
+        path: 'photos/s1/prop1/original/p1.jpg',
+        optimizedPath: 'photos/s1/prop1/optimized/p1.jpg',
+        mimeType: 'image/jpeg',
+        sizeBytes: 100000,
+        width: 1200,
+        height: 800,
+        status: 'approved',
+        uploadedAt: new Date(),
+      },
+    ];
+
+    beforeEach(() => {
+      mockPortalRepo.findListingById = jest.fn();
+      mockPortalRepo.clearListingPhotos = jest.fn().mockResolvedValue({} as never);
+      mockedStorage.read.mockResolvedValue(Buffer.from('img-data'));
+      mockedStorage.delete.mockResolvedValue(undefined);
+    });
+
+    it('returns file buffers and deletes both optimized and original paths', async () => {
+      mockPortalRepo.findListingById.mockResolvedValue({
+        id: 'listing-1',
+        photos: JSON.stringify(photos),
+        photosApprovedAt: new Date(),
+        property: { seller: { agentId: 'agent-1' } },
+      });
+
+      const result = await portalService.downloadAndDeletePhotos('listing-1', 'agent-1', 'agent');
+
+      expect(result.files).toHaveLength(1);
+      expect(result.files[0].filename).toContain('p1');
+      expect(mockedStorage.read).toHaveBeenCalledWith('photos/s1/prop1/optimized/p1.jpg');
+      expect(mockedStorage.delete).toHaveBeenCalledWith('photos/s1/prop1/optimized/p1.jpg');
+      expect(mockedStorage.delete).toHaveBeenCalledWith('photos/s1/prop1/original/p1.jpg');
+    });
+
+    it('clears photos from DB and logs audit', async () => {
+      mockPortalRepo.findListingById.mockResolvedValue({
+        id: 'listing-1',
+        photos: JSON.stringify(photos),
+        photosApprovedAt: new Date(),
+        property: { seller: { agentId: 'agent-1' } },
+      });
+
+      await portalService.downloadAndDeletePhotos('listing-1', 'agent-1', 'agent');
+
+      expect(mockPortalRepo.clearListingPhotos).toHaveBeenCalledWith('listing-1');
+      expect(mockAudit.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'listing_photos.downloaded_and_deleted' }),
+      );
+    });
+
+    it('throws ForbiddenError when agent not assigned to listing', async () => {
+      mockPortalRepo.findListingById.mockResolvedValue({
+        id: 'listing-1',
+        photos: JSON.stringify(photos),
+        photosApprovedAt: new Date(),
+        property: { seller: { agentId: 'agent-2' } },
+      });
+
+      await expect(
+        portalService.downloadAndDeletePhotos('listing-1', 'agent-1', 'agent'),
+      ).rejects.toThrow(ForbiddenError);
+    });
+
+    it('throws NotFoundError when listing photos is null', async () => {
+      mockPortalRepo.findListingById.mockResolvedValue({
+        id: 'listing-1',
+        photos: null,
+        photosApprovedAt: new Date(),
+        property: { seller: { agentId: 'agent-1' } },
+      });
+
+      await expect(
+        portalService.downloadAndDeletePhotos('listing-1', 'agent-1', 'agent'),
+      ).rejects.toThrow(NotFoundError);
+    });
+
+    it('admin bypasses ownership check', async () => {
+      mockPortalRepo.findListingById.mockResolvedValue({
+        id: 'listing-1',
+        photos: JSON.stringify(photos),
+        photosApprovedAt: new Date(),
+        property: { seller: { agentId: 'agent-2' } },
+      });
+
+      const result = await portalService.downloadAndDeletePhotos('listing-1', 'admin-1', 'admin');
+      expect(result.files).toHaveLength(1);
     });
   });
 });

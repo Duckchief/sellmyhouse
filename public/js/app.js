@@ -869,27 +869,10 @@
   });
 
   // ── HTMX: swap server error responses (4xx/5xx) into target ────
-  // Note: htmx:beforeOnLoad does not expose shouldSwap in HTMX 2.x.
-  // Use htmx:beforeSwap below for swap control.
   document.addEventListener('htmx:beforeOnLoad', function (e) {
     if (e.detail.xhr.status >= 400) {
       e.detail.shouldSwap = true;
       e.detail.isError = false;
-    }
-  });
-
-  // ── HTMX 2.x: add-slot errors → show under Add Slot button ──────
-  // htmx:beforeSwap exposes shouldSwap/target/swapOverride; HTMX reads
-  // them back after the handler, so we can redirect where the swap lands.
-  document.addEventListener('htmx:beforeSwap', function (e) {
-    if (e.detail.xhr.status < 400) return;
-    if (e.detail.target && e.detail.target.id === 'slots-list') {
-      var errorDiv = document.getElementById('add-slot-error');
-      if (errorDiv) {
-        e.detail.shouldSwap = true;
-        e.detail.target = errorDiv;
-        e.detail.swapOverride = 'innerHTML';
-      }
     }
   });
 
@@ -1061,6 +1044,19 @@
         calendarEl._viewingCalendar.fetchMonthMeta();
       }
     }
+  });
+
+  // Show error message under Add Slot button when slot creation fails
+  document.body.addEventListener('htmx:responseError', function (evt) {
+    var form = evt.detail.elt;
+    if (form.id !== 'add-slot-form') return;
+    var errorDiv = document.getElementById('add-slot-error');
+    if (!errorDiv) return;
+    var msg = 'This time slot overlaps with an existing slot. Please choose a different time.';
+    errorDiv.innerHTML = '<div class="mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">'
+      + msg + '</div>';
+    // Auto-clear after 5 seconds
+    setTimeout(function () { errorDiv.innerHTML = ''; }, 5000);
   });
 
   // Clear error on successful submission

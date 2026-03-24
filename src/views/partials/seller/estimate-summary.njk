@@ -12,7 +12,7 @@
   <table class="w-full text-sm">
     <tbody>
       <tr class="border-b border-gray-100">
-        <td class="py-2 text-gray-600">{{ "Selling Price" | t }}</td>
+        <td class="py-2 text-gray-600">{{ "Estimated sale price" | t }}</td>
         <td class="py-2 text-right font-medium">${{ saleProceeds.sellingPrice | formatPrice }}</td>
       </tr>
       <tr class="border-b border-gray-100">
@@ -23,6 +23,12 @@
         <td class="py-2 text-gray-600">{{ "CPF Refund" | t }}</td>
         <td class="py-2 text-right text-red-600">-${{ (saleProceeds.cpfSeller1 + (saleProceeds.cpfSeller2 or 0) + (saleProceeds.cpfSeller3 or 0) + (saleProceeds.cpfSeller4 or 0)) | formatPrice }}</td>
       </tr>
+      {% if saleProceeds.buyerDeposit > 0 %}
+      <tr class="border-b border-gray-100">
+        <td class="py-2 text-gray-600">{{ "Buyer Deposit (already received)" | t }}</td>
+        <td class="py-2 text-right text-red-600">-${{ saleProceeds.buyerDeposit | formatPrice }}</td>
+      </tr>
+      {% endif %}
       {% if saleProceeds.resaleLevy > 0 %}
       <tr class="border-b border-gray-100">
         <td class="py-2 text-gray-600">{{ "Resale Levy" | t }}</td>

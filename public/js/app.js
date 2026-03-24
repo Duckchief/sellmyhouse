@@ -947,17 +947,16 @@
           durationInput.value = '10';
         }
       });
-    }
 
-    recurringForm.addEventListener('submit', function (e) {
-      var type = recurringForm.querySelector('[name="slotType"]').value;
-      var duration = parseInt(recurringForm.querySelector('[name="slotDurationMinutes"]').value, 10);
-      if (type === 'group' && duration < 30) {
-        e.preventDefault();
-        var guardModal = document.getElementById('open-house-duration-modal');
-        if (guardModal) guardModal.classList.remove('hidden');
-      }
-    });
+      recurringForm.addEventListener('submit', function (e) {
+        var duration = parseInt(durationInput.value, 10);
+        if (slotTypeSelect.value === 'group' && (isNaN(duration) || duration < 30)) {
+          e.preventDefault();
+          var guardModal = document.getElementById('open-house-duration-modal');
+          if (guardModal) guardModal.classList.remove('hidden');
+        }
+      });
+    }
   }
 
   // ── Viewing time bounds validation (10:00–20:00) ────────

@@ -102,6 +102,7 @@ export async function upsertSaleProceeds(data: {
   resaleLevy: number;
   otherDeductions: number;
   commission: number;
+  buyerDeposit?: number;
   netProceeds: number;
 }) {
   return prisma.saleProceeds.upsert({
@@ -120,6 +121,7 @@ export async function upsertSaleProceeds(data: {
       resaleLevy: data.resaleLevy,
       otherDeductions: data.otherDeductions,
       commission: data.commission,
+      buyerDeposit: data.buyerDeposit ?? 0,
       netProceeds: data.netProceeds,
     },
   });

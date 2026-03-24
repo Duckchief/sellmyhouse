@@ -90,3 +90,16 @@ export const totpRateLimiter = rateLimit({
   skipSuccessfulRequests: true,
   skip: () => process.env.NODE_ENV === 'test',
 });
+
+export const descriptionGenerateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 generations per agent per hour
+  keyGenerator: (req) =>
+    (req.user as { id?: string } | undefined)?.id ?? ipKeyGenerator(req.ip ?? ''),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: { code: 'RATE_LIMITED', message: 'Too many description generation requests. Please try again later.' },
+  },
+  skip: () => process.env.NODE_ENV === 'test',
+});

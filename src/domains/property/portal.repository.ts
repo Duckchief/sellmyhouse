@@ -1,6 +1,7 @@
 // src/domains/property/portal.repository.ts
 import { prisma } from '@/infra/database/prisma';
 import type { PortalName } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { createId } from '@paralleldrive/cuid2';
 
 export async function findListingWithAgent(listingId: string) {
@@ -74,5 +75,68 @@ export async function expirePortalListingsByListingId(listingId: string) {
       status: { in: ['ready', 'posted'] },
     },
     data: { status: 'expired' },
+  });
+}
+
+export async function countPortalsReady(agentId?: string): Promise<number> {
+  return prisma.listing.count({
+    where: {
+      photosApprovedAt: { not: null },
+      descriptionApprovedAt: { not: null },
+      photos: { not: Prisma.JsonNull },
+      ...(agentId ? { property: { seller: { agentId } } } : {}),
+      portalListings: { some: { status: { not: 'posted' as never } } },
+    },
+  });
+}
+
+export async function findListingsForPortalIndex(agentId?: string) {
+  return prisma.listing.findMany({
+    where: {
+      status: { notIn: ['archived', 'rejected'] as never[] },
+      OR: [
+        { photos: { not: Prisma.JsonNull } },
+        { photosApprovedAt: { not: null } },
+        { descriptionApprovedAt: { not: null } },
+        { description: { not: null } },
+      ],
+      ...(agentId ? { property: { seller: { agentId } } } : {}),
+    },
+    select: {
+      id: true,
+      status: true,
+      photosApprovedAt: true,
+      descriptionApprovedAt: true,
+      photos: true,
+      property: {
+        select: {
+          town: true,
+          street: true,
+          block: true,
+          seller: { select: { name: true } },
+        },
+      },
+      portalListings: { select: { id: true, status: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function findListingById(listingId: string) {
+  return prisma.listing.findUnique({
+    where: { id: listingId },
+    select: {
+      id: true,
+      photos: true,
+      photosApprovedAt: true,
+      property: { select: { seller: { select: { agentId: true } } } },
+    },
+  });
+}
+
+export async function clearListingPhotos(listingId: string) {
+  return prisma.listing.update({
+    where: { id: listingId },
+    data: { photos: Prisma.JsonNull },
   });
 }

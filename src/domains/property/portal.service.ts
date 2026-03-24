@@ -4,6 +4,7 @@ import * as settingsService from '@/domains/shared/settings.service';
 import * as auditService from '@/domains/shared/audit.service';
 import { formatForPortal } from './portal.formatter';
 import { NotFoundError, ForbiddenError } from '@/domains/shared/errors';
+import type { PhotoRecord } from './property.types';
 
 const PORTALS = ['propertyguru', 'ninety_nine_co', 'srx'] as const;
 
@@ -73,4 +74,69 @@ export async function getPortalListings(
 
 export async function expirePortalListings(listingId: string) {
   return portalRepo.expirePortalListingsByListingId(listingId);
+}
+
+export async function getPortalsReadyCount(agentId?: string): Promise<number> {
+  return portalRepo.countPortalsReady(agentId);
+}
+
+export type PortalIndexItem = {
+  id: string;
+  sellerName: string | null;
+  address: string;
+  photosStatus: 'approved' | 'pending' | 'downloaded';
+  descriptionStatus: 'approved' | 'pending';
+  portalsPostedCount: number;
+};
+
+export async function getPortalIndex(agentId?: string): Promise<PortalIndexItem[]> {
+  const listings = await portalRepo.findListingsForPortalIndex(agentId);
+  return listings.map((l) => {
+    let photosStatus: 'approved' | 'pending' | 'downloaded';
+    if (l.photosApprovedAt && !l.photos) {
+      photosStatus = 'downloaded';
+    } else if (l.photosApprovedAt) {
+      photosStatus = 'approved';
+    } else {
+      photosStatus = 'pending';
+    }
+
+    return {
+      id: l.id,
+      sellerName: l.property.seller.name,
+      address: `Blk ${l.property.block} ${l.property.street}, ${l.property.town}`,
+      photosStatus,
+      descriptionStatus: l.descriptionApprovedAt ? 'approved' : 'pending',
+      portalsPostedCount: l.portalListings.filter((pl) => pl.status === 'posted').length,
+    };
+  });
+}
+
+export async function getListingForPortalsPage(
+  listingId: string,
+  callerAgentId: string,
+  callerRole: string,
+): Promise<{ id: string; photos: PhotoRecord[]; photosApprovedAt: Date | null }> {
+  const listing = await portalRepo.findListingById(listingId);
+  if (!listing) throw new NotFoundError('Listing', listingId);
+
+  if (callerRole !== 'admin') {
+    const assignedAgentId = listing.property?.seller?.agentId ?? null;
+    if (assignedAgentId !== callerAgentId) {
+      throw new ForbiddenError('You are not authorised to view this listing');
+    }
+  }
+
+  const photos: PhotoRecord[] = listing.photos
+    ? (() => {
+        try {
+          const parsed = JSON.parse(listing.photos as string);
+          return Array.isArray(parsed) ? (parsed as PhotoRecord[]) : [];
+        } catch {
+          return [];
+        }
+      })()
+    : [];
+
+  return { id: listing.id, photos, photosApprovedAt: listing.photosApprovedAt };
 }

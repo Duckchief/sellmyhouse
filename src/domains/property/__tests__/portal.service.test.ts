@@ -142,4 +142,111 @@ describe('portal.service', () => {
       expect(mockPortalRepo.findListingWithAgent).not.toHaveBeenCalled();
     });
   });
+
+  describe('getPortalsReadyCount', () => {
+    it('passes agentId to repo and returns count', async () => {
+      mockPortalRepo.countPortalsReady = jest.fn().mockResolvedValue(3);
+      const result = await portalService.getPortalsReadyCount('agent-1');
+      expect(result).toBe(3);
+      expect(mockPortalRepo.countPortalsReady).toHaveBeenCalledWith('agent-1');
+    });
+
+    it('passes undefined for admin to see all listings', async () => {
+      mockPortalRepo.countPortalsReady = jest.fn().mockResolvedValue(5);
+      await portalService.getPortalsReadyCount(undefined);
+      expect(mockPortalRepo.countPortalsReady).toHaveBeenCalledWith(undefined);
+    });
+  });
+
+  describe('getPortalIndex', () => {
+    it('maps listing to index item with correct statuses', async () => {
+      mockPortalRepo.findListingsForPortalIndex = jest.fn().mockResolvedValue([
+        {
+          id: 'listing-1',
+          status: 'approved',
+          photosApprovedAt: new Date('2026-03-01'),
+          descriptionApprovedAt: new Date('2026-03-01'),
+          photos: JSON.stringify([{ id: 'p1', displayOrder: 0 }]),
+          property: {
+            town: 'TAMPINES',
+            street: 'TAMPINES ST 21',
+            block: '123',
+            seller: { name: 'Tan Wei Ming' },
+          },
+          portalListings: [
+            { id: 'pl-1', status: 'posted' },
+            { id: 'pl-2', status: 'ready' },
+          ],
+        },
+      ]);
+
+      const result = await portalService.getPortalIndex('agent-1');
+      expect(result).toHaveLength(1);
+      expect(result[0].photosStatus).toBe('approved');
+      expect(result[0].descriptionStatus).toBe('approved');
+      expect(result[0].portalsPostedCount).toBe(1);
+      expect(result[0].sellerName).toBe('Tan Wei Ming');
+      expect(result[0].address).toContain('TAMPINES');
+    });
+
+    it('sets photosStatus to downloaded when photos null and photosApprovedAt set', async () => {
+      mockPortalRepo.findListingsForPortalIndex = jest.fn().mockResolvedValue([
+        {
+          id: 'listing-1',
+          photosApprovedAt: new Date('2026-03-01'),
+          descriptionApprovedAt: null,
+          photos: null,
+          property: { town: 'TAMPINES', street: 'ST 21', block: '123', seller: { name: 'Lee' } },
+          portalListings: [],
+        },
+      ]);
+
+      const result = await portalService.getPortalIndex();
+      expect(result[0].photosStatus).toBe('downloaded');
+      expect(result[0].descriptionStatus).toBe('pending');
+      expect(result[0].portalsPostedCount).toBe(0);
+    });
+  });
+
+  describe('getListingForPortalsPage', () => {
+    it('returns parsed photos array for assigned agent', async () => {
+      const photos = [{ id: 'p1', displayOrder: 0, optimizedPath: 'opt/p1.jpg', path: 'orig/p1.jpg' }];
+      mockPortalRepo.findListingById = jest.fn().mockResolvedValue({
+        id: 'listing-1',
+        photos: JSON.stringify(photos),
+        photosApprovedAt: new Date('2026-03-01'),
+        property: { seller: { agentId: 'agent-1' } },
+      });
+
+      const result = await portalService.getListingForPortalsPage('listing-1', 'agent-1', 'agent');
+      expect(result.photos).toHaveLength(1);
+      expect(result.photos[0].id).toBe('p1');
+      expect(result.photosApprovedAt).toBeTruthy();
+    });
+
+    it('throws ForbiddenError when agent not assigned', async () => {
+      mockPortalRepo.findListingById = jest.fn().mockResolvedValue({
+        id: 'listing-1',
+        photos: null,
+        photosApprovedAt: null,
+        property: { seller: { agentId: 'agent-2' } },
+      });
+
+      await expect(
+        portalService.getListingForPortalsPage('listing-1', 'agent-1', 'agent'),
+      ).rejects.toThrow(ForbiddenError);
+    });
+
+    it('admin bypasses ownership check', async () => {
+      mockPortalRepo.findListingById = jest.fn().mockResolvedValue({
+        id: 'listing-1',
+        photos: null,
+        photosApprovedAt: null,
+        property: { seller: { agentId: 'agent-2' } },
+      });
+
+      const result = await portalService.getListingForPortalsPage('listing-1', 'admin-1', 'admin');
+      expect(result.photos).toHaveLength(0);
+    });
+  });
 });

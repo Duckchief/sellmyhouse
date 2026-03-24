@@ -4,6 +4,7 @@ import * as propertyService from '@/domains/property/property.service';
 import {
   validateCreateSlot,
   validateCreateBulkSlots,
+  validateCreateRecurringSlots,
   validateBookingForm,
   validateOtp,
   validateFeedback,
@@ -153,6 +154,25 @@ viewingRouter.post(
         return res.json({ success: true, cancelled: result.cancelled });
       }
       return res.json({ success: true, cancelled: result.cancelled });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+viewingRouter.post(
+  '/seller/viewings/slots/recurring',
+  requireAuth(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      const input = validateCreateRecurringSlots(req.body);
+      const result = await viewingService.createRecurringSlots(input, user.id);
+
+      if (req.headers['hx-request']) {
+        return res.render('partials/seller/slots-created', { count: result.count });
+      }
+      return res.status(201).json({ success: true, count: result.count });
     } catch (err) {
       next(err);
     }

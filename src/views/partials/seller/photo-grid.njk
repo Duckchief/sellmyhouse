@@ -6,7 +6,7 @@
 {% if photos and photos.length > 0 %}
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="photo-grid">
   {% for photo in photos %}
-  <div class="relative group bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+  <div class="relative group bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden cursor-grab"
     data-photo-id="{{ photo.id }}">
     <img src="/seller/photos/{{ photo.id }}/thumbnail" alt="{{ photo.originalFilename }}"
       class="w-full h-40 object-cover">

@@ -22,5 +22,6 @@
   {% block body %}{% endblock %}
   {% include "partials/cookie-consent.njk" %}
   <script src="/js/app.js" nonce="{{ cspNonce }}"></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

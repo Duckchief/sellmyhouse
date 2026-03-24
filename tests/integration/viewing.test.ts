@@ -15,7 +15,7 @@ beforeEach(async () => {
   await cleanDatabase();
   await factory.systemSetting({ key: 'commission_amount', value: '1499' });
   await factory.systemSetting({ key: 'gst_rate', value: '0.09' });
-  await factory.systemSetting({ key: 'open_house_slot_duration_minutes', value: '30' });
+  await factory.systemSetting({ key: 'viewing_slot_duration', value: '30' });
   await factory.systemSetting({ key: 'transaction_anonymisation_days', value: '30' });
 });
 
@@ -92,13 +92,6 @@ describe('POST /seller/viewings/schedule', () => {
 
   it('returns 400 for invalid days', async () => {
     const { agent } = await loginAsSeller();
-    // Need a property so the service finds it before validation
-    const { seller } = await (async () => {
-      // The error is thrown by validateScheduleDays in the router, before the service call
-      // So no property needed — but we do need to be authenticated (already are)
-      return { seller: null };
-    })();
-    void seller;
     const res = await agent.post('/seller/viewings/schedule').send({ days: 'not-an-array' });
     expect(res.status).toBe(400);
   });
@@ -195,7 +188,7 @@ describe('Booking a virtual recurring slot', () => {
       });
 
     // Should succeed (200 with pending_otp) or immediately booked
-    expect(res.status).toBeLessThan(400);
+    expect(res.status).toBe(200);
 
     // The ViewingSlot row must have been materialised
     const materialised = await testPrisma.viewingSlot.findFirst({

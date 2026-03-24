@@ -1,0 +1,151 @@
+# Spec: Agent Listing Access — Portals Index, Photo Download, Listing Card
+
+**Date:** 2026-03-24
+**Status:** Approved
+
+## Problem
+
+After approving listing photos and description, the agent has no way to access them. The portals page (`/agent/listings/:listingId/portals`) exists but is unreachable — no sidebar link, no link from seller-detail. Photos cannot be downloaded. The agent cannot progress from review approval to portal posting.
+
+## Solution
+
+Three UI additions that close the gap:
+
+1. **Portals nav entry** — a "Portals" link in the agent sidebar leads to an index of all active listings. Badge count shows listings fully approved and not yet posted to all portals.
+2. **Photos section on portals page** — the existing portals page gains a photo panel at the top: thumbnails, photo count, and a "Download All & Delete" button. After download, photos are deleted from the platform (data lifecycle) and the section shows a permanent "downloaded" state.
+3. **Listing card on seller-detail** — a new "Listing" card on the seller detail page shows approval status for photos and description, portals progress (X/3 posted), and a "Go to Portals →" link.
+
+## Behaviour
+
+### Sidebar — Portals nav entry
+- New "Portals" entry in the agent sidebar, positioned after "Reviews".
+- Badge shows count of listings where both `photosApprovedAt` and `descriptionApprovedAt` are set, `photos` is not null (i.e. not yet downloaded), and at least one portal listing is not `posted`.
+- Admin sees all listings; agent sees only their assigned listings (existing `agentFilter` pattern).
+
+### Portals index page (`GET /agent/portals`)
+- Table of active listings: seller name, property address, photos status, description status, portals progress (X/3 posted), "Open →" link to `/agent/listings/:listingId/portals`.
+- Photo status: "✓ Approved" (green) | "Pending" (yellow) | "Downloaded" (grey).
+- Description status: "✓ Approved" (green) | "Pending" (yellow).
+- HTMX-aware: full page on normal request, table partial on `HX-Request`.
+
+### Portals page — photos section (`/agent/listings/:listingId/portals`)
+- New photos panel rendered above the existing portal panels.
+- **Photos present:** thumbnail grid (max 8 shown, cover badge on first) + photo count + "Download All & Delete" button.
+- **Download:** `POST /agent/listings/:listingId/photos/download-all` — streams a ZIP, then deletes all photo files from disk and sets `listing.photos = Prisma.JsonNull`. Audited.
+- **Photos already downloaded** (`photosApprovedAt` set, `photos` is null): panel shows "Photos downloaded and deleted on [date]" — no re-download possible.
+- **Photos not yet approved** (`photosApprovedAt` is null, `photos` not null): panel shows "Awaiting photo approval".
+- **No photos** (`photos` is null, `photosApprovedAt` is null): panel shows "No photos uploaded".
+- Photo thumbnails served via the existing `/agent/reviews/listing_photos/:listingId/photos/:photoId` endpoint (already auth-gated).
+- The portal router already includes `requireAuth`, `requireRole('agent','admin')`, `requireTwoFactor()` — download route uses the same auth chain.
+
+### Listing card on seller-detail
+- New "Listing" card added to `seller-detail.njk` (after the Seller Documents card).
+- Only rendered when seller has an active listing.
+- Shows: photos status (Approved N photos / Pending / Downloaded), description status (Approved / Pending), listing status, portals progress (X/3 posted).
+- "Go to Portals →" button links to `/agent/listings/:listingId/portals`.
+
+## Data Changes
+
+No schema migrations needed. All required fields exist on `Listing`:
+- `photos` (Json?) — photo array or null
+- `photosApprovedAt` (DateTime?) — set when photos approved
+- `descriptionApprovedAt` (DateTime?) — set when description approved
+
+### `agent.repository.ts` — `getSellerDetail`
+Add to the listing include:
+```ts
+listings: {
+  take: 1,
+  orderBy: { createdAt: 'desc' },
+  select: {
+    id: true,
+    status: true,
+    title: true,
+    description: true,
+    photos: true,
+    photosApprovedAt: true,
+    descriptionApprovedAt: true,
+    portalListings: { select: { id: true, status: true } },
+  },
+},
+```
+
+### `agent.service.ts` — `getSellerDetail`
+Extend the returned listing shape:
+```ts
+listing: property.listings[0]
+  ? {
+      id: property.listings[0].id,
+      status: property.listings[0].status,
+      title: property.listings[0].title,
+      description: property.listings[0].description,
+      photosApprovedAt: property.listings[0].photosApprovedAt,
+      descriptionApprovedAt: property.listings[0].descriptionApprovedAt,
+      photoCount: property.listings[0].photos
+        ? (JSON.parse(property.listings[0].photos as string) as unknown[]).length
+        : null,
+      portalsPostedCount: property.listings[0].portalListings.filter(
+        (pl) => pl.status === 'posted',
+      ).length,
+    }
+  : null,
+```
+
+## New Routes
+
+### `GET /agent/portals` (portal.router.ts)
+```
+Auth: requireAuth + requireRole('agent','admin') + requireTwoFactor
+Returns: pages/agent/portals-index.njk (full) or partials/agent/portals-index-table.njk (HTMX)
+Data: portalService.getPortalIndex(agentFilter)
+```
+
+### `POST /agent/listings/:listingId/photos/download-all` (portal.router.ts)
+```
+Auth: requireAuth + requireRole('agent','admin') + requireTwoFactor
+Action: stream ZIP of all photos, delete files from disk, set listing.photos = null, audit log
+Response: application/zip — attachment; filename="photos-{listingId}.zip"
+```
+
+## New Service Functions
+
+### `portal.service.ts` — `getPortalIndex(agentId?: string)`
+Queries all listings (filtered by agent) with photos or description pending/approved. Returns shaped data for the index table.
+
+### `portal.service.ts` — `downloadAndDeletePhotos(listingId, agentId)`
+1. Find listing, parse `photos` JSON
+2. Read each `photo.optimizedPath` via `localStorage.read()`
+3. Build `{ buffer, filename }` array
+4. Delete each file via `localStorage.delete()`
+5. `prisma.listing.update({ data: { photos: Prisma.JsonNull } })`
+6. Audit log: `listing_photos.downloaded_and_deleted`
+7. Return `{ files, listingId }`
+
+The router streams the ZIP using `archiver` (already imported) — same pattern as `POST /agent/sellers/:id/documents/download-all`.
+
+## New/Modified Files
+
+| Action | File |
+|--------|------|
+| Modify | `src/views/layouts/agent.njk` |
+| Create | `src/views/pages/agent/portals-index.njk` |
+| Create | `src/views/partials/agent/portals-index-table.njk` |
+| Modify | `src/views/pages/agent/portals.njk` |
+| Create | `src/views/partials/agent/portal-photos.njk` |
+| Create | `src/views/partials/agent/seller-listing-card.njk` |
+| Modify | `src/views/pages/agent/seller-detail.njk` |
+| Modify | `src/domains/property/portal.router.ts` |
+| Modify | `src/domains/property/portal.service.ts` |
+| Modify | `src/domains/agent/agent.repository.ts` |
+| Modify | `src/domains/agent/agent.service.ts` |
+
+## CSRF
+
+`POST /agent/listings/:listingId/photos/download-all` requires CSRF. The download button is a standard form `POST` with the CSRF token in a hidden `_csrf` field — same pattern as all other destructive agent actions. Unlike the drag-and-drop reorder (which uses `fetch`), this is a form POST that triggers a file download via `Content-Disposition: attachment`.
+
+## Testing
+
+- `portal.service.ts` — unit test `downloadAndDeletePhotos`: verifies files read, disk deleted, `photos` set to null, audit logged
+- `portal.service.ts` — unit test `getPortalIndex`: verifies agent filter applied, status fields mapped correctly
+- `agent.service.ts` — unit test `getSellerDetail`: verifies `photoCount` and `portalsPostedCount` derived correctly
+- No E2E for ZIP download (binary response — manual verification sufficient)

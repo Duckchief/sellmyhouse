@@ -1,3 +1,5 @@
+import type { Prisma } from '@prisma/client';
+
 // ─── Slot Status State Machine ─────────────────────────────
 // available → booked (first booking on single slot)
 // available → full (group slot reaches maxViewers)
@@ -154,7 +156,7 @@ export interface VirtualSlot {
 export interface RecurringScheduleRow {
   id: string;
   propertyId: string;
-  days: unknown; // RecurringDayConfig[] at runtime — cast before use
+  days: Prisma.JsonValue;
   createdAt: Date;
   updatedAt: Date;
 }

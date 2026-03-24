@@ -235,7 +235,7 @@ export async function upsertRecurringSchedule(
   id: string,
   days: RecurringDayConfig[],
 ) {
-  const daysJson = days as unknown as import('@prisma/client').Prisma.InputJsonValue;
+  const daysJson = JSON.parse(JSON.stringify(days)) as import('@prisma/client').Prisma.InputJsonValue;
   return prisma.recurringSchedule.upsert({
     where: { propertyId },
     update: { days: daysJson },
@@ -284,12 +284,10 @@ export async function materialiseRecurringSlot(data: {
   });
 
   if (!existing) {
-    throw new Error(
-      `materialiseRecurringSlot: row missing after insert for ${data.propertyId} ${data.startTime}`,
-    );
+    throw new NotFoundError('ViewingSlot', `${data.propertyId}/${data.startTime}-${data.endTime}`);
   }
 
-  return existing as unknown as ViewingSlotRow;
+  return existing as ViewingSlotRow;
 }
 
 // ─── Bookings ────────────────────────────────────────────

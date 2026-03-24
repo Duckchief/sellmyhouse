@@ -16,7 +16,7 @@ export function generateRecurringWindowsForRange(
   endDate: Date,
 ): VirtualSlot[] {
   const results: VirtualSlot[] = [];
-  const days = schedule.days as RecurringDayConfig[];
+  const days = schedule.days as unknown as RecurringDayConfig[];
 
   const cur = new Date(
     Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()),

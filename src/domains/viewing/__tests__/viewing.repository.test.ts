@@ -1,5 +1,6 @@
 import * as viewingRepo from '../viewing.repository';
 import { prisma } from '@/infra/database/prisma';
+import { NotFoundError } from '@/domains/shared/errors';
 
 jest.mock('@/infra/database/prisma', () => ({
   prisma: {
@@ -407,7 +408,7 @@ describe('viewing.repository', () => {
           maxViewers: 1,
           durationMinutes: 15,
         }),
-      ).rejects.toThrow();
+      ).rejects.toThrow(NotFoundError);
     });
   });
 });

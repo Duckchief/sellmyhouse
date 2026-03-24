@@ -9,8 +9,13 @@
     <div class="grid grid-cols-2 gap-2">
       {% for photo in photos %}
       {# Photos served via authenticated endpoint — never directly from /uploads/ #}
-      <img src="/agent/files/{{ photo.filename }}" alt="{{ photo.caption }}"
-           class="w-full h-32 object-cover rounded border">
+      <div class="relative">
+        <img src="/agent/reviews/listing_photos/{{ detail.id }}/photos/{{ photo.id }}" alt="{{ photo.originalFilename }}"
+             class="w-full h-32 object-cover rounded border">
+        {% if loop.first %}
+        <span class="absolute top-1 left-1 bg-yellow-400 text-yellow-900 text-xs font-semibold px-2 py-0.5 rounded-full">{{ "Cover" | t }}</span>
+        {% endif %}
+      </div>
       {% endfor %}
     </div>
     {% else %}

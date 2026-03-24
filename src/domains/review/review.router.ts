@@ -4,8 +4,11 @@ import * as reviewService from './review.service';
 import { validateEntityParams, validateRejectBody } from './review.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import { getHasAvatar } from '../profile/profile.service';
+import { localStorage } from '@/infra/storage/local-storage';
+import { NotFoundError } from '../shared/errors';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import type { EntityType } from './review.types';
+import type { PhotoRecord } from '../property/property.types';
 
 export const reviewRouter = Router();
 
@@ -56,6 +59,18 @@ reviewRouter.get(
       const entityId = req.params['entityId'] as string;
       const detail = await reviewService.getDetailForReview(entityType, entityId);
 
+      // Prisma returns listing.photos as a JSON string — parse it for the template
+      if (
+        entityType === 'listing_photos' &&
+        detail &&
+        'photos' in detail &&
+        typeof detail.photos === 'string'
+      ) {
+        (detail as unknown as Record<string, unknown>).photos = JSON.parse(
+          detail.photos,
+        ) as PhotoRecord[];
+      }
+
       const partialMap: Record<EntityType, string> = {
         financial_report: 'partials/agent/review-detail-financial',
         listing_description: 'partials/agent/review-detail-listing-desc',
@@ -65,6 +80,36 @@ reviewRouter.get(
       };
 
       res.render(partialMap[entityType], { detail, entityType, entityId });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// GET /agent/reviews/listing_photos/:listingId/photos/:photoId — serve photo for agent review
+reviewRouter.get(
+  '/agent/reviews/listing_photos/:listingId/photos/:photoId',
+  ...reviewAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const listingId = req.params['listingId'] as string;
+      const photoId = req.params['photoId'] as string;
+
+      const listing = await reviewService.getDetailForReview('listing_photos', listingId);
+      if (!listing || !('photos' in listing) || !listing.photos) {
+        throw new NotFoundError('Listing', listingId);
+      }
+
+      const photos = JSON.parse(listing.photos as string) as PhotoRecord[];
+      const photo = photos.find((p) => p.id === photoId);
+      if (!photo) {
+        throw new NotFoundError('Photo', photoId);
+      }
+
+      const buffer = await localStorage.read(photo.optimizedPath);
+      res.set('Content-Type', 'image/jpeg');
+      res.set('Cache-Control', 'private, max-age=3600');
+      res.send(buffer);
     } catch (err) {
       next(err);
     }

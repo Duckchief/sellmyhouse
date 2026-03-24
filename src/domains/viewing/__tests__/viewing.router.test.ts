@@ -194,22 +194,23 @@ describe('viewing.router', () => {
       const res = await request(app)
         .post('/seller/viewings/schedule')
         .send({
-          days: [{ dayOfWeek: 1, timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' }] }],
+          days: [
+            {
+              dayOfWeek: 1,
+              timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' }],
+            },
+          ],
         });
 
       expect(res.status).toBe(200);
       expect(mockService.saveSchedule).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ dayOfWeek: 1 }),
-        ]),
+        expect.arrayContaining([expect.objectContaining({ dayOfWeek: 1 })]),
         expect.any(String), // sellerId
       );
     });
 
     it('returns 400 for invalid days', async () => {
-      const res = await request(app)
-        .post('/seller/viewings/schedule')
-        .send({ days: [] }); // empty array
+      const res = await request(app).post('/seller/viewings/schedule').send({ days: [] }); // empty array
       expect(res.status).toBe(400);
     });
   });

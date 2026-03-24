@@ -355,9 +355,7 @@ describe('photo.service', () => {
       const existing0 = makePhotoRecord({ id: 'p0', displayOrder: 0 });
       const existing1 = makePhotoRecord({ id: 'p1', displayOrder: 1 });
       const listing = makeListing([existing0, existing1]);
-      mockedRepo.findActiveListingForProperty.mockResolvedValue(
-        listing as unknown as Listing,
-      );
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
       mockedRepo.updateListingPhotos.mockResolvedValue(listing as unknown as Listing);
 
       // Router always passes displayOrder: 0 — service must override it

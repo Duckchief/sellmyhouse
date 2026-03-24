@@ -224,7 +224,9 @@ export async function upsertRecurringSchedule(
   id: string,
   days: RecurringDayConfig[],
 ) {
-  const daysJson = JSON.parse(JSON.stringify(days)) as import('@prisma/client').Prisma.InputJsonValue;
+  const daysJson = JSON.parse(
+    JSON.stringify(days),
+  ) as import('@prisma/client').Prisma.InputJsonValue;
   return prisma.recurringSchedule.upsert({
     where: { propertyId },
     update: { days: daysJson },

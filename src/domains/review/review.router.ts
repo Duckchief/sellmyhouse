@@ -1,7 +1,11 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import * as reviewService from './review.service';
-import { validateEntityParams, validateRejectBody, validateApproveDescriptionBody } from './review.validator';
+import {
+  validateEntityParams,
+  validateRejectBody,
+  validateApproveDescriptionBody,
+} from './review.validator';
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import { getHasAvatar } from '../profile/profile.service';
 import { localStorage } from '@/infra/storage/local-storage';

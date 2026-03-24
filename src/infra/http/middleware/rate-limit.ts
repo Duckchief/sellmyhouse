@@ -99,7 +99,10 @@ export const descriptionGenerateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    error: { code: 'RATE_LIMITED', message: 'Too many description generation requests. Please try again later.' },
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Too many description generation requests. Please try again later.',
+    },
   },
   skip: () => process.env.NODE_ENV === 'test',
 });

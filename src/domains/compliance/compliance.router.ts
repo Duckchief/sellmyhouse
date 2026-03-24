@@ -785,6 +785,22 @@ complianceRouter.get(
   },
 );
 
+// GET /agent/sellers/:sellerId/eaa/card — Returns EAA card partial (used to refresh after CDD verify)
+complianceRouter.get(
+  '/agent/sellers/:sellerId/eaa/card',
+  ...agentAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const sellerId = req.params['sellerId'] as string;
+      const agentId = getAgentId(req);
+      const compliance = await agentRepo.getComplianceStatus(sellerId, agentId);
+      return res.render('partials/agent/compliance-eaa-card', { compliance, sellerId });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 // GET /agent/sellers/:sellerId/cdd/verify-modal — Returns confirmation modal partial
 complianceRouter.get(
   '/agent/sellers/:sellerId/cdd/verify-modal',

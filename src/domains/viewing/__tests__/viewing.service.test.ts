@@ -952,9 +952,20 @@ describe('viewing.service', () => {
 
   describe('saveSchedule', () => {
     it('resolves propertyId from seller and upserts schedule', async () => {
-      const days = [{ dayOfWeek: 1, timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' as const }] }];
+      const days = [
+        {
+          dayOfWeek: 1,
+          timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' as const }],
+        },
+      ];
       mockedPropertyService.getPropertyForSeller.mockResolvedValue({ id: 'prop-1' } as never);
-      mockedRepo.upsertRecurringSchedule.mockResolvedValue({ id: 'sched-1', propertyId: 'prop-1', days, createdAt: new Date(), updatedAt: new Date() } as never);
+      mockedRepo.upsertRecurringSchedule.mockResolvedValue({
+        id: 'sched-1',
+        propertyId: 'prop-1',
+        days,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as never);
 
       const result = await viewingService.saveSchedule(days, 'seller-1');
 
@@ -990,11 +1001,19 @@ describe('viewing.service', () => {
 
   describe('getMonthSlotMeta — with recurring schedule', () => {
     beforeEach(() => {
-      mockedRepo.findPropertyById.mockResolvedValue({ id: 'prop-1', sellerId: 'seller-1' } as never);
+      mockedRepo.findPropertyById.mockResolvedValue({
+        id: 'prop-1',
+        sellerId: 'seller-1',
+      } as never);
       mockedRepo.findRecurringSchedule.mockResolvedValue({
         id: 'sched-1',
         propertyId: 'prop-1',
-        days: [{ dayOfWeek: 1, timeslots: [{ startTime: '18:00', endTime: '18:15', slotType: 'single' }] }],
+        days: [
+          {
+            dayOfWeek: 1,
+            timeslots: [{ startTime: '18:00', endTime: '18:15', slotType: 'single' }],
+          },
+        ],
         createdAt: new Date(),
         updatedAt: new Date(),
       } as never);
@@ -1059,11 +1078,19 @@ describe('viewing.service', () => {
 
   describe('getSlotsForDate — with recurring schedule', () => {
     beforeEach(() => {
-      mockedRepo.findPropertyById.mockResolvedValue({ id: 'prop-1', sellerId: 'seller-1' } as never);
+      mockedRepo.findPropertyById.mockResolvedValue({
+        id: 'prop-1',
+        sellerId: 'seller-1',
+      } as never);
       mockedRepo.findRecurringSchedule.mockResolvedValue({
         id: 'sched-1',
         propertyId: 'prop-1',
-        days: [{ dayOfWeek: 1, timeslots: [{ startTime: '18:00', endTime: '19:00', slotType: 'single' }] }],
+        days: [
+          {
+            dayOfWeek: 1,
+            timeslots: [{ startTime: '18:00', endTime: '19:00', slotType: 'single' }],
+          },
+        ],
         createdAt: new Date(),
         updatedAt: new Date(),
       } as never);
@@ -1093,9 +1120,7 @@ describe('viewing.service', () => {
       ] as never);
 
       const result = await viewingService.getSlotsForDate('prop-1', '2026-03-23', 'seller-1');
-      const slot1815 = result.slots.find(
-        (s: { startTime: string }) => s.startTime === '18:00',
-      );
+      const slot1815 = result.slots.find((s: { startTime: string }) => s.startTime === '18:00');
       // Should use UUID, not rec: ID
       expect(slot1815?.id).toBe('uuid-1');
     });
@@ -1110,7 +1135,11 @@ describe('viewing.service', () => {
       mockedRepo.countBookingsToday.mockResolvedValue(0 as never);
       mockedRepo.findVerifiedViewerByPhone.mockResolvedValue(null as never);
       mockedSettings.getNumber.mockResolvedValue(30 as never);
-      mockedRepo.createVerifiedViewer.mockResolvedValue({ id: 'viewer-1', noShowCount: 0, phoneVerifiedAt: null } as never);
+      mockedRepo.createVerifiedViewer.mockResolvedValue({
+        id: 'viewer-1',
+        noShowCount: 0,
+        phoneVerifiedAt: null,
+      } as never);
       mockedRepo.countOtpRequestsThisHour.mockResolvedValue(0 as never);
       mockedNotification.send.mockResolvedValue(undefined as never);
       mockedRepo.createViewingWithLock.mockResolvedValue({ id: 'viewing-1' } as never);
@@ -1120,10 +1149,12 @@ describe('viewing.service', () => {
       mockedRepo.findRecurringSchedule.mockResolvedValue({
         id: 'sched-1',
         propertyId: 'prop-1',
-        days: [{
-          dayOfWeek: 1, // Monday
-          timeslots: [{ startTime: '18:00', endTime: '19:00', slotType: 'single' }],
-        }],
+        days: [
+          {
+            dayOfWeek: 1, // Monday
+            timeslots: [{ startTime: '18:00', endTime: '19:00', slotType: 'single' }],
+          },
+        ],
         createdAt: new Date(),
         updatedAt: new Date(),
       } as never);
@@ -1180,10 +1211,7 @@ describe('viewing.service', () => {
       );
 
       // Duplicate check uses materialised UUID, not rec: ID
-      expect(mockedRepo.findDuplicateBooking).toHaveBeenCalledWith(
-        '91234567',
-        'uuid-materialised',
-      );
+      expect(mockedRepo.findDuplicateBooking).toHaveBeenCalledWith('91234567', 'uuid-materialised');
 
       // createViewingWithLock also uses UUID
       expect(mockedRepo.createViewingWithLock).toHaveBeenCalledWith(
@@ -1236,10 +1264,12 @@ describe('viewing.service', () => {
       mockedRepo.findRecurringSchedule.mockResolvedValue({
         id: 'sched-1',
         propertyId: 'prop-1',
-        days: [{
-          dayOfWeek: 1, // Monday
-          timeslots: [{ startTime: '18:00', endTime: '19:00', slotType: 'single' }],
-        }],
+        days: [
+          {
+            dayOfWeek: 1, // Monday
+            timeslots: [{ startTime: '18:00', endTime: '19:00', slotType: 'single' }],
+          },
+        ],
         createdAt: new Date(),
         updatedAt: new Date(),
       } as never);
@@ -1250,12 +1280,16 @@ describe('viewing.service', () => {
       const result = await viewingService.getPublicBookingPage(propertySlug);
       expect(result).not.toBeNull();
       // Should contain virtual slots (rec: IDs) for Mondays in next 30 days
-      expect(result!.availableSlots.some((s: { id: string }) => s.id.startsWith('rec:'))).toBe(true);
+      expect(result!.availableSlots.some((s: { id: string }) => s.id.startsWith('rec:'))).toBe(
+        true,
+      );
     });
 
     it('virtual slot carries slotType and maxViewers', async () => {
       const result = await viewingService.getPublicBookingPage(propertySlug);
-      const virtualSlot = result!.availableSlots.find((s: { id: string }) => s.id.startsWith('rec:'));
+      const virtualSlot = result!.availableSlots.find((s: { id: string }) =>
+        s.id.startsWith('rec:'),
+      );
       expect(virtualSlot).toBeDefined();
       expect((virtualSlot as { slotType: string })!.slotType).toBe('single');
       expect((virtualSlot as { maxViewers: number })!.maxViewers).toBe(1);
@@ -1298,7 +1332,9 @@ describe('viewing.service', () => {
 
     it('cancelled slots are excluded', async () => {
       const result = await viewingService.getPublicBookingPage(propertySlug);
-      expect(result!.availableSlots.every((s: { status: string }) => s.status !== 'cancelled')).toBe(true);
+      expect(
+        result!.availableSlots.every((s: { status: string }) => s.status !== 'cancelled'),
+      ).toBe(true);
     });
 
     it('returns null when property not found', async () => {

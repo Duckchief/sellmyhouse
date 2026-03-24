@@ -234,7 +234,10 @@ describe('agent.service', () => {
     });
 
     it('includes photoCount, portalsPostedCount, photosApprovedAt, descriptionApprovedAt in listing', async () => {
-      const photoRecords = [{ id: 'p1', displayOrder: 0 }, { id: 'p2', displayOrder: 1 }];
+      const photoRecords = [
+        { id: 'p1', displayOrder: 0 },
+        { id: 'p2', displayOrder: 1 },
+      ];
       mockRepo.getSellerDetail.mockResolvedValue({
         id: 'seller-1',
         name: 'John Tan',

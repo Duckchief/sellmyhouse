@@ -222,7 +222,9 @@ describe('portal.service', () => {
 
   describe('getListingForPortalsPage', () => {
     it('returns parsed photos array for assigned agent', async () => {
-      const photos = [{ id: 'p1', displayOrder: 0, optimizedPath: 'opt/p1.jpg', path: 'orig/p1.jpg' }];
+      const photos = [
+        { id: 'p1', displayOrder: 0, optimizedPath: 'opt/p1.jpg', path: 'orig/p1.jpg' },
+      ];
       mockPortalRepo.findListingById = jest.fn().mockResolvedValue({
         id: 'listing-1',
         photos: JSON.stringify(photos),

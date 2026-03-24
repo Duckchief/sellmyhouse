@@ -148,7 +148,7 @@ export interface VirtualSlot {
   id: string; // 'rec:{YYYY-MM-DD}:{HH:MM}:{HH:MM}'
   date: Date;
   startTime: string; // HH:MM
-  endTime: string;   // HH:MM
+  endTime: string; // HH:MM
   slotType: 'single' | 'group';
   maxViewers: number;
 }

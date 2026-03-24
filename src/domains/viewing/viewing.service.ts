@@ -966,23 +966,46 @@ export async function getSlotsForDate(propertyId: string, dateStr: string, selle
 
   // Load and merge virtual + real slots for this date
   const schedule = await viewingRepo.findRecurringSchedule(propertyId);
-  const virtualSlots = schedule
-    ? generateRecurringWindowsForRange(schedule, date, date)
-    : [];
+  const virtualSlots = schedule ? generateRecurringWindowsForRange(schedule, date, date) : [];
 
   const realSlots = await viewingRepo.findSlotsByPropertyAndDate(propertyId, date);
 
   // Build real slot lookup by (startTime, endTime)
   const realSlotMap = new Map<
     string,
-    { id: string; startTime: string; endTime: string; status: string; slotType: string; maxViewers: number; currentBookings: number }
+    {
+      id: string;
+      startTime: string;
+      endTime: string;
+      status: string;
+      slotType: string;
+      maxViewers: number;
+      currentBookings: number;
+    }
   >();
-  for (const s of realSlots as { id: string; startTime: string; endTime: string; status: string; slotType: string; maxViewers: number; currentBookings: number }[]) {
+  for (const s of realSlots as {
+    id: string;
+    startTime: string;
+    endTime: string;
+    status: string;
+    slotType: string;
+    maxViewers: number;
+    currentBookings: number;
+  }[]) {
     realSlotMap.set(`${s.startTime}:${s.endTime}`, s);
   }
 
   // Merged slot list for the day
-  const mergedSlots: { id: string; date: Date; startTime: string; endTime: string; status: string; slotType: string; maxViewers: number; currentBookings: number }[] = [];
+  const mergedSlots: {
+    id: string;
+    date: Date;
+    startTime: string;
+    endTime: string;
+    status: string;
+    slotType: string;
+    maxViewers: number;
+    currentBookings: number;
+  }[] = [];
   const processedKeys = new Set<string>();
 
   for (const vs of virtualSlots) {
@@ -992,12 +1015,30 @@ export async function getSlotsForDate(propertyId: string, dateStr: string, selle
     if (real) {
       mergedSlots.push({ ...real, date });
     } else {
-      mergedSlots.push({ id: vs.id, date: vs.date, startTime: vs.startTime, endTime: vs.endTime, status: 'available', slotType: vs.slotType, maxViewers: vs.maxViewers, currentBookings: 0 });
+      mergedSlots.push({
+        id: vs.id,
+        date: vs.date,
+        startTime: vs.startTime,
+        endTime: vs.endTime,
+        status: 'available',
+        slotType: vs.slotType,
+        maxViewers: vs.maxViewers,
+        currentBookings: 0,
+      });
     }
   }
 
   // Add real slots not covered by virtual windows
-  for (const s of realSlots as { id: string; startTime: string; endTime: string; status: string; slotType: string; maxViewers: number; currentBookings: number; date: Date }[]) {
+  for (const s of realSlots as {
+    id: string;
+    startTime: string;
+    endTime: string;
+    status: string;
+    slotType: string;
+    maxViewers: number;
+    currentBookings: number;
+    date: Date;
+  }[]) {
     const key = `${s.startTime}:${s.endTime}`;
     if (!processedKeys.has(key)) {
       mergedSlots.push({ ...s, date });
@@ -1034,7 +1075,12 @@ export async function getMonthSlotMeta(
 
   // Build lookup: "date:startTime:endTime" → real slot status
   const realSlotMap = new Map<string, string>();
-  for (const s of realSlots as { date: Date; startTime: string; endTime: string; status: string }[]) {
+  for (const s of realSlots as {
+    date: Date;
+    startTime: string;
+    endTime: string;
+    status: string;
+  }[]) {
     const key = `${s.date.toISOString().split('T')[0]}:${s.startTime}:${s.endTime}`;
     realSlotMap.set(key, s.status);
   }
@@ -1060,7 +1106,12 @@ export async function getMonthSlotMeta(
   }
 
   // Process manual/materialised real slots NOT covered by a virtual window
-  for (const s of realSlots as { date: Date; startTime: string; endTime: string; status: string }[]) {
+  for (const s of realSlots as {
+    date: Date;
+    startTime: string;
+    endTime: string;
+    status: string;
+  }[]) {
     const dateStr = s.date.toISOString().split('T')[0];
     const key = `${dateStr}:${s.startTime}:${s.endTime}`;
     if (processedKeys.has(key)) continue; // already counted via virtual slot
@@ -1080,7 +1131,10 @@ export async function getMonthSlotMeta(
 const SLOT_BOUND_START = '10:00';
 const SLOT_BOUND_END = '20:00';
 
-function findNextAvailableGap(slots: { startTime: string; endTime: string }[], _date?: Date): {
+function findNextAvailableGap(
+  slots: { startTime: string; endTime: string }[],
+  _date?: Date,
+): {
   start: string;
   end: string;
 } {
@@ -1142,9 +1196,7 @@ export async function getPublicBookingPage(slug: string) {
 
   // Load virtual windows from schedule
   const schedule = await viewingRepo.findRecurringSchedule(propertyId);
-  const virtualSlots = schedule
-    ? generateRecurringWindowsForRange(schedule, now, endDate)
-    : [];
+  const virtualSlots = schedule ? generateRecurringWindowsForRange(schedule, now, endDate) : [];
 
   // Load real slots for next 30 days (available, booked, full — not cancelled)
   const realSlots = (await viewingRepo.findSlotsByPropertyAndDateRange(
@@ -1190,9 +1242,7 @@ export async function getPublicBookingPage(slug: string) {
   // 'booked' slots are included because group slots accept multiple bookings
   // while in 'booked' state (not yet 'full'). Single-slot 'booked' entries
   // prevent double-booking at the DB layer via currentBookings check.
-  const availableSlots = merged.filter(
-    (s) => s.status === 'available' || s.status === 'booked',
-  );
+  const availableSlots = merged.filter((s) => s.status === 'available' || s.status === 'booked');
 
   return { property, availableSlots };
 }

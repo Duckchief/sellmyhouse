@@ -260,7 +260,9 @@ export async function getPhotosForProperty(
     : [];
 
   const photosDownloaded =
-    listing.photosApprovedAt !== null && listing.photosApprovedAt !== undefined && photos.length === 0;
+    listing.photosApprovedAt !== null &&
+    listing.photosApprovedAt !== undefined &&
+    photos.length === 0;
 
   return { photos, photosDownloaded };
 }

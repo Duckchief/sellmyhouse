@@ -64,7 +64,8 @@ async function setupListingWithPrompt(agentId: string) {
   const listing = await factory.listing({ propertyId: property.id });
   await factory.systemSetting({
     key: 'listing_description_prompt',
-    value: 'Write a listing for a {flatType} in {town}, block {block} on {street}. Floor area: {floorAreaSqm} sqm, storey: {storey}, lease from {leaseCommencementDate}.',
+    value:
+      'Write a listing for a {flatType} in {town}, block {block} on {street}. Floor area: {floorAreaSqm} sqm, storey: {storey}, lease from {leaseCommencementDate}.',
   });
   return { seller, property, listing };
 }
@@ -101,8 +102,7 @@ describe('Listing Description Integration', () => {
     expect(afterDraft?.description).toBe('Edited description.');
 
     // Step 3: Approve
-    const approveRes = await agent
-      .post(`/agent/reviews/listing_description/${listing.id}/approve`);
+    const approveRes = await agent.post(`/agent/reviews/listing_description/${listing.id}/approve`);
     expect(approveRes.status).toBe(200);
 
     const afterApprove = await testPrisma.listing.findUnique({ where: { id: listing.id } });
@@ -240,7 +240,8 @@ describe('Listing Description Integration', () => {
     const listing = await factory.listing({ propertyId: property.id, photos: photoJson });
     await factory.systemSetting({
       key: 'listing_description_prompt',
-      value: 'Write a listing for a {flatType} in {town}, block {block} on {street}. Floor area: {floorAreaSqm} sqm, storey: {storey}, lease from {leaseCommencementDate}.',
+      value:
+        'Write a listing for a {flatType} in {town}, block {block} on {street}. Floor area: {floorAreaSqm} sqm, storey: {storey}, lease from {leaseCommencementDate}.',
     });
 
     // Seed settings needed by portal service
@@ -251,8 +252,7 @@ describe('Listing Description Integration', () => {
     await agent
       .post(`/agent/listings/${listing.id}/description/generate`)
       .set('HX-Request', 'true');
-    await agent
-      .post(`/agent/reviews/listing_description/${listing.id}/approve`);
+    await agent.post(`/agent/reviews/listing_description/${listing.id}/approve`);
 
     // Approve photos (set photosApprovedAt directly since we can't easily upload photos)
     await testPrisma.listing.update({
@@ -273,8 +273,7 @@ describe('Listing Description Integration', () => {
       data: { descriptionApprovedAt: null },
     });
 
-    const approveRes = await agent
-      .post(`/agent/reviews/listing_description/${listing.id}/approve`);
+    const approveRes = await agent.post(`/agent/reviews/listing_description/${listing.id}/approve`);
     expect(approveRes.status).toBe(200);
 
     const afterBoth = await testPrisma.listing.findUnique({

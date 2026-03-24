@@ -96,7 +96,9 @@ portalRouter.post(
       res.setHeader('Cache-Control', 'no-store');
 
       const archive = archiver('zip', { zlib: { level: 9 } });
-      archive.on('error', (err) => { res.destroy(err); });
+      archive.on('error', (err) => {
+        res.destroy(err);
+      });
       archive.pipe(res);
       for (const file of files) {
         archive.append(file.buffer, { name: file.filename });
@@ -124,7 +126,11 @@ portalRouter.post(
 
       // Re-fetch via getListingForPortalsPage to get the updated photosApprovedAt=null state.
       // This performs a second ownership check, which is redundant but harmless.
-      const listingData = await portalService.getListingForPortalsPage(listingId, user.id, user.role);
+      const listingData = await portalService.getListingForPortalsPage(
+        listingId,
+        user.id,
+        user.role,
+      );
       res.render('partials/agent/portal-photos', { listingData });
     } catch (err) {
       next(err);
@@ -201,7 +207,9 @@ portalRouter.post(
         try {
           const p = JSON.parse(listingData.photos as string);
           return Array.isArray(p) ? p.length : null;
-        } catch { return null; }
+        } catch {
+          return null;
+        }
       })();
 
       const listing = {
@@ -212,7 +220,8 @@ portalRouter.post(
         descriptionApprovedAt: listingData.descriptionApprovedAt,
         aiDescription: listingData.aiDescription,
         description: listingData.description,
-        portalsPostedCount: listingData.portalListings.filter((pl) => pl.status === 'posted').length,
+        portalsPostedCount: listingData.portalListings.filter((pl) => pl.status === 'posted')
+          .length,
       };
 
       res.render('partials/agent/seller-listing-card.njk', { seller: { property: { listing } } });
@@ -233,7 +242,9 @@ portalRouter.post(
       const text = req.body.text as string;
 
       if (!text || !text.trim()) {
-        return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'text is required' } });
+        return res
+          .status(400)
+          .json({ error: { code: 'VALIDATION_ERROR', message: 'text is required' } });
       }
 
       await propertyService.saveDescriptionDraft(listingId, text, user.id, user.role);

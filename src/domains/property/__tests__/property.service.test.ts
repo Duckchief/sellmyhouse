@@ -592,7 +592,8 @@ describe('property.service', () => {
       },
     };
 
-    const fakeTemplate = 'Type: {flatType}, Town: {town}, {block} {street}, {floorAreaSqm}sqm, {storey}, {leaseCommencementDate}';
+    const fakeTemplate =
+      'Type: {flatType}, Town: {town}, {block} {street}, {floorAreaSqm}sqm, {storey}, {leaseCommencementDate}';
 
     beforeEach(() => {
       mockedRepo.findListingForDescriptionGeneration.mockResolvedValue(fakeListing as never);
@@ -609,9 +610,7 @@ describe('property.service', () => {
     it('calls generateText and saves all aiDescription fields plus staging description', async () => {
       await propertyService.generateListingDescription(listingId, agentId, 'agent');
 
-      expect(aiFacade.generateText).toHaveBeenCalledWith(
-        expect.stringContaining('4 ROOM'),
-      );
+      expect(aiFacade.generateText).toHaveBeenCalledWith(expect.stringContaining('4 ROOM'));
       expect(mockedRepo.saveAiDescription).toHaveBeenCalledWith(listingId, {
         aiDescription: 'Generated description text.',
         aiDescriptionStatus: 'ai_generated',
@@ -672,7 +671,9 @@ describe('property.service', () => {
       const { AIUnavailableError } = jest.requireMock('@/domains/shared/ai/ai.facade') as {
         AIUnavailableError: new (msg: string) => Error;
       };
-      jest.mocked(aiFacade.generateText).mockRejectedValue(new AIUnavailableError('all providers failed'));
+      jest
+        .mocked(aiFacade.generateText)
+        .mockRejectedValue(new AIUnavailableError('all providers failed'));
       await expect(
         propertyService.generateListingDescription(listingId, agentId, 'agent'),
       ).rejects.toThrow('all providers failed');

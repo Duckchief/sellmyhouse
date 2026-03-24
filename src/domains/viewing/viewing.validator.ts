@@ -20,7 +20,7 @@ const TIME_BOUNDS_MSG = 'Viewing times must be between 10:00 AM and 8:00 PM';
 export function calcOpenHouseMaxViewers(startTime: string, endTime: string): number {
   const [sh, sm] = startTime.split(':').map(Number);
   const [eh, em] = endTime.split(':').map(Number);
-  const durationMinutes = (eh * 60 + em) - (sh * 60 + sm);
+  const durationMinutes = eh * 60 + em - (sh * 60 + sm);
   const windowMinutes = Math.ceil(durationMinutes / 30) * 30;
   return Math.round((windowMinutes / 60) * 20);
 }
@@ -35,7 +35,8 @@ export function validateCreateSlot(body: Record<string, unknown>): CreateSlotInp
   const today = new Date(new Date().toDateString());
   if (date < today) throw new ValidationError('Date must be in the future');
   const maxDate = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
-  if (date > maxDate) throw new ValidationError('Slots can only be created up to 1 month in advance');
+  if (date > maxDate)
+    throw new ValidationError('Slots can only be created up to 1 month in advance');
 
   const startTime = String(body.startTime || '');
   if (!TIME_REGEX.test(startTime)) throw new ValidationError('Start time must be HH:MM format');

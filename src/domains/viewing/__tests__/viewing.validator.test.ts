@@ -187,15 +187,13 @@ describe('viewing.validator', () => {
     });
 
     it('rejects missing propertyId', () => {
-      expect(() =>
-        validateCreateRecurringSlots({ days: [validDay] }),
-      ).toThrow(ValidationError);
+      expect(() => validateCreateRecurringSlots({ days: [validDay] })).toThrow(ValidationError);
     });
 
     it('rejects empty days array', () => {
-      expect(() =>
-        validateCreateRecurringSlots({ propertyId: 'p', days: [] }),
-      ).toThrow(ValidationError);
+      expect(() => validateCreateRecurringSlots({ propertyId: 'p', days: [] })).toThrow(
+        ValidationError,
+      );
     });
 
     it('rejects more than 7 days', () => {
@@ -203,9 +201,9 @@ describe('viewing.validator', () => {
         dayOfWeek: i % 7,
         timeslots: [{ startTime: '10:00', endTime: '11:00', slotType: 'single' }],
       }));
-      expect(() =>
-        validateCreateRecurringSlots({ propertyId: 'p', days }),
-      ).toThrow(ValidationError);
+      expect(() => validateCreateRecurringSlots({ propertyId: 'p', days })).toThrow(
+        ValidationError,
+      );
     });
 
     it('rejects duplicate dayOfWeek', () => {
@@ -221,15 +219,17 @@ describe('viewing.validator', () => {
       expect(() =>
         validateCreateRecurringSlots({
           propertyId: 'p',
-          days: [{
-            dayOfWeek: 1,
-            timeslots: [
-              { startTime: '10:00', endTime: '11:00', slotType: 'single' },
-              { startTime: '11:00', endTime: '12:00', slotType: 'single' },
-              { startTime: '12:00', endTime: '13:00', slotType: 'single' },
-              { startTime: '13:00', endTime: '14:00', slotType: 'single' },
-            ],
-          }],
+          days: [
+            {
+              dayOfWeek: 1,
+              timeslots: [
+                { startTime: '10:00', endTime: '11:00', slotType: 'single' },
+                { startTime: '11:00', endTime: '12:00', slotType: 'single' },
+                { startTime: '12:00', endTime: '13:00', slotType: 'single' },
+                { startTime: '13:00', endTime: '14:00', slotType: 'single' },
+              ],
+            },
+          ],
         }),
       ).toThrow(ValidationError);
     });
@@ -238,13 +238,15 @@ describe('viewing.validator', () => {
       expect(() =>
         validateCreateRecurringSlots({
           propertyId: 'p',
-          days: [{
-            dayOfWeek: 1,
-            timeslots: [
-              { startTime: '10:00', endTime: '12:00', slotType: 'single' },
-              { startTime: '11:00', endTime: '13:00', slotType: 'single' },
-            ],
-          }],
+          days: [
+            {
+              dayOfWeek: 1,
+              timeslots: [
+                { startTime: '10:00', endTime: '12:00', slotType: 'single' },
+                { startTime: '11:00', endTime: '13:00', slotType: 'single' },
+              ],
+            },
+          ],
         }),
       ).toThrow(ValidationError);
     });
@@ -253,10 +255,12 @@ describe('viewing.validator', () => {
       expect(() =>
         validateCreateRecurringSlots({
           propertyId: 'p',
-          days: [{
-            dayOfWeek: 1,
-            timeslots: [{ startTime: '09:00', endTime: '11:00', slotType: 'single' }],
-          }],
+          days: [
+            {
+              dayOfWeek: 1,
+              timeslots: [{ startTime: '09:00', endTime: '11:00', slotType: 'single' }],
+            },
+          ],
         }),
       ).toThrow(ValidationError);
     });
@@ -265,10 +269,12 @@ describe('viewing.validator', () => {
       expect(() =>
         validateCreateRecurringSlots({
           propertyId: 'p',
-          days: [{
-            dayOfWeek: 1,
-            timeslots: [{ startTime: '10:00', endTime: '11:00', slotType: 'invalid' }],
-          }],
+          days: [
+            {
+              dayOfWeek: 1,
+              timeslots: [{ startTime: '10:00', endTime: '11:00', slotType: 'invalid' }],
+            },
+          ],
         }),
       ).toThrow(ValidationError);
     });
@@ -276,10 +282,12 @@ describe('viewing.validator', () => {
     it('accepts group slotType', () => {
       const result = validateCreateRecurringSlots({
         propertyId: 'p',
-        days: [{
-          dayOfWeek: 6,
-          timeslots: [{ startTime: '13:00', endTime: '17:00', slotType: 'group' }],
-        }],
+        days: [
+          {
+            dayOfWeek: 6,
+            timeslots: [{ startTime: '13:00', endTime: '17:00', slotType: 'group' }],
+          },
+        ],
       });
       expect(result.days[0].timeslots[0].slotType).toBe('group');
     });
@@ -287,7 +295,9 @@ describe('viewing.validator', () => {
 
   describe('validateScheduleDays', () => {
     it('validates days array without requiring propertyId from client', () => {
-      const days = [{ dayOfWeek: 1, timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' }] }];
+      const days = [
+        { dayOfWeek: 1, timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' }] },
+      ];
       expect(() => validateScheduleDays(days)).not.toThrow();
       const result = validateScheduleDays(days);
       expect(result).toHaveLength(1);
@@ -299,7 +309,9 @@ describe('viewing.validator', () => {
     });
 
     it('throws ValidationError for invalid timeslot', () => {
-      const days = [{ dayOfWeek: 1, timeslots: [{ startTime: '09:00', endTime: '10:00', slotType: 'single' }] }];
+      const days = [
+        { dayOfWeek: 1, timeslots: [{ startTime: '09:00', endTime: '10:00', slotType: 'single' }] },
+      ];
       expect(() => validateScheduleDays(days)).toThrow(ValidationError); // before 10:00 start bound
     });
   });

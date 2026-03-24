@@ -230,10 +230,14 @@
     }
   });
 
-  // Clear modal after successful CDD verify POST
+  // Clear modal and refresh EAA card after successful CDD verify POST
   document.body.addEventListener('htmx:afterRequest', function (evt) {
     if (evt.detail.elt && evt.detail.elt.id === 'cdd-confirm-btn' && !evt.detail.failed) {
       clearModal();
+      htmx.ajax('GET', '/agent/sellers/{{ seller.id }}/eaa/card', {
+        target: '#compliance-eaa-card',
+        swap: 'outerHTML'
+      });
     }
   });
   // Download & Delete: fetch-based so we can refresh the card after download completes

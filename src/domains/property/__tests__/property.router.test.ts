@@ -195,7 +195,10 @@ describe('property.router', () => {
   describe('GET /seller/photos', () => {
     it('returns 200 and renders photos page', async () => {
       mockedPropertyService.getPropertyForSeller.mockResolvedValue(mockProperty as never);
-      mockedPhotoService.getPhotosForProperty.mockResolvedValue({ photos: [], photosDownloaded: false });
+      mockedPhotoService.getPhotosForProperty.mockResolvedValue({
+        photos: [],
+        photosDownloaded: false,
+      });
 
       const res = await request(app).get('/seller/photos');
 
@@ -213,7 +216,10 @@ describe('property.router', () => {
 
     it('returns partial for HTMX requests', async () => {
       mockedPropertyService.getPropertyForSeller.mockResolvedValue(mockProperty as never);
-      mockedPhotoService.getPhotosForProperty.mockResolvedValue({ photos: [], photosDownloaded: false });
+      mockedPhotoService.getPhotosForProperty.mockResolvedValue({
+        photos: [],
+        photosDownloaded: false,
+      });
 
       const res = await request(app).get('/seller/photos').set('HX-Request', 'true');
 

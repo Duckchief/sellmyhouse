@@ -455,7 +455,13 @@ export async function getSettingsGrouped(): Promise<SettingGroup[]> {
       'financial_data_retention_days',
       'transaction_anonymisation_days',
     ]),
-    group('AI', ['ai_provider', 'ai_model', 'ai_max_tokens', 'ai_temperature', 'listing_description_prompt']),
+    group('AI', [
+      'ai_provider',
+      'ai_model',
+      'ai_max_tokens',
+      'ai_temperature',
+      'listing_description_prompt',
+    ]),
     group('Platform', [
       'viewing_slot_duration',
       'viewing_max_group_size',

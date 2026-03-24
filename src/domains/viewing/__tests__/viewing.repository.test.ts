@@ -231,7 +231,13 @@ describe('viewing.repository', () => {
   describe('findActiveSlotsByDateRange', () => {
     it('returns active slots in date range without includes', async () => {
       const mockSlots = [
-        { id: 's1', date: new Date('2026-04-01'), startTime: '10:00', endTime: '10:10', status: 'available' },
+        {
+          id: 's1',
+          date: new Date('2026-04-01'),
+          startTime: '10:00',
+          endTime: '10:10',
+          status: 'available',
+        },
       ];
       mockedPrisma.viewingSlot.findMany.mockResolvedValue(mockSlots as never);
 
@@ -255,7 +261,13 @@ describe('viewing.repository', () => {
 
   describe('findRecurringSchedule', () => {
     it('returns schedule for property', async () => {
-      const schedule = { id: 's1', propertyId: 'p1', days: [], createdAt: new Date(), updatedAt: new Date() };
+      const schedule = {
+        id: 's1',
+        propertyId: 'p1',
+        days: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
       mockedPrisma.recurringSchedule.findUnique.mockResolvedValue(schedule as never);
       const result = await viewingRepo.findRecurringSchedule('p1');
       expect(mockedPrisma.recurringSchedule.findUnique).toHaveBeenCalledWith({
@@ -273,8 +285,19 @@ describe('viewing.repository', () => {
 
   describe('upsertRecurringSchedule', () => {
     it('upserts schedule with given days', async () => {
-      const days = [{ dayOfWeek: 1, timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' as const }] }];
-      const schedule = { id: 's1', propertyId: 'p1', days, createdAt: new Date(), updatedAt: new Date() };
+      const days = [
+        {
+          dayOfWeek: 1,
+          timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' as const }],
+        },
+      ];
+      const schedule = {
+        id: 's1',
+        propertyId: 'p1',
+        days,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
       mockedPrisma.recurringSchedule.upsert.mockResolvedValue(schedule as never);
 
       await viewingRepo.upsertRecurringSchedule('p1', 's1', days);
@@ -304,7 +327,15 @@ describe('viewing.repository', () => {
 
   describe('findSlotsByPropertyAndDate', () => {
     it('returns non-cancelled slots for the given date', async () => {
-      const slots = [{ id: 'slot-1', date: new Date(), startTime: '18:00', endTime: '18:15', status: 'available' }];
+      const slots = [
+        {
+          id: 'slot-1',
+          date: new Date(),
+          startTime: '18:00',
+          endTime: '18:15',
+          status: 'available',
+        },
+      ];
       mockedPrisma.viewingSlot.findMany.mockResolvedValue(slots as never);
       const date = new Date('2026-03-23T00:00:00.000Z');
 
@@ -354,7 +385,11 @@ describe('viewing.repository', () => {
       expect(mockedPrisma.$executeRaw).toHaveBeenCalled();
       expect(mockedPrisma.viewingSlot.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ propertyId: 'p1', startTime: '18:00', endTime: '18:15' }),
+          where: expect.objectContaining({
+            propertyId: 'p1',
+            startTime: '18:00',
+            endTime: '18:15',
+          }),
         }),
       );
       expect(result.id).toBe('existing-uuid');

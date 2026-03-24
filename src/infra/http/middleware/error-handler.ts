@@ -16,7 +16,10 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
       });
     }
     return res.status(502).json({
-      error: { code: 'AI_UNAVAILABLE', message: 'AI service is temporarily unavailable. Please try again.' },
+      error: {
+        code: 'AI_UNAVAILABLE',
+        message: 'AI service is temporarily unavailable. Please try again.',
+      },
     });
   }
 

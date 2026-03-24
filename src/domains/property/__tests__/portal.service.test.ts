@@ -224,6 +224,14 @@ describe('portal.service', () => {
       expect(result.photosApprovedAt).toBeTruthy();
     });
 
+    it('throws NotFoundError when listing does not exist', async () => {
+      mockPortalRepo.findListingById = jest.fn().mockResolvedValue(null);
+
+      await expect(
+        portalService.getListingForPortalsPage('nonexistent-id', 'agent-1', 'agent'),
+      ).rejects.toThrow(NotFoundError);
+    });
+
     it('throws ForbiddenError when agent not assigned', async () => {
       mockPortalRepo.findListingById = jest.fn().mockResolvedValue({
         id: 'listing-1',

@@ -209,6 +209,86 @@ describe('photo.service', () => {
     });
   });
 
+  // ─── processAndSavePhoto — duplicate detection ──────────────
+
+  describe('processAndSavePhoto — duplicate detection', () => {
+    beforeEach(() => {
+      mockedFileType.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
+    });
+
+    it('throws ValidationError when uploaded buffer hash matches an existing photo', async () => {
+      const { createHash } = await import('crypto');
+      const buffer = Buffer.from('fake-jpeg-data');
+      const hash = createHash('sha256').update(buffer).digest('hex');
+      const existingPhoto = makePhotoRecord({ hash });
+
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(
+        makeListing([existingPhoto]) as unknown as Listing,
+      );
+
+      await expect(
+        photoService.processAndSavePhoto(buffer, 'photo.jpg', 'image/jpeg', 'seller-1', 'prop-1'),
+      ).rejects.toThrow(ValidationError);
+
+      await expect(
+        photoService.processAndSavePhoto(buffer, 'photo.jpg', 'image/jpeg', 'seller-1', 'prop-1'),
+      ).rejects.toThrow('This photo has already been uploaded.');
+    });
+
+    it('does not throw when buffer hash does not match any existing photo', async () => {
+      const existingPhoto = makePhotoRecord({ hash: 'different-hash-value' });
+
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(
+        makeListing([existingPhoto]) as unknown as Listing,
+      );
+
+      await expect(
+        photoService.processAndSavePhoto(
+          Buffer.from('new-unique-image-data'),
+          'new.jpg',
+          'image/jpeg',
+          'seller-1',
+          'prop-1',
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    it('does not throw when existing photos have no hash field (backwards compat)', async () => {
+      const existingPhoto = makePhotoRecord(); // no hash field
+
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(
+        makeListing([existingPhoto]) as unknown as Listing,
+      );
+
+      await expect(
+        photoService.processAndSavePhoto(
+          Buffer.from('any-image-data'),
+          'photo.jpg',
+          'image/jpeg',
+          'seller-1',
+          'prop-1',
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    it('does not save files to disk when duplicate detected', async () => {
+      const { createHash } = await import('crypto');
+      const buffer = Buffer.from('fake-jpeg-data');
+      const hash = createHash('sha256').update(buffer).digest('hex');
+      const existingPhoto = makePhotoRecord({ hash });
+
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(
+        makeListing([existingPhoto]) as unknown as Listing,
+      );
+
+      await expect(
+        photoService.processAndSavePhoto(buffer, 'photo.jpg', 'image/jpeg', 'seller-1', 'prop-1'),
+      ).rejects.toThrow(ValidationError);
+
+      expect(mockedStorage.save).not.toHaveBeenCalled();
+    });
+  });
+
   // ─── processAndSavePhoto ────────────────────────────────────
 
   describe('processAndSavePhoto', () => {

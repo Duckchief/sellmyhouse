@@ -1,6 +1,7 @@
 import sharp from 'sharp';
 import { fileTypeFromBuffer } from 'file-type';
 import { createId } from '@paralleldrive/cuid2';
+import { createHash } from 'crypto';
 import { localStorage } from '../../infra/storage/local-storage';
 import * as propertyRepo from './property.repository';
 import * as auditService from '../shared/audit.service';
@@ -15,6 +16,12 @@ import {
   MAX_PHOTOS,
   MIN_DIMENSION_PX,
 } from './property.types';
+
+// ─── Hash Helper ───────────────────────────────────────────────────────────────
+
+function computeHash(buffer: Buffer): string {
+  return createHash('sha256').update(buffer).digest('hex');
+}
 
 // ─── Validate Image ────────────────────────────────────────────────────────────
 
@@ -71,6 +78,18 @@ export async function processAndSavePhoto(
   sellerId: string,
   propertyId: string,
 ): Promise<ProcessedPhotoMetadata> {
+  // Check for duplicate before any processing or disk writes
+  const hash = computeHash(buffer);
+  const listing = await propertyRepo.findActiveListingForProperty(propertyId);
+  if (listing) {
+    const existing: PhotoRecord[] = listing.photos
+      ? (JSON.parse(listing.photos as string) as PhotoRecord[])
+      : [];
+    if (existing.some((p) => p.hash === hash)) {
+      throw new ValidationError('This photo has already been uploaded.');
+    }
+  }
+
   // Virus scan before processing
   const scanResult = await scanBuffer(buffer, originalFilename);
   if (!scanResult.isClean) {
@@ -127,6 +146,7 @@ export async function processAndSavePhoto(
     sizeBytes: buffer.length,
     width: metadata.width ?? 0,
     height: metadata.height ?? 0,
+    hash,
   };
 }
 

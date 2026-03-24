@@ -1,5 +1,6 @@
 {# partials/agent/portal-photos.njk — listing photos panel on portals page #}
 {# Requires: listingData.id, listingData.photos (array), listingData.photosApprovedAt #}
+{# HTMX outerHTML target — the outer #portal-photos-panel wrapper must remain the root element of this partial #}
 <div class="bg-white rounded-xl border border-slate-200 p-6 mb-4" id="portal-photos-panel">
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-sm font-semibold text-gray-900">{{ "Listing Photos" | t }}</h2>

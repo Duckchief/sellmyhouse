@@ -869,11 +869,29 @@
   });
 
   // ── HTMX: swap server error responses (4xx/5xx) into target ────
+  // Excluded: add-slot-form uses htmx:afterRequest to show its error in
+  // #add-slot-error instead of appending to #slots-list.
   document.addEventListener('htmx:beforeOnLoad', function (e) {
     if (e.detail.xhr.status >= 400) {
+      if (e.detail.elt && e.detail.elt.id === 'add-slot-form') return;
       e.detail.shouldSwap = true;
       e.detail.isError = false;
     }
+  });
+
+  // ── Photo grid: auto-dismiss error and refresh after 2s ─────────
+  document.addEventListener('htmx:afterSwap', function (e) {
+    if (!e.detail.target || e.detail.target.id !== 'photo-grid-container') return;
+    var alertEl = e.detail.target.querySelector('[role="alert"]');
+    if (!alertEl) return;
+
+    setTimeout(function () {
+      alertEl.style.transition = 'opacity 0.3s';
+      alertEl.style.opacity = '0';
+      setTimeout(function () {
+        htmx.ajax('GET', '/seller/photos', { target: '#photo-grid-container', swap: 'innerHTML' });
+      }, 300);
+    }, 1700);
   });
 
   // ── Auto-fill town + lease year from HDB data ─────────────────
@@ -1046,24 +1064,33 @@
     }
   });
 
-  // Show error message under Add Slot button when slot creation fails
-  document.body.addEventListener('htmx:responseError', function (evt) {
-    var form = evt.detail.elt;
-    if (form.id !== 'add-slot-form') return;
+  // Show server error under Add Slot button on failure; clear on success
+  var addSlotErrorTimer = null;
+  document.body.addEventListener('htmx:afterRequest', function (evt) {
+    if (evt.detail.elt.id !== 'add-slot-form') return;
+    if (addSlotErrorTimer) { clearTimeout(addSlotErrorTimer); addSlotErrorTimer = null; }
     var errorDiv = document.getElementById('add-slot-error');
     if (!errorDiv) return;
-    var msg = 'This time slot overlaps with an existing slot. Please choose a different time.';
-    errorDiv.innerHTML = '<div class="mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">'
-      + msg + '</div>';
-    // Auto-clear after 5 seconds
-    setTimeout(function () { errorDiv.innerHTML = ''; }, 5000);
-  });
-
-  // Clear error on successful submission
-  document.body.addEventListener('htmx:afterRequest', function (evt) {
-    if (evt.detail.elt.id === 'add-slot-form' && evt.detail.successful) {
-      var errorDiv = document.getElementById('add-slot-error');
-      if (errorDiv) errorDiv.innerHTML = '';
+    if (evt.detail.successful) {
+      errorDiv.innerHTML = '';
+      errorDiv.classList.remove('slot-error-enter', 'slot-error-leave');
+    } else {
+      errorDiv.innerHTML = evt.detail.xhr ? (evt.detail.xhr.response || '') : '';
+      // Bounce in
+      errorDiv.classList.remove('slot-error-leave');
+      errorDiv.classList.add('slot-error-enter');
+      // After 4s start fade-out, clear after fade completes
+      addSlotErrorTimer = setTimeout(function () {
+        var el = document.getElementById('add-slot-error');
+        if (!el) { addSlotErrorTimer = null; return; }
+        el.classList.remove('slot-error-enter');
+        el.classList.add('slot-error-leave');
+        addSlotErrorTimer = setTimeout(function () {
+          var el2 = document.getElementById('add-slot-error');
+          if (el2) { el2.innerHTML = ''; el2.classList.remove('slot-error-leave'); }
+          addSlotErrorTimer = null;
+        }, 450);
+      }, 4000);
     }
   });
 

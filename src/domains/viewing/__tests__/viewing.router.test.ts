@@ -181,6 +181,48 @@ describe('viewing.router', () => {
     });
   });
 
+  describe('POST /seller/viewings/schedule', () => {
+    it('saves schedule and returns 200', async () => {
+      mockService.saveSchedule.mockResolvedValue({
+        id: 'sched-1',
+        propertyId: 'prop-1',
+        days: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as never);
+
+      const res = await request(app)
+        .post('/seller/viewings/schedule')
+        .send({
+          days: [{ dayOfWeek: 1, timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' }] }],
+        });
+
+      expect(res.status).toBe(200);
+      expect(mockService.saveSchedule).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.any(String), // sellerId
+      );
+    });
+
+    it('returns 400 for invalid days', async () => {
+      const res = await request(app)
+        .post('/seller/viewings/schedule')
+        .send({ days: [] }); // empty array
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('DELETE /seller/viewings/schedule', () => {
+    it('deletes schedule and returns 200', async () => {
+      mockService.deleteSchedule.mockResolvedValue(undefined);
+
+      const res = await request(app).delete('/seller/viewings/schedule');
+
+      expect(res.status).toBe(200);
+      expect(mockService.deleteSchedule).toHaveBeenCalledWith(expect.any(String)); // sellerId
+    });
+  });
+
   // ─── Public Routes ─────────────────────────────────────
 
   describe('POST /view/:propertySlug/book', () => {

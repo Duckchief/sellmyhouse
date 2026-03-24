@@ -191,6 +191,10 @@ export async function deleteSchedule(sellerId: string) {
   return viewingRepo.deleteRecurringSchedule(propertyId);
 }
 
+export async function getRecurringSchedule(propertyId: string) {
+  return viewingRepo.findRecurringSchedule(propertyId);
+}
+
 export async function cancelSlot(slotId: string, sellerId: string) {
   const slot = await viewingRepo.findSlotById(slotId);
   if (!slot) throw new NotFoundError('ViewingSlot', slotId);

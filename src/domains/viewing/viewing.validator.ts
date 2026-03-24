@@ -6,6 +6,7 @@ import type {
   BookingFormInput,
   VerifyOtpInput,
   ViewingFeedbackInput,
+  RecurringDayConfig,
 } from './viewing.types';
 
 const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -179,6 +180,19 @@ export function validateCreateRecurringSlots(body: unknown): CreateRecurringSlot
   return { propertyId, days: validatedDays };
 }
 
+/**
+ * Validates the `days` array for a recurring schedule save request.
+ * propertyId is NOT accepted here — the router supplies it server-side.
+ */
+export function validateScheduleDays(days: unknown): RecurringDayConfig[] {
+  if (!Array.isArray(days) || days.length === 0 || days.length > 7) {
+    throw new ValidationError('days must be an array of 1–7 entries');
+  }
+  // Reuse inner validation logic by calling with a synthetic propertyId
+  const result = validateCreateRecurringSlots({ propertyId: '__server__', days });
+  return result.days;
+}
+
 export function validateBookingForm(body: Record<string, unknown>): BookingFormInput {
   const name = String(body.name || '').trim();
   if (!name) throw new ValidationError('Name is required');
@@ -215,6 +229,7 @@ export function validateBookingForm(body: Record<string, unknown>): BookingFormI
   const slotId = String(body.slotId || '');
   if (!slotId) throw new ValidationError('Slot ID is required');
 
+  const propertyId = body.propertyId ? String(body.propertyId) : undefined;
   const website = body.website ? String(body.website) : undefined;
   const formLoadedAt = body.formLoadedAt ? Number(body.formLoadedAt) : undefined;
 
@@ -227,6 +242,7 @@ export function validateBookingForm(body: Record<string, unknown>): BookingFormI
     agentAgencyName,
     consentService,
     slotId,
+    propertyId,
     website,
     formLoadedAt,
   };

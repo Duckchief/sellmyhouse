@@ -24,7 +24,7 @@
   </div>
   <div class="p-4 border-t border-gray-200 space-y-3">
     <form hx-post="/agent/reviews/listing_photos/{{ detail.id }}/approve"
-          hx-target="#review-row-{{ detail.id }}"
+          hx-target="#review-row-{{ detail.id }}-photos"
           hx-swap="outerHTML"
          >
       <button type="submit" class="w-full bg-green-600 text-white py-2 rounded font-medium hover:bg-green-700">
@@ -32,7 +32,7 @@
       </button>
     </form>
     <form hx-post="/agent/reviews/listing_photos/{{ detail.id }}/reject"
-          hx-target="#review-row-{{ detail.id }}"
+          hx-target="#review-row-{{ detail.id }}-photos"
           hx-swap="outerHTML"
          >
       <textarea name="reviewNotes" required rows="3"

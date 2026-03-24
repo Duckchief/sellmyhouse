@@ -21,6 +21,10 @@ jest.mock('@/domains/property/portal.service');
 jest.mock('@/domains/shared/audit.service');
 jest.mock('@/domains/compliance/compliance.service');
 jest.mock('@/domains/transaction/transaction.service');
+jest.mock('@/domains/property/property.service', () => ({
+  saveDescriptionDraft: jest.fn(),
+}));
+import * as propertyService from '@/domains/property/property.service';
 const mockRepo = reviewRepo as jest.Mocked<typeof reviewRepo>;
 const mockComplianceService = complianceService as jest.Mocked<typeof complianceService>;
 const mockTransactionService = transactionService as jest.Mocked<typeof transactionService>;
@@ -432,5 +436,46 @@ describe('rejectItem — ownership enforcement', () => {
       'admin-user',
       'Needs revision',
     );
+  });
+});
+
+describe('approveItem — listing_description with optional text', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRepo.getListingAgentId.mockResolvedValue('agent-1');
+    mockRepo.approveListingDescription.mockResolvedValue({} as never);
+    mockRepo.checkListingFullyApproved.mockResolvedValue(false);
+    mockAudit.log.mockResolvedValue(undefined as never);
+    jest.mocked(propertyService.saveDescriptionDraft).mockResolvedValue(undefined as never);
+  });
+
+  it('calls saveDescriptionDraft before approving when text is provided', async () => {
+    await approveItem({
+      entityType: 'listing_description',
+      entityId: 'listing-1',
+      agentId: 'agent-1',
+      callerRole: 'agent',
+      text: 'Edited description text.',
+    });
+
+    expect(propertyService.saveDescriptionDraft).toHaveBeenCalledWith(
+      'listing-1',
+      'Edited description text.',
+      'agent-1',
+      'agent',
+    );
+    expect(mockRepo.approveListingDescription).toHaveBeenCalledWith('listing-1', 'agent-1');
+  });
+
+  it('does not call saveDescriptionDraft when text is absent', async () => {
+    await approveItem({
+      entityType: 'listing_description',
+      entityId: 'listing-1',
+      agentId: 'agent-1',
+      callerRole: 'agent',
+    });
+
+    expect(propertyService.saveDescriptionDraft).not.toHaveBeenCalled();
+    expect(mockRepo.approveListingDescription).toHaveBeenCalledWith('listing-1', 'agent-1');
   });
 });

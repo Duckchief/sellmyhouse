@@ -16,3 +16,12 @@ export const validateEntityParams = [
 export const validateRejectBody = [
   body('reviewNotes').isString().trim().notEmpty().withMessage('Rejection notes are required'),
 ];
+
+export const validateApproveDescriptionBody = [
+  body('text')
+    .optional()
+    .isString()
+    .trim()
+    .notEmpty()
+    .withMessage('text must be a non-empty string if provided'),
+];

@@ -230,6 +230,7 @@ propertyRouter.post(
         displayOrder: 0,
         status: 'uploaded',
         uploadedAt: new Date(),
+        hash: processed.hash,
       };
 
       const photos = await photoService.addPhotoToListing(property.id, photoRecord);

@@ -50,6 +50,8 @@ model RecurringSchedule {
 ]
 ```
 
+Each `VirtualSlot` produced from the schedule carries `slotType` and derived `maxViewers` (via `calcOpenHouseMaxViewers` for group slots, 1 for single). These fields are passed to the buyer booking page so it can display capacity correctly for both virtual and materialised slots.
+
 ### Changes to `ViewingSlot`
 
 **New field:** `source  SlotSource  @default(manual)`
@@ -69,11 +71,26 @@ Existing rows default to `manual`. Rows materialised from the schedule get `recu
 @@unique([propertyId, date, startTime, endTime])
 ```
 
-Required for `INSERT ... ON CONFLICT DO NOTHING` in the booking flow.
+Required for `INSERT ... ON CONFLICT DO NOTHING` in the booking flow. **Migration note:** Before adding this constraint, the migration must deduplicate any existing rows sharing the same `(propertyId, date, startTime, endTime)`. The deduplication step keeps the row with the lowest `ctid` and deletes others:
+
+```sql
+DELETE FROM viewing_slots
+WHERE id NOT IN (
+  SELECT DISTINCT ON (property_id, date, start_time, end_time) id
+  FROM viewing_slots
+  ORDER BY property_id, date, start_time, end_time, ctid
+);
+ALTER TABLE viewing_slots
+  ADD CONSTRAINT viewing_slots_property_date_start_end_unique
+  UNIQUE (property_id, date, start_time, end_time);
+```
+
+### `MAX_ACTIVE_SLOTS` scope
+
+`MAX_ACTIVE_SLOTS` is removed **only from the recurring code path** (`createRecurringSlots`, which is being deleted). It is **retained** in `createSlot` and `createBulkSlots` for manual and bulk slot creation.
 
 ### Removed
 
-- `MAX_ACTIVE_SLOTS` check in recurring slot creation (no longer applicable)
 - `findLastUpcomingSlot` repository function
 - `getLastUpcomingSlotDate` service function
 - `lastSlotDate` / `daysUntilExpiry` from dashboard render context
@@ -91,9 +108,13 @@ Required for `INSERT ... ON CONFLICT DO NOTHING` in the booking flow.
 
 ### Behaviour
 
-- **Save (upsert):** Overwrites the existing `RecurringSchedule` row for the property. Validates the `days` JSON using the existing `validateCreateRecurringSlots` validator (reused). Returns the saved schedule.
+- **Save (upsert):** Resolves `propertyId` from the seller's active property (via `req.user`), not from the request body. Validates `days` using `validateCreateRecurringSlots` (the `propertyId` field of that validator's input is supplied server-side, not from the client). Overwrites the existing `RecurringSchedule` row. Returns the saved schedule.
 - **Delete:** Removes the `RecurringSchedule` row. Already-materialised `ViewingSlot` rows with `source = 'recurring'` are unaffected — they remain and must be cancelled manually if needed.
 - **GET `/seller/viewings`:** Loads the existing schedule (if any) and passes it to the template. The Recurring Slots tab pre-populates the 7-day grid from the saved schedule. If no schedule exists, the form shows the default values (Mon–Fri 18:00–20:00, Sat–Sun 13:00–17:00).
+
+### Property lifecycle
+
+When a property is cancelled or falls through (`cancelSlotsForPropertyCascade`), `deleteRecurringSchedule` is also called for that property. This prevents a stale schedule from generating virtual windows if the property is somehow revisited. Already-materialised `ViewingSlot` rows are cancelled via the existing cascade.
 
 ### UI changes
 
@@ -105,18 +126,18 @@ Required for `INSERT ... ON CONFLICT DO NOTHING` in the booking flow.
 
 ## Availability Computation
 
-### `generateRecurringWindowsForRange(schedule, startDate, endDate)`
+### `generateRecurringWindowsForRange(schedule, startDate, endDate): VirtualSlot[]`
 
-Pure function (no DB access). Given a `RecurringSchedule` and a date range:
+Pure function (no DB access). Lives in a dedicated file: `src/domains/viewing/recurring.utils.ts`. Given a `RecurringSchedule` and a date range:
 
 1. Iterate each date in the range
 2. Find matching `days` entry by `dayOfWeek`
 3. For each matching timeslot:
-   - If `slotType === 'group'`: yield one window spanning `startTime`–`endTime`
-   - If `slotType === 'single'`: yield 15-minute sub-windows
-4. Return `VirtualSlot[]` — each with a deterministic ID: `rec:{date}:{startTime}:{endTime}`
+   - If `slotType === 'group'`: yield one window spanning `startTime`–`endTime`, with `maxViewers` from `calcOpenHouseMaxViewers`
+   - If `slotType === 'single'`: yield 15-minute sub-windows, each with `maxViewers: 1`
+4. Return `VirtualSlot[]` — each with a deterministic ID: `rec:{date}:{startTime}:{endTime}`, and fields: `date`, `startTime`, `endTime`, `slotType`, `maxViewers`
 
-This function is tested in isolation with no dependencies.
+Tests live in `src/domains/viewing/__tests__/recurring.utils.test.ts`.
 
 ### Seller calendar: `getMonthSlotMeta`
 
@@ -130,11 +151,11 @@ Manual `ViewingSlot` rows with no matching virtual window are included as-is.
 
 ### Seller date sidebar: `getSlotsForDate`
 
-Same merge logic scoped to a single date.
+Same merge logic scoped to a single date. The merged slot list (virtual + real) is passed to `findNextAvailableGap` so that the "Add Slot" form pre-fill correctly accounts for recurring windows even before they are materialised.
 
 ### Public booking page: `/view/:propertySlug`
 
-Same merge logic scoped to next 30 days. Returns a unified slot list mixing manual `ViewingSlot` rows and virtual recurring windows. Virtual slots carry the `rec:` deterministic ID. The buyer's booking form submits whichever ID was selected.
+Same merge logic scoped to next 30 days. Returns a unified slot list mixing manual `ViewingSlot` rows and virtual recurring windows. Virtual slots carry the `rec:` deterministic ID along with `slotType` and `maxViewers` so the buyer UI can display capacity correctly.
 
 **Precedence rule:** If a manual `ViewingSlot` exists for the same `(date, startTime, endTime)` as a virtual recurring window, the manual slot takes precedence and the virtual window is suppressed.
 
@@ -150,16 +171,23 @@ Unchanged. The existing `createViewingWithLock` flow handles it entirely.
 
 1. Parse ID → extract `date`, `startTime`, `endTime`
 2. Load `RecurringSchedule` for property; verify the requested window exists in the schedule (prevents arbitrary slot fabrication)
-3. `INSERT INTO viewing_slots (propertyId, date, startTime, endTime, source, ...) ON CONFLICT (propertyId, date, startTime, endTime) DO NOTHING` — materialise the slot if it doesn't exist yet
-4. `SELECT ... FOR UPDATE` — acquire row-level lock on the now-existing row
-5. Continue with existing `createViewingWithLock` logic — capacity check, `currentBookings` increment, status transitions (`available → booked → full`), OTP, notifications — all unchanged
+3. Materialise the slot using a raw SQL upsert (**Prisma does not support `ON CONFLICT DO NOTHING` via ORM API; this step requires `prisma.$executeRaw`**). Column names use snake_case as stored in PostgreSQL:
+   ```sql
+   INSERT INTO viewing_slots (id, property_id, date, start_time, end_time,
+     duration_minutes, slot_type, max_viewers, current_bookings, status, source, created_at)
+   VALUES (...)
+   ON CONFLICT (property_id, date, start_time, end_time) DO NOTHING
+   ```
+4. `SELECT ... FOR UPDATE` — acquire row-level lock on the now-existing row (standard Prisma query)
+5. Perform `findDuplicateBooking` check using the materialised slot's UUID (not the `rec:` ID) — this sequencing is required because the UUID only exists after step 3
+6. Continue with existing `createViewingWithLock` logic — capacity check, `currentBookings` increment, status transitions (`available → booked → full`), OTP, notifications — all unchanged
 
 ### Concurrency safety
 
 Two buyers racing to book the same virtual slot:
 - Both execute `INSERT ON CONFLICT` — one inserts, one skips
 - Both execute `SELECT FOR UPDATE` — the lock serialises them
-- The second buyer sees `currentBookings` already incremented and either gets a "slot full" error or proceeds if capacity allows
+- The second buyer sees `currentBookings` already incremented and either gets a "slot full" error or proceeds if capacity allows (group slots)
 
 ---
 
@@ -167,13 +195,15 @@ Two buyers racing to book the same virtual slot:
 
 ### New
 - `prisma/migrations/YYYYMMDDHHMMSS_recurring_schedule/migration.sql`
+- `src/domains/viewing/recurring.utils.ts` — `generateRecurringWindowsForRange` pure function
+- `src/domains/viewing/__tests__/recurring.utils.test.ts`
 
 ### Modified
 - `prisma/schema.prisma` — add `RecurringSchedule`, `SlotSource` enum, `ViewingSlot.source`, unique constraint
 - `src/domains/viewing/viewing.types.ts` — add `VirtualSlot`, `SlotSource` types; add `RecurringScheduleRow`
-- `src/domains/viewing/viewing.repository.ts` — add `findRecurringSchedule`, `upsertRecurringSchedule`, `deleteRecurringSchedule`; update slot queries to include `source`
-- `src/domains/viewing/viewing.service.ts` — add `generateRecurringWindowsForRange` (pure); rewrite `getMonthSlotMeta`, `getSlotsForDate` to merge virtual + real; add `saveSchedule`, `deleteSchedule`; update `initiateBooking` to handle `rec:` IDs; remove `createRecurringSlots`, `getLastUpcomingSlotDate`
-- `src/domains/viewing/viewing.validator.ts` — reuse `validateCreateRecurringSlots` for schedule save input
+- `src/domains/viewing/viewing.repository.ts` — add `findRecurringSchedule`, `upsertRecurringSchedule`, `deleteRecurringSchedule`; update `cancelSlotsForPropertyCascade` to also delete schedule; update slot queries to include `source`
+- `src/domains/viewing/viewing.service.ts` — rewrite `getMonthSlotMeta`, `getSlotsForDate` to merge virtual + real; add `saveSchedule`, `deleteSchedule`; update `initiateBooking` to handle `rec:` IDs; remove `createRecurringSlots`, `getLastUpcomingSlotDate`
+- `src/domains/viewing/viewing.validator.ts` — `validateCreateRecurringSlots` reused; `propertyId` supplied server-side by router, not from client body
 - `src/domains/viewing/viewing.router.ts` — add `POST/DELETE /seller/viewings/schedule`; remove `POST /seller/viewings/slots/recurring`; load schedule in GET `/seller/viewings`; remove expiry fields
 - `src/views/pages/seller/viewings.njk` — remove expiry nudge banner
 - `src/views/partials/seller/viewings-dashboard.njk` — pre-populate recurring form from saved schedule; update submit button label
@@ -183,13 +213,14 @@ Two buyers racing to book the same virtual slot:
 - `createRecurringSlots` service function
 - `getLastUpcomingSlotDate` service function
 - `findLastUpcomingSlot` repository function
-- `MAX_ACTIVE_SLOTS` guard in recurring path
+- `MAX_ACTIVE_SLOTS` guard in `createRecurringSlots` only (retained in `createSlot` and `createBulkSlots`)
 
 ---
 
 ## Testing
 
-- `generateRecurringWindowsForRange` — unit tests: correct windows per day, 15-min subdivision, group slot spanning, edge cases (empty schedule, date range boundaries, SGT midnight)
+- `generateRecurringWindowsForRange` — unit tests in `recurring.utils.test.ts`: correct windows per day, 15-min subdivision, group slot spanning, correct `slotType`/`maxViewers` on virtual slots, edge cases (empty schedule, date range boundaries, SGT midnight)
 - `getMonthSlotMeta` — unit tests: virtual-only month, manual-only month, mixed (virtual suppressed by manual), materialised recurring overlay
-- Booking flow — integration tests: book virtual slot (materialises row), concurrent booking race (lock serialises correctly), invalid `rec:` ID rejected, valid UUID slot unchanged
-- Schedule CRUD — integration tests: upsert creates/overwrites, delete removes config without affecting materialised rows
+- `getSlotsForDate` — unit test: virtual windows fed into `findNextAvailableGap` correctly
+- Booking flow — integration tests: book virtual slot (materialises row), concurrent booking race (lock serialises correctly), invalid `rec:` ID rejected, `findDuplicateBooking` uses materialised UUID not `rec:` ID, valid UUID slot unchanged
+- Schedule CRUD — integration tests: upsert creates/overwrites, delete removes config without affecting materialised rows, cascade cancel also deletes schedule

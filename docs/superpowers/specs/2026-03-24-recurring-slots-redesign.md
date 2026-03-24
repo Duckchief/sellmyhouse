@@ -123,8 +123,8 @@ Replaces the existing `POST /seller/viewings/slots` with `bulk=true` for this us
 |-------|-------|
 | `startDate` | Today in SGT (`Asia/Singapore` timezone) |
 | `endDate` | Today + 1 month in SGT |
-| `slotDurationMinutes` | 10 for `single`; `(endTime − startTime)` in minutes for `group` |
-| `durationMinutes` (DB field) | Same as `slotDurationMinutes` above |
+| `slotDurationMinutes` | 10 for `single`; `(endTime − startTime)` in minutes for `group` (e.g. 13:00–17:00 → 240) |
+| `durationMinutes` (DB field) | Same value as `slotDurationMinutes`: 10 for `single`; full window duration in minutes for `group` |
 | `maxViewers` | 1 for `single`; reuse `calcOpenHouseMaxViewers(startTime, endTime)` from `viewing.validator.ts` for `group` — **must be exported** (currently module-private; add `export` keyword as a prerequisite) |
 
 **Timezone note:** "Today" must be determined in SGT (UTC+8). Use `new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' })` to get `YYYY-MM-DD` in SGT, then construct a date from that string.
@@ -158,9 +158,9 @@ The recurring endpoint is **exempt from `MAX_SLOTS_PER_DAY`**, consistent with t
 
 ### Overlap Check Against Existing Slots
 
-**Intra-payload overlaps** (timeslots within the same day) are caught by the validator rule: each timeslot's `startTime` must be ≥ the `endTime` of the previous timeslot. These are rejected before generation begins.
+**Intra-payload overlaps** (timeslots within the same day) are caught by the validator before generation begins — each timeslot's `startTime` must be ≥ the `endTime` of the previous. Payloads passing validation contain no intra-day overlaps, so all generated slots from a valid payload are included in `toInsert` before the DB-level check.
 
-**DB-level overlaps** (against already-existing slots): before inserting, check each generated slot against existing active slots on the same property and date. Overlap condition: `existingStartTime < newEndTime && existingEndTime > newStartTime`. **Skip** (do not insert) any overlapping slot rather than aborting the whole batch. The returned `count` reflects only slots actually inserted.
+**DB-level overlaps** (against already-existing slots): before inserting, check each slot in `toInsert` against existing active slots on the same property and date. **Time comparisons use lexicographic string comparison on HH:MM values**, which is correct for 24-hour format (e.g. `"18:00" < "20:00"`). Overlap condition: `existing.startTime < newSlot.endTime && existing.endTime > newSlot.startTime`. Remove any overlapping slots from `toInsert` before the `MAX_ACTIVE_SLOTS` post-check and before insertion. The returned `count` reflects only slots actually inserted.
 
 ### Database Transaction
 
@@ -200,7 +200,7 @@ The link activates the Recurring Slots tab.
 | `src/views/partials/seller/viewings-dashboard.njk` | Replace recurring slots form with day-row layout |
 | `src/views/pages/seller/viewings.njk` | Add expiry nudge banner |
 | `src/domains/viewing/viewing.router.ts` | Add `POST /seller/viewings/slots/recurring` route |
-| `src/domains/viewing/viewing.validator.ts` | Add `validateCreateRecurringSlots` validator |
+| `src/domains/viewing/viewing.validator.ts` | **Prerequisite:** export `calcOpenHouseMaxViewers` (add `export` keyword). Then add `validateCreateRecurringSlots` validator. |
 | `src/domains/viewing/viewing.service.ts` | Add `createRecurringSlots` service method |
 | `src/domains/viewing/viewing.repository.ts` | Add `findLastUpcomingSlot(propertyId)` query |
 | `src/domains/viewing/viewing.types.ts` | Add `CreateRecurringSlotsInput` type |

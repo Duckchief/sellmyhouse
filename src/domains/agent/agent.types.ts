@@ -135,6 +135,7 @@ export interface SellerDetail {
       status: string;
       title: string | null;
       description: string | null;
+      aiDescription: string | null;
       photosApprovedAt: Date | null;
       descriptionApprovedAt: Date | null;
       photoCount: number | null;

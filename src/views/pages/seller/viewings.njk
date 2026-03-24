@@ -10,21 +10,6 @@
   {% set pageSubtitle = "Manage viewing slots and track booked viewings for your property." %}
   {% include "partials/shared/page-header.njk" %}
 
-  {% if lastSlotDate === null or daysUntilExpiry !== null and daysUntilExpiry <= 7 %}
-  <div class="mb-4 flex items-center justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-    <span>
-      {% if lastSlotDate %}
-        {{ "Your viewing slots expire in" | t }} {{ daysUntilExpiry }} {{ "days." | t }}
-      {% else %}
-        {{ "You have no upcoming viewing slots." | t }}
-      {% endif %}
-    </span>
-    <a href="?tab=recurring" class="font-semibold underline whitespace-nowrap">
-      {% if lastSlotDate %}{{ "Create more →" | t }}{% else %}{{ "Create slots →" | t }}{% endif %}
-    </a>
-  </div>
-  {% endif %}
-
   <div id="viewings-container">
     {% include "partials/seller/viewings-dashboard.njk" %}
   </div>

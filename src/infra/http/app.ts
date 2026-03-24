@@ -35,6 +35,7 @@ import { testimonialRouter } from '../../domains/content/testimonial.router';
 import { referralTrackingMiddleware } from './middleware/referral-tracking';
 import { maintenanceMiddleware } from './middleware/maintenance';
 import { csrfProtection, injectCsrfToken } from './middleware/csrf';
+import { portalsReadyBadgeMiddleware } from './middleware/portals-badge';
 import { dateFilter } from './filters/date.filter';
 
 function validateEnv() {
@@ -204,6 +205,8 @@ export function createApp() {
   app.use(financialRouter);
   app.use(viewingRouter);
   app.use(offerRouter);
+  // Portals badge — inject portalsReadyCount into res.locals for all /agent pages
+  app.use('/agent', portalsReadyBadgeMiddleware);
   app.use(agentRouter);
   app.use(reviewRouter);
   app.use(adminRouter);

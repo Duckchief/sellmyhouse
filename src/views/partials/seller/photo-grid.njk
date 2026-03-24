@@ -10,9 +10,6 @@
     data-photo-id="{{ photo.id }}">
     <img src="/seller/photos/{{ photo.id }}/thumbnail" alt="{{ photo.originalFilename }}"
       class="w-full h-40 object-cover">
-    {% if loop.first %}
-    <span class="absolute top-2 left-2 bg-yellow-400 text-yellow-900 text-xs font-semibold px-2 py-0.5 rounded-full">{{ "Cover" | t }}</span>
-    {% endif %}
     <div class="p-2">
       <p class="text-xs text-gray-500 truncate">{{ photo.originalFilename }}</p>
       <span class="inline-block mt-1 px-2 py-0.5 text-xs rounded-full
@@ -39,7 +36,7 @@
 
 {% if photos.length > 1 %}
 <div class="mt-4">
-  <p class="text-sm text-gray-500">{{ "The first photo will be the cover image." | t }}</p>
+  <p class="text-sm text-gray-500">{{ "Drag to reorder your photos." | t }}</p>
 </div>
 {% endif %}
 {% else %}

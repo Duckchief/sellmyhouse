@@ -417,6 +417,7 @@ export async function getSettingsGrouped(): Promise<SettingGroup[]> {
   const map = new Map(all.map((s) => [s.key, s]));
 
   const CRON_KEYS = new Set(['market_content_schedule']);
+  const TEXTAREA_KEYS = new Set(['listing_description_prompt']);
 
   const group = (label: string, keys: string[]): SettingGroup => ({
     label,
@@ -429,7 +430,7 @@ export async function getSettingsGrouped(): Promise<SettingGroup[]> {
               value: s.value,
               description: s.description,
               updatedAt: s.updatedAt,
-              inputType: CRON_KEYS.has(k) ? 'cron' : 'text',
+              inputType: CRON_KEYS.has(k) ? 'cron' : TEXTAREA_KEYS.has(k) ? 'textarea' : 'text',
             } satisfies SettingWithMeta)
           : null;
       })
@@ -454,7 +455,7 @@ export async function getSettingsGrouped(): Promise<SettingGroup[]> {
       'financial_data_retention_days',
       'transaction_anonymisation_days',
     ]),
-    group('AI', ['ai_provider', 'ai_model', 'ai_max_tokens', 'ai_temperature']),
+    group('AI', ['ai_provider', 'ai_model', 'ai_max_tokens', 'ai_temperature', 'listing_description_prompt']),
     group('Platform', [
       'viewing_slot_duration',
       'viewing_max_group_size',

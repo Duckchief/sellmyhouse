@@ -223,6 +223,12 @@
       if (modal) modal.classList.add('hidden');
     }
 
+    // Close open-house duration modal
+    if (action === 'close-open-house-duration-modal') {
+      var modal = document.getElementById('open-house-duration-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
     // Dismiss cookie consent banner and persist the preference
     if (action === 'dismiss-cookie-banner') {
       var banner = document.getElementById('cookie-banner');

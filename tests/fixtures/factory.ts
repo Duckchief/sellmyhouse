@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, SlotType, SlotStatus } from '@prisma/client';
 import { testPrisma } from '../helpers/prisma';
 import { createId } from '@paralleldrive/cuid2';
 import { encrypt } from '../../src/domains/shared/encryption';
@@ -103,6 +103,8 @@ export const factory = {
     floorAreaSqm?: number;
     leaseCommenceDate?: number;
     askingPrice?: number;
+    slug?: string;
+    agentId?: string;
     status?:
       | 'draft'
       | 'listed'
@@ -125,6 +127,7 @@ export const factory = {
         floorAreaSqm: overrides.floorAreaSqm ?? 93,
         leaseCommenceDate: overrides.leaseCommenceDate ?? 1995,
         askingPrice: overrides.askingPrice,
+        slug: overrides.slug,
         status: overrides.status ?? 'draft',
       },
     });
@@ -631,6 +634,40 @@ export const factory = {
         amount: overrides.amount ?? 1499,
         gstAmount: overrides.gstAmount ?? 134.91,
         totalAmount: overrides.totalAmount ?? 1633.91,
+      },
+    });
+  },
+
+  async viewingSlot(overrides: {
+    propertyId: string;
+    date?: Date;
+    startTime?: string;
+    endTime?: string;
+    slotType?: 'single' | 'group';
+    maxViewers?: number;
+    status?: 'available' | 'booked' | 'full' | 'cancelled';
+  }) {
+    return testPrisma.viewingSlot.create({
+      data: {
+        id: createId(),
+        propertyId: overrides.propertyId,
+        date: overrides.date ?? new Date('2026-04-01T00:00:00.000Z'),
+        startTime: overrides.startTime ?? '18:00',
+        endTime: overrides.endTime ?? '18:15',
+        durationMinutes: 15,
+        slotType: (overrides.slotType ?? 'single') as SlotType,
+        maxViewers: overrides.maxViewers ?? 1,
+        status: (overrides.status ?? 'available') as SlotStatus,
+      },
+    });
+  },
+
+  async recurringSchedule(overrides: { propertyId: string; days?: unknown }) {
+    return testPrisma.recurringSchedule.create({
+      data: {
+        id: createId(),
+        propertyId: overrides.propertyId,
+        days: (overrides.days ?? []) as Prisma.InputJsonValue,
       },
     });
   },

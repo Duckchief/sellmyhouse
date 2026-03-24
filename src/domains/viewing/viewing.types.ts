@@ -1,3 +1,5 @@
+import type { Prisma } from '@prisma/client';
+
 // ─── Slot Status State Machine ─────────────────────────────
 // available → booked (first booking on single slot)
 // available → full (group slot reaches maxViewers)
@@ -79,6 +81,7 @@ export interface BookingFormInput {
   agentAgencyName?: string;
   consentService: boolean;
   slotId: string;
+  propertyId?: string; // Required for rec: IDs; resolved server-side from property slug
   // Anti-spam
   website?: string; // Honeypot field
   formLoadedAt?: number; // Timestamp for time-based validation
@@ -135,6 +138,41 @@ export interface SlotSummary {
   maxViewers: number;
   currentBookings: number;
   status: string;
+}
+
+// ─── Schedule Types ────────────────────────────────────────
+
+export type SlotSource = 'manual' | 'recurring';
+
+export interface VirtualSlot {
+  id: string; // 'rec:{YYYY-MM-DD}:{HH:MM}:{HH:MM}'
+  date: Date;
+  startTime: string; // HH:MM
+  endTime: string;   // HH:MM
+  slotType: 'single' | 'group';
+  maxViewers: number;
+}
+
+export interface RecurringScheduleRow {
+  id: string;
+  propertyId: string;
+  days: Prisma.JsonValue;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ViewingSlotRow {
+  id: string;
+  propertyId: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  slotType: string;
+  maxViewers: number;
+  currentBookings: number;
+  status: string;
+  createdAt: Date;
 }
 
 // ─── Constants ────────────────────────────────────────────

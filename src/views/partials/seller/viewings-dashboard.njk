@@ -162,7 +162,9 @@
 
   {# Recurring slots form #}
   <div id="panel-bulk" class="hidden">
-    <form id="recurring-slots-form-new" data-property-id="{{ propertyId }}">
+    <form id="recurring-slots-form-new"
+          data-property-id="{{ propertyId }}"
+          data-saved-schedule="{{ recurringSchedule.days | dump | escape if recurringSchedule else '[]' }}">
       <input type="hidden" name="propertyId" value="{{ propertyId }}">
 
       {# 7-day row table #}
@@ -273,9 +275,8 @@
       <div class="flex items-center gap-3">
         <button type="submit"
                 class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition">
-          {{ "Create Recurring Slots" | t }}
+          {{ "Save Schedule" | t }}
         </button>
-        <span class="text-xs text-gray-400">{{ "Creates slots for 1 month from today" | t }}</span>
       </div>
     </form>
 

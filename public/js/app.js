@@ -1225,27 +1225,86 @@
       if (days.length === 0) return;
 
       var resultDiv = document.getElementById('recurring-result');
-      if (resultDiv) resultDiv.innerHTML = '<p class="text-sm text-gray-400">Creating slots…</p>';
+      if (resultDiv) resultDiv.innerHTML = '<p class="text-sm text-gray-400">Saving schedule…</p>';
 
-      fetch('/seller/viewings/slots/recurring', {
+      fetch('/seller/viewings/schedule', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'hx-request': 'true',
         },
         body: JSON.stringify({ propertyId: propertyId, days: days }),
       })
         .then(function (res) {
-          if (!res.ok) throw new Error('Server error');
-          return res.text();
+          return res.json().then(function (data) {
+            return { ok: res.ok, data: data };
+          });
         })
-        .then(function (html) {
-          if (resultDiv) resultDiv.innerHTML = html;
+        .then(function (result) {
+          var p = document.createElement('p');
+          p.className = result.ok && result.data && result.data.success
+            ? 'text-sm text-green-600'
+            : 'text-sm text-red-600';
+          p.textContent = result.ok && result.data && result.data.success
+            ? 'Schedule saved.'
+            : 'Something went wrong. Please try again.';
+          if (resultDiv) resultDiv.replaceChildren(p);
         })
         .catch(function () {
-          if (resultDiv) resultDiv.innerHTML = '<p class="text-sm text-red-600">Something went wrong. Please try again.</p>';
+          var p = document.createElement('p');
+          p.className = 'text-sm text-red-600';
+          p.textContent = 'Something went wrong. Please try again.';
+          if (resultDiv) resultDiv.replaceChildren(p);
         });
     });
+
+    // Pre-populate form from saved schedule
+    var savedScheduleRaw = recurringForm.dataset.savedSchedule;
+    if (savedScheduleRaw && savedScheduleRaw !== '[]') {
+      try {
+        var savedDays = JSON.parse(savedScheduleRaw);
+        savedDays.forEach(function (dayConfig) {
+          var dayRow = recurringForm.querySelector('[data-dow="' + dayConfig.dayOfWeek + '"]');
+          if (!dayRow || !dayConfig.timeslots || dayConfig.timeslots.length === 0) return;
+
+          // Enable the toggle
+          var toggle = dayRow.querySelector('.recurring-day-toggle');
+          if (toggle) {
+            toggle.setAttribute('aria-pressed', 'true');
+            toggle.classList.remove('bg-gray-300');
+            toggle.classList.add('bg-blue-500');
+          }
+
+          // Set first timeslot values
+          var firstTs = dayRow.querySelector('.recurring-timeslot');
+          if (firstTs && dayConfig.timeslots[0]) {
+            var ts = dayConfig.timeslots[0];
+            var selects = firstTs.querySelectorAll('.recurring-time-select');
+            if (selects[0]) selects[0].value = ts.startTime;
+            if (selects[1]) selects[1].value = ts.endTime;
+            var typeSel = firstTs.querySelector('.recurring-type-select');
+            if (typeSel) typeSel.value = ts.slotType;
+          }
+
+          // Add additional timeslot rows if schedule has > 1
+          for (var i = 1; i < dayConfig.timeslots.length; i++) {
+            var addBtn = dayRow.querySelector('.recurring-add-btn');
+            if (addBtn) addBtn.click();
+            var allTs = dayRow.querySelectorAll('.recurring-timeslot');
+            var newTs = allTs[i];
+            if (newTs && dayConfig.timeslots[i]) {
+              var ts2 = dayConfig.timeslots[i];
+              var sels2 = newTs.querySelectorAll('.recurring-time-select');
+              if (sels2[0]) sels2[0].value = ts2.startTime;
+              if (sels2[1]) sels2[1].value = ts2.endTime;
+              var typeSel2 = newTs.querySelector('.recurring-type-select');
+              if (typeSel2) typeSel2.value = ts2.slotType;
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('Failed to pre-populate recurring schedule form:', e);
+      }
+    }
   }
 
   // Show server error under Add Slot button on failure; clear on success

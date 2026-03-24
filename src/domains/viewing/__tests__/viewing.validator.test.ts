@@ -2,6 +2,7 @@ import {
   validateCreateSlot,
   validateCreateBulkSlots,
   validateCreateRecurringSlots,
+  validateScheduleDays,
   validateBookingForm,
   validateOtp,
   validateFeedback,
@@ -281,6 +282,25 @@ describe('viewing.validator', () => {
         }],
       });
       expect(result.days[0].timeslots[0].slotType).toBe('group');
+    });
+  });
+
+  describe('validateScheduleDays', () => {
+    it('validates days array without requiring propertyId from client', () => {
+      const days = [{ dayOfWeek: 1, timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' }] }];
+      expect(() => validateScheduleDays(days)).not.toThrow();
+      const result = validateScheduleDays(days);
+      expect(result).toHaveLength(1);
+      expect(result[0].dayOfWeek).toBe(1);
+    });
+
+    it('throws ValidationError for empty days array', () => {
+      expect(() => validateScheduleDays([])).toThrow(ValidationError);
+    });
+
+    it('throws ValidationError for invalid timeslot', () => {
+      const days = [{ dayOfWeek: 1, timeslots: [{ startTime: '09:00', endTime: '10:00', slotType: 'single' }] }];
+      expect(() => validateScheduleDays(days)).toThrow(ValidationError); // before 10:00 start bound
     });
   });
 

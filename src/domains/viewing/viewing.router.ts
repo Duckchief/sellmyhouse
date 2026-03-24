@@ -4,7 +4,7 @@ import * as propertyService from '@/domains/property/property.service';
 import {
   validateCreateSlot,
   validateCreateBulkSlots,
-  validateCreateRecurringSlots,
+  validateScheduleDays,
   validateBookingForm,
   validateOtp,
   validateFeedback,
@@ -51,6 +51,10 @@ viewingRouter.get(
       const { stats, slots, totalSlots, slotsByDate } = dashboard;
       const hasMore = page * pageSize < (totalSlots ?? 0);
 
+      const recurringSchedule = propertyId
+        ? await viewingService.getRecurringSchedule(propertyId)
+        : null;
+
       // HTMX "load more" request — return just the slot rows + next button
       if (req.headers['hx-request'] && page > 1) {
         return res.render('partials/seller/slots-page', {
@@ -70,19 +74,8 @@ viewingRouter.get(
           page,
           hasMore,
           totalSlots,
+          recurringSchedule,
         });
-      }
-
-      let lastSlotDate: Date | null = null;
-      let daysUntilExpiry: number | null = null;
-      if (propertyId) {
-        lastSlotDate = await viewingService.getLastUpcomingSlotDate(propertyId);
-        if (lastSlotDate) {
-          const msPerDay = 1000 * 60 * 60 * 24;
-          daysUntilExpiry = Math.ceil(
-            (lastSlotDate.getTime() - Date.now()) / msPerDay,
-          );
-        }
       }
 
       return res.render('pages/seller/viewings', {
@@ -93,8 +86,7 @@ viewingRouter.get(
         page,
         hasMore,
         totalSlots,
-        lastSlotDate,
-        daysUntilExpiry,
+        recurringSchedule,
       });
     } catch (err) {
       next(err);
@@ -176,18 +168,28 @@ viewingRouter.post(
 );
 
 viewingRouter.post(
-  '/seller/viewings/slots/recurring',
+  '/seller/viewings/schedule',
   requireAuth(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const input = validateCreateRecurringSlots(req.body);
-      const result = await viewingService.createRecurringSlots(input, user.id);
+      const days = validateScheduleDays(req.body.days);
+      const schedule = await viewingService.saveSchedule(days, user.id);
+      return res.status(200).json({ success: true, schedule });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
-      if (req.headers['hx-request']) {
-        return res.render('partials/seller/slots-created', { count: result.count });
-      }
-      return res.status(201).json({ success: true, count: result.count });
+viewingRouter.delete(
+  '/seller/viewings/schedule',
+  requireAuth(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as AuthenticatedUser;
+      await viewingService.deleteSchedule(user.id);
+      return res.status(200).json({ success: true });
     } catch (err) {
       next(err);
     }

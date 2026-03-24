@@ -1,5 +1,6 @@
 import * as viewingRepo from '../viewing.repository';
 import { prisma } from '@/infra/database/prisma';
+import { NotFoundError } from '@/domains/shared/errors';
 
 jest.mock('@/infra/database/prisma', () => ({
   prisma: {
@@ -29,8 +30,14 @@ jest.mock('@/infra/database/prisma', () => ({
       findUnique: jest.fn(),
       findFirst: jest.fn(),
     },
+    recurringSchedule: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
+      deleteMany: jest.fn(),
+    },
     $transaction: jest.fn(),
     $queryRaw: jest.fn(),
+    $executeRaw: jest.fn(),
   },
 }));
 
@@ -221,32 +228,6 @@ describe('viewing.repository', () => {
     });
   });
 
-  describe('findLastUpcomingSlot', () => {
-    it('returns the last upcoming non-cancelled slot', async () => {
-      const mockSlot = { id: 'slot-1', date: new Date('2026-04-15') };
-      mockedPrisma.viewingSlot.findFirst.mockResolvedValue(mockSlot as never);
-
-      const result = await viewingRepo.findLastUpcomingSlot('prop-1');
-
-      expect(mockedPrisma.viewingSlot.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            propertyId: 'prop-1',
-            status: { not: 'cancelled' },
-          }),
-          orderBy: { date: 'desc' },
-        }),
-      );
-      expect(result).toEqual(mockSlot);
-    });
-
-    it('returns null when no upcoming slots', async () => {
-      mockedPrisma.viewingSlot.findFirst.mockResolvedValue(null);
-      const result = await viewingRepo.findLastUpcomingSlot('prop-1');
-      expect(result).toBeNull();
-    });
-  });
-
   describe('findActiveSlotsByDateRange', () => {
     it('returns active slots in date range without includes', async () => {
       const mockSlots = [
@@ -269,6 +250,139 @@ describe('viewing.repository', () => {
         }),
       );
       expect(result).toEqual(mockSlots);
+    });
+  });
+
+  describe('findRecurringSchedule', () => {
+    it('returns schedule for property', async () => {
+      const schedule = { id: 's1', propertyId: 'p1', days: [], createdAt: new Date(), updatedAt: new Date() };
+      mockedPrisma.recurringSchedule.findUnique.mockResolvedValue(schedule as never);
+      const result = await viewingRepo.findRecurringSchedule('p1');
+      expect(mockedPrisma.recurringSchedule.findUnique).toHaveBeenCalledWith({
+        where: { propertyId: 'p1' },
+      });
+      expect(result).toEqual(schedule);
+    });
+
+    it('returns null when no schedule exists', async () => {
+      mockedPrisma.recurringSchedule.findUnique.mockResolvedValue(null);
+      const result = await viewingRepo.findRecurringSchedule('p1');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('upsertRecurringSchedule', () => {
+    it('upserts schedule with given days', async () => {
+      const days = [{ dayOfWeek: 1, timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' as const }] }];
+      const schedule = { id: 's1', propertyId: 'p1', days, createdAt: new Date(), updatedAt: new Date() };
+      mockedPrisma.recurringSchedule.upsert.mockResolvedValue(schedule as never);
+
+      await viewingRepo.upsertRecurringSchedule('p1', 's1', days);
+
+      expect(mockedPrisma.recurringSchedule.upsert).toHaveBeenCalledWith({
+        where: { propertyId: 'p1' },
+        update: { days },
+        create: { id: 's1', propertyId: 'p1', days },
+      });
+    });
+  });
+
+  describe('deleteRecurringSchedule', () => {
+    it('deletes schedule for property using deleteMany', async () => {
+      mockedPrisma.recurringSchedule.deleteMany.mockResolvedValue({ count: 1 } as never);
+      await viewingRepo.deleteRecurringSchedule('p1');
+      expect(mockedPrisma.recurringSchedule.deleteMany).toHaveBeenCalledWith({
+        where: { propertyId: 'p1' },
+      });
+    });
+
+    it('resolves without error when no schedule exists', async () => {
+      mockedPrisma.recurringSchedule.deleteMany.mockResolvedValue({ count: 0 });
+      await expect(viewingRepo.deleteRecurringSchedule('prop-1')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('findSlotsByPropertyAndDate', () => {
+    it('returns non-cancelled slots for the given date', async () => {
+      const slots = [{ id: 'slot-1', date: new Date(), startTime: '18:00', endTime: '18:15', status: 'available' }];
+      mockedPrisma.viewingSlot.findMany.mockResolvedValue(slots as never);
+      const date = new Date('2026-03-23T00:00:00.000Z');
+
+      const result = await viewingRepo.findSlotsByPropertyAndDate('p1', date);
+
+      expect(mockedPrisma.viewingSlot.findMany).toHaveBeenCalledWith({
+        where: {
+          propertyId: 'p1',
+          date,
+          status: { not: 'cancelled' },
+        },
+        orderBy: { startTime: 'asc' },
+      });
+      expect(result).toEqual(slots);
+    });
+  });
+
+  describe('materialiseRecurringSlot', () => {
+    it('inserts slot via raw SQL and returns the full row', async () => {
+      const mockRow = {
+        id: 'existing-uuid',
+        propertyId: 'p1',
+        date: new Date('2026-03-23T00:00:00.000Z'),
+        startTime: '18:00',
+        endTime: '18:15',
+        durationMinutes: 15,
+        slotType: 'single',
+        maxViewers: 1,
+        currentBookings: 0,
+        status: 'available',
+        createdAt: new Date(),
+      };
+      mockedPrisma.$executeRaw.mockResolvedValue(1);
+      mockedPrisma.viewingSlot.findFirst.mockResolvedValue(mockRow as never);
+
+      const result = await viewingRepo.materialiseRecurringSlot({
+        id: 'new-uuid',
+        propertyId: 'p1',
+        date: new Date('2026-03-23T00:00:00.000Z'),
+        startTime: '18:00',
+        endTime: '18:15',
+        slotType: 'single',
+        maxViewers: 1,
+        durationMinutes: 15,
+      });
+
+      expect(mockedPrisma.$executeRaw).toHaveBeenCalled();
+      expect(mockedPrisma.viewingSlot.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ propertyId: 'p1', startTime: '18:00', endTime: '18:15' }),
+        }),
+      );
+      expect(result.id).toBe('existing-uuid');
+      expect(result.status).toBe('available');
+
+      // Verify $executeRaw SQL includes 'recurring' as the source literal
+      const call = mockedPrisma.$executeRaw.mock.calls[0];
+      const sqlParts = call[0] as TemplateStringsArray; // TemplateStringsArray
+      const fullSql = sqlParts.join('');
+      expect(fullSql).toContain('recurring');
+    });
+
+    it('throws if row is not found after insert', async () => {
+      mockedPrisma.$executeRaw.mockResolvedValue(0);
+      mockedPrisma.viewingSlot.findFirst.mockResolvedValue(null);
+
+      await expect(
+        viewingRepo.materialiseRecurringSlot({
+          id: 'new-uuid',
+          propertyId: 'p1',
+          date: new Date(),
+          startTime: '18:00',
+          endTime: '18:15',
+          slotType: 'single',
+          maxViewers: 1,
+          durationMinutes: 15,
+        }),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 });

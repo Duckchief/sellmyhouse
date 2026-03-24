@@ -105,6 +105,11 @@ enum SlotType {
   group
 }
 
+enum SlotSource {
+  manual
+  recurring
+}
+
 enum SlotStatus {
   available
   booked
@@ -487,6 +492,7 @@ model Property {
   listings         Listing[]
   viewings         Viewing[]
   viewingSlots     ViewingSlot[]
+  recurringSchedule RecurringSchedule?
   offers           Offer[]
   transactions     Transaction[]
   financialReports   FinancialReport[]
@@ -600,12 +606,27 @@ model ViewingSlot {
   maxViewers      Int        @default(1) @map("max_viewers")
   currentBookings Int        @default(0) @map("current_bookings")
   status          SlotStatus @default(available)
+  source          SlotSource @default(manual)
   createdAt       DateTime   @default(now()) @map("created_at")
 
   viewings Viewing[]
 
+  @@unique([propertyId, date, startTime, endTime])
   @@index([propertyId, date, status])
+  @@index([propertyId, source])
   @@map("viewing_slots")
+}
+
+model RecurringSchedule {
+  id         String   @id
+  propertyId String   @unique @map("property_id")
+  days       Json
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@map("recurring_schedules")
 }
 
 model Viewing {

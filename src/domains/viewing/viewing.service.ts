@@ -6,6 +6,7 @@ import * as auditService from '@/domains/shared/audit.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as complianceService from '@/domains/compliance/compliance.service';
+import * as propertyService from '@/domains/property/property.service';
 import {
   NotFoundError,
   ForbiddenError,
@@ -28,14 +29,15 @@ import {
 import type {
   CreateSlotInput,
   CreateBulkSlotsInput,
-  CreateRecurringSlotsInput,
   BookingFormInput,
   VerifyOtpInput,
   ViewingFeedbackInput,
   BookingResult,
   SlotSummary,
+  RecurringDayConfig,
+  VirtualSlot,
 } from './viewing.types';
-import { calcOpenHouseMaxViewers } from './viewing.validator';
+import { generateRecurringWindowsForRange } from './recurring.utils';
 import type { ViewingStatus, SlotStatus } from '@prisma/client';
 
 // ─── Slot Management ─────────────────────────────────────
@@ -173,153 +175,24 @@ export async function createBulkSlots(input: CreateBulkSlotsInput, sellerId: str
   return { count: slots.length, slots };
 }
 
-// ─── Helpers for recurring slots ──────────────────────────
+export async function saveSchedule(days: RecurringDayConfig[], sellerId: string) {
+  const property = await propertyService.getPropertyForSeller(sellerId);
+  if (!property) throw new NotFoundError('Property', sellerId);
+  const propertyId = property.id;
 
-function formatTimeFromMinutes(minutes: number): string {
-  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+  return viewingRepo.upsertRecurringSchedule(propertyId, createId(), days);
 }
 
-function getSgtToday(): Date {
-  const sgtDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
-  return new Date(sgtDateStr);
+export async function deleteSchedule(sellerId: string) {
+  const property = await propertyService.getPropertyForSeller(sellerId);
+  if (!property) throw new NotFoundError('Property', sellerId);
+  const propertyId = property.id;
+
+  return viewingRepo.deleteRecurringSchedule(propertyId);
 }
 
-export async function createRecurringSlots(input: CreateRecurringSlotsInput, sellerId: string) {
-  await verifyPropertyOwnership(input.propertyId, sellerId);
-
-  // Early exit if already at limit
-  const currentActive = await viewingRepo.findActiveSlotsByPropertyId(input.propertyId);
-  if (currentActive.length >= MAX_ACTIVE_SLOTS) {
-    throw new ValidationError(
-      `Maximum ${MAX_ACTIVE_SLOTS} active slots reached. Please cancel existing slots first.`,
-    );
-  }
-
-  // Date range: SGT today → +1 month (using UTC methods to match UTC-midnight dates)
-  const startDate = getSgtToday();
-  const endDate = new Date(startDate);
-  endDate.setUTCMonth(endDate.getUTCMonth() + 1);
-
-  // Fetch existing active slots in range for overlap checking
-  const existingSlots = await viewingRepo.findActiveSlotsByDateRange(
-    input.propertyId,
-    startDate,
-    endDate,
-  );
-
-  // Build date-keyed map for fast overlap lookup
-  const existingByDate = new Map<string, { startTime: string; endTime: string }[]>();
-  for (const slot of existingSlots) {
-    const key = (slot.date as Date).toISOString().split('T')[0];
-    if (!existingByDate.has(key)) existingByDate.set(key, []);
-    existingByDate.get(key)!.push({
-      startTime: slot.startTime as string,
-      endTime: slot.endTime as string,
-    });
-  }
-
-  // Day-of-week config map: dayOfWeek → timeslots
-  const dayConfig = new Map(input.days.map((d) => [d.dayOfWeek, d.timeslots]));
-
-  const toInsert: {
-    id: string;
-    propertyId: string;
-    date: Date;
-    startTime: string;
-    endTime: string;
-    durationMinutes: number;
-    slotType: 'single' | 'group';
-    maxViewers: number;
-  }[] = [];
-
-  const current = new Date(startDate);
-  while (current <= endDate) {
-    const dow = current.getUTCDay(); // Use UTC day to match UTC-midnight date keys
-    const timeslots = dayConfig.get(dow);
-
-    if (timeslots) {
-      const dateKey = current.toISOString().split('T')[0];
-      const existingOnDate = existingByDate.get(dateKey) ?? [];
-
-      for (const ts of timeslots) {
-        if (ts.slotType === 'group') {
-          // One slot spanning the full window
-          const overlaps = existingOnDate.some(
-            (e) => e.startTime < ts.endTime && e.endTime > ts.startTime,
-          );
-          if (!overlaps) {
-            const [sh, sm] = ts.startTime.split(':').map(Number);
-            const [eh, em] = ts.endTime.split(':').map(Number);
-            const durationMinutes = eh * 60 + em - (sh * 60 + sm);
-            toInsert.push({
-              id: createId(),
-              propertyId: input.propertyId,
-              date: new Date(current),
-              startTime: ts.startTime,
-              endTime: ts.endTime,
-              durationMinutes,
-              slotType: 'group',
-              maxViewers: calcOpenHouseMaxViewers(ts.startTime, ts.endTime),
-            });
-          }
-        } else {
-          // 10-minute sub-slots
-          const [sh, sm] = ts.startTime.split(':').map(Number);
-          const [eh, em] = ts.endTime.split(':').map(Number);
-          const startMinutes = sh * 60 + sm;
-          const endMinutes = eh * 60 + em;
-
-          for (let t = startMinutes; t + 10 <= endMinutes; t += 10) {
-            const slotStart = formatTimeFromMinutes(t);
-            const slotEnd = formatTimeFromMinutes(t + 10);
-            const overlaps = existingOnDate.some(
-              (e) => e.startTime < slotEnd && e.endTime > slotStart,
-            );
-            if (!overlaps) {
-              toInsert.push({
-                id: createId(),
-                propertyId: input.propertyId,
-                date: new Date(current),
-                startTime: slotStart,
-                endTime: slotEnd,
-                durationMinutes: 10,
-                slotType: 'single',
-                maxViewers: 1,
-              });
-            }
-          }
-        }
-      }
-    }
-
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-
-  // Post-check after overlap filtering
-  if (currentActive.length + toInsert.length > MAX_ACTIVE_SLOTS) {
-    const remaining = MAX_ACTIVE_SLOTS - currentActive.length;
-    throw new ValidationError(
-      `This would create ${toInsert.length} slots but only ${remaining} more allowed (limit: ${MAX_ACTIVE_SLOTS}).`,
-    );
-  }
-
-  if (toInsert.length > 0) {
-    await viewingRepo.createManySlots(toInsert);
-  }
-
-  await auditService.log({
-    action: 'viewing.recurring_slots_created',
-    entityType: 'viewing_slot',
-    entityId: input.propertyId,
-    details: { count: toInsert.length, sellerId },
-  });
-
-  return { count: toInsert.length };
-}
-
-export async function getLastUpcomingSlotDate(propertyId: string): Promise<Date | null> {
-  const slot = await viewingRepo.findLastUpcomingSlot(propertyId);
-  return slot ? (slot.date as Date) : null;
+export async function getRecurringSchedule(propertyId: string) {
+  return viewingRepo.findRecurringSchedule(propertyId);
 }
 
 export async function cancelSlot(slotId: string, sellerId: string) {
@@ -448,6 +321,9 @@ export async function cancelSlotsForPropertyCascade(
       details: { slotsCount: slots.length, reason: 'fallen_through', agentId },
     });
   }
+
+  // Delete recurring schedule so no virtual windows are generated for a cancelled property
+  await viewingRepo.deleteRecurringSchedule(propertyId);
 }
 
 // ─── Booking Flow ────────────────────────────────────────
@@ -465,8 +341,51 @@ export async function initiateBooking(
     if (elapsed < MIN_FORM_SUBMIT_SECONDS) return { spam: true };
   }
 
+  // ─── Resolve rec: virtual slot to a materialised UUID ──────
+  let resolvedSlotId = input.slotId;
+
+  if (input.slotId.startsWith('rec:')) {
+    const parts = input.slotId.split(':');
+    // Format: rec:YYYY-MM-DD:HH:MM:HH:MM
+    // split(':') yields: ["rec", "2026-03-23", "18", "00", "18", "15"]
+    if (parts.length !== 6) {
+      throw new ValidationError('Invalid recurring slot ID format');
+    }
+    const dateStr = parts[1];
+    const startTime = `${parts[2]}:${parts[3]}`;
+    const endTime = `${parts[4]}:${parts[5]}`;
+    const slotDate = new Date(dateStr + 'T00:00:00.000Z');
+
+    if (!input.propertyId) {
+      throw new ValidationError('propertyId is required for recurring slot bookings');
+    }
+
+    const schedule = await viewingRepo.findRecurringSchedule(input.propertyId);
+    if (!schedule) throw new NotFoundError('RecurringSchedule', input.propertyId);
+
+    // Verify this exact window is in the schedule (prevents arbitrary slot fabrication)
+    const windows = generateRecurringWindowsForRange(schedule, slotDate, slotDate);
+    const matchedWindow = windows.find((w) => w.startTime === startTime && w.endTime === endTime);
+    if (!matchedWindow) {
+      throw new ValidationError('Requested slot is not in the recurring schedule');
+    }
+
+    // Materialise the slot row (INSERT ON CONFLICT DO NOTHING + fetch UUID)
+    const materialisedSlot = await viewingRepo.materialiseRecurringSlot({
+      id: createId(),
+      propertyId: input.propertyId,
+      date: slotDate,
+      startTime,
+      endTime,
+      slotType: matchedWindow.slotType,
+      maxViewers: matchedWindow.maxViewers,
+      durationMinutes: DEFAULT_SLOT_DURATION_MINUTES,
+    });
+    resolvedSlotId = materialisedSlot.id;
+  }
+
   // Spam check 3: Duplicate detection
-  const duplicate = await viewingRepo.findDuplicateBooking(input.phone, input.slotId);
+  const duplicate = await viewingRepo.findDuplicateBooking(input.phone, resolvedSlotId);
   if (duplicate) throw new ConflictError('You have already booked this slot');
 
   // Spam check 4: Daily booking limit
@@ -544,8 +463,8 @@ export async function initiateBooking(
   const cancelToken = crypto.randomBytes(32).toString('hex');
 
   // Look up slot to get propertyId and compute scheduledAt
-  const slot = await viewingRepo.findSlotById(input.slotId);
-  if (!slot) throw new NotFoundError('ViewingSlot', input.slotId);
+  const slot = await viewingRepo.findSlotById(resolvedSlotId);
+  if (!slot) throw new NotFoundError('ViewingSlot', resolvedSlotId);
 
   const slotData = slot as { id: string; propertyId: string; date: Date; startTime: string };
   const [h, m] = slotData.startTime.split(':').map(Number);
@@ -556,7 +475,7 @@ export async function initiateBooking(
   const viewing = await viewingRepo.createViewingWithLock({
     id: createId(),
     propertyId: slotData.propertyId,
-    viewingSlotId: input.slotId,
+    viewingSlotId: resolvedSlotId,
     verifiedViewerId: viewer.id,
     cancelToken,
     status,
@@ -621,7 +540,7 @@ export async function initiateBooking(
     action: 'viewing.booking_initiated',
     entityType: 'viewing',
     entityId: viewing.id,
-    details: { slotId: input.slotId, isReturningViewer, viewerId: viewer.id },
+    details: { slotId: resolvedSlotId, isReturningViewer, viewerId: viewer.id },
   });
 
   return {
@@ -1042,31 +961,55 @@ export async function getSellerDashboard(
 
 export async function getSlotsForDate(propertyId: string, dateStr: string, sellerId: string) {
   await verifyPropertyOwnership(propertyId, sellerId);
-  const date = new Date(dateStr);
 
-  const slots = (await viewingRepo.findSlotsByPropertyAndDateRange(
-    propertyId,
-    date,
-    date,
-  )) as SlotSummary[];
+  const date = new Date(dateStr + 'T00:00:00.000Z');
 
-  const activeSlots = slots.filter((s) => s.status !== 'cancelled');
-  const suggestedTimes = findNextAvailableGap(activeSlots);
+  // Load and merge virtual + real slots for this date
+  const schedule = await viewingRepo.findRecurringSchedule(propertyId);
+  const virtualSlots = schedule
+    ? generateRecurringWindowsForRange(schedule, date, date)
+    : [];
 
-  return {
-    slots: activeSlots.map((s) => ({
-      id: s.id,
-      startTime: s.startTime,
-      endTime: s.endTime,
-      slotType: s.slotType,
-      maxViewers: s.maxViewers,
-      currentBookings: s.currentBookings,
-      status: s.status,
-    })),
-    suggestedStart: suggestedTimes.start,
-    suggestedEnd: suggestedTimes.end,
-    date: dateStr,
-  };
+  const realSlots = await viewingRepo.findSlotsByPropertyAndDate(propertyId, date);
+
+  // Build real slot lookup by (startTime, endTime)
+  const realSlotMap = new Map<
+    string,
+    { id: string; startTime: string; endTime: string; status: string; slotType: string; maxViewers: number; currentBookings: number }
+  >();
+  for (const s of realSlots as { id: string; startTime: string; endTime: string; status: string; slotType: string; maxViewers: number; currentBookings: number }[]) {
+    realSlotMap.set(`${s.startTime}:${s.endTime}`, s);
+  }
+
+  // Merged slot list for the day
+  const mergedSlots: { id: string; date: Date; startTime: string; endTime: string; status: string; slotType: string; maxViewers: number; currentBookings: number }[] = [];
+  const processedKeys = new Set<string>();
+
+  for (const vs of virtualSlots) {
+    const key = `${vs.startTime}:${vs.endTime}`;
+    processedKeys.add(key);
+    const real = realSlotMap.get(key);
+    if (real) {
+      mergedSlots.push({ ...real, date });
+    } else {
+      mergedSlots.push({ id: vs.id, date: vs.date, startTime: vs.startTime, endTime: vs.endTime, status: 'available', slotType: vs.slotType, maxViewers: vs.maxViewers, currentBookings: 0 });
+    }
+  }
+
+  // Add real slots not covered by virtual windows
+  for (const s of realSlots as { id: string; startTime: string; endTime: string; status: string; slotType: string; maxViewers: number; currentBookings: number; date: Date }[]) {
+    const key = `${s.startTime}:${s.endTime}`;
+    if (!processedKeys.has(key)) {
+      mergedSlots.push({ ...s, date });
+    }
+  }
+
+  // Sort by startTime
+  mergedSlots.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+  const nextGap = findNextAvailableGap(mergedSlots, date);
+
+  return { slots: mergedSlots, date, nextGap };
 }
 
 export async function getMonthSlotMeta(
@@ -1076,25 +1019,68 @@ export async function getMonthSlotMeta(
   sellerId: string,
 ): Promise<Record<string, { available: number; full: number }>> {
   await verifyPropertyOwnership(propertyId, sellerId);
-  const slots = await viewingRepo.findSlotsByPropertyAndMonth(propertyId, year, month);
+
+  const startDate = new Date(Date.UTC(year, month - 1, 1));
+  const endDate = new Date(Date.UTC(year, month, 0)); // last day of month
+
+  // Load virtual windows from schedule
+  const schedule = await viewingRepo.findRecurringSchedule(propertyId);
+  const virtualSlots = schedule
+    ? generateRecurringWindowsForRange(schedule, startDate, endDate)
+    : [];
+
+  // Load real slots for the month
+  const realSlots = await viewingRepo.findSlotsByPropertyAndMonth(propertyId, year, month);
+
+  // Build lookup: "date:startTime:endTime" → real slot status
+  const realSlotMap = new Map<string, string>();
+  for (const s of realSlots as { date: Date; startTime: string; endTime: string; status: string }[]) {
+    const key = `${s.date.toISOString().split('T')[0]}:${s.startTime}:${s.endTime}`;
+    realSlotMap.set(key, s.status);
+  }
 
   const meta: Record<string, { available: number; full: number }> = {};
-  for (const s of slots as SlotSummary[]) {
-    const dateKey = s.date.toISOString().split('T')[0];
-    if (!meta[dateKey]) meta[dateKey] = { available: 0, full: 0 };
-    if (s.status === 'full' || (s.slotType === 'single' && s.currentBookings >= 1)) {
-      meta[dateKey].full++;
+  const processedKeys = new Set<string>();
+
+  // Process virtual slots (may be overridden by real slots)
+  for (const vs of virtualSlots) {
+    const dateStr = vs.date.toISOString().split('T')[0];
+    const key = `${dateStr}:${vs.startTime}:${vs.endTime}`;
+    processedKeys.add(key);
+
+    const status = realSlotMap.get(key) ?? 'available';
+    if (status === 'cancelled') continue;
+
+    if (!meta[dateStr]) meta[dateStr] = { available: 0, full: 0 };
+    if (status === 'full') {
+      meta[dateStr].full++;
     } else {
-      meta[dateKey].available++;
+      meta[dateStr].available++;
     }
   }
+
+  // Process manual/materialised real slots NOT covered by a virtual window
+  for (const s of realSlots as { date: Date; startTime: string; endTime: string; status: string }[]) {
+    const dateStr = s.date.toISOString().split('T')[0];
+    const key = `${dateStr}:${s.startTime}:${s.endTime}`;
+    if (processedKeys.has(key)) continue; // already counted via virtual slot
+
+    if (s.status === 'cancelled') continue;
+    if (!meta[dateStr]) meta[dateStr] = { available: 0, full: 0 };
+    if (s.status === 'full') {
+      meta[dateStr].full++;
+    } else {
+      meta[dateStr].available++;
+    }
+  }
+
   return meta;
 }
 
 const SLOT_BOUND_START = '10:00';
 const SLOT_BOUND_END = '20:00';
 
-function findNextAvailableGap(slots: { startTime: string; endTime: string }[]): {
+function findNextAvailableGap(slots: { startTime: string; endTime: string }[], _date?: Date): {
   start: string;
   end: string;
 } {
@@ -1150,13 +1136,63 @@ export async function getPublicBookingPage(slug: string) {
   const property = await viewingRepo.findPropertyBySlug(slug);
   if (!property) return null;
 
-  const slots = (await viewingRepo.findSlotsByPropertyAndDateRange(
-    (property as { id: string }).id,
-    new Date(),
-    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  const propertyId = property.id;
+  const now = new Date();
+  const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  // Load virtual windows from schedule
+  const schedule = await viewingRepo.findRecurringSchedule(propertyId);
+  const virtualSlots = schedule
+    ? generateRecurringWindowsForRange(schedule, now, endDate)
+    : [];
+
+  // Load real slots for next 30 days (available, booked, full — not cancelled)
+  const realSlots = (await viewingRepo.findSlotsByPropertyAndDateRange(
+    propertyId,
+    now,
+    endDate,
   )) as SlotSummary[];
 
-  const availableSlots = slots.filter((s) => s.status === 'available');
+  // Build real slot lookup by "date:startTime:endTime"
+  const realSlotMap = new Map<string, SlotSummary>();
+  for (const s of realSlots) {
+    const key = `${s.date.toISOString().split('T')[0]}:${s.startTime}:${s.endTime}`;
+    realSlotMap.set(key, s);
+  }
+
+  // Merge: manual slot suppresses virtual window for the same window
+  const merged: (SlotSummary | (VirtualSlot & { status: string }))[] = [];
+  const processedKeys = new Set<string>();
+
+  for (const vs of virtualSlots) {
+    const dateStr = vs.date.toISOString().split('T')[0];
+    const key = `${dateStr}:${vs.startTime}:${vs.endTime}`;
+    processedKeys.add(key);
+
+    const real = realSlotMap.get(key);
+    if (real) {
+      // Manual/materialised slot takes precedence
+      if (real.status !== 'cancelled') merged.push(real);
+    } else {
+      // Virtual slot — available by definition
+      merged.push({ ...vs, status: 'available' });
+    }
+  }
+
+  // Add manual real slots not covered by any virtual window
+  for (const s of realSlots) {
+    const key = `${s.date.toISOString().split('T')[0]}:${s.startTime}:${s.endTime}`;
+    if (!processedKeys.has(key) && s.status !== 'cancelled') {
+      merged.push(s);
+    }
+  }
+
+  // 'booked' slots are included because group slots accept multiple bookings
+  // while in 'booked' state (not yet 'full'). Single-slot 'booked' entries
+  // prevent double-booking at the DB layer via currentBookings check.
+  const availableSlots = merged.filter(
+    (s) => s.status === 'available' || s.status === 'booked',
+  );
 
   return { property, availableSlots };
 }

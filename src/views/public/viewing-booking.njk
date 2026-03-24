@@ -33,6 +33,9 @@
       {# Timing honeypot #}
       <input type="hidden" name="formLoadedAt" value="{{ formLoadedAt }}">
 
+      {# Property ID — resolved server-side for virtual slot bookings #}
+      <input type="hidden" name="propertyId" value="{{ property.id }}">
+
       {# ── Step 1: Slot picker ─────────────────────────────── #}
       <div class="bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="font-semibold text-gray-900 mb-4">{{ "Select a Time Slot" | t }}</h2>

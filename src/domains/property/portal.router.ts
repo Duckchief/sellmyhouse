@@ -93,6 +93,7 @@ portalRouter.post(
       res.setHeader('Cache-Control', 'no-store');
 
       const archive = archiver('zip', { zlib: { level: 9 } });
+      archive.on('error', (err) => { res.destroy(err); });
       archive.pipe(res);
       for (const file of files) {
         archive.append(file.buffer, { name: file.filename });

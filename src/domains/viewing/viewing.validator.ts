@@ -2,6 +2,7 @@ import { ValidationError } from '@/domains/shared/errors';
 import type {
   CreateSlotInput,
   CreateBulkSlotsInput,
+  CreateRecurringSlotsInput,
   BookingFormInput,
   VerifyOtpInput,
   ViewingFeedbackInput,
@@ -116,6 +117,72 @@ export function validateCreateBulkSlots(body: Record<string, unknown>): CreateBu
     slotType,
     maxViewers,
   };
+}
+
+export function validateCreateRecurringSlots(body: unknown): CreateRecurringSlotsInput {
+  if (!body || typeof body !== 'object') throw new ValidationError('Invalid request body');
+  const b = body as Record<string, unknown>;
+
+  const propertyId = String(b.propertyId || '');
+  if (!propertyId) throw new ValidationError('Property ID is required');
+
+  const days = b.days;
+  if (!Array.isArray(days) || days.length === 0 || days.length > 7) {
+    throw new ValidationError('days must be an array of 1–7 entries');
+  }
+
+  const seenDays = new Set<number>();
+
+  const validatedDays = days.map((day: unknown) => {
+    if (!day || typeof day !== 'object') throw new ValidationError('Invalid day config');
+    const d = day as Record<string, unknown>;
+
+    const dayOfWeek = Number(d.dayOfWeek);
+    if (isNaN(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
+      throw new ValidationError('dayOfWeek must be 0–6');
+    }
+    if (seenDays.has(dayOfWeek)) {
+      throw new ValidationError(`Duplicate dayOfWeek: ${dayOfWeek}`);
+    }
+    seenDays.add(dayOfWeek);
+
+    const timeslots = d.timeslots;
+    if (!Array.isArray(timeslots) || timeslots.length === 0 || timeslots.length > 3) {
+      throw new ValidationError('timeslots must be an array of 1–3 entries');
+    }
+
+    let lastEndTime = '';
+    const validatedTimeslots = timeslots.map((ts: unknown) => {
+      if (!ts || typeof ts !== 'object') throw new ValidationError('Invalid timeslot');
+      const t = ts as Record<string, unknown>;
+
+      const startTime = String(t.startTime || '');
+      if (!TIME_REGEX.test(startTime)) throw new ValidationError('startTime must be HH:MM format');
+      if (startTime < EARLIEST_START || startTime > LATEST_END)
+        throw new ValidationError(TIME_BOUNDS_MSG);
+
+      const endTime = String(t.endTime || '');
+      if (!TIME_REGEX.test(endTime)) throw new ValidationError('endTime must be HH:MM format');
+      if (endTime < EARLIEST_START || endTime > LATEST_END)
+        throw new ValidationError(TIME_BOUNDS_MSG);
+
+      if (endTime <= startTime) throw new ValidationError('endTime must be after startTime');
+
+      if (lastEndTime && startTime < lastEndTime) {
+        throw new ValidationError('Timeslots within a day must not overlap');
+      }
+      lastEndTime = endTime;
+
+      const slotType = String(t.slotType || 'single') as 'single' | 'group';
+      if (!['single', 'group'].includes(slotType)) throw new ValidationError('Invalid slotType');
+
+      return { startTime, endTime, slotType };
+    });
+
+    return { dayOfWeek, timeslots: validatedTimeslots };
+  });
+
+  return { propertyId, days: validatedDays };
 }
 
 export function validateBookingForm(body: Record<string, unknown>): BookingFormInput {

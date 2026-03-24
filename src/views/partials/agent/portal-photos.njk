@@ -41,11 +41,7 @@
   {% else %}
   {# No photos uploaded or awaiting approval #}
   <p class="text-sm text-yellow-700 bg-yellow-50 px-3 py-2 rounded">
-    {% if listingData.photosApprovedAt %}
-    {{ "No photos found." | t }}
-    {% else %}
     {{ "Awaiting photo approval." | t }}
-    {% endif %}
   </p>
   {% endif %}
 </div>

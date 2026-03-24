@@ -61,6 +61,7 @@ export interface ProcessedPhotoMetadata {
   sizeBytes: number;
   width: number;
   height: number;
+  hash: string;
 }
 
 export async function processAndSavePhoto(

@@ -30,6 +30,7 @@ export interface PhotoRecord {
   displayOrder: number;
   status: PhotoStatus;
   uploadedAt: Date;
+  hash?: string;
 }
 
 export type PhotoStatus = 'uploaded' | 'pending_review' | 'approved' | 'rejected';

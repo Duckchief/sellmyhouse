@@ -351,6 +351,24 @@ describe('photo.service', () => {
   // ─── addPhotoToListing ──────────────────────────────────────
 
   describe('addPhotoToListing', () => {
+    it('overrides displayOrder to equal existing photos count', async () => {
+      const existing0 = makePhotoRecord({ id: 'p0', displayOrder: 0 });
+      const existing1 = makePhotoRecord({ id: 'p1', displayOrder: 1 });
+      const listing = makeListing([existing0, existing1]);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(
+        listing as unknown as Listing,
+      );
+      mockedRepo.updateListingPhotos.mockResolvedValue(listing as unknown as Listing);
+
+      // Router always passes displayOrder: 0 — service must override it
+      const newPhoto = makePhotoRecord({ id: 'p2', displayOrder: 0 });
+      const result = await photoService.addPhotoToListing('prop-1', newPhoto);
+
+      expect(result).toHaveLength(3);
+      expect(result[2].id).toBe('p2');
+      expect(result[2].displayOrder).toBe(2); // overridden to photos.length
+    });
+
     it('adds a photo to the listing photos array', async () => {
       const existingPhoto = makePhotoRecord({ id: 'photo-existing', displayOrder: 0 });
       const listing = makeListing([existingPhoto]);

@@ -169,7 +169,8 @@ export async function addPhotoToListing(
     throw new ValidationError(`Maximum of ${MAX_PHOTOS} photos allowed per listing`);
   }
 
-  const updatedPhotos = [...photos, photo];
+  const photoWithOrder = { ...photo, displayOrder: photos.length };
+  const updatedPhotos = [...photos, photoWithOrder];
   await propertyRepo.updateListingPhotos(listing.id, updatedPhotos);
 
   return updatedPhotos;

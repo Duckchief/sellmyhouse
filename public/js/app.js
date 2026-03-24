@@ -879,9 +879,62 @@
     }
   });
 
+  // ── Photo grid: drag-and-drop reorder ────────────────────────
+  /* global Sortable */
+  function initSortable() {
+    var grid = document.getElementById('photo-grid');
+    if (!grid || typeof Sortable === 'undefined') return;
+
+    Sortable.create(grid, {
+      animation: 150,
+      ghostClass: 'opacity-40',
+      onEnd: function () {
+        var cards = grid.querySelectorAll('[data-photo-id]');
+        var photoIds = Array.from(cards).map(function (el) {
+          return el.getAttribute('data-photo-id');
+        });
+
+        var csrfToken = '';
+        var hxHeaders = document.querySelector('body').getAttribute('hx-headers');
+        if (hxHeaders) {
+          try { csrfToken = JSON.parse(hxHeaders)['x-csrf-token'] || ''; } catch (e) {}
+        }
+
+        fetch('/seller/photos/reorder', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+          },
+          body: JSON.stringify({ photoIds: photoIds }),
+        })
+          .then(function (r) {
+            if (!r.ok) throw new Error('reorder failed: ' + r.status);
+            return r.text();
+          })
+          .then(function (html) {
+            var container = document.getElementById('photo-grid-container');
+            if (!container) return;
+            container.innerHTML = html;
+            htmx.process(container);
+            initSortable();
+          })
+          .catch(function () {
+            // On failure restore server order by reloading the grid.
+            // htmx.ajax sets HX-Request: true, which the router requires to return
+            // the partial instead of the full page.
+            htmx.ajax('GET', '/seller/photos', { target: '#photo-grid-container', swap: 'innerHTML' });
+          });
+      },
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initSortable);
+
   // ── Photo grid: auto-dismiss error and refresh after 2s ─────────
   document.addEventListener('htmx:afterSwap', function (e) {
     if (!e.detail.target || e.detail.target.id !== 'photo-grid-container') return;
+    initSortable();
     var alertEl = e.detail.target.querySelector('[role="alert"]');
     if (!alertEl) return;
 

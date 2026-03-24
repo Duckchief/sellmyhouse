@@ -159,6 +159,20 @@ export interface RecurringScheduleRow {
   updatedAt: Date;
 }
 
+export interface ViewingSlotRow {
+  id: string;
+  propertyId: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  slotType: string;
+  maxViewers: number;
+  currentBookings: number;
+  status: string;
+  createdAt: Date;
+}
+
 // ─── Constants ────────────────────────────────────────────
 
 export const DEFAULT_SLOT_DURATION_MINUTES = 15;

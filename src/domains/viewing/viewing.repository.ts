@@ -1,6 +1,7 @@
 import { prisma } from '@/infra/database/prisma';
-import type { SlotType, SlotStatus, ViewingStatus, Prisma } from '@prisma/client';
+import type { SlotType, SlotStatus, ViewingStatus } from '@prisma/client';
 import { NotFoundError, ConflictError } from '@/domains/shared/errors';
+import type { RecurringDayConfig, ViewingSlotRow } from './viewing.types';
 
 // ─── Slots ───────────────────────────────────────────────
 
@@ -232,17 +233,18 @@ export async function findRecurringSchedule(propertyId: string) {
 export async function upsertRecurringSchedule(
   propertyId: string,
   id: string,
-  days: Prisma.InputJsonValue,
+  days: RecurringDayConfig[],
 ) {
+  const daysJson = days as unknown as import('@prisma/client').Prisma.InputJsonValue;
   return prisma.recurringSchedule.upsert({
     where: { propertyId },
-    update: { days },
-    create: { id, propertyId, days },
+    update: { days: daysJson },
+    create: { id, propertyId, days: daysJson },
   });
 }
 
-export async function deleteRecurringSchedule(propertyId: string) {
-  return prisma.recurringSchedule.deleteMany({ where: { propertyId } });
+export async function deleteRecurringSchedule(propertyId: string): Promise<void> {
+  await prisma.recurringSchedule.deleteMany({ where: { propertyId } });
 }
 
 /**
@@ -259,7 +261,7 @@ export async function materialiseRecurringSlot(data: {
   slotType: 'single' | 'group';
   maxViewers: number;
   durationMinutes: number;
-}): Promise<string> {
+}): Promise<ViewingSlotRow> {
   await prisma.$executeRaw`
     INSERT INTO viewing_slots
       (id, property_id, date, start_time, end_time,
@@ -279,7 +281,6 @@ export async function materialiseRecurringSlot(data: {
       startTime: data.startTime,
       endTime: data.endTime,
     },
-    select: { id: true },
   });
 
   if (!existing) {
@@ -288,7 +289,7 @@ export async function materialiseRecurringSlot(data: {
     );
   }
 
-  return existing.id;
+  return existing as unknown as ViewingSlotRow;
 }
 
 // ─── Bookings ────────────────────────────────────────────

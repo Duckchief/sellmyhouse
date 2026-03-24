@@ -298,7 +298,7 @@ describe('viewing.repository', () => {
 
   describe('upsertRecurringSchedule', () => {
     it('upserts schedule with given days', async () => {
-      const days = [{ dayOfWeek: 1, timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' }] }];
+      const days = [{ dayOfWeek: 1, timeslots: [{ startTime: '18:00', endTime: '20:00', slotType: 'single' as const }] }];
       const schedule = { id: 's1', propertyId: 'p1', days, createdAt: new Date(), updatedAt: new Date() };
       mockedPrisma.recurringSchedule.upsert.mockResolvedValue(schedule as never);
 
@@ -319,6 +319,11 @@ describe('viewing.repository', () => {
       expect(mockedPrisma.recurringSchedule.deleteMany).toHaveBeenCalledWith({
         where: { propertyId: 'p1' },
       });
+    });
+
+    it('resolves without error when no schedule exists', async () => {
+      mockedPrisma.recurringSchedule.deleteMany.mockResolvedValue({ count: 0 });
+      await expect(viewingRepo.deleteRecurringSchedule('prop-1')).resolves.toBeUndefined();
     });
   });
 
@@ -343,9 +348,22 @@ describe('viewing.repository', () => {
   });
 
   describe('materialiseRecurringSlot', () => {
-    it('inserts slot via raw SQL and returns the existing row UUID', async () => {
+    it('inserts slot via raw SQL and returns the full row', async () => {
+      const mockRow = {
+        id: 'existing-uuid',
+        propertyId: 'p1',
+        date: new Date('2026-03-23T00:00:00.000Z'),
+        startTime: '18:00',
+        endTime: '18:15',
+        durationMinutes: 15,
+        slotType: 'single',
+        maxViewers: 1,
+        currentBookings: 0,
+        status: 'available',
+        createdAt: new Date(),
+      };
       mockedPrisma.$executeRaw.mockResolvedValue(1);
-      mockedPrisma.viewingSlot.findFirst.mockResolvedValue({ id: 'existing-uuid' } as never);
+      mockedPrisma.viewingSlot.findFirst.mockResolvedValue(mockRow as never);
 
       const result = await viewingRepo.materialiseRecurringSlot({
         id: 'new-uuid',
@@ -364,7 +382,14 @@ describe('viewing.repository', () => {
           where: expect.objectContaining({ propertyId: 'p1', startTime: '18:00', endTime: '18:15' }),
         }),
       );
-      expect(result).toBe('existing-uuid');
+      expect(result.id).toBe('existing-uuid');
+      expect(result.status).toBe('available');
+
+      // Verify $executeRaw SQL includes 'recurring' as the source literal
+      const call = mockedPrisma.$executeRaw.mock.calls[0];
+      const sqlParts = call[0] as TemplateStringsArray; // TemplateStringsArray
+      const fullSql = sqlParts.join('');
+      expect(fullSql).toContain('recurring');
     });
 
     it('throws if row is not found after insert', async () => {

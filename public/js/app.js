@@ -1231,7 +1231,6 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'hx-request': 'true',
         },
         body: JSON.stringify({ propertyId: propertyId, days: days }),
       })
@@ -1241,15 +1240,20 @@
           });
         })
         .then(function (result) {
-          if (result.ok && result.data && result.data.success) {
-            if (resultDiv) resultDiv.innerHTML = '<p class="text-sm text-green-600">Schedule saved.</p>';
-          } else {
-            var msg = (result.data && result.data.error) ? result.data.error : 'Something went wrong. Please try again.';
-            if (resultDiv) resultDiv.innerHTML = '<p class="text-sm text-red-600">' + msg + '</p>';
-          }
+          var p = document.createElement('p');
+          p.className = result.ok && result.data && result.data.success
+            ? 'text-sm text-green-600'
+            : 'text-sm text-red-600';
+          p.textContent = result.ok && result.data && result.data.success
+            ? 'Schedule saved.'
+            : 'Something went wrong. Please try again.';
+          if (resultDiv) resultDiv.replaceChildren(p);
         })
         .catch(function () {
-          if (resultDiv) resultDiv.innerHTML = '<p class="text-sm text-red-600">Something went wrong. Please try again.</p>';
+          var p = document.createElement('p');
+          p.className = 'text-sm text-red-600';
+          p.textContent = 'Something went wrong. Please try again.';
+          if (resultDiv) resultDiv.replaceChildren(p);
         });
     });
 

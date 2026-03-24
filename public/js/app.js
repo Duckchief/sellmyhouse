@@ -1007,32 +1007,6 @@
     }
   }
 
-  // ── Viewing time bounds validation (10:00–20:00) ────────
-  document.body.addEventListener('change', function (e) {
-    if (!e.target.classList.contains('viewing-time-input')) return;
-    var val = e.target.value;
-    var outOfBounds = val && (val < '10:00' || val > '20:00');
-    // Find the nearest error div
-    var container = e.target.closest('.space-y-2, .grid');
-    var errorDiv = container ? container.querySelector('.viewing-time-error') : null;
-    if (!errorDiv) return;
-
-    // Check both time inputs in this form section
-    var inputs = container.querySelectorAll('.viewing-time-input');
-    var anyBad = false;
-    for (var i = 0; i < inputs.length; i++) {
-      if (inputs[i].value && (inputs[i].value < '10:00' || inputs[i].value > '20:00')) {
-        anyBad = true;
-        inputs[i].classList.add('border-red-400');
-        inputs[i].classList.remove('border-gray-300');
-      } else {
-        inputs[i].classList.remove('border-red-400');
-        inputs[i].classList.add('border-gray-300');
-      }
-    }
-    errorDiv.classList.toggle('hidden', !anyBad);
-  });
-
   // After a slot is added, refresh the date sidebar to show updated schedule
   document.body.addEventListener('htmx:afterRequest', function (evt) {
     var form = evt.detail.elt;

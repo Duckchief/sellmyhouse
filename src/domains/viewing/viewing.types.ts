@@ -79,6 +79,7 @@ export interface BookingFormInput {
   agentAgencyName?: string;
   consentService: boolean;
   slotId: string;
+  propertyId?: string; // Required for rec: IDs; resolved server-side from property slug
   // Anti-spam
   website?: string; // Honeypot field
   formLoadedAt?: number; // Timestamp for time-based validation
@@ -135,6 +136,27 @@ export interface SlotSummary {
   maxViewers: number;
   currentBookings: number;
   status: string;
+}
+
+// ─── Schedule Types ────────────────────────────────────────
+
+export type SlotSource = 'manual' | 'recurring';
+
+export interface VirtualSlot {
+  id: string; // 'rec:{YYYY-MM-DD}:{HH:MM}:{HH:MM}'
+  date: Date;
+  startTime: string; // HH:MM
+  endTime: string;   // HH:MM
+  slotType: 'single' | 'group';
+  maxViewers: number;
+}
+
+export interface RecurringScheduleRow {
+  id: string;
+  propertyId: string;
+  days: unknown; // RecurringDayConfig[] at runtime — cast before use
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // ─── Constants ────────────────────────────────────────────

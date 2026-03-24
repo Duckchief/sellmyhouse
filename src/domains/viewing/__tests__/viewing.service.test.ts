@@ -1180,6 +1180,7 @@ describe('viewing.service', () => {
       mockedRepo.findLastUpcomingSlot.mockResolvedValue({ id: 'slot-1', date: mockDate } as never);
 
       const result = await viewingService.getLastUpcomingSlotDate('prop-1');
+      expect(mockedRepo.findLastUpcomingSlot).toHaveBeenCalledWith('prop-1');
       expect(result).toEqual(mockDate);
     });
 
@@ -1187,6 +1188,7 @@ describe('viewing.service', () => {
       mockedRepo.findLastUpcomingSlot.mockResolvedValue(null);
 
       const result = await viewingService.getLastUpcomingSlotDate('prop-1');
+      expect(mockedRepo.findLastUpcomingSlot).toHaveBeenCalledWith('prop-1');
       expect(result).toBeNull();
     });
   });

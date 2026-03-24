@@ -1,5 +1,35 @@
 <div class="bg-white rounded-lg shadow p-6">
-  <h3 class="font-semibold mb-4">{{ "Your Timeline" | t }}</h3>
+  <h3 class="font-semibold mb-4 flex items-center gap-1.5">
+    {{ "Your Timeline" | t }}
+    <span class="relative">
+      <button
+        type="button"
+        class="timeline-legend-trigger w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[10px] font-bold flex items-center justify-center hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400 cursor-pointer leading-none"
+        aria-label="{{ 'Timeline legend' | t }}"
+      >?</button>
+      <div class="timeline-legend-popover hidden absolute left-0 top-6 z-10 w-52 bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs text-gray-700">
+        <p class="font-semibold mb-2 text-gray-800">{{ "What the colours mean" | t }}</p>
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <div class="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-700 flex items-center justify-center">&#10003;</div>
+            <span>{{ "Completed" | t }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 ring-2 ring-blue-500 flex items-center justify-center">&middot;</div>
+            <span>{{ "In progress" | t }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center">&middot;</div>
+            <span>{{ "Upcoming" | t }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 text-gray-300 flex items-center justify-center">&ndash;</div>
+            <span>{{ "Not applicable" | t }}</span>
+          </div>
+        </div>
+      </div>
+    </span>
+  </h3>
   <div class="space-y-4">
     {% for milestone in milestones %}
     <div class="flex items-start gap-3">
@@ -14,7 +44,7 @@
       </div>
       <div>
         <p class="text-sm font-medium {% if milestone.notApplicable or milestone.status == 'upcoming' %}text-gray-400{% else %}text-gray-900{% endif %}">
-          {{ milestone.label | t }}
+          {{ loop.index }}. {{ milestone.label | t }}
           {% if milestone.notApplicable %}
             <span class="ml-1 text-xs px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded">N/A</span>
           {% endif %}
@@ -28,3 +58,22 @@
     {% endfor %}
   </div>
 </div>
+
+<script nonce="{{ cspNonce }}">
+(function () {
+  var trigger = document.querySelector('.timeline-legend-trigger');
+  var popover = document.querySelector('.timeline-legend-popover');
+  if (!trigger || !popover) return;
+
+  trigger.addEventListener('click', function (e) {
+    e.stopPropagation();
+    popover.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!popover.classList.contains('hidden') && !popover.contains(e.target)) {
+      popover.classList.add('hidden');
+    }
+  });
+}());
+</script>

@@ -111,6 +111,7 @@
     var daysInMonth = new Date(this.year, this.month + 1, 0).getDate();
     var today = new Date();
     var todayStr = formatDate(today);
+    var maxDate = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
     // Empty cells before first day
     for (var e = 0; e < firstDay; e++) {
@@ -123,6 +124,8 @@
       var dateObj = new Date(this.year, this.month, d);
       var dateStr = formatDate(dateObj);
       var isPast = dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      var isTooFar = dateObj > maxDate;
+      var isDisabled = isPast || isTooFar;
       var isToday = dateStr === todayStr;
       var isSelected = dateStr === this.selectedDate;
       var meta = this.slotsByDate[dateStr];
@@ -133,11 +136,11 @@
       cell.type = 'button';
       cell.dataset.date = dateStr;
       cell.className = 'relative flex flex-col items-center justify-center p-1.5 rounded-lg text-sm transition '
-        + (isPast ? 'text-gray-300 ' : 'text-gray-700 cursor-pointer ')
+        + (isDisabled ? 'text-gray-300 ' : 'text-gray-700 cursor-pointer ')
         + (isToday ? 'font-bold ' : '')
         + (isSelected
           ? (hasSlots ? 'ring-2 ring-blue-500 bg-green-100 ' : 'ring-2 ring-blue-500 bg-blue-50 ')
-          : (hasSlots && !isPast ? 'bg-green-50 hover:bg-green-100 ' : 'hover:bg-blue-50 '));
+          : (hasSlots && !isDisabled ? 'bg-green-50 hover:bg-green-100 ' : 'hover:bg-blue-50 '));
 
       var dayNum = document.createElement('span');
       dayNum.textContent = d;
@@ -171,6 +174,11 @@
   };
 
   ViewingCalendar.prototype.selectDate = function (dateStr) {
+    var today = new Date();
+    var maxDate = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+    var dateObj = new Date(dateStr);
+    if (dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate()) || dateObj > maxDate) return;
+
     this.selectedDate = dateStr;
     this.render();
 
@@ -228,7 +236,10 @@
     fetch(url, { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        // Merge new month data
+        // Remove stale entries for this month, then apply fresh data
+        Object.keys(self.slotsByDate).forEach(function (k) {
+          if (k.startsWith(monthStr)) delete self.slotsByDate[k];
+        });
         Object.keys(data).forEach(function (k) { self.slotsByDate[k] = data[k]; });
         self.render();
       })

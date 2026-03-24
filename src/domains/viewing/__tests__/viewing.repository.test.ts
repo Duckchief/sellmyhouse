@@ -177,6 +177,7 @@ describe('viewing.repository', () => {
             gte: new Date('2026-03-01T00:00:00.000Z'),
             lt: new Date('2026-04-01T00:00:00.000Z'),
           },
+          status: { not: 'cancelled' },
         },
         include: { viewings: { where: { status: { not: 'cancelled' } } } },
         orderBy: [{ date: 'asc' }, { startTime: 'asc' }],

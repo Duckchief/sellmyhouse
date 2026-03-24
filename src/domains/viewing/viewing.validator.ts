@@ -11,6 +11,7 @@ import type {
 const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 const SG_PHONE_REGEX = /^[89]\d{7}$/;
 const MAX_BULK_WEEKS = 8;
+
 const EARLIEST_START = '10:00';
 const LATEST_END = '20:00';
 const TIME_BOUNDS_MSG = 'Viewing times must be between 10:00 AM and 8:00 PM';
@@ -30,8 +31,10 @@ export function validateCreateSlot(body: Record<string, unknown>): CreateSlotInp
   const dateStr = String(body.date || '');
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) throw new ValidationError('Invalid date');
-  if (date < new Date(new Date().toDateString()))
-    throw new ValidationError('Date must be in the future');
+  const today = new Date(new Date().toDateString());
+  if (date < today) throw new ValidationError('Date must be in the future');
+  const maxDate = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  if (date > maxDate) throw new ValidationError('Slots can only be created up to 1 month in advance');
 
   const startTime = String(body.startTime || '');
   if (!TIME_REGEX.test(startTime)) throw new ValidationError('Start time must be HH:MM format');
@@ -47,10 +50,7 @@ export function validateCreateSlot(body: Record<string, unknown>): CreateSlotInp
   const slotType = String(body.slotType || 'single') as 'single' | 'group';
   if (!['single', 'group'].includes(slotType)) throw new ValidationError('Invalid slot type');
 
-  let maxViewers = 1;
-  if (slotType === 'group') {
-    maxViewers = calcOpenHouseMaxViewers(startTime, endTime);
-  }
+  const maxViewers = slotType === 'group' ? calcOpenHouseMaxViewers(startTime, endTime) : 1;
 
   const durationMinutes = Number(body.durationMinutes) || undefined;
 
@@ -98,13 +98,7 @@ export function validateCreateBulkSlots(body: Record<string, unknown>): CreateBu
   const slotType = String(body.slotType || 'single') as 'single' | 'group';
   if (!['single', 'group'].includes(slotType)) throw new ValidationError('Invalid slot type');
 
-  let maxViewers = 1;
-  if (slotType === 'group') {
-    maxViewers = Number(body.maxViewers);
-    if (!body.maxViewers || isNaN(maxViewers) || maxViewers < 2) {
-      throw new ValidationError('Group slots require maxViewers >= 2');
-    }
-  }
+  const maxViewers = slotType === 'group' ? calcOpenHouseMaxViewers(startTime, endTime) : 1;
 
   return {
     propertyId,

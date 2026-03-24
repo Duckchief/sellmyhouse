@@ -16,6 +16,19 @@
 }
 
 @layer utilities {
+  @keyframes slot-error-in {
+    0%   { opacity: 0; transform: scale(0.9) translateY(-6px); }
+    55%  { opacity: 1; transform: scale(1.04) translateY(2px); }
+    80%  { transform: scale(0.98) translateY(0); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes slot-error-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+  .slot-error-enter { animation: slot-error-in  0.35s ease forwards; }
+  .slot-error-leave { animation: slot-error-out 0.45s ease forwards; }
+
   @keyframes red-throb {
     0%   { background-color: #ef4444; transform: scale(1); }    /* red-500 */
     25%  { background-color: #b91c1c; transform: scale(1.12); } /* red-700 */

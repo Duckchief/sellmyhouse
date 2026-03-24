@@ -65,6 +65,7 @@ export async function findSlotsByPropertyAndMonth(
     where: {
       propertyId,
       date: { gte: start, lt: end },
+      status: { not: 'cancelled' as SlotStatus },
     },
     include: { viewings: { where: { status: { not: 'cancelled' } } } },
     orderBy: [{ date: 'asc' }, { startTime: 'asc' }],

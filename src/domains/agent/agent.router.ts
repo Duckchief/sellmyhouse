@@ -46,7 +46,7 @@ agentRouter.get(
         complianceService.getPendingDocumentDownloads(getAgentFilter(user)),
       ]);
 
-      const currentStage = (req.query['stage'] as string) || null;
+      const currentStage = (req.query['stage'] as string) || 'engaged';
       if (req.headers['hx-request']) {
         return res.render('partials/agent/pipeline-overview', { overview, currentStage });
       }
@@ -73,7 +73,7 @@ agentRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const currentStage = (req.query['stage'] as string) || null;
+      const currentStage = (req.query['stage'] as string) || 'engaged';
       const overview = await agentService.getPipelineOverview(getAgentFilter(user));
       res.render('partials/agent/pipeline-cards', { overview, currentStage });
     } catch (err) {

@@ -25,7 +25,7 @@
       </tr>
       {% if saleProceeds.buyerDeposit > 0 %}
       <tr class="border-b border-gray-100">
-        <td class="py-2 text-gray-600">{{ "Buyer Deposit (already received)" | t }}</td>
+        <td class="py-2 text-gray-600">{{ "Cash deposit received from the buyer" | t }}</td>
         <td class="py-2 text-right text-red-600">-${{ saleProceeds.buyerDeposit | formatPrice }}</td>
       </tr>
       {% endif %}

@@ -13,9 +13,9 @@ jest.mock('@/domains/shared/ai/ai.facade', () => ({
     text: JSON.stringify({
       narrative: 'HDB prices rose this week.',
       tiktok: 'Prices up! #HDB #Singapore #Property',
-      instagram: 'Market update. Based on HDB resale data — sellmyhomenow.sg #HDB #SG',
+      instagram: 'Market update. Based on HDB resale data — sellmyhouse.sg #HDB #SG',
       linkedin:
-        'The Singapore HDB market shows strength. Based on HDB resale data — sellmyhomenow.sg',
+        'The Singapore HDB market shows strength. Based on HDB resale data — sellmyhouse.sg',
     }),
     provider: 'anthropic',
     model: 'claude-test',

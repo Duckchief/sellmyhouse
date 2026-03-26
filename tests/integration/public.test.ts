@@ -8,7 +8,7 @@ describe('Public routes', () => {
     it('returns 200 with homepage', async () => {
       const res = await request(app).get('/');
       expect(res.status).toBe(200);
-      expect(res.text).toContain('SellMyHomeNow');
+      expect(res.text).toContain('SellMyHouse');
     });
   });
 
@@ -41,7 +41,7 @@ describe('Public routes', () => {
       const res = await request(app).get('/manifest.json');
       expect(res.status).toBe(200);
       const manifest = JSON.parse(res.text);
-      expect(manifest.name).toBe('SellMyHomeNow.sg');
+      expect(manifest.name).toBe('SellMyHouse.sg');
       expect(manifest.start_url).toBe('/');
       expect(manifest.display).toBe('standalone');
     });

@@ -4,7 +4,7 @@ import type { FinancialReportData } from '../../src/domains/property/financial.t
 
 // Override DATABASE_URL so the app's Prisma client uses the test DB
 process.env.DATABASE_URL =
-  process.env.DATABASE_URL_TEST || 'postgresql://smhn:smhn_test@localhost:5433/sellmyhomenow_test';
+  process.env.DATABASE_URL_TEST || 'postgresql://smh:smh_test@localhost:5433/smh_test';
 
 // We test the service layer directly since financial routes require auth sessions.
 // Unit tests cover route-level behavior; integration tests verify DB operations.

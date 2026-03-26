@@ -2,7 +2,7 @@
 
 // Override DATABASE_URL so the app's Prisma client uses the test DB
 process.env.DATABASE_URL =
-  process.env.DATABASE_URL_TEST || 'postgresql://smhn:smhn_test@localhost:5433/sellmyhomenow_test';
+  process.env.DATABASE_URL_TEST || 'postgresql://smh:smh_test@localhost:5433/smh_test';
 
 import { testPrisma, cleanDatabase } from '../helpers/prisma';
 import { createId } from '@paralleldrive/cuid2';

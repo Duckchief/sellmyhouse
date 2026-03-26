@@ -11,7 +11,7 @@ import bcrypt from 'bcrypt';
 import { createId } from '@paralleldrive/cuid2';
 
 const E2E_DB_URL =
-  process.env.DATABASE_URL_TEST || 'postgresql://smhn:smhn_test@localhost:5433/sellmyhomenow_test';
+  process.env.DATABASE_URL_TEST || 'postgresql://smh:smh_test@localhost:5433/smh_test';
 
 const db = new PrismaClient({ datasources: { db: { url: E2E_DB_URL } } });
 

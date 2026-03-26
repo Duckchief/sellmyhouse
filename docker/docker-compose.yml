@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/${GITHUB_REPOSITORY:-local/sellmyhomenow}:${IMAGE_TAG:-latest}
+    image: ghcr.io/${GITHUB_REPOSITORY:-local/sellmyhouse}:${IMAGE_TAG:-latest}
     build:
       context: ..
       dockerfile: docker/Dockerfile

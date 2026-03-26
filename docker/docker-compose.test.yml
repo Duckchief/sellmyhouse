@@ -4,11 +4,11 @@ services:
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_DB: sellmyhomenow_test
-      POSTGRES_USER: smhn
-      POSTGRES_PASSWORD: smhn_test
+      POSTGRES_DB: smh_test
+      POSTGRES_USER: smh
+      POSTGRES_PASSWORD: smh_test
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U smhn"]
+      test: ["CMD-SHELL", "pg_isready -U smh"]
       interval: 5s
       timeout: 5s
       retries: 5

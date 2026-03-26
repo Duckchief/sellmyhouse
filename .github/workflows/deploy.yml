@@ -21,9 +21,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: sellmyhomenow_test
-          POSTGRES_USER: smhn
-          POSTGRES_PASSWORD: smhn_test
+          POSTGRES_DB: smh_test
+          POSTGRES_USER: smh
+          POSTGRES_PASSWORD: smh_test
         ports:
           - 5433:5432
         options: >-
@@ -47,7 +47,7 @@ jobs:
       - name: Run migrations on test DB
         run: npx prisma migrate deploy
         env:
-          DATABASE_URL: postgresql://smhn:smhn_test@localhost:5433/sellmyhomenow_test
+          DATABASE_URL: postgresql://smh:smh_test@localhost:5433/smh_test
 
       - name: Type check
         run: npx tsc --noEmit
@@ -64,8 +64,8 @@ jobs:
       - name: Integration tests
         run: npm run test:integration
         env:
-          DATABASE_URL: postgresql://smhn:smhn_test@localhost:5433/sellmyhomenow_test
-          DATABASE_URL_TEST: postgresql://smhn:smhn_test@localhost:5433/sellmyhomenow_test
+          DATABASE_URL: postgresql://smh:smh_test@localhost:5433/smh_test
+          DATABASE_URL_TEST: postgresql://smh:smh_test@localhost:5433/smh_test
           NODE_ENV: test
           SESSION_SECRET: test-session-secret
 
@@ -109,7 +109,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_SSH_PORT }}
           script: |
-            cd ~/sellmyhomenow-v2
+            cd ~/sellmyhouse-v2
             docker compose -f docker/docker-compose.yml pull app
             docker compose -f docker/docker-compose.yml up -d
             docker compose -f docker/docker-compose.yml exec -T app npx prisma migrate deploy

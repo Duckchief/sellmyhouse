@@ -1,6 +1,6 @@
 {
-  "name": "SellMyHomeNow.sg",
-  "short_name": "SellMyHome",
+  "name": "SellMyHouse.sg",
+  "short_name": "SellMyHouse",
   "description": "Sell your HDB for $1,499 — AI-powered, full agent guidance",
   "start_url": "/",
   "display": "standalone",

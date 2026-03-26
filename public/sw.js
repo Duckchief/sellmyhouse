@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smhn-v2';
+const CACHE_NAME = 'smh-v2';
 const PRECACHE_URLS = [
   '/',
   '/market-report',

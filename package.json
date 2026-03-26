@@ -1,5 +1,5 @@
 {
-  "name": "sellmyhomenow-v2",
+  "name": "sellmyhouse-v2",
   "version": "2.0.0",
   "description": "AI-powered HDB resale transaction platform",
   "main": "dist/server.js",

@@ -35,7 +35,7 @@ npm run docker:dev
 > Prisma CLI:
 
 ```bash
-cat prisma/migrations/*/migration.sql | docker exec -i docker-db-1 psql -U smhn -d sellmyhomenow_dev
+cat prisma/migrations/*/migration.sql | docker exec -i docker-db-1 psql -U smh -d smh_dev
 ```
 
 ### 5. Seed the database
@@ -56,7 +56,7 @@ node -e "const bcrypt = require('bcrypt'); bcrypt.hash('yourpassword', 12).then(
 Then insert via psql:
 
 ```bash
-docker exec -it docker-db-1 psql -U smhn -d sellmyhomenow_dev
+docker exec -it docker-db-1 psql -U smh -d smh_dev
 ```
 
 ```sql
@@ -64,7 +64,7 @@ INSERT INTO agents (id, name, email, phone, password_hash, role, cea_reg_no, is_
 VALUES (
   'admin001',
   'Admin',
-  'admin@smhn.local',
+  'admin@smh.local',
   '+6500000000',
   '<bcrypt-hash-here>',
   'admin',
@@ -99,7 +99,7 @@ PostgreSQL runs on the host (not in Docker). The app container reaches it via
 Set `DATABASE_URL` in your `.env` on the VPS:
 
 ```
-DATABASE_URL=postgresql://smhn:yourpassword@host.docker.internal:5432/sellmyhomenow
+DATABASE_URL=postgresql://smh:yourpassword@host.docker.internal:5432/sellmyhouse
 ```
 
 Make sure PostgreSQL is configured to accept connections on `127.0.0.1` (it

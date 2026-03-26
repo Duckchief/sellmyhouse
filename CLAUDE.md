@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-## Project: SellMyHomeNow.sg v2
+## Project: SellMyHouse.sg v2
 AI-powered HDB resale transaction platform operating under Huttons Asia Pte Ltd.
 Fixed fee $1,499 + GST per transaction. TypeScript + Express + Prisma + PostgreSQL.
 Deployed via Docker on Hostinger VPS (Singapore).

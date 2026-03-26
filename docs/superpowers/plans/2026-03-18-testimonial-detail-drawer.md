@@ -62,7 +62,7 @@ describe('getTestimonialById', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2
+cd /Users/david/Documents/AI/sellmyhouse-v2
 npx jest --testPathPatterns="content.service.test" --no-coverage 2>&1 | tail -10
 ```
 

@@ -68,7 +68,7 @@ describe('POST /admin/content/testimonials/:id/feature — HTMX', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2
+cd /Users/david/Documents/AI/sellmyhouse-v2
 npx jest --testPathPatterns="admin.router.test" --no-coverage 2>&1 | tail -10
 ```
 

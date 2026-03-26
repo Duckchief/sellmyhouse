@@ -106,14 +106,14 @@ Banner added above the case-flags alert in `src/views/pages/seller/dashboard.njk
 Verification email HTML (inline in `sendVerificationEmail`, no Nunjucks template needed):
 
 ```
-Subject: Verify your SellMyHomeNow email address
+Subject: Verify your SellMyHouse email address
 
 Click the link below to verify your email:
 {{verificationUrl}}
 
 This link expires in 24 hours.
 
-If you did not register on SellMyHomeNow, please ignore this email.
+If you did not register on SellMyHouse, please ignore this email.
 ```
 
 URL format: `${APP_URL}/auth/verify-email/${rawToken}`

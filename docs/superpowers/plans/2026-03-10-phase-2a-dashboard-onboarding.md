@@ -1422,7 +1422,7 @@ Replace the content of `src/views/layouts/seller.njk` with:
   <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
     <div class="p-4 border-b border-gray-200">
       <a href="/seller/dashboard" class="text-lg font-bold text-blue-600">
-        {{ "SellMyHomeNow" | t }}
+        {{ "SellMyHouse" | t }}
       </a>
     </div>
     <nav class="flex-1 p-4 space-y-1">
@@ -1552,7 +1552,7 @@ Note: Uses HTMX `hx-trigger="load"` to fetch the initial step instead of dynamic
 ```nunjucks
 {% extends "layouts/seller.njk" %}
 
-{% block title %}{{ "Onboarding" | t }} — SellMyHomeNow.sg{% endblock %}
+{% block title %}{{ "Onboarding" | t }} — SellMyHouse.sg{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
@@ -1578,7 +1578,7 @@ Create `src/views/partials/seller/onboarding-step-1.njk`:
 
 ```nunjucks
 <div class="bg-white rounded-lg shadow p-6">
-  <h2 class="text-xl font-semibold mb-4">{{ "Welcome to SellMyHomeNow.sg" | t }}</h2>
+  <h2 class="text-xl font-semibold mb-4">{{ "Welcome to SellMyHouse.sg" | t }}</h2>
 
   <div class="space-y-4 text-gray-700">
     <p>{{ "We're here to help you sell your HDB flat at a fixed fee of $1,499 + GST. Here's how it works:" | t }}</p>
@@ -1896,7 +1896,7 @@ Create `src/views/pages/seller/dashboard.njk`:
 ```nunjucks
 {% extends "layouts/seller.njk" %}
 
-{% block title %}{{ "Dashboard" | t }} — SellMyHomeNow.sg{% endblock %}
+{% block title %}{{ "Dashboard" | t }} — SellMyHouse.sg{% endblock %}
 
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">{{ "Welcome back, " | t }}{{ overview.seller.name }}</h1>
@@ -1962,7 +1962,7 @@ Create `src/views/pages/seller/notifications.njk`:
 ```nunjucks
 {% extends "layouts/seller.njk" %}
 
-{% block title %}{{ "Notifications" | t }} — SellMyHomeNow.sg{% endblock %}
+{% block title %}{{ "Notifications" | t }} — SellMyHouse.sg{% endblock %}
 
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">{{ "Notifications" | t }}</h1>
@@ -2044,7 +2044,7 @@ Create `src/views/pages/seller/my-data.njk`:
 ```nunjucks
 {% extends "layouts/seller.njk" %}
 
-{% block title %}{{ "My Data" | t }} — SellMyHomeNow.sg{% endblock %}
+{% block title %}{{ "My Data" | t }} — SellMyHouse.sg{% endblock %}
 
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">{{ "My Data" | t }}</h1>
@@ -2104,7 +2104,7 @@ Create `src/views/pages/seller/documents.njk`:
 ```nunjucks
 {% extends "layouts/seller.njk" %}
 
-{% block title %}{{ "Documents" | t }} — SellMyHomeNow.sg{% endblock %}
+{% block title %}{{ "Documents" | t }} — SellMyHouse.sg{% endblock %}
 
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">{{ "Document Checklist" | t }}</h1>
@@ -2159,7 +2159,7 @@ Create `src/views/pages/seller/tutorials.njk`:
 ```nunjucks
 {% extends "layouts/seller.njk" %}
 
-{% block title %}{{ "Video Tutorials" | t }} — SellMyHomeNow.sg{% endblock %}
+{% block title %}{{ "Video Tutorials" | t }} — SellMyHouse.sg{% endblock %}
 
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">{{ "Video Tutorials" | t }}</h1>

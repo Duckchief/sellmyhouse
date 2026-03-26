@@ -13,7 +13,7 @@
 No schema changes. The pre-composed message is built from existing fields:
 
 ```
-Hi! I've been using SellMyHomeNow.sg to sell my HDB flat — it's hassle-free
+Hi! I've been using SellMyHouse.sg to sell my HDB flat — it's hassle-free
 with a fixed fee of just $1,499. Sign up with my referral link:
 {baseUrl}/?ref={referralCode}
 ```

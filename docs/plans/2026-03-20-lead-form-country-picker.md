@@ -32,11 +32,11 @@ Add two new fields to the Seller model, after the `phone` field (line 373):
 Use the shadow database approach (documented in MEMORY.md):
 
 ```bash
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "CREATE DATABASE smhn_shadow_tmp;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "CREATE DATABASE smh_shadow_tmp;"
 npx prisma migrate diff \
   --from-migrations prisma/migrations \
   --to-schema-datamodel prisma/schema.prisma \
-  --shadow-database-url "postgresql://smhn:smhn_dev@localhost:5432/smhn_shadow_tmp" \
+  --shadow-database-url "postgresql://smh:smh_dev@localhost:5432/smh_shadow_tmp" \
   --script
 ```
 
@@ -53,13 +53,13 @@ UPDATE "sellers" SET "national_number" = "phone" WHERE "national_number" IS NULL
 ```bash
 npx prisma migrate deploy
 npx prisma generate
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "DROP DATABASE smhn_shadow_tmp;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "DROP DATABASE smh_shadow_tmp;"
 ```
 
 **Step 4: Verify migration**
 
 ```bash
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "SELECT id, phone, country_code, national_number FROM sellers LIMIT 5;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "SELECT id, phone, country_code, national_number FROM sellers LIMIT 5;"
 ```
 
 Expected: existing rows have `country_code = '+65'` and `national_number` = same as `phone`.

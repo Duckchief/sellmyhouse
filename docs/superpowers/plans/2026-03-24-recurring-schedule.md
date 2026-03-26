@@ -155,13 +155,13 @@ ALTER TABLE "recurring_schedules"
 npm run docker:dev
 
 # Create shadow DB
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "CREATE DATABASE smhn_shadow_tmp;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "CREATE DATABASE smh_shadow_tmp;"
 
 # Generate diff SQL (compare with what you wrote above — should match)
 npx prisma migrate diff \
   --from-migrations prisma/migrations \
   --to-schema-datamodel prisma/schema.prisma \
-  --shadow-database-url "postgresql://smhn:smhn_dev@localhost:5432/smhn_shadow_tmp" \
+  --shadow-database-url "postgresql://smh:smh_dev@localhost:5432/smh_shadow_tmp" \
   --script
 
 # Deploy migration
@@ -171,7 +171,7 @@ npx prisma migrate deploy
 npx prisma generate
 
 # Drop shadow DB
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "DROP DATABASE smhn_shadow_tmp;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "DROP DATABASE smh_shadow_tmp;"
 ```
 
 Expected: migration applies successfully, `prisma generate` runs without errors.

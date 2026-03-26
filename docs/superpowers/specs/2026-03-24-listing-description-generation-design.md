@@ -1,7 +1,7 @@
 # Listing Description Generation — Design Spec
 
 **Date:** 2026-03-24
-**Project:** SellMyHomeNow.sg v2
+**Project:** SellMyHouse.sg v2
 
 ---
 

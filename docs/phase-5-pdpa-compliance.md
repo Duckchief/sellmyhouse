@@ -1,4 +1,4 @@
-# SellMyHomeNow.sg — Phase 5: PDPA & Compliance Module
+# SellMyHouse.sg — Phase 5: PDPA & Compliance Module
 # Prerequisites: Phases 1-4 must be complete. Read phase-0-shared-context.md for schema reference.
 # This phase builds: consent management, data access & correction, data retention & hard deletion,
 # NRIC handling, DNC registry compliance, secure download & server deletion of sensitive documents.

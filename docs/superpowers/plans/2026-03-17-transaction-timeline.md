@@ -87,7 +87,7 @@ export interface TimelineInput {
 - [ ] **Step 2: Verify no TypeScript errors**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx tsc --noEmit 2>&1 | head -30
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npx tsc --noEmit 2>&1 | head -30
 ```
 
 Expected: errors only in seller.service.ts (because `getTimelineMilestones` signature hasn't changed yet) — that's fine.
@@ -146,7 +146,7 @@ describe('findFirstViewingDateForProperty', () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx jest --testPathPattern="viewing" --testNamePattern="findFirstViewingDateForProperty" 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npx jest --testPathPattern="viewing" --testNamePattern="findFirstViewingDateForProperty" 2>&1 | tail -20
 ```
 
 Expected: FAIL — `findFirstViewingDateForProperty` is not defined.
@@ -184,7 +184,7 @@ export async function findFirstViewingDateForProperty(propertyId: string): Promi
 - [ ] **Step 5: Run test to verify it passes**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx jest --testPathPattern="viewing" --testNamePattern="findFirstViewingDateForProperty" 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npx jest --testPathPattern="viewing" --testNamePattern="findFirstViewingDateForProperty" 2>&1 | tail -20
 ```
 
 Expected: PASS
@@ -192,7 +192,7 @@ Expected: PASS
 - [ ] **Step 6: Run full test suite to check for regressions**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test 2>&1 | tail -20
 ```
 
 Expected: all tests pass.
@@ -486,7 +486,7 @@ describe('getTimelineMilestones', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx jest --testPathPattern="seller.service.test" 2>&1 | tail -30
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npx jest --testPathPattern="seller.service.test" 2>&1 | tail -30
 ```
 
 Expected: FAIL — old function signature doesn't match.
@@ -738,7 +738,7 @@ Also add `TimelineInput` to the imports from `./seller.types` at the top of sell
 - [ ] **Step 4: Run the new tests**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx jest --testPathPattern="seller.service.test" 2>&1 | tail -30
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npx jest --testPathPattern="seller.service.test" 2>&1 | tail -30
 ```
 
 Expected: all tests PASS.
@@ -746,7 +746,7 @@ Expected: all tests PASS.
 - [ ] **Step 5: Run full test suite**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test 2>&1 | tail -20
 ```
 
 Expected: all tests pass. If callers of the old signature break (agent.service.ts, admin.service.ts), that's expected — they'll be fixed in later tasks.
@@ -846,7 +846,7 @@ export async function getTimelineInput(
 - [ ] **Step 2: Verify TypeScript compiles**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx tsc --noEmit 2>&1 | grep "agent.service" | head -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npx tsc --noEmit 2>&1 | grep "agent.service" | head -20
 ```
 
 Fix any type errors. Common issues: `findEaaBySellerId` may return `null | Eaa` — check the actual return type and adjust field access accordingly.
@@ -854,7 +854,7 @@ Fix any type errors. Common issues: `findEaaBySellerId` may return `null | Eaa` 
 - [ ] **Step 3: Run tests**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test 2>&1 | tail -20
 ```
 
 Expected: all tests pass. The agent.router.ts still calls `getTimeline` so it will have a TypeScript error but tests may still pass.
@@ -925,13 +925,13 @@ Adjust to match the exact mock style used in the existing test file.
 - [ ] **Step 3: Verify TypeScript compiles**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx tsc --noEmit 2>&1 | grep "agent.router" | head -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npx tsc --noEmit 2>&1 | grep "agent.router" | head -20
 ```
 
 - [ ] **Step 4: Run tests**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test 2>&1 | tail -20
 ```
 
 Expected: all tests pass.
@@ -1065,7 +1065,7 @@ transaction: transaction
 - [ ] **Step 3: Verify TypeScript compiles**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx tsc --noEmit 2>&1 | grep "admin.service" | head -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npx tsc --noEmit 2>&1 | grep "admin.service" | head -20
 ```
 
 Fix any type errors.
@@ -1073,7 +1073,7 @@ Fix any type errors.
 - [ ] **Step 4: Run tests**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test 2>&1 | tail -20
 ```
 
 Expected: all tests pass.
@@ -1200,7 +1200,7 @@ Adjust the date filter in both templates to match the project's convention.
 - [ ] **Step 4: Run tests**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test 2>&1 | tail -20
 ```
 
 Expected: all tests pass.
@@ -1219,7 +1219,7 @@ git commit -m "feat(timeline): add date display and N/A state to timeline templa
 - [ ] **Step 1: Full TypeScript compile check**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx tsc --noEmit 2>&1
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npx tsc --noEmit 2>&1
 ```
 
 Expected: no errors.
@@ -1227,7 +1227,7 @@ Expected: no errors.
 - [ ] **Step 2: Run full test suite**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test 2>&1 | tail -30
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test 2>&1 | tail -30
 ```
 
 Expected: all tests pass.
@@ -1235,7 +1235,7 @@ Expected: all tests pass.
 - [ ] **Step 3: Start dev server and manually verify**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm run dev
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm run dev
 ```
 
 Navigate to:

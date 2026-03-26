@@ -105,7 +105,7 @@ Key changes from previous version:
 **Step 2: Commit**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && git add src/views/partials/shared/seller-status-pills.njk && git commit -m "feat(views): add tooltips to seller status pills"
+cd /Users/david/Documents/AI/sellmyhouse-v2 && git add src/views/partials/shared/seller-status-pills.njk && git commit -m "feat(views): add tooltips to seller status pills"
 ```
 
 ---
@@ -207,7 +207,7 @@ With:
 **Step 3: Run the full test suite to check for regressions**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test -- --no-coverage 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test -- --no-coverage 2>&1 | tail -20
 ```
 
 Expected: all passing (the existing tests only assert status codes, not field values)
@@ -215,7 +215,7 @@ Expected: all passing (the existing tests only assert status codes, not field va
 **Step 4: Commit**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && git add src/domains/admin/admin.repository.ts && git commit -m "feat(admin): expose town and asking price in findAllSellers"
+cd /Users/david/Documents/AI/sellmyhouse-v2 && git add src/domains/admin/admin.repository.ts && git commit -m "feat(admin): expose town and asking price in findAllSellers"
 ```
 
 ---
@@ -287,7 +287,7 @@ The current columns are: Seller (name+email), Agent, Status, Actions.
 **Step 3: Commit**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && git add src/views/partials/admin/seller-list.njk && git commit -m "feat(views): add phone, town, asking price to admin seller list"
+cd /Users/david/Documents/AI/sellmyhouse-v2 && git add src/views/partials/admin/seller-list.njk && git commit -m "feat(views): add phone, town, asking price to admin seller list"
 ```
 
 ---
@@ -316,7 +316,7 @@ describe('GET /admin/pipeline', () => {
 **Step 2: Run to confirm failure**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test -- --testPathPattern="admin.router.test" --no-coverage 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test -- --testPathPattern="admin.router.test" --no-coverage 2>&1 | tail -20
 ```
 
 Expected: FAIL — route currently returns 200 with a full render, not a 302
@@ -340,7 +340,7 @@ Note: the `next` parameter can be dropped since there's no async work and no err
 **Step 4: Run tests to confirm pass**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test -- --testPathPattern="admin.router.test" --no-coverage 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test -- --testPathPattern="admin.router.test" --no-coverage 2>&1 | tail -20
 ```
 
 Expected: PASS
@@ -348,7 +348,7 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && git add src/domains/admin/admin.router.ts src/domains/admin/__tests__/admin.router.test.ts && git commit -m "feat(admin): redirect /admin/pipeline to /admin/sellers"
+cd /Users/david/Documents/AI/sellmyhouse-v2 && git add src/domains/admin/admin.router.ts src/domains/admin/__tests__/admin.router.test.ts && git commit -m "feat(admin): redirect /admin/pipeline to /admin/sellers"
 ```
 
 ---
@@ -369,7 +369,7 @@ In `src/views/layouts/admin.njk`, find and remove this entire line (line 25):
 **Step 2: Commit**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && git add src/views/layouts/admin.njk && git commit -m "feat(views): remove pipeline nav item, sellers page is the replacement"
+cd /Users/david/Documents/AI/sellmyhouse-v2 && git add src/views/layouts/admin.njk && git commit -m "feat(views): remove pipeline nav item, sellers page is the replacement"
 ```
 
 ---
@@ -387,7 +387,7 @@ cd /Users/david/Documents/AI/sellmyhomenow-v2 && git add src/views/layouts/admin
 **Step 1: Delete view files**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && rm src/views/pages/admin/pipeline.njk src/views/partials/admin/pipeline-table.njk
+cd /Users/david/Documents/AI/sellmyhouse-v2 && rm src/views/pages/admin/pipeline.njk src/views/partials/admin/pipeline-table.njk
 ```
 
 **Step 2: Remove from `admin.service.ts`**
@@ -414,7 +414,7 @@ Delete the entire `describe('getAdminPipeline', ...)` block (lines 51–90, incl
 **Step 6: Run full test suite**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test -- --no-coverage 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test -- --no-coverage 2>&1 | tail -20
 ```
 
 Expected: all passing. If TypeScript errors appear (unused imports etc.), fix them before committing.
@@ -422,7 +422,7 @@ Expected: all passing. If TypeScript errors appear (unused imports etc.), fix th
 **Step 7: Run TypeScript check**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx tsc --noEmit 2>&1 | head -30
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npx tsc --noEmit 2>&1 | head -30
 ```
 
 Expected: no errors
@@ -430,7 +430,7 @@ Expected: no errors
 **Step 8: Commit**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && git add -A && git commit -m "refactor(admin): delete pipeline page, views, service, repo, and types"
+cd /Users/david/Documents/AI/sellmyhouse-v2 && git add -A && git commit -m "refactor(admin): delete pipeline page, views, service, repo, and types"
 ```
 
 ---
@@ -440,7 +440,7 @@ cd /Users/david/Documents/AI/sellmyhomenow-v2 && git add -A && git commit -m "re
 **Step 1: Run the full build**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm run build 2>&1 | tail -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm run build 2>&1 | tail -20
 ```
 
 Expected: clean build, no errors
@@ -448,7 +448,7 @@ Expected: clean build, no errors
 **Step 2: Run the full test suite one final time**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test -- --no-coverage 2>&1 | tail -10
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test -- --no-coverage 2>&1 | tail -10
 ```
 
 Expected: all passing

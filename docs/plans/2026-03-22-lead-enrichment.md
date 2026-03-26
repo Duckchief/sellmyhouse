@@ -50,8 +50,8 @@ Add three fields to the Seller model, after `emailVerificationExpiry`:
 Follow the shadow DB migration pattern from MEMORY.md:
 
 ```bash
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "CREATE DATABASE smhn_shadow_tmp;"
-npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "postgresql://smhn:smhn_dev@localhost:5432/smhn_shadow_tmp" --script
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "CREATE DATABASE smh_shadow_tmp;"
+npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "postgresql://smh:smh_dev@localhost:5432/smh_shadow_tmp" --script
 ```
 
 Save the output SQL to `prisma/migrations/<timestamp>_lead_enrichment/migration.sql`. The SQL should create the two enums and add the three nullable columns.
@@ -59,7 +59,7 @@ Save the output SQL to `prisma/migrations/<timestamp>_lead_enrichment/migration.
 ```bash
 npx prisma migrate deploy
 npx prisma generate
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "DROP DATABASE smhn_shadow_tmp;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "DROP DATABASE smh_shadow_tmp;"
 ```
 
 **Step 3: Verify migration**
@@ -401,7 +401,7 @@ it('generates verification token and sends verification email after lead creatio
   );
   expect(mockMailer.sendSystemEmail).toHaveBeenCalledWith(
     'grogu@example.com',
-    'Verify your SellMyHomeNow email address',
+    'Verify your SellMyHouse email address',
     expect.stringContaining('/verify-email?token='),
   );
 });
@@ -437,8 +437,8 @@ const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
 const verificationUrl = `${appUrl}/verify-email?token=${rawToken}`;
 await sendSystemEmail(
   input.email,
-  'Verify your SellMyHomeNow email address',
-  `<p>Click the link below to verify your email and complete your submission:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p><p>This link expires in 72 hours.</p><p>If you did not submit a lead on SellMyHomeNow, please ignore this email.</p>`,
+  'Verify your SellMyHouse email address',
+  `<p>Click the link below to verify your email and complete your submission:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p><p>This link expires in 72 hours.</p><p>If you did not submit a lead on SellMyHouse, please ignore this email.</p>`,
 );
 
 await auditService.log({
@@ -1210,8 +1210,8 @@ export async function resendVerificationEmail(email: string): Promise<void> {
   const verificationUrl = `${appUrl}/verify-email?token=${rawToken}`;
   await sendSystemEmail(
     email,
-    'Verify your SellMyHomeNow email address',
-    `<p>Click the link below to verify your email and complete your submission:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p><p>This link expires in 72 hours.</p><p>If you did not submit a lead on SellMyHomeNow, please ignore this email.</p>`,
+    'Verify your SellMyHouse email address',
+    `<p>Click the link below to verify your email and complete your submission:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p><p>This link expires in 72 hours.</p><p>If you did not submit a lead on SellMyHouse, please ignore this email.</p>`,
   );
 
   await auditService.log({
@@ -1243,7 +1243,7 @@ export async function agentResendVerification(sellerId: string, agentId: string)
   const verificationUrl = `${appUrl}/verify-email?token=${rawToken}`;
   await sendSystemEmail(
     fullSeller.email,
-    'Verify your SellMyHomeNow email address',
+    'Verify your SellMyHouse email address',
     `<p>Click the link below to verify your email and complete your submission:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p><p>This link expires in 72 hours.</p>`,
   );
 

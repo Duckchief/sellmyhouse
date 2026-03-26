@@ -215,7 +215,7 @@ Replace the current `<div class="flex min-h-screen">` wrapper with:
     <button data-action="toggle-sidebar" class="text-gray-700 hover:text-gray-900">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
     </button>
-    <a href="/seller/dashboard" class="ml-3 text-lg font-bold text-accent">{{ "SellMyHomeNow" | t }}</a>
+    <a href="/seller/dashboard" class="ml-3 text-lg font-bold text-accent">{{ "SellMyHouse" | t }}</a>
   </div>
 
   {# Sidebar backdrop (mobile) #}
@@ -651,7 +651,7 @@ Replace the existing content with enhanced version including case flag alert, st
 ```njk
 {% extends "layouts/seller.njk" %}
 
-{% block title %}{{ "Dashboard" | t }} — SellMyHomeNow.sg{% endblock %}
+{% block title %}{{ "Dashboard" | t }} — SellMyHouse.sg{% endblock %}
 
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">{{ "Welcome back, " | t }}{{ overview.seller.name }}</h1>

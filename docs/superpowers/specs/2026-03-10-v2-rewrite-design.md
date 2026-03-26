@@ -1,11 +1,11 @@
-# SellMyHomeNow.sg v2 — Full Rewrite Design
+# SellMyHouse.sg v2 — Full Rewrite Design
 
 **Date:** 2026-03-10
 **Status:** Approved
 
 ## Overview
 
-Full rewrite of the SellMyHomeNow.sg platform. The v1 codebase (16.5K LOC, 6 phases, 523+ tests) is functionally complete but was built without structured development workflows. v2 rebuilds from scratch with TypeScript, modern architecture patterns, proper test infrastructure, and Superpowers-driven development (TDD, brainstorming, planning for every feature).
+Full rewrite of the SellMyHouse.sg platform. The v1 codebase (16.5K LOC, 6 phases, 523+ tests) is functionally complete but was built without structured development workflows. v2 rebuilds from scratch with TypeScript, modern architecture patterns, proper test infrastructure, and Superpowers-driven development (TDD, brainstorming, planning for every feature).
 
 **Superpowers** is a Claude Code plugin that enforces structured development workflows: brainstorming (collaborative design before code), writing specs, writing implementation plans, and test-driven development. Every feature in v2 goes through this full cycle.
 
@@ -33,7 +33,7 @@ Full rewrite of the SellMyHomeNow.sg platform. The v1 codebase (16.5K LOC, 6 pha
 ## 1. Project Structure
 
 ```
-sellmyhomenow-v2/
+sellmyhouse-v2/
 ├── src/
 │   ├── domains/              # Business domain modules
 │   │   ├── auth/

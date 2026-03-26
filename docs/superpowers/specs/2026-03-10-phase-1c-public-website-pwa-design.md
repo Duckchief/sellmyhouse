@@ -5,7 +5,7 @@
 
 ## Overview
 
-Build the public-facing website for sellmyhomenow.sg: homepage (landing page), HDB Market Report tool, lead capture form, privacy policy, terms of service, cookie consent banner, and Progressive Web App (PWA) support.
+Build the public-facing website for sellmyhouse.sg: homepage (landing page), HDB Market Report tool, lead capture form, privacy policy, terms of service, cookie consent banner, and Progressive Web App (PWA) support.
 
 ## Brand
 
@@ -72,14 +72,14 @@ Note: HDB domain files use `service.ts`/`repository.ts` naming (without `hdb.` p
 
 Sections in order:
 
-1. **Header** — dark nav (#1a1a2e): "SellMyHome**Now**.sg" logo, nav links (Market Report, Login), "Get Started" pill button (accent). The dark header is specific to the public layout. Create a separate `partials/public/header.njk` for public pages; the existing `partials/header.njk` remains for authenticated layouts.
+1. **Header** — dark nav (#1a1a2e): "SellMyHouse**Now**.sg" logo, nav links (Market Report, Login), "Get Started" pill button (accent). The dark header is specific to the public layout. Create a separate `partials/public/header.njk` for public pages; the existing `partials/header.njk` remains for authenticated layouts.
 2. **Hero** — dark background, "Sell Your HDB for **$1,499**" ($1,499 in accent), subtitle, dual CTAs: "Get Started" (accent pill) + "Free Market Report" (dark pill)
 3. **Accent bar** — 4px #c8553d strip
 4. **How It Works** — 3 cards with numbered accent circles:
    - 1: Tell Us About Your Flat
    - 2: We Guide You
    - 3: Sell & Save
-5. **Why SellMyHomeNow.sg?** — 2×2 grid with accent icon squares:
+5. **Why SellMyHouse.sg?** — 2×2 grid with accent icon squares:
    - Fixed Fee: $1,499 + GST
    - Licensed Agent Guidance
    - AI-Powered Tools
@@ -119,7 +119,7 @@ Own page at `/market-report` (not inline on homepage).
 Email is not collected at lead stage. It is captured during seller onboarding (Phase 2).
 
 **PDPA consent checkboxes:**
-- "I consent to SellMyHomeNow.sg collecting and using my personal data to provide property selling services. [Privacy Policy link] *" (required)
+- "I consent to SellMyHouse.sg collecting and using my personal data to provide property selling services. [Privacy Policy link] *" (required)
 - "I consent to receiving marketing communications about property market updates. (Optional)"
 
 **Spam protection:**
@@ -146,7 +146,7 @@ Simple informational bottom banner: "This site uses essential cookies only." wit
 ## 8. PWA
 
 **manifest.json** (`public/manifest.json`):
-- name: "SellMyHomeNow.sg", short_name: "SellMyHome"
+- name: "SellMyHouse.sg", short_name: "SellMyHouse"
 - start_url: "/", display: "standalone"
 - background_color: "#fafaf7", theme_color: "#1a1a2e"
 - Icons: 192x192, 512x512, 512x512 maskable

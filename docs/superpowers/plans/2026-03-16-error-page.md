@@ -22,7 +22,7 @@
 ```nunjucks
 {% extends "layouts/base.njk" %}
 
-{% block title %}{{ statusCode }} — SellMyHomeNow{% endblock %}
+{% block title %}{{ statusCode }} — SellMyHouse{% endblock %}
 
 {% block body %}
 <div class="min-h-screen bg-bg flex items-center justify-center px-4">

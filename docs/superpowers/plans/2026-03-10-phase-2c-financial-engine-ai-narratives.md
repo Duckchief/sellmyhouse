@@ -1378,7 +1378,7 @@ export function buildFinancialNarrativePrompt(
 ): string {
   const sections: string[] = [];
 
-  sections.push(`You are a helpful assistant for SellMyHomeNow.sg, a Singapore HDB resale transaction platform.`);
+  sections.push(`You are a helpful assistant for SellMyHouse.sg, a Singapore HDB resale transaction platform.`);
   sections.push(`Write a clear, friendly, plain-language summary of this seller's estimated financial breakdown for selling their ${context.flatType} flat in ${context.town}.`);
   sections.push('');
   sections.push('## Financial Figures');

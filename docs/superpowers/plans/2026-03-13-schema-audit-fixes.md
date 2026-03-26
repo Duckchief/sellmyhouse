@@ -517,7 +517,7 @@ npx prisma validate
 - [ ] **Step 1: Create and apply the migration**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2
+cd /Users/david/Documents/AI/sellmyhouse-v2
 npx prisma migrate dev --name fix_p0_schema_audit
 ```
 

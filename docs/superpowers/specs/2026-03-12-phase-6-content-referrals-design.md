@@ -107,7 +107,7 @@ Calls `ai.facade.ts` to generate:
 - `instagramFormat` — ≤ 300 chars + 5 hashtags + source attribution
 - `linkedinFormat` — professional tone, ≤ 700 chars + source attribution
 
-Source attribution on all social formats: `"Based on HDB resale data — sellmyhomenow.sg"`
+Source attribution on all social formats: `"Based on HDB resale data — sellmyhouse.sg"`
 
 After AI generation: `status → pending_review` (enters agent review queue).
 
@@ -186,7 +186,7 @@ For each:
 1. Generates unique `referralCode` (cuid2, 8 chars)
 2. Creates `Referral` record with `status: link_generated`
 3. **DNC check:** notification service checks DNC registry before sending WhatsApp
-4. Sends WhatsApp + email to seller with link: `sellmyhomenow.sg/?ref={referralCode}`
+4. Sends WhatsApp + email to seller with link: `sellmyhouse.sg/?ref={referralCode}`
 
 ### Tracking middleware
 

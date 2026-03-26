@@ -31,7 +31,7 @@ The Agent model `updatedAt` line should now be directly below. Save the file.
 - [ ] **Step 1.2: Create the shadow database**
 
 ```bash
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "CREATE DATABASE smhn_shadow_tmp;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "CREATE DATABASE smh_shadow_tmp;"
 ```
 
 Expected: `CREATE DATABASE`
@@ -42,7 +42,7 @@ Expected: `CREATE DATABASE`
 npx prisma migrate diff \
   --from-migrations prisma/migrations \
   --to-schema-datamodel prisma/schema.prisma \
-  --shadow-database-url "postgresql://smhn:smhn_dev@localhost:5432/smhn_shadow_tmp" \
+  --shadow-database-url "postgresql://smh:smh_dev@localhost:5432/smh_shadow_tmp" \
   --script
 ```
 
@@ -80,7 +80,7 @@ Expected: `Generated Prisma Client`
 - [ ] **Step 1.7: Drop shadow database**
 
 ```bash
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "DROP DATABASE smhn_shadow_tmp;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "DROP DATABASE smh_shadow_tmp;"
 ```
 
 Expected: `DROP DATABASE`
@@ -974,7 +974,7 @@ This partial is used for both the initial render and HTMX swaps. It renders the 
 {% extends "layouts/agent.njk" %}
 {% from "partials/shared/icons.njk" import icon %}
 
-{% block title %}{{ "Profile — SellMyHomeNow.sg" | t }}{% endblock %}
+{% block title %}{{ "Profile — SellMyHouse.sg" | t }}{% endblock %}
 
 {% block content %}
 <div class="max-w-lg space-y-6">
@@ -1170,7 +1170,7 @@ This partial is used for both the initial render and HTMX swaps. It renders the 
 {% extends "layouts/admin.njk" %}
 {% from "partials/shared/icons.njk" import icon %}
 
-{% block title %}{{ "Profile — SellMyHomeNow.sg" | t }}{% endblock %}
+{% block title %}{{ "Profile — SellMyHouse.sg" | t }}{% endblock %}
 
 {% block content %}
 <div class="max-w-lg space-y-6">

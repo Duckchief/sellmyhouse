@@ -42,7 +42,7 @@ export async function findAllLeads(limit = 50) {
 - [ ] **Step 2: Run existing tests to confirm no breakage**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test -- --testPathPattern="admin.service" 2>&1 | tail -10
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test -- --testPathPattern="admin.service" 2>&1 | tail -10
 ```
 Expected: all existing tests pass.
 
@@ -74,7 +74,7 @@ export interface AdminLeadQueueResult {
 - [ ] **Step 2: Run build to check types**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm run build 2>&1 | head -20
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm run build 2>&1 | head -20
 ```
 Expected: no new TypeScript errors.
 
@@ -176,7 +176,7 @@ describe('getAdminLeadQueue', () => {
 - [ ] **Step 3: Run the test to confirm it fails**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test -- --testPathPattern="admin.service" --testNamePattern="getAdminLeadQueue" 2>&1 | tail -15
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test -- --testPathPattern="admin.service" --testNamePattern="getAdminLeadQueue" 2>&1 | tail -15
 ```
 Expected: FAIL — `adminService.getAdminLeadQueue is not a function`.
 
@@ -208,14 +208,14 @@ export async function getAdminLeadQueue(page?: number): Promise<AdminLeadQueueRe
 - [ ] **Step 5: Run the tests to confirm they pass**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test -- --testPathPattern="admin.service" 2>&1 | tail -15
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test -- --testPathPattern="admin.service" 2>&1 | tail -15
 ```
 Expected: all tests pass including the 3 new `getAdminLeadQueue` tests.
 
 - [ ] **Step 6: Commit data layer**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2
+cd /Users/david/Documents/AI/sellmyhouse-v2
 git add src/domains/admin/admin.repository.ts \
         src/domains/admin/admin.types.ts \
         src/domains/admin/admin.service.ts \
@@ -260,7 +260,7 @@ adminRouter.get(
 - [ ] **Step 2: Run tests**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test -- --testPathPattern="admin.router" 2>&1 | tail -15
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test -- --testPathPattern="admin.router" 2>&1 | tail -15
 ```
 Expected: all router tests pass (any existing `/admin/leads` router tests will need updating — see note below).
 
@@ -367,14 +367,14 @@ Replace the entire file with:
 - [ ] **Step 3: Run all tests**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test 2>&1 | tail -10
+cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test 2>&1 | tail -10
 ```
 Expected: all tests pass.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /Users/david/Documents/AI/sellmyhomenow-v2
+cd /Users/david/Documents/AI/sellmyhouse-v2
 git add src/domains/admin/admin.router.ts \
         src/views/pages/admin/leads.njk \
         src/views/partials/admin/lead-list.njk

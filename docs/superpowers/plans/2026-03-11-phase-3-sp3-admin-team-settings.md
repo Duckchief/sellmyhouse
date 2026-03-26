@@ -730,7 +730,7 @@ async function sendCredentialEmail(
   const port = parseInt(process.env.SMTP_PORT ?? '587', 10);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM ?? 'noreply@sellmyhomenow.sg';
+  const from = process.env.SMTP_FROM ?? 'noreply@sellmyhouse.sg';
 
   if (!host || !user || !pass) {
     // SMTP not configured (dev/test) — skip silently
@@ -742,18 +742,18 @@ async function sendCredentialEmail(
   await transporter.sendMail({
     from,
     to: email,
-    subject: 'Your SellMyHomeNow Agent Account',
+    subject: 'Your SellMyHouse Agent Account',
     text: [
       `Hi ${name},`,
       '',
-      'Your agent account has been created on SellMyHomeNow.',
+      'Your agent account has been created on SellMyHouse.',
       '',
       `Email: ${email}`,
       `Temporary password: ${tempPassword}`,
       '',
       'Please log in and change your password immediately.',
       '',
-      'SellMyHomeNow Team',
+      'SellMyHouse Team',
     ].join('\n'),
   });
 }

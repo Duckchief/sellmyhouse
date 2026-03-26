@@ -38,7 +38,7 @@ return res.render('pages/admin/referrals', { records, funnel, topReferrers, curr
 
 Replace it with:
 ```typescript
-const baseUrl = process.env['SITE_URL'] ?? 'https://www.sellmyhomenow.sg';
+const baseUrl = process.env['SITE_URL'] ?? 'https://www.sellmyhouse.sg';
 return res.render('pages/admin/referrals', { records, funnel, topReferrers, baseUrl, currentPath: '/admin/content/referrals' });
 ```
 
@@ -74,7 +74,7 @@ The textarea id is `msg-text-{{ r.referralCode }}` — used by `data-action="cop
 
 **Pre-composed message text:**
 ```
-Hi! I've been using SellMyHomeNow.sg to sell my HDB flat — it's hassle-free with a fixed fee of just $1,499. Sign up with my referral link: {{ baseUrl }}/?ref={{ r.referralCode }}
+Hi! I've been using SellMyHouse.sg to sell my HDB flat — it's hassle-free with a fixed fee of just $1,499. Sign up with my referral link: {{ baseUrl }}/?ref={{ r.referralCode }}
 ```
 
 **Files:**
@@ -117,7 +117,7 @@ Hi! I've been using SellMyHomeNow.sg to sell my HDB flat — it's hassle-free wi
           id="msg-text-{{ r.referralCode }}"
           readonly
           rows="3"
-          class="w-full border border-gray-200 rounded px-3 py-2 text-sm text-gray-700 bg-white resize-none font-mono">Hi! I've been using SellMyHomeNow.sg to sell my HDB flat — it's hassle-free with a fixed fee of just $1,499. Sign up with my referral link: {{ baseUrl }}/?ref={{ r.referralCode }}</textarea>
+          class="w-full border border-gray-200 rounded px-3 py-2 text-sm text-gray-700 bg-white resize-none font-mono">Hi! I've been using SellMyHouse.sg to sell my HDB flat — it's hassle-free with a fixed fee of just $1,499. Sign up with my referral link: {{ baseUrl }}/?ref={{ r.referralCode }}</textarea>
         <button
           data-action="copy-value"
           data-source="msg-text-{{ r.referralCode }}"

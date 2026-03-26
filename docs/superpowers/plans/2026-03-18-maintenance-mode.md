@@ -319,7 +319,7 @@ Create `src/views/pages/public/maintenance.njk`:
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scheduled Maintenance — SellMyHomeNow.sg</title>
+  <title>Scheduled Maintenance — SellMyHouse.sg</title>
   <link rel="stylesheet" href="/styles.css" />
   <style>
     body {
@@ -397,7 +397,7 @@ Create `src/views/pages/public/maintenance.njk`:
     {% endif %}
 
     <div class="maintenance-footer">
-      SellMyHomeNow.sg &middot; {{ "Powered by Huttons Asia Pte Ltd" | t }}
+      SellMyHouse.sg &middot; {{ "Powered by Huttons Asia Pte Ltd" | t }}
     </div>
   </div>
 </body>

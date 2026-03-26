@@ -817,7 +817,7 @@ Create `src/views/partials/public/header.njk`:
 <header class="bg-[#1a1a2e]">
   <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
     <a href="/" class="text-xl font-bold text-white">
-      {{ "SellMyHome" | t }}<span class="text-[#c8553d]">{{ "Now" | t }}</span>{{ ".sg" | t }}
+      {{ "SellMyHouse" | t }}<span class="text-[#c8553d]">{{ "Now" | t }}</span>{{ ".sg" | t }}
     </a>
     <nav class="flex items-center gap-6">
       <a href="/market-report" class="text-white hover:text-gray-300 text-sm">{{ "Market Report" | t }}</a>
@@ -836,7 +836,7 @@ Create `src/views/partials/public/footer.njk`:
 <footer class="bg-[#fafaf7] border-t border-gray-200">
   <div class="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-3 gap-8">
     <div>
-      <div class="font-bold text-[#1a1a2e] mb-2">{{ "SellMyHomeNow.sg" | t }}</div>
+      <div class="font-bold text-[#1a1a2e] mb-2">{{ "SellMyHouse.sg" | t }}</div>
       <p class="text-sm text-gray-500">{{ "AI-powered HDB resale platform. Sell your flat for a fixed fee of $1,499 + GST." | t }}</p>
     </div>
     <div>
@@ -859,7 +859,7 @@ Create `src/views/partials/public/footer.njk`:
   </div>
   <div class="border-t border-gray-200">
     <div class="max-w-7xl mx-auto px-4 py-4 text-center text-xs text-gray-400">
-      {{ "© " | t }}{{ "now" | date("YYYY") }}{{ " SellMyHomeNow.sg. All rights reserved." | t }}
+      {{ "© " | t }}{{ "now" | date("YYYY") }}{{ " SellMyHouse.sg. All rights reserved." | t }}
     </div>
   </div>
 </footer>
@@ -905,7 +905,7 @@ Create `src/views/pages/public/home.njk`:
 ```njk
 {% extends "layouts/base.njk" %}
 
-{% block title %}{{ "SellMyHomeNow.sg — Sell Your HDB for $1,499" | t }}{% endblock %}
+{% block title %}{{ "SellMyHouse.sg — Sell Your HDB for $1,499" | t }}{% endblock %}
 
 {% block body %}
 {% include "partials/public/header.njk" %}
@@ -944,9 +944,9 @@ Create `src/views/pages/public/home.njk`:
   </div>
 </section>
 
-{# Why SellMyHomeNow.sg? #}
+{# Why SellMyHouse.sg? #}
 <section class="py-16 px-4 bg-[#fafaf7]">
-  <h2 class="text-2xl font-bold text-center mb-10">{{ "Why SellMyHomeNow.sg?" | t }}</h2>
+  <h2 class="text-2xl font-bold text-center mb-10">{{ "Why SellMyHouse.sg?" | t }}</h2>
   <div class="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
     {% set benefits = [
       { icon: "$", title: "Fixed Fee: $1,499 + GST", desc: "No percentage commission. A flat selling for $500K? You save over $8,000 compared to 2% commission." },
@@ -992,7 +992,7 @@ Create `src/views/pages/public/home.njk`:
       <div class="mb-3">
         <label class="flex items-start gap-2 text-xs text-gray-600">
           <input type="checkbox" name="consentService" value="true" required class="mt-0.5">
-          <span>{{ "I consent to SellMyHomeNow.sg collecting and using my personal data to provide property selling services." | t }} <a href="/privacy" target="_blank" class="text-[#c8553d] hover:underline">{{ "Privacy Policy" | t }}</a> *</span>
+          <span>{{ "I consent to SellMyHouse.sg collecting and using my personal data to provide property selling services." | t }} <a href="/privacy" target="_blank" class="text-[#c8553d] hover:underline">{{ "Privacy Policy" | t }}</a> *</span>
         </label>
       </div>
 
@@ -1053,7 +1053,7 @@ Create `src/views/pages/public/market-report.njk`:
 ```njk
 {% extends "layouts/public.njk" %}
 
-{% block title %}{{ "HDB Market Report — SellMyHomeNow.sg" | t }}{% endblock %}
+{% block title %}{{ "HDB Market Report — SellMyHouse.sg" | t }}{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
@@ -1216,7 +1216,7 @@ Create `src/views/pages/public/privacy.njk`:
 ```njk
 {% extends "layouts/public.njk" %}
 
-{% block title %}{{ "Privacy Policy — SellMyHomeNow.sg" | t }}{% endblock %}
+{% block title %}{{ "Privacy Policy — SellMyHouse.sg" | t }}{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto prose prose-sm">
@@ -1226,7 +1226,7 @@ Create `src/views/pages/public/privacy.njk`:
   <p class="text-gray-500">{{ "Last updated: March 2026" | t }}</p>
 
   <h2>{{ "1. Who We Are" | t }}</h2>
-  <p>{{ "SellMyHomeNow.sg is a property selling platform operated by (David) Ng Chun Fai (CEA Reg No. R011998B) under Huttons Asia Pte Ltd (CEA Licence No. L3008899K)." | t }}</p>
+  <p>{{ "SellMyHouse.sg is a property selling platform operated by (David) Ng Chun Fai (CEA Reg No. R011998B) under Huttons Asia Pte Ltd (CEA Licence No. L3008899K)." | t }}</p>
 
   <h2>{{ "2. What We Collect" | t }}</h2>
   <p>{{ "We collect the following personal data:" | t }}</p>
@@ -1283,7 +1283,7 @@ Create `src/views/pages/public/terms.njk`:
 ```njk
 {% extends "layouts/public.njk" %}
 
-{% block title %}{{ "Terms of Service — SellMyHomeNow.sg" | t }}{% endblock %}
+{% block title %}{{ "Terms of Service — SellMyHouse.sg" | t }}{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto prose prose-sm">
@@ -1293,10 +1293,10 @@ Create `src/views/pages/public/terms.njk`:
   <p class="text-gray-500">{{ "Last updated: March 2026" | t }}</p>
 
   <h2>{{ "1. Service Description" | t }}</h2>
-  <p>{{ "SellMyHomeNow.sg provides AI-powered HDB resale property selling services for a fixed fee of $1,499 + GST ($1,633.91 total). Services include market analysis, listing creation, viewing management, and transaction guidance." | t }}</p>
+  <p>{{ "SellMyHouse.sg provides AI-powered HDB resale property selling services for a fixed fee of $1,499 + GST ($1,633.91 total). Services include market analysis, listing creation, viewing management, and transaction guidance." | t }}</p>
 
   <h2>{{ "2. Engagement" | t }}</h2>
-  <p>{{ "Engagement with SellMyHomeNow.sg is on a non-exclusive basis unless otherwise agreed in writing via a separate Estate Agency Agreement." | t }}</p>
+  <p>{{ "Engagement with SellMyHouse.sg is on a non-exclusive basis unless otherwise agreed in writing via a separate Estate Agency Agreement." | t }}</p>
 
   <h2>{{ "3. Payment Terms" | t }}</h2>
   <p>{{ "The fee of $1,499 + GST is payable only upon successful completion of the property sale. No upfront fees are charged. The commission invoice is issued by Huttons Asia Pte Ltd." | t }}</p>
@@ -1307,12 +1307,12 @@ Create `src/views/pages/public/terms.njk`:
   <h2>{{ "5. Limitation of Liability" | t }}</h2>
   <ul>
     <li>{{ "All market reports and price estimates are indicative only, based on publicly available HDB resale data, and do not constitute formal property valuations." | t }}</li>
-    <li>{{ "SellMyHomeNow.sg does not provide financial, legal, or investment advice." | t }}</li>
+    <li>{{ "SellMyHouse.sg does not provide financial, legal, or investment advice." | t }}</li>
     <li>{{ "AI-generated content is reviewed by a licensed agent before being shared with clients." | t }}</li>
   </ul>
 
   <h2>{{ "6. Intellectual Property" | t }}</h2>
-  <p>{{ "All content, designs, and AI-generated materials on the platform are the property of SellMyHomeNow.sg and Huttons Asia Pte Ltd." | t }}</p>
+  <p>{{ "All content, designs, and AI-generated materials on the platform are the property of SellMyHouse.sg and Huttons Asia Pte Ltd." | t }}</p>
 
   <h2>{{ "7. Governing Law" | t }}</h2>
   <p>{{ "These terms are governed by the laws of the Republic of Singapore." | t }}</p>
@@ -1350,8 +1350,8 @@ Create `public/manifest.json`:
 
 ```json
 {
-  "name": "SellMyHomeNow.sg",
-  "short_name": "SellMyHome",
+  "name": "SellMyHouse.sg",
+  "short_name": "SellMyHouse",
   "description": "Sell your HDB for $1,499 — AI-powered, full agent guidance",
   "start_url": "/",
   "display": "standalone",
@@ -1371,7 +1371,7 @@ Create `public/manifest.json`:
 Create `public/sw.js`:
 
 ```javascript
-const CACHE_NAME = 'smhn-v1';
+const CACHE_NAME = 'smh-v1';
 const PRECACHE_URLS = [
   '/',
   '/market-report',
@@ -1441,7 +1441,7 @@ Create `public/offline.html`:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Offline — SellMyHomeNow.sg</title>
+  <title>Offline — SellMyHouse.sg</title>
   <style>
     body { font-family: system-ui, sans-serif; background: #fafaf7; color: #1a1a2e; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; text-align: center; padding: 20px; }
     h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
@@ -1569,7 +1569,7 @@ describe('Public routes', () => {
     it('returns 200 with homepage', async () => {
       const res = await request(app).get('/');
       expect(res.status).toBe(200);
-      expect(res.text).toContain('SellMyHomeNow');
+      expect(res.text).toContain('SellMyHouse');
     });
   });
 
@@ -1602,7 +1602,7 @@ describe('Public routes', () => {
       const res = await request(app).get('/manifest.json');
       expect(res.status).toBe(200);
       const manifest = JSON.parse(res.text);
-      expect(manifest.name).toBe('SellMyHomeNow.sg');
+      expect(manifest.name).toBe('SellMyHouse.sg');
       expect(manifest.start_url).toBe('/');
       expect(manifest.display).toBe('standalone');
     });

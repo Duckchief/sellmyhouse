@@ -898,7 +898,7 @@ model MarketContent {
 
 - [ ] **Step 3: Verify schema is valid**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx prisma validate`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npx prisma validate`
 Expected: "Your Prisma schema is valid."
 
 - [ ] **Step 4: Commit schema**
@@ -915,17 +915,17 @@ git commit -m "feat: add full Prisma schema with all 36 enums and 27 models"
 
 - [ ] **Step 1: Run the migration**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx prisma migrate dev --name phase_1a_full_schema`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npx prisma migrate dev --name phase_1a_full_schema`
 Expected: Migration creates all new tables and enums. Existing `system_settings` and `audit_logs` tables are untouched.
 
 - [ ] **Step 2: Verify migration on test database**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && DATABASE_URL="postgresql://smhn:smhn_dev@localhost:5432/sellmyhomenow_test" npx prisma migrate deploy`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && DATABASE_URL="postgresql://smh:smh_dev@localhost:5432/smh_test" npx prisma migrate deploy`
 Expected: Migration applies cleanly to test DB.
 
 - [ ] **Step 3: Run existing tests to verify no regressions**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test && npm run test:integration`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test && npm run test:integration`
 Expected: All 22 unit tests + 3 integration tests pass.
 
 - [ ] **Step 4: Commit migration**
@@ -946,7 +946,7 @@ git commit -m "feat: add phase 1a migration - all tables and enums"
 
 - [ ] **Step 1: Install new dependencies**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm install csv-parse decimal.js`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npm install csv-parse decimal.js`
 Expected: Both packages added to dependencies in `package.json`.
 
 - [ ] **Step 2: Add prisma seed config to package.json**
@@ -984,10 +984,10 @@ const SETTINGS = [
   { key: 'commission_gst_rate', value: '0.09', description: 'GST rate applied to commission' },
   { key: 'ai_provider', value: 'anthropic', description: 'Active AI provider (anthropic, openai, google)' },
   { key: 'ai_model', value: 'claude-sonnet-4-20250514', description: 'Active AI model identifier' },
-  { key: 'platform_name', value: 'SellMyHomeNow.sg', description: 'Platform display name' },
+  { key: 'platform_name', value: 'SellMyHouse.sg', description: 'Platform display name' },
   { key: 'agency_name', value: 'Huttons Asia Pte Ltd', description: 'Agency name for CEA compliance' },
   { key: 'agency_licence', value: 'L3008899K', description: 'CEA agency licence number' },
-  { key: 'support_email', value: 'support@sellmyhomenow.sg', description: 'Platform support email' },
+  { key: 'support_email', value: 'support@sellmyhouse.sg', description: 'Platform support email' },
   { key: 'support_phone', value: '+6591234567', description: 'Platform support phone (placeholder)' },
 ];
 
@@ -1034,7 +1034,7 @@ main()
 
 - [ ] **Step 3: Test the seed runs**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx prisma db seed`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npx prisma db seed`
 Expected: "Seeding system settings..." then "System settings seeded: 9 entries" then "Seed completed."
 
 - [ ] **Step 4: Commit**
@@ -1211,7 +1211,7 @@ export const factory = {
 
 - [ ] **Step 2: Run existing tests to verify no regressions**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm run test:integration`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npm run test:integration`
 Expected: All integration tests pass. New factories don't break existing ones.
 
 - [ ] **Step 3: Commit**
@@ -1484,7 +1484,7 @@ describe('HdbRepository', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx jest src/domains/hdb/__tests__/repository.test.ts`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npx jest src/domains/hdb/__tests__/repository.test.ts`
 Expected: FAIL — "Cannot find module '../repository'"
 
 - [ ] **Step 3: Write the repository**
@@ -1588,7 +1588,7 @@ export class HdbRepository {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx jest src/domains/hdb/__tests__/repository.test.ts`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npx jest src/domains/hdb/__tests__/repository.test.ts`
 Expected: All 7 tests PASS.
 
 - [ ] **Step 5: Commit**
@@ -1727,7 +1727,7 @@ describe('HdbService', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx jest src/domains/hdb/__tests__/service.test.ts`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npx jest src/domains/hdb/__tests__/service.test.ts`
 Expected: FAIL — "Cannot find module '../service'"
 
 - [ ] **Step 3: Write the service**
@@ -1820,7 +1820,7 @@ export class HdbService {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx jest src/domains/hdb/__tests__/service.test.ts`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npx jest src/domains/hdb/__tests__/service.test.ts`
 Expected: All 6 tests PASS.
 
 - [ ] **Step 5: Commit**
@@ -2015,7 +2015,7 @@ describe('HdbSyncService', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx jest src/domains/hdb/__tests__/sync.service.test.ts`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npx jest src/domains/hdb/__tests__/sync.service.test.ts`
 Expected: FAIL — "Cannot find module '../sync.service'"
 
 - [ ] **Step 3: Write the sync service**
@@ -2204,7 +2204,7 @@ export class HdbSyncService {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx jest src/domains/hdb/__tests__/sync.service.test.ts`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npx jest src/domains/hdb/__tests__/sync.service.test.ts`
 Expected: All 4 tests PASS.
 
 - [ ] **Step 5: Commit**
@@ -2226,10 +2226,10 @@ git commit -m "feat: add HDB sync service with retry logic and unit tests"
 
 - [ ] **Step 1: Copy HDB CSV files from v1**
 
-Run: `mkdir -p /Users/david/Documents/AI/sellmyhomenow-v2/data/hdb && cp /Users/david/Documents/AI/sellmyhomenow/data/hdb/*.csv /Users/david/Documents/AI/sellmyhomenow-v2/data/hdb/`
+Run: `mkdir -p /Users/david/Documents/AI/sellmyhouse-v2/data/hdb && cp /Users/david/Documents/AI/sellmyhouse/data/hdb/*.csv /Users/david/Documents/AI/sellmyhouse-v2/data/hdb/`
 
 Then verify files exist:
-Run: `ls -la /Users/david/Documents/AI/sellmyhomenow-v2/data/hdb/`
+Run: `ls -la /Users/david/Documents/AI/sellmyhouse-v2/data/hdb/`
 Expected: 5 CSV files present.
 
 - [ ] **Step 2: Write the HDB seed script**
@@ -2483,7 +2483,7 @@ app.listen(port, () => {
 
 - [ ] **Step 3: Run existing tests to verify no regressions**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test`
 Expected: All unit tests pass.
 
 - [ ] **Step 4: Commit**
@@ -2707,7 +2707,7 @@ describe('HDB Integration', () => {
 
 - [ ] **Step 4: Run all integration tests**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm run test:integration`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npm run test:integration`
 Expected: All integration tests pass (existing + new).
 
 - [ ] **Step 5: Commit**
@@ -2725,27 +2725,27 @@ git commit -m "feat: add schema and HDB integration tests with CSV fixtures"
 
 - [ ] **Step 1: Run unit tests**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm test`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npm test`
 Expected: All unit tests pass (existing 22 + new HDB tests).
 
 - [ ] **Step 2: Run integration tests**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm run test:integration`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npm run test:integration`
 Expected: All integration tests pass (existing 3 + new schema/HDB tests).
 
 - [ ] **Step 3: Run type check**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npx tsc --noEmit`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npx tsc --noEmit`
 Expected: No type errors.
 
 - [ ] **Step 4: Run lint**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && npm run lint`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && npm run lint`
 Expected: No lint errors.
 
 - [ ] **Step 5: Verify Prisma client has all types**
 
-Run: `cd /Users/david/Documents/AI/sellmyhomenow-v2 && node -e "const { PrismaClient } = require('@prisma/client'); const p = new PrismaClient(); console.log(Object.keys(p).filter(k => !k.startsWith('_') && !k.startsWith('$')).sort().join('\n'));"`
+Run: `cd /Users/david/Documents/AI/sellmyhouse-v2 && node -e "const { PrismaClient } = require('@prisma/client'); const p = new PrismaClient(); console.log(Object.keys(p).filter(k => !k.startsWith('_') && !k.startsWith('$')).sort().join('\n'));"`
 Expected: Lists all 29 model names (agent, auditLog, buyer, caseFlag, cddRecord, commissionInvoice, consentRecord, dataCorrectionRequest, dataDeletionRequest, estateAgencyAgreement, financialReport, hdbDataSync, hdbTransaction, listing, marketContent, notification, offer, otp, portalListing, property, referral, seller, systemSetting, testimonial, transaction, verifiedViewer, videoTutorial, viewing, viewingSlot).
 
 - [ ] **Step 6: Final commit if any fixes needed**

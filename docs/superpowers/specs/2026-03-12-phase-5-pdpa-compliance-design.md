@@ -6,7 +6,7 @@
 
 ## Overview
 
-Phase 5 builds the PDPA compliance module for SellMyHomeNow.sg v2. It covers consent management, data access and correction, data retention and hard deletion, NRIC handling, DNC registry compliance, and secure download and server deletion of sensitive documents.
+Phase 5 builds the PDPA compliance module for SellMyHouse.sg v2. It covers consent management, data access and correction, data retention and hard deletion, NRIC handling, DNC registry compliance, and secure download and server deletion of sensitive documents.
 
 All Phase 5 logic lives in a dedicated `src/domains/compliance/` domain. The compliance domain owns all PDPA workflows and is called by other domains — it does not call back into them except through the repository layer for hard deletes that cascade from the seller entity.
 

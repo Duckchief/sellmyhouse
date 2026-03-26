@@ -92,7 +92,7 @@ The Reviews link has a badge (`<span>`) that must stay **after** the label text.
   <button data-action="toggle-sidebar" class="text-white hover:text-gray-300">
     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
   </button>
-  <a href="/agent/dashboard" class="ml-3 text-lg font-bold text-white">{{ "SellMyHomeNow" | t }}</a>
+  <a href="/agent/dashboard" class="ml-3 text-lg font-bold text-white">{{ "SellMyHouse" | t }}</a>
 </div>
 
 {# Sidebar backdrop — mobile overlay #}
@@ -184,7 +184,7 @@ The admin sidebar uses `text-sm` on nav links and `border-l-2 border-accent` on 
   <button data-action="toggle-sidebar" class="text-white hover:text-gray-300">
     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
   </button>
-  <a href="/admin/dashboard" class="ml-3 text-lg font-bold text-white">{{ "SellMyHomeNow" | t }}</a>
+  <a href="/admin/dashboard" class="ml-3 text-lg font-bold text-white">{{ "SellMyHouse" | t }}</a>
 </div>
 
 {# Sidebar backdrop — mobile overlay #}

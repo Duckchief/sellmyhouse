@@ -39,7 +39,7 @@ cpfDisclaimerShownAt      DateTime?              @map("cpf_disclaimer_shown_at")
 - [ ] **Step 2: Create shadow database**
 
 ```bash
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "CREATE DATABASE smhn_shadow_tmp;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "CREATE DATABASE smh_shadow_tmp;"
 ```
 
 - [ ] **Step 3: Generate migration SQL**
@@ -48,7 +48,7 @@ PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "C
 npx prisma migrate diff \
   --from-migrations prisma/migrations \
   --to-schema-datamodel prisma/schema.prisma \
-  --shadow-database-url "postgresql://smhn:smhn_dev@localhost:5432/smhn_shadow_tmp" \
+  --shadow-database-url "postgresql://smh:smh_dev@localhost:5432/smh_shadow_tmp" \
   --script
 ```
 
@@ -82,7 +82,7 @@ Expected: `1 migration applied`, no errors.
 - [ ] **Step 6: Drop shadow database**
 
 ```bash
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "DROP DATABASE smhn_shadow_tmp;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "DROP DATABASE smh_shadow_tmp;"
 ```
 
 - [ ] **Step 7: Commit**
@@ -1064,7 +1064,7 @@ export function buildFinancialNarrativePrompt(
   const sections: string[] = [];
 
   sections.push(
-    `You are a helpful assistant for SellMyHomeNow.sg, a Singapore HDB resale transaction platform.`,
+    `You are a helpful assistant for SellMyHouse.sg, a Singapore HDB resale transaction platform.`,
   );
   sections.push(
     `Write a clear, friendly, plain-language summary of this seller's estimated financial breakdown for selling their ${context.flatType} flat in ${context.town}.`,

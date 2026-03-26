@@ -21,7 +21,7 @@ Onboarding step 3 becomes a sale proceeds calculator modelled on the HDB officia
 | CPF Used + Accrued Interest (Seller 4) | Currency | Optional, hidden until "Add contributor" clicked |
 | Resale Levy | Currency | Optional, default 0. Hint: "Applies if you previously bought a subsidised flat" |
 | Other Deductions | Currency | Optional, default 0. Hint: "Upgrading levies, outstanding costs, etc." |
-| Commission (SellMyHomeNow) | Currency | Pre-filled $1,633.91, read-only. Loaded from SystemSetting at runtime. |
+| Commission (SellMyHouse) | Currency | Pre-filled $1,633.91, read-only. Loaded from SystemSetting at runtime. |
 
 ---
 

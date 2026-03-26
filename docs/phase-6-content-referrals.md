@@ -1,4 +1,4 @@
-# SellMyHomeNow.sg — Phase 6: Content, Video, Testimonials & Referrals
+# SellMyHouse.sg — Phase 6: Content, Video, Testimonials & Referrals
 # Prerequisites: Phases 1-5 must be complete. Read phase-0-shared-context.md for schema reference.
 # This phase builds: video tutorial management, market data content engine,
 # testimonial management, referral program.
@@ -34,13 +34,13 @@ Integration Tests:
 - Link takes seller to a simple form: rating (1-5 stars), written testimonial, display name (defaults to first name + last initial, e.g., "John T."), display town (e.g., "Seller in Tampines")
 - Submitted testimonials stored in `Testimonial` model with status `pending_review`
 - Agent/admin reviews → approves or rejects
-- Approved testimonials with `displayOnWebsite: true` appear on the sellmyhomenow.sg landing page in a testimonials section
+- Approved testimonials with `displayOnWebsite: true` appear on the sellmyhouse.sg landing page in a testimonials section
 - Admin can feature/unfeature testimonials from the dashboard
 - Seller can request removal of their testimonial at any time (PDPA — their data)
 
 ### 6.4 Referral Program
 - After transaction completion (day 14, same time as buyer follow-up): seller receives a unique referral link
-- Referral link format: `sellmyhomenow.sg/?ref={referralCode}`
+- Referral link format: `sellmyhouse.sg/?ref={referralCode}`
 - When someone visits via referral link:
   - `Referral.clickCount` incremented
   - Referral code stored in session/cookie

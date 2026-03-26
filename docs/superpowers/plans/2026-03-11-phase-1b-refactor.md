@@ -1421,8 +1421,8 @@ export interface NotificationTemplate {
 
 export const NOTIFICATION_TEMPLATES: Record<NotificationTemplateName, NotificationTemplate> = {
   welcome_seller: {
-    subject: 'Welcome to SellMyHomeNow',
-    body: 'Welcome to SellMyHomeNow, {{name}}! Your account is ready.',
+    subject: 'Welcome to SellMyHouse',
+    body: 'Welcome to SellMyHouse, {{name}}! Your account is ready.',
   },
   viewing_booked: {
     subject: 'Viewing Booked',
@@ -1481,7 +1481,7 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationTemplateName, Notificati
     body: 'Your financial report for {{address}} is ready. {{message}}',
   },
   generic: {
-    subject: 'SellMyHomeNow Notification',
+    subject: 'SellMyHouse Notification',
     body: '{{message}}',
   },
 };
@@ -2308,7 +2308,7 @@ export class EmailProvider implements ChannelProvider {
         const result = await transporter.sendMail({
           from: fromName ? `"${fromName}" <${fromEmail || user}>` : fromEmail || user,
           to: recipientEmail,
-          subject: options?.subject || 'SellMyHomeNow Notification',
+          subject: options?.subject || 'SellMyHouse Notification',
           html: content,
           ...(options?.attachments && {
             attachments: options.attachments.map((a) => ({
@@ -2923,13 +2923,13 @@ git commit -m "style: fix formatting after Phase 1B refactor"
 <body>
   <div class="container">
     <div class="header">
-      <h1>{{ "SellMyHomeNow.sg" | t }}</h1>
+      <h1>{{ "SellMyHouse.sg" | t }}</h1>
     </div>
     <div class="content">
       {% block content %}{% endblock %}
     </div>
     <div class="footer">
-      <p>{{ "SellMyHomeNow.sg — Sell your HDB for $1,499" | t }}</p>
+      <p>{{ "SellMyHouse.sg — Sell your HDB for $1,499" | t }}</p>
       <p>{{ "Operating under Huttons Asia Pte Ltd (CEA Licence No. L3008899K)" | t }}</p>
       {% if unsubscribeUrl %}
         <p><a href="{{ unsubscribeUrl }}">{{ "Unsubscribe from marketing emails" | t }}</a></p>

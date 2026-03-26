@@ -48,8 +48,8 @@ ALTER TABLE "Seller" ADD COLUMN "emailVerificationExpiry" TIMESTAMP(3);
 
 ```bash
 # 1. Create shadow DB
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev \
-  -c "CREATE DATABASE smhn_shadow_tmp;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev \
+  -c "CREATE DATABASE smh_shadow_tmp;"
 
 # 2. Apply migration
 npx prisma migrate deploy
@@ -58,8 +58,8 @@ npx prisma migrate deploy
 npx prisma generate
 
 # 4. Drop shadow DB
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev \
-  -c "DROP DATABASE smhn_shadow_tmp;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev \
+  -c "DROP DATABASE smh_shadow_tmp;"
 ```
 
 Expected: `1 migration applied`, no errors.
@@ -109,7 +109,7 @@ describe('sendSystemEmail', () => {
     process.env.SMTP_PORT = '587';
     process.env.SMTP_USER = 'user@example.com';
     process.env.SMTP_PASS = 'secret';
-    process.env.SMTP_FROM = 'noreply@sellmyhomenow.sg';
+    process.env.SMTP_FROM = 'noreply@sellmyhouse.sg';
   });
 
   afterEach(() => {
@@ -132,7 +132,7 @@ describe('sendSystemEmail', () => {
     });
     expect(mockSendMail).toHaveBeenCalledWith(
       expect.objectContaining({
-        from: 'noreply@sellmyhomenow.sg',
+        from: 'noreply@sellmyhouse.sg',
         to: 'seller@example.com',
         subject: 'Test Subject',
         html: '<p>Hello</p>',
@@ -406,16 +406,16 @@ export async function sendVerificationEmail(sellerId: string, email: string): Pr
 
   await authRepo.setSellerEmailVerificationToken(sellerId, hashedToken, expiry);
 
-  const appUrl = process.env.APP_URL || 'https://sellmyhomenow.sg';
+  const appUrl = process.env.APP_URL || 'https://sellmyhouse.sg';
   const verifyUrl = `${appUrl}/auth/verify-email/${rawToken}`;
 
   await sendSystemEmail(
     email,
-    'Verify your SellMyHomeNow email address',
+    'Verify your SellMyHouse email address',
     `<p>Click the link below to verify your email address:</p>
 <p><a href="${verifyUrl}">${verifyUrl}</a></p>
 <p>This link expires in 24 hours.</p>
-<p>If you did not register on SellMyHomeNow, please ignore this email.</p>`,
+<p>If you did not register on SellMyHouse, please ignore this email.</p>`,
   );
 
   await auditService.log({
@@ -726,7 +726,7 @@ Create `src/views/pages/auth/verify-email-error.njk`:
 
 ```nunjucks
 {% extends "layouts/public.njk" %}
-{% block title %}{{ "Email Verification Failed" | t }} — SellMyHomeNow.sg{% endblock %}
+{% block title %}{{ "Email Verification Failed" | t }} — SellMyHouse.sg{% endblock %}
 {% block content %}
 <div class="max-w-md mx-auto mt-16 text-center">
   <h1 class="text-2xl font-bold mb-4">{{ "Verification Failed" | t }}</h1>
@@ -961,6 +961,6 @@ SMTP_HOST=<your SMTP host>
 SMTP_PORT=587
 SMTP_USER=<your SMTP username>
 SMTP_PASS=<your SMTP password>
-SMTP_FROM=noreply@sellmyhomenow.sg
-APP_URL=https://sellmyhomenow.sg
+SMTP_FROM=noreply@sellmyhouse.sg
+APP_URL=https://sellmyhouse.sg
 ```

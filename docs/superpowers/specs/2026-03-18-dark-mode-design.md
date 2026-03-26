@@ -1,6 +1,6 @@
 # Dark Mode — Design Spec
 **Date:** 2026-03-18
-**Project:** SellMyHomeNow.sg v2
+**Project:** SellMyHouse.sg v2
 **Status:** Approved
 
 ## Summary

@@ -76,11 +76,11 @@ When seller has set their password (`passwordHash !== null`):
 ## 4. Email Template
 
 ```
-Subject: Set up your SellMyHomeNow account
+Subject: Set up your SellMyHouse account
 
 Hi [name],
 
-Your agent has invited you to set up your SellMyHomeNow account.
+Your agent has invited you to set up your SellMyHouse account.
 Click the link below to create your password and access your dashboard:
 
 [setupUrl]

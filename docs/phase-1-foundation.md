@@ -1,4 +1,4 @@
-# SellMyHomeNow.sg — Phase 1: Foundation (MVP)
+# SellMyHouse.sg — Phase 1: Foundation (MVP)
 # Prerequisites: Read phase-0-shared-context.md first for schema, tech stack, and cross-cutting concerns.
 # This phase builds: project setup, HDB data ingestion, public website, auth, notifications, PWA.
 
@@ -9,7 +9,7 @@
 - Configure PostgreSQL + Prisma
 - Set up project structure:
   ```
-  sellmyhomenow/
+  sellmyhouse/
   ├── prisma/
   │   ├── schema.prisma
   │   ├── seed.js              # Seed HDB transaction data from CSV
@@ -116,7 +116,7 @@
   - On failure: log error, send notification to agent, continue with existing data
 
 ### 1.3 Public Website
-- Landing page (based on the existing HTML prototype design — see sellmyhomenow.html)
+- Landing page (based on the existing HTML prototype design — see sellmyhouse.html)
 - HDB Market Report tool:
   - User selects town, flat type, storey range
   - API queries `HdbTransaction` table for recent (last 24 months) data matching the criteria
@@ -184,7 +184,7 @@ Build a unified notification service supporting WhatsApp (Meta Business API, pri
 - PDPA: only send to numbers with active service consent; marketing messages only with marketing consent
 
 **Email:**
-- HTML templates matching sellmyhomenow.sg branding
+- HTML templates matching sellmyhouse.sg branding
 - Unsubscribe link in all marketing emails
 - Send reports and invoices as attachments
 
@@ -199,8 +199,8 @@ The entire platform is a PWA — installable on mobile home screens, works in an
 **manifest.json (`public/manifest.json`):**
 ```json
 {
-  "name": "SellMyHomeNow.sg",
-  "short_name": "SellMyHome",
+  "name": "SellMyHouse.sg",
+  "short_name": "SellMyHouse",
   "description": "Sell your HDB for $1,499 — AI-powered, full agent guidance",
   "start_url": "/",
   "display": "standalone",
@@ -255,7 +255,7 @@ All pages must work on these viewports:
 - Generate icons at 192x192 and 512x512 pixels
 - Create a maskable variant (512x512 with safe zone padding) for Android adaptive icons
 - Apple touch icon at 192x192
-- Use the sellmyhomenow.sg brand colours (ink: #1a1a2e, accent: #c8553d)
+- Use the sellmyhouse.sg brand colours (ink: #1a1a2e, accent: #c8553d)
 
 ### Tests for Phase 1:
 ```

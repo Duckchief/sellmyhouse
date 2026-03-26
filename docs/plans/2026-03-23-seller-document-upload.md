@@ -56,8 +56,8 @@ Add the back-relation to the `Seller` model (after `saleProceeds` line 435):
 Follow the migration pattern from MEMORY.md (shadow DB approach since `prisma migrate dev` is blocked by session table drift):
 
 ```bash
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "CREATE DATABASE smhn_shadow_tmp;"
-npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "postgresql://smhn:smhn_dev@localhost:5432/smhn_shadow_tmp" --script
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "CREATE DATABASE smh_shadow_tmp;"
+npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "postgresql://smh:smh_dev@localhost:5432/smh_shadow_tmp" --script
 ```
 
 Save the generated SQL to `prisma/migrations/YYYYMMDDHHMMSS_add_seller_document/migration.sql`.
@@ -65,7 +65,7 @@ Save the generated SQL to `prisma/migrations/YYYYMMDDHHMMSS_add_seller_document/
 ```bash
 npx prisma migrate deploy
 npx prisma generate
-PGPASSWORD=smhn_dev psql -U smhn -h localhost -p 5432 -d sellmyhomenow_dev -c "DROP DATABASE smhn_shadow_tmp;"
+PGPASSWORD=smh_dev psql -U smh -h localhost -p 5432 -d smh_dev -c "DROP DATABASE smh_shadow_tmp;"
 ```
 
 **Step 3: Run existing tests to verify no breakage**
@@ -1497,7 +1497,7 @@ Create `src/views/pages/agent/seller-documents.njk`:
 ```njk
 {% extends "layouts/agent.njk" %}
 
-{% block title %}{{ "Documents" | t }} — {{ seller.name }} — SellMyHomeNow.sg{% endblock %}
+{% block title %}{{ "Documents" | t }} — {{ seller.name }} — SellMyHouse.sg{% endblock %}
 
 {% block content %}
 {% set pageTitle = seller.name + " — Documents" %}

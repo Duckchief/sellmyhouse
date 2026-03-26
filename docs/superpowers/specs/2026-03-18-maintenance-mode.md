@@ -92,7 +92,7 @@ We'll be back shortly. Thank you for your patience.
 
 [If maintenance_eta is set: "Expected back: Thursday 19 March, 10:00 AM SGT"]
 
-SellMyHomeNow.sg · Powered by Huttons Asia Pte Ltd
+SellMyHouse.sg · Powered by Huttons Asia Pte Ltd
 ```
 
 Professional and matter-of-fact. The monkey mascot (pixel-art construction worker) provides visual personality without the copy needing to be humorous.

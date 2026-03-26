@@ -35,7 +35,7 @@ describe('sendAccountSetupEmail', () => {
     );
     expect(mockSystemMailer.sendSystemEmail).toHaveBeenCalledWith(
       'peanuts@example.com',
-      'Set up your SellMyHomeNow account',
+      'Set up your SellMyHouse account',
       expect.stringContaining('/auth/setup-account?token='),
     );
     expect(mockAuditService.log).toHaveBeenCalledWith(
@@ -92,14 +92,14 @@ export async function sendAccountSetupEmail(
 
   await authRepo.setSellerPasswordResetToken(sellerId, hashedToken, expiry);
 
-  const appUrl = process.env.APP_URL || 'https://sellmyhomenow.sg';
+  const appUrl = process.env.APP_URL || 'https://sellmyhouse.sg';
   const setupUrl = `${appUrl}/auth/setup-account?token=${rawToken}`;
 
   await sendSystemEmail(
     email,
-    'Set up your SellMyHomeNow account',
+    'Set up your SellMyHouse account',
     `<p>Hi ${name},</p>
-<p>Your agent has invited you to set up your SellMyHomeNow account. Click the link below to create your password and access your dashboard:</p>
+<p>Your agent has invited you to set up your SellMyHouse account. Click the link below to create your password and access your dashboard:</p>
 <p><a href="${setupUrl}">${setupUrl}</a></p>
 <p>This link expires in 24 hours.</p>
 <p>If you did not expect this email, please ignore it.</p>`,
@@ -505,11 +505,11 @@ Create `src/views/pages/auth/setup-account.njk`:
 ```nunjucks
 {% extends "layouts/public.njk" %}
 
-{% block title %}{{ "Set Up Your Account" | t }} — SellMyHomeNow{% endblock %}
+{% block title %}{{ "Set Up Your Account" | t }} — SellMyHouse{% endblock %}
 
 {% block content %}
 <div class="max-w-md mx-auto mt-10">
-  <h1 class="text-2xl font-bold mb-2">{{ "Welcome to SellMyHomeNow" | t }}{% if sellerName %}, {{ sellerName }}{% endif %}!</h1>
+  <h1 class="text-2xl font-bold mb-2">{{ "Welcome to SellMyHouse" | t }}{% if sellerName %}, {{ sellerName }}{% endif %}!</h1>
   <p class="text-sm text-gray-600 mb-6">
     {{ "Create a password to access your seller dashboard. Your password must be at least 8 characters and contain at least one number." | t }}
   </p>
@@ -570,7 +570,7 @@ Create `src/views/pages/auth/setup-account-error.njk`:
 ```nunjucks
 {% extends "layouts/public.njk" %}
 
-{% block title %}{{ pageTitle }} — SellMyHomeNow{% endblock %}
+{% block title %}{{ pageTitle }} — SellMyHouse{% endblock %}
 
 {% block content %}
 <section class="py-16 px-4 bg-white">

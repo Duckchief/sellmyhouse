@@ -1,13 +1,13 @@
-# SellMyHomeNow.sg — Shared Context
+# SellMyHouse.sg — Shared Context
 # Include this context at the start of EVERY phase session with Claude Code.
 # It provides the project overview, tech stack, schema, and cross-cutting concerns
 # that all phases need to reference.
 
-# SellMyHomeNow.sg — Claude Code Build Prompt
+# SellMyHouse.sg — Claude Code Build Prompt
 
 ## Project Overview
 
-Build **sellmyhomenow.sg**, a standalone, AI-powered web platform for high-volume, low-cost HDB resale property transactions in Singapore. The platform operates under Huttons Asia Pte Ltd (CEA Licence No. L3008899K) and charges a fixed fee of $1,499 + GST per transaction (listed as $1,999, discounted to $1,499).
+Build **sellmyhouse.sg**, a standalone, AI-powered web platform for high-volume, low-cost HDB resale property transactions in Singapore. The platform operates under Huttons Asia Pte Ltd (CEA Licence No. L3008899K) and charges a fixed fee of $1,499 + GST per transaction (listed as $1,999, discounted to $1,499).
 
 The platform serves three user types:
 1. **Sellers** — HDB homeowners who want to sell their flat. They take their own photos, conduct their own viewings, and learn the process through video tutorials. The platform guides them and handles the complex parts.
@@ -210,26 +210,26 @@ ufw enable
 - Email notification on ban events (optional)
 
 **Non-root application user:**
-- Create a dedicated user for running the application: `adduser smhn`
-- Application runs as `smhn` user, NOT root
-- PM2 runs under `smhn` user
-- Application files owned by `smhn` with restricted permissions
+- Create a dedicated user for running the application: `adduser smh`
+- Application runs as `smh` user, NOT root
+- PM2 runs under `smh` user
+- Application files owned by `smh` with restricted permissions
 
 **File permissions:**
 ```
 # Application code: owner read/write, group read, others no access
-chmod -R 750 /home/smhn/sellmyhomenow/
-chown -R smhn:smhn /home/smhn/sellmyhomenow/
+chmod -R 750 /home/smh/sellmyhouse/
+chown -R smh:smh /home/smh/sellmyhouse/
 
 # Upload directories: owner read/write only
-chmod -R 700 /home/smhn/sellmyhomenow/uploads/
-chmod -R 700 /home/smhn/sellmyhomenow/uploads/documents/  # CDD docs — most sensitive
+chmod -R 700 /home/smh/sellmyhouse/uploads/
+chmod -R 700 /home/smh/sellmyhouse/uploads/documents/  # CDD docs — most sensitive
 
 # Environment file: owner read only
-chmod 400 /home/smhn/sellmyhomenow/.env
+chmod 400 /home/smh/sellmyhouse/.env
 
 # Logs: owner read/write, group read
-chmod -R 750 /home/smhn/.pm2/logs/
+chmod -R 750 /home/smh/.pm2/logs/
 ```
 
 **Automatic security updates:**
@@ -323,7 +323,7 @@ location /uploads/ {
 ### CI/CD
 - Git-based deployment: push to main → SSH into VPS → pull → install → migrate → restart
 - Pre-deploy: run `npm test` and `npm run test:integration` locally or in CI
-- Deploy script: `git pull && npm ci && npx prisma migrate deploy && pm2 restart sellmyhomenow`
+- Deploy script: `git pull && npm ci && npx prisma migrate deploy && pm2 restart sellmyhouse`
 - Rollback: keep last 3 deployments via git tags, quick rollback script
 - Post-deploy: verify application is responding, check PM2 status, check error logs
 
@@ -447,4 +447,4 @@ Seller: index on (agentId, status), index on (leadSource)
 - Each export logged in audit trail: `data.exported` with details of what was exported and by whom
 
 ### Suspicious Transaction Reporting (STR)
-Out of scope for this platform. STR is handled through Huttons' internal compliance system. If an agent identifies a suspicious transaction, they report it through Huttons' internal channels, not through sellmyhomenow.sg.
+Out of scope for this platform. STR is handled through Huttons' internal compliance system. If an agent identifies a suspicious transaction, they report it through Huttons' internal channels, not through sellmyhouse.sg.

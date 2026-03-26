@@ -225,7 +225,7 @@ src/domains/hdb/
 
 ### 3.2 CSV Seed
 
-Reuse the 5 v1 CSV files from `../sellmyhomenow/data/hdb/`. Copy them to `data/hdb/` in v2.
+Reuse the 5 v1 CSV files from `../sellmyhouse/data/hdb/`. Copy them to `data/hdb/` in v2.
 
 **CSV files** (~972K records total):
 - `Resale_Flat_Prices_Based_on_Approval_Date_1990__1999.csv`
@@ -296,10 +296,10 @@ Seed default system settings needed by the platform:
 | `commission_gst_rate` | `0.09` | GST rate |
 | `ai_provider` | `anthropic` | Active AI provider |
 | `ai_model` | `claude-sonnet-4-20250514` | Active AI model |
-| `platform_name` | `SellMyHomeNow.sg` | Platform display name |
+| `platform_name` | `SellMyHouse.sg` | Platform display name |
 | `agency_name` | `Huttons Asia Pte Ltd` | Agency name for CEA compliance |
 | `agency_licence` | `L3008899K` | Agency licence number |
-| `support_email` | `support@sellmyhomenow.sg` | Support email |
+| `support_email` | `support@sellmyhouse.sg` | Support email |
 | `support_phone` | `+6591234567` | Support phone (placeholder) |
 
 Seed script: `prisma/seeds/system-settings.ts` (upsert to be idempotent).

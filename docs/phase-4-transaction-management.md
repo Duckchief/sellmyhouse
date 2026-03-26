@@ -1,4 +1,4 @@
-# SellMyHomeNow.sg — Phase 4: Transaction Management
+# SellMyHouse.sg — Phase 4: Transaction Management
 # Prerequisites: Phases 1-3 must be complete. Read phase-0-shared-context.md for schema reference.
 # This phase builds: offer management, portal-ready listing output, OTP tracking (physical form),
 # commission invoice (Huttons upload), completion tracking, post-completion sequence,

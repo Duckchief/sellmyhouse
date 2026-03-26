@@ -844,7 +844,7 @@ Replace `src/views/pages/seller/financial.njk` with:
 ```njk
 {% extends "layouts/seller.njk" %}
 
-{% block title %}{{ "Financial Overview" | t }} — SellMyHomeNow.sg{% endblock %}
+{% block title %}{{ "Financial Overview" | t }} — SellMyHouse.sg{% endblock %}
 
 {% block content %}
 {% set pageTitle = "Financial Overview" %}

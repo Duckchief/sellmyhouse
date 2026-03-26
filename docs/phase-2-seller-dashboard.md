@@ -1,4 +1,4 @@
-# SellMyHomeNow.sg — Phase 2: Seller Dashboard & Financial Engine
+# SellMyHouse.sg — Phase 2: Seller Dashboard & Financial Engine
 # Prerequisites: Phase 1 must be complete. Read phase-0-shared-context.md for schema reference.
 # This phase builds: seller onboarding wizard, seller dashboard, financial calculation engine,
 # AI integration (provider-agnostic), viewing scheduler, co-broking policy,
@@ -9,7 +9,7 @@
 ### 2.1 Seller Onboarding Wizard
 When a lead converts to an engaged seller (after initial consultation call and CDD), the seller logs in and sees a step-by-step onboarding wizard before reaching the full dashboard. Each step must be completed before advancing.
 
-**Step 1: "Welcome to SellMyHomeNow.sg"**
+**Step 1: "Welcome to SellMyHouse.sg"**
 - Brief intro: what to expect, how the process works, your role vs agent's role
 - Link to "Complete HDB Resale Timeline" video tutorial
 - Accept: "I understand the process"
@@ -54,7 +54,7 @@ When a lead converts to an engaged seller (after initial consultation call and C
   - Seller can see: total viewings conducted, upcoming viewings, feedback history
 
   **Public booking page (buyer-facing):**
-  - Each listed property gets a unique public booking URL: `sellmyhomenow.sg/view/{propertySlug}`
+  - Each listed property gets a unique public booking URL: `sellmyhouse.sg/view/{propertySlug}`
   - This URL is included in the portal-ready listing output so the agent can add it to PropertyGuru/99.co listings
   - Page shows: property summary (town, flat type, floor area, storey, asking price — no seller personal details), list of available slots (date, time, single/group indicator)
   - To book, the buyer fills in:
@@ -62,7 +62,7 @@ When a lead converts to an engaged seller (after initial consultation call and C
     - Mobile number (required)
     - "Are you..." radio button: **"Buying for myself"** / **"I am a property agent representing a buyer"**
     - If agent: additional fields — agent name (auto-filled from above), CEA registration number, agency name
-    - PDPA consent checkbox (required): "I consent to SellMyHomeNow.sg collecting my name and contact number to coordinate this property viewing."
+    - PDPA consent checkbox (required): "I consent to SellMyHouse.sg collecting my name and contact number to coordinate this property viewing."
 
   **Booking flow (verify phone once, book freely after):**
 
@@ -99,7 +99,7 @@ When a lead converts to an engaged seller (after initial consultation call and C
   - Create audit log entry: `viewing.scheduled`
 
   **Cancellation:**
-  - Booking confirmation includes a unique cancellation link: `sellmyhomenow.sg/view/cancel/{viewingId}/{cancelToken}`
+  - Booking confirmation includes a unique cancellation link: `sellmyhouse.sg/view/cancel/{viewingId}/{cancelToken}`
   - One-click cancellation, no login required
   - On cancel: update `Viewing.status` to `cancelled`, decrement `ViewingSlot.currentBookings`, notify seller (WhatsApp + in-app), create audit log
 

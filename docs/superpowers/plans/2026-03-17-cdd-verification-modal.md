@@ -786,7 +786,7 @@ Expected: ALL tests pass.
 - [ ] **Step 3: Manual end-to-end check**
 
 1. `npm run dev`
-2. Log in as Michael Ng (agent): `michael@sellmyhomenow.sg` / `password123`
+2. Log in as Michael Ng (agent): `michael@sellmyhouse.sg` / `password123`
 3. Open a seller detail page
 4. CDD Status → pick "Pending" → card refreshes to Pending state ✓
 5. CDD Status → pick "Verified" → modal appears, select resets to previous value ✓

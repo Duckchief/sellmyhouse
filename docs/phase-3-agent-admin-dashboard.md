@@ -1,4 +1,4 @@
-# SellMyHomeNow.sg — Phase 3: Agent Dashboard, Admin Dashboard & Review Workflow
+# SellMyHouse.sg — Phase 3: Agent Dashboard, Admin Dashboard & Review Workflow
 # Prerequisites: Phase 1 & 2 must be complete. Read phase-0-shared-context.md for schema reference.
 # This phase builds: agent dashboard (pipeline, review queue, seller detail, compliance),
 # human-in-the-loop review gates, complete audit trail (73 actions),

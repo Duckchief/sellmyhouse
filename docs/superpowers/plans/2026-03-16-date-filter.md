@@ -323,7 +323,7 @@ Navigate to `/admin/leads` (or any table that previously showed raw ISO strings)
 
 - [ ] **Step 3: Check footer copyright year**
 
-Visit any page. Confirm the footer shows the current year (e.g. `© 2026 SellMyHomeNow.sg`).
+Visit any page. Confirm the footer shows the current year (e.g. `© 2026 SellMyHouse.sg`).
 
 - [ ] **Step 4: Check date-only fields**
 

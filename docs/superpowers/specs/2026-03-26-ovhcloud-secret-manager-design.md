@@ -283,6 +283,75 @@ chmod 600 /opt/sellmyhouse/staging/.ovh-credentials
 4. Create a new service account and deploy new credentials to the VPS
 5. Restart containers (they'll fetch the new secrets)
 
+## Staging Access Control
+
+The staging environment is gated by HTTP Basic Auth at the Nginx layer, preventing unauthorized access to the staging UI and API.
+
+### Nginx Configuration (`staging.conf`)
+
+The staging server block includes:
+- `auth_basic` directive — prompts for username/password before proxying any request to `app-staging`
+- Credentials stored in an `htpasswd` file at `/opt/sellmyhouse/nginx/.htpasswd-staging`
+- `X-Robots-Tag: noindex, nofollow` header — prevents search engines from indexing staging
+- `X-Frame-Options: DENY` header — prevents staging from being embedded in iframes
+
+The `htpasswd` file is generated with:
+```bash
+# Install htpasswd utility
+apt install -y apache2-utils
+
+# Create the file with the first user
+htpasswd -c /opt/sellmyhouse/nginx/.htpasswd-staging <username>
+# Add additional users
+htpasswd /opt/sellmyhouse/nginx/.htpasswd-staging <another-username>
+```
+
+The updated `staging.conf` server block:
+```nginx
+server {
+    listen 443 ssl;
+    server_name staging.sellmyhouse.sg;
+
+    ssl_certificate     /etc/letsencrypt/live/staging.sellmyhouse.sg/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/staging.sellmyhouse.sg/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    # Staging access control
+    auth_basic           "Staging — Authorized Access Only";
+    auth_basic_user_file /etc/nginx/htpasswd-staging;
+
+    # Prevent indexing
+    add_header X-Robots-Tag "noindex, nofollow" always;
+    add_header X-Frame-Options "DENY" always;
+
+    client_max_body_size 15M;
+
+    location / {
+        proxy_pass         http://app-staging:3000;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   Upgrade           $http_upgrade;
+        proxy_set_header   Connection        'upgrade';
+        proxy_read_timeout 60s;
+    }
+}
+```
+
+The Nginx compose file mounts the htpasswd file:
+```yaml
+volumes:
+  - ./conf.d:/etc/nginx/conf.d:ro
+  - ./.htpasswd-staging:/etc/nginx/htpasswd-staging:ro   # ← staging auth
+  - ./certbot/conf:/etc/letsencrypt:ro
+  - ./certbot/www:/var/www/certbot:ro
+```
+
+This is a staging-only control. Production has no Basic Auth gate.
+
 ## What This Does NOT Address
 
 - **Automated secret rotation scheduling** — rotation is manual (update in OVHcloud console → restart container). Automated rotation could be added later via OVHcloud API.

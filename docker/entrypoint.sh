@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-# Fetch secrets from OVHcloud Secret Manager
+# Fetch secrets from OVHcloud Secret Manager (if configured)
 if [ -f "$OVH_CREDENTIALS_PATH" ]; then
   echo "[entrypoint] Fetching secrets from OVHcloud Secret Manager..."
   eval "$(node /app/dist/scripts/fetch-secrets.js)"

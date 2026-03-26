@@ -5,16 +5,12 @@ services:
     container_name: app-prod
     expose:
       - "3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - BASE_URL=https://sellmyhouse.sg
-      - OVH_CREDENTIALS_PATH=/run/secrets/ovh-credentials
+    env_file:
+      - /opt/sellmyhouse/production/.env
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - uploads:/app/uploads
-      - /opt/sellmyhouse/production/.ovh-credentials:/run/secrets/ovh-credentials:ro
     restart: unless-stopped
     networks:
       - smh_net

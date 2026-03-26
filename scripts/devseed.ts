@@ -305,7 +305,7 @@ async function seed(): Promise<void> {
     data: {
       id: id(),
       name: 'David Tan',
-      email: 'david@sellmyhomenow.sg',
+      email: 'david@sellmyhouse.sg',
       phone: '+6591234567',
       ceaRegNo: 'R061234A',
       passwordHash: BCRYPT_HASH,
@@ -316,8 +316,8 @@ async function seed(): Promise<void> {
 
   const agents = [adminAgent];
   const agentData = [
-    { name: 'Sarah Lim', email: 'sarah@sellmyhomenow.sg', phone: '+6592345678', ceaRegNo: 'R072345B' },
-    { name: 'Michael Ng', email: 'michael@sellmyhomenow.sg', phone: '+6593456789', ceaRegNo: 'R083456C' },
+    { name: 'Sarah Lim', email: 'sarah@sellmyhouse.sg', phone: '+6592345678', ceaRegNo: 'R072345B' },
+    { name: 'Michael Ng', email: 'michael@sellmyhouse.sg', phone: '+6593456789', ceaRegNo: 'R083456C' },
   ];
   for (const a of agentData) {
     const agent = await prisma.agent.create({

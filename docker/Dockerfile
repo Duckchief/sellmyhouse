@@ -11,7 +11,7 @@ RUN npm ci
 COPY prisma ./prisma
 RUN npx prisma generate
 
-# Compile TypeScript
+# Compile TypeScript (includes src/scripts/fetch-secrets.ts → dist/scripts/fetch-secrets.js)
 COPY tsconfig.json ./
 COPY src ./src
 RUN npx tsc
@@ -36,7 +36,7 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/prisma ./prisma
 
-# Copy compiled app
+# Copy compiled app (includes dist/scripts/fetch-secrets.js)
 COPY --from=builder /app/dist ./dist
 
 # Copy views (Nunjucks templates needed at runtime)
@@ -46,6 +46,10 @@ COPY src/views ./src/views
 COPY public ./public
 COPY --from=builder /app/public/css/output.css ./public/css/output.css
 
+# Copy entrypoint
+COPY docker/entrypoint.sh /app/docker/entrypoint.sh
+RUN chmod +x /app/docker/entrypoint.sh
+
 # Create uploads directory
 RUN mkdir -p uploads && chown -R node:node uploads
 
@@ -53,7 +57,8 @@ USER node
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+# Increase start-period to allow for secret fetch + migrations before health checks
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
-CMD ["node", "dist/server.js"]
+ENTRYPOINT ["sh", "/app/docker/entrypoint.sh"]

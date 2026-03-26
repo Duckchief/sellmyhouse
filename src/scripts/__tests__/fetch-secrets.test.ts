@@ -261,11 +261,11 @@ describe('fetch-secrets', () => {
     let processExitSpy: jest.SpyInstance;
 
     beforeEach(() => {
+      jest.resetAllMocks();
       process.env = { ...originalEnv };
       consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
       consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       processExitSpy = jest.spyOn(process, 'exit').mockImplementation((() => {}) as never);
-      jest.resetAllMocks();
     });
 
     afterEach(() => {

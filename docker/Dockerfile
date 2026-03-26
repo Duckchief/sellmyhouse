@@ -17,11 +17,11 @@ COPY src ./src
 RUN npx tsc
 
 # Copy self-hosted HTMX
-RUN cp node_modules/htmx.org/dist/htmx.min.js public/js/htmx.min.js
+RUN mkdir -p public/js && cp node_modules/htmx.org/dist/htmx.min.js public/js/htmx.min.js
 
 # Build Tailwind CSS
 COPY tailwind.config.ts postcss.config.js ./
-RUN npx tailwindcss -i src/views/styles/input.css -o public/css/output.css --minify
+RUN mkdir -p public/css && npx tailwindcss -i src/views/styles/input.css -o public/css/output.css --minify
 
 # Stage 2: Runtime
 FROM node:22-alpine AS runner

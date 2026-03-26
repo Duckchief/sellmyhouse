@@ -1602,7 +1602,7 @@ adminRouter.get(
         contentService.getReferralFunnel(),
         contentService.getTopReferrers(),
       ]);
-      const baseUrl = process.env['SITE_URL'] ?? 'https://www.sellmyhomenow.sg';
+      const baseUrl = process.env['SITE_URL'] ?? 'https://www.sellmyhouse.sg';
       if (req.headers['hx-request']) {
         return res.render('partials/admin/referral-funnel', { funnel, topReferrers, baseUrl });
       }

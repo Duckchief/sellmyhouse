@@ -10,7 +10,7 @@
 // The agent is responsible for ensuring their social media profiles comply
 // before manually posting approved MarketContent to those platforms.
 // This applies to ALL accounts used for property marketing, not just the
-// official sellmyhomenow.sg accounts.
+// official sellmyhouse.sg accounts.
 
 // ─── Video Tutorials ─────────────────────────────────────────────────────────
 

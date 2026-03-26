@@ -168,8 +168,8 @@ function buildMarketPrompt(insights: MarketInsights, period: string): string {
 Respond with ONLY a JSON object (no markdown, no extra text) with these exact keys:
 - "narrative": 2-3 sentence plain English summary for a property agent audience
 - "tiktok": ≤ 150 characters, exactly 3 hashtags, casual tone
-- "instagram": ≤ 300 characters, exactly 5 hashtags, include "Based on HDB resale data — sellmyhomenow.sg"
-- "linkedin": professional tone, ≤ 700 characters, include "Based on HDB resale data — sellmyhomenow.sg"
+- "instagram": ≤ 300 characters, exactly 5 hashtags, include "Based on HDB resale data — sellmyhouse.sg"
+- "linkedin": professional tone, ≤ 700 characters, include "Based on HDB resale data — sellmyhouse.sg"
 
 Market data:
 ${JSON.stringify(insights, null, 2)}`;

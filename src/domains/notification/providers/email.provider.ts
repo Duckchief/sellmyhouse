@@ -48,7 +48,7 @@ export class EmailProvider implements ChannelProvider {
         const result = await transporter.sendMail({
           from: fromName ? `"${fromName}" <${fromEmail || user}>` : fromEmail || user,
           to: recipientEmail,
-          subject: options?.subject || 'SellMyHomeNow Notification',
+          subject: options?.subject || 'SellMyHouse Notification',
           html: renderedHtml,
           ...(options?.attachments && {
             attachments: options.attachments.map((a) => ({

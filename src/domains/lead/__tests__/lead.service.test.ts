@@ -217,7 +217,7 @@ describe('lead.service', () => {
     );
     expect(mockMailer.sendSystemEmail).toHaveBeenCalledWith(
       'grogu@example.com',
-      'Verify your SellMyHomeNow email address',
+      'Verify your SellMyHouse email address',
       expect.stringContaining('/verify-email?token='),
     );
   });

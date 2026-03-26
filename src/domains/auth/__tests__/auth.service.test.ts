@@ -698,7 +698,7 @@ describe('AuthService', () => {
       );
       expect(systemMailer.sendSystemEmail).toHaveBeenCalledWith(
         'peanuts@example.com',
-        'Set up your SellMyHomeNow account',
+        'Set up your SellMyHouse account',
         expect.stringContaining('/auth/setup-account?token='),
       );
       expect(auditService.log).toHaveBeenCalledWith(

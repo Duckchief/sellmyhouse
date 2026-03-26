@@ -47,7 +47,7 @@ function buildOfferAnalysisPrompt(params: {
   const max = sorted[sorted.length - 1];
 
   return [
-    `You are a Singapore HDB real estate assistant for SellMyHomeNow.sg.`,
+    `You are a Singapore HDB real estate assistant for SellMyHouse.sg.`,
     `Analyse this offer for context, focusing on market positioning.`,
     ``,
     `Property: ${flatType} flat in ${town}`,

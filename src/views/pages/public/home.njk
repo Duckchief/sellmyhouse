@@ -1,6 +1,6 @@
 {% extends "layouts/base.njk" %}
 
-{% block title %}{{ "SellMyHomeNow.sg — Sell Your HDB for $1,499" | t }}{% endblock %}
+{% block title %}{{ "SellMyHouse.sg — Sell Your HDB for $1,499" | t }}{% endblock %}
 
 {% block body %}
 {% include "partials/public/header.njk" %}
@@ -39,9 +39,9 @@
   </div>
 </section>
 
-{# Why SellMyHomeNow.sg? #}
+{# Why SellMyHouse.sg? #}
 <section class="py-16 px-4 bg-[#fafaf7]">
-  <h2 class="text-2xl font-bold text-center mb-10">{{ "Why SellMyHomeNow.sg?" | t }}</h2>
+  <h2 class="text-2xl font-bold text-center mb-10">{{ "Why SellMyHouse.sg?" | t }}</h2>
   <div class="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
     {% set benefits = [
       { icon: "$", title: "Fixed Fee: $1,499 + GST", desc: "No percentage commission. A flat selling for $500K? You save over $8,000 compared to 2% commission." },
@@ -111,7 +111,7 @@
       <div class="mb-3">
         <label class="flex items-start gap-2 text-xs text-gray-600">
           <input type="checkbox" name="consentService" value="true" required class="mt-0.5">
-          <span>{{ "I consent to SellMyHomeNow.sg collecting and using my personal data to provide property selling services." | t }} <a href="/privacy" target="_blank" class="text-[#c8553d] hover:underline">{{ "Privacy Policy" | t }}</a> *</span>
+          <span>{{ "I consent to SellMyHouse.sg collecting and using my personal data to provide property selling services." | t }} <a href="/privacy" target="_blank" class="text-[#c8553d] hover:underline">{{ "Privacy Policy" | t }}</a> *</span>
         </label>
       </div>
 

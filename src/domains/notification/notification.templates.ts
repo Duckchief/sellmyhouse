@@ -9,8 +9,8 @@ export interface NotificationTemplate {
 
 export const NOTIFICATION_TEMPLATES: Record<NotificationTemplateName, NotificationTemplate> = {
   welcome_seller: {
-    subject: 'Welcome to SellMyHomeNow',
-    body: 'Welcome to SellMyHomeNow, {{name}}! Your account is ready.',
+    subject: 'Welcome to SellMyHouse',
+    body: 'Welcome to SellMyHouse, {{name}}! Your account is ready.',
   },
   viewing_booked: {
     subject: 'Viewing Booked — {{address}}',
@@ -90,7 +90,7 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationTemplateName, Notificati
   },
   post_completion_day1: {
     subject: 'Congratulations on Completing Your Sale!',
-    body: 'Congratulations on completing your sale! Thank you for choosing SellMyHomeNow.',
+    body: 'Congratulations on completing your sale! Thank you for choosing SellMyHouse.',
   },
   post_completion_day7: {
     subject: 'How Did Your Move Go?',
@@ -113,15 +113,15 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationTemplateName, Notificati
     body: 'A seller has uploaded a new document. Please review it in your dashboard.',
   },
   password_reset: {
-    subject: 'Reset your SellMyHomeNow password',
-    body: 'We received a request to reset the password for your SellMyHomeNow account.\n\nClick the link below to set a new password:\n{{resetUrl}}\n\nThis link expires in 1 hour.\n\nIf you did not request a password reset, please ignore this email — your password will not change.',
+    subject: 'Reset your SellMyHouse password',
+    body: 'We received a request to reset the password for your SellMyHouse account.\n\nClick the link below to set a new password:\n{{resetUrl}}\n\nThis link expires in 1 hour.\n\nIf you did not request a password reset, please ignore this email — your password will not change.',
   },
   viewing_followup_viewer: {
     subject: 'Thank You for Viewing — {{address}}',
     body: 'Thank you for viewing {{address}}. Still interested? Contact the agent at {{agentPhone}} to discuss next steps.',
   },
   generic: {
-    subject: 'Notification from SellMyHomeNow',
+    subject: 'Notification from SellMyHouse',
     body: '{{message}}',
   },
 };

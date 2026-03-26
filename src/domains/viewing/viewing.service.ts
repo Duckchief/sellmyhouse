@@ -452,7 +452,7 @@ export async function initiateBooking(
         recipientId: viewer.id,
         templateName: 'generic',
         templateData: {
-          message: `Your SellMyHomeNow viewing verification code is: ${otp}. Valid for ${OTP_EXPIRY_MINUTES} minutes.`,
+          message: `Your SellMyHouse viewing verification code is: ${otp}. Valid for ${OTP_EXPIRY_MINUTES} minutes.`,
         },
         preferredChannel: 'whatsapp',
       },

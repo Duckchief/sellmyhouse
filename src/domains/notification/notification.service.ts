@@ -99,7 +99,7 @@ export async function send(input: SendNotificationInput, agentId: string): Promi
     // N5: Add unsubscribe URL for marketing emails
     if (input.recipientType === 'seller') {
       const unsubscribeToken = generateUnsubscribeToken(input.recipientId);
-      const appUrl = process.env.APP_URL || 'https://sellmyhomenow.sg';
+      const appUrl = process.env.APP_URL || 'https://sellmyhouse.sg';
       input.templateData = {
         ...input.templateData,
         unsubscribeUrl: `${appUrl}/api/notifications/unsubscribe?token=${unsubscribeToken}`,

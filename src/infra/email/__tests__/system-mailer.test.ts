@@ -15,7 +15,7 @@ describe('sendSystemEmail', () => {
     process.env.SMTP_PORT = '587';
     process.env.SMTP_USER = 'user@example.com';
     process.env.SMTP_PASS = 'secret';
-    process.env.SMTP_FROM = 'noreply@sellmyhomenow.sg';
+    process.env.SMTP_FROM = 'noreply@sellmyhouse.sg';
   });
 
   afterEach(() => {
@@ -38,7 +38,7 @@ describe('sendSystemEmail', () => {
     });
     expect(mockSendMail).toHaveBeenCalledWith(
       expect.objectContaining({
-        from: 'noreply@sellmyhomenow.sg',
+        from: 'noreply@sellmyhouse.sg',
         to: 'seller@example.com',
         subject: 'Test Subject',
         html: '<p>Hello</p>',

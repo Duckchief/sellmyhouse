@@ -6,8 +6,8 @@ import * as service from '../notification.service';
 jest.mock('../notification.templates', () => ({
   NOTIFICATION_TEMPLATES: {
     welcome_seller: {
-      subject: 'Welcome to SellMyHomeNow',
-      body: 'Welcome to SellMyHomeNow, {{name}}! Your account is ready.',
+      subject: 'Welcome to SellMyHouse',
+      body: 'Welcome to SellMyHouse, {{name}}! Your account is ready.',
     },
     viewing_booked: {
       subject: 'Viewing Booked',
@@ -65,7 +65,7 @@ jest.mock('../notification.templates', () => ({
       subject: 'Report Ready',
       body: 'Your financial report for {{address}} is ready. {{message}}',
     },
-    generic: { subject: 'Notification from SellMyHomeNow', body: '{{message}}' },
+    generic: { subject: 'Notification from SellMyHouse', body: '{{message}}' },
   },
   WHATSAPP_TEMPLATE_STATUS: {
     welcome_seller: 'approved',
@@ -139,7 +139,7 @@ describe('NotificationService', () => {
       expect(notificationRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           channel: 'in_app',
-          content: 'Welcome to SellMyHomeNow, David! Your account is ready.',
+          content: 'Welcome to SellMyHouse, David! Your account is ready.',
         }),
       );
     });

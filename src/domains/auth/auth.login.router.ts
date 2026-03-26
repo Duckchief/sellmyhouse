@@ -211,7 +211,7 @@ loginRouter.post(
             recipientId: result.userId,
             templateName: 'password_reset',
             templateData: {
-              resetUrl: `https://sellmyhomenow.sg/auth/reset-password/${result.token}`,
+              resetUrl: `https://sellmyhouse.sg/auth/reset-password/${result.token}`,
             },
             preferredChannel: 'email',
           },

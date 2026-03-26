@@ -15,7 +15,7 @@ export function createSessionMiddleware() {
       createTableIfMissing: true,
       tableName: 'session',
     }),
-    name: 'smhn.sid',
+    name: 'smh.sid',
     secret,
     resave: false,
     saveUninitialized: false,

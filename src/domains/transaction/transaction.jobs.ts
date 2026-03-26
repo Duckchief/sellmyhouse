@@ -113,7 +113,7 @@ export async function sendPostCompletionMessages(): Promise<void> {
       if (seq.daysAgo === 14) {
         const referral = await contentService.sendReferralLinks(seller.id).catch(() => null);
         templateData.referralLink = referral?.referralCode
-          ? `${process.env.APP_URL ?? 'https://sellmyhomenow.sg'}/?ref=${referral.referralCode}`
+          ? `${process.env.APP_URL ?? 'https://sellmyhouse.sg'}/?ref=${referral.referralCode}`
           : '';
       }
 

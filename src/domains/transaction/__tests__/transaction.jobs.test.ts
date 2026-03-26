@@ -216,14 +216,14 @@ describe('transaction.jobs', () => {
       mockContentService.sendReferralLinks.mockResolvedValue({
         referralCode: 'MYCODE12',
       } as never);
-      process.env.APP_URL = 'https://sellmyhomenow.sg';
+      process.env.APP_URL = 'https://sellmyhouse.sg';
 
       await txJobs.sendPostCompletionMessages();
 
       expect(mockNotification.send).toHaveBeenCalledWith(
         expect.objectContaining({
           templateData: expect.objectContaining({
-            referralLink: 'https://sellmyhomenow.sg/?ref=MYCODE12',
+            referralLink: 'https://sellmyhouse.sg/?ref=MYCODE12',
           }),
         }),
         'system',

@@ -335,8 +335,8 @@ describe('generateMarketContent', () => {
       text: JSON.stringify({
         narrative: 'Test narrative.',
         tiktok: 'HDB up! #HDB #SG #Property',
-        instagram: 'Prices rose. Based on HDB resale data — sellmyhomenow.sg #HDB',
-        linkedin: 'Professional summary. Based on HDB resale data — sellmyhomenow.sg',
+        instagram: 'Prices rose. Based on HDB resale data — sellmyhouse.sg #HDB',
+        linkedin: 'Professional summary. Based on HDB resale data — sellmyhouse.sg',
       }),
       provider: 'anthropic',
       model: 'claude-3-5-sonnet',

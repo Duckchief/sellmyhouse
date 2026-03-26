@@ -51,8 +51,8 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
   const verificationUrl = `${appUrl}/verify-email?token=${rawToken}`;
   await sendSystemEmail(
     input.email,
-    'Verify your SellMyHomeNow email address',
-    `<p>Click the link below to verify your email and complete your submission:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p><p>This link expires in 72 hours.</p><p>If you did not submit a lead on SellMyHomeNow, please ignore this email.</p>`,
+    'Verify your SellMyHouse email address',
+    `<p>Click the link below to verify your email and complete your submission:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p><p>This link expires in 72 hours.</p><p>If you did not submit a lead on SellMyHouse, please ignore this email.</p>`,
   );
 
   await auditService.log({

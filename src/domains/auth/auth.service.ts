@@ -194,7 +194,7 @@ export async function setup2FA(
   currentSessionId?: string,
 ): Promise<TotpSetupResult> {
   const secret = otpGenerateSecret();
-  const issuer = role === 'seller' ? 'SellMyHomeNow (Seller)' : 'SellMyHomeNow (Agent)';
+  const issuer = role === 'seller' ? 'SellMyHouse (Seller)' : 'SellMyHouse (Agent)';
   const otpAuthUrl = generateURI({ issuer, label: userId, secret });
   const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
 
@@ -419,16 +419,16 @@ export async function sendVerificationEmail(sellerId: string, email: string): Pr
 
   await authRepo.setSellerEmailVerificationToken(sellerId, hashedToken, expiry);
 
-  const appUrl = process.env.APP_URL || 'https://sellmyhomenow.sg';
+  const appUrl = process.env.APP_URL || 'https://sellmyhouse.sg';
   const verifyUrl = `${appUrl}/auth/verify-email/${rawToken}`;
 
   await sendSystemEmail(
     email,
-    'Verify your SellMyHomeNow email address',
+    'Verify your SellMyHouse email address',
     `<p>Click the link below to verify your email address:</p>
 <p><a href="${verifyUrl}">${verifyUrl}</a></p>
 <p>This link expires in 24 hours.</p>
-<p>If you did not register on SellMyHomeNow, please ignore this email.</p>`,
+<p>If you did not register on SellMyHouse, please ignore this email.</p>`,
   );
 
   await auditService.log({
@@ -494,14 +494,14 @@ export async function sendAccountSetupEmail(
 
   const appUrl =
     process.env.APP_URL ||
-    (process.env.NODE_ENV === 'production' ? 'https://sellmyhomenow.sg' : 'http://localhost:3000');
+    (process.env.NODE_ENV === 'production' ? 'https://sellmyhouse.sg' : 'http://localhost:3000');
   const setupUrl = `${appUrl}/auth/setup-account?token=${rawToken}`;
 
   await sendSystemEmail(
     email,
-    'Set up your SellMyHomeNow account',
+    'Set up your SellMyHouse account',
     `<p>Hi ${name},</p>
-<p>Your agent has invited you to set up your SellMyHomeNow account. Click the link below to create your password and access your dashboard:</p>
+<p>Your agent has invited you to set up your SellMyHouse account. Click the link below to create your password and access your dashboard:</p>
 <p><a href="${setupUrl}">${setupUrl}</a></p>
 <p>This link expires in 24 hours.</p>
 <p>If you did not expect this email, please ignore it.</p>`,

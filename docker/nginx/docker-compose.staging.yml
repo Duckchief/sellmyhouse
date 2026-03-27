@@ -1,4 +1,4 @@
-# docker/nginx/docker-compose.yml
+# docker/nginx/docker-compose.staging.yml
 services:
   nginx:
     image: nginx:alpine
@@ -7,7 +7,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./conf.d:/etc/nginx/conf.d:ro
+      - ./conf.d/staging:/etc/nginx/conf.d:ro
       - /opt/sellmyhouse/nginx/.htpasswd-staging:/etc/nginx/htpasswd-staging:ro
       - /opt/sellmyhouse/nginx/certbot/conf:/etc/letsencrypt:ro
       - /opt/sellmyhouse/nginx/certbot/www:/var/www/certbot:ro

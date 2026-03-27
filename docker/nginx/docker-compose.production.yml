@@ -1,0 +1,24 @@
+# docker/nginx/docker-compose.production.yml
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./conf.d/production:/etc/nginx/conf.d:ro
+      - /opt/sellmyhouse/nginx/certbot/conf:/etc/letsencrypt:ro
+      - /opt/sellmyhouse/nginx/certbot/www:/var/www/certbot:ro
+    restart: unless-stopped
+    networks:
+      - smh_net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+networks:
+  smh_net:
+    external: true

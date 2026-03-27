@@ -3,7 +3,7 @@
 ## Project: SellMyHouse.sg v2
 AI-powered HDB resale transaction platform operating under Huttons Asia Pte Ltd.
 Fixed fee $1,499 + GST per transaction. TypeScript + Express + Prisma + PostgreSQL.
-Deployed via Docker on Hostinger VPS (Singapore).
+Deployed via Docker — staging on Hostinger VPS, production on OVHcloud VPS (Singapore).
 
 ## Documentation
 - `docs/superpowers/specs/2026-03-10-v2-rewrite-design.md` — Master design spec for the v2 rewrite

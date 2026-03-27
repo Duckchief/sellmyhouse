@@ -1,0 +1,104 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm production deployment'
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify confirmation
+        if: inputs.confirm != 'deploy'
+        run: |
+          echo "::error::You must type 'deploy' to confirm. Got: '${{ inputs.confirm }}'"
+          exit 1
+
+      - name: Verify staging is green
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking last staging deploy status..."
+          RESULT=$(gh api \
+            repos/${{ github.repository }}/actions/workflows/deploy-staging.yml/runs \
+            --jq '.workflow_runs[0] | {status: .status, conclusion: .conclusion, branch: .head_branch}' \
+            2>/dev/null) || {
+            echo "::error::Could not fetch staging deploy status. Has staging been deployed at least once?"
+            exit 1
+          }
+
+          CONCLUSION=$(echo "$RESULT" | jq -r '.conclusion')
+          STATUS=$(echo "$RESULT" | jq -r '.status')
+
+          echo "Latest staging deploy: status=$STATUS, conclusion=$CONCLUSION"
+
+          if [ "$STATUS" != "completed" ]; then
+            echo "::error::Latest staging deploy is still running ($STATUS). Wait for it to finish."
+            exit 1
+          fi
+
+          if [ "$CONCLUSION" != "success" ]; then
+            echo "::error::Latest staging deploy failed ($CONCLUSION). Fix staging before deploying to production."
+            exit 1
+          fi
+
+          echo "Staging is green. Proceeding with production deploy."
+
+  build-and-deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set image name
+        run: echo "IMAGE_NAME_LC=${IMAGE_NAME,,}" >> "$GITHUB_ENV"
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:prod-${{ github.sha }}
+
+      - name: Deploy to OVHcloud (production)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PRODUCTION_VPS_HOST }}
+          username: ${{ secrets.PRODUCTION_VPS_USER }}
+          key: ${{ secrets.PRODUCTION_VPS_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_VPS_SSH_PORT }}
+          script: |
+            cd ~/sellmyhouse
+            git pull --ff-only origin main
+            docker compose -f docker/docker-compose.production.yml pull
+            docker compose -f docker/docker-compose.production.yml up -d
+            sleep 5
+            docker compose -f docker/docker-compose.production.yml ps
+            docker image prune -f
+            echo "Deployed production: ${{ github.sha }}"

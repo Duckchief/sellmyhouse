@@ -1,0 +1,63 @@
+name: Deploy Staging
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [staging]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    environment: staging
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging
+
+      - name: Set image name
+        run: echo "IMAGE_NAME_LC=${IMAGE_NAME,,}" >> "$GITHUB_ENV"
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:staging
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:staging-${{ github.sha }}
+
+      - name: Deploy to Hostinger (staging)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.STAGING_VPS_HOST }}
+          username: ${{ secrets.STAGING_VPS_USER }}
+          key: ${{ secrets.STAGING_VPS_SSH_KEY }}
+          port: ${{ secrets.STAGING_VPS_SSH_PORT }}
+          script: |
+            cd ~/sellmyhouse
+            git pull --ff-only origin staging
+            docker compose -f docker/docker-compose.staging.yml pull
+            docker compose -f docker/docker-compose.staging.yml up -d
+            sleep 5
+            docker compose -f docker/docker-compose.staging.yml ps
+            docker image prune -f
+            echo "Deployed staging: ${{ github.sha }}"

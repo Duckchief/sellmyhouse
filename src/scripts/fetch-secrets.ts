@@ -152,9 +152,7 @@ function buildAuthHeaders(
   };
 }
 
-export async function fetchSecrets(
-  creds: OvhCredentials,
-): Promise<Record<string, string>> {
+export async function fetchSecrets(creds: OvhCredentials): Promise<Record<string, string>> {
   const baseUrl = getApiBaseUrl(creds.endpoint);
 
   // Step 1: Get server time for signature synchronisation

@@ -129,9 +129,7 @@ describe('fetch-secrets', () => {
     });
 
     it('handles values with spaces and special characters', () => {
-      expect(formatExportLine('PASS', 'p@ss w0rd!$&')).toBe(
-        "export PASS='p@ss w0rd!$&'",
-      );
+      expect(formatExportLine('PASS', 'p@ss w0rd!$&')).toBe("export PASS='p@ss w0rd!$&'");
     });
   });
 
@@ -190,7 +188,9 @@ describe('fetch-secrets', () => {
       };
 
       mockRequest
-        .mockImplementationOnce(createMockResponse(200, '1711500000') as unknown as typeof https.request)
+        .mockImplementationOnce(
+          createMockResponse(200, '1711500000') as unknown as typeof https.request,
+        )
         .mockImplementationOnce(
           createMockResponse(
             200,
@@ -245,9 +245,14 @@ describe('fetch-secrets', () => {
       };
 
       mockRequest
-        .mockImplementationOnce(createMockResponse(200, '1711500000') as unknown as typeof https.request)
         .mockImplementationOnce(
-          createMockResponse(403, JSON.stringify({ message: 'Forbidden' })) as unknown as typeof https.request,
+          createMockResponse(200, '1711500000') as unknown as typeof https.request,
+        )
+        .mockImplementationOnce(
+          createMockResponse(
+            403,
+            JSON.stringify({ message: 'Forbidden' }),
+          ) as unknown as typeof https.request,
         );
 
       await expect(fetchSecrets(mockCredentials)).rejects.toThrow('OVHcloud API error (403)');

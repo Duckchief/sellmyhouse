@@ -1,6 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import * as settingsService from '@/domains/shared/settings.service';
+import { MemoryCache } from '@/infra/cache/memory-cache';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
+
+const cache = new MemoryCache();
+const CACHE_TTL = 30_000; // 30 seconds
+
+// Exported for testing only
+export function __clearMaintenanceCache(): void {
+  cache.clear();
+}
 
 export async function maintenanceMiddleware(
   req: Request,
@@ -8,7 +17,12 @@ export async function maintenanceMiddleware(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const isOn = await settingsService.get('maintenance_mode', 'false');
+    let isOn = cache.get<string>('maintenance_mode');
+    if (isOn === undefined) {
+      isOn = await settingsService.get('maintenance_mode', 'false');
+      cache.set('maintenance_mode', isOn, CACHE_TTL);
+    }
+
     if (isOn !== 'true') {
       return next();
     }

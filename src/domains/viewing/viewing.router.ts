@@ -9,7 +9,7 @@ import {
   validateOtp,
   validateFeedback,
 } from './viewing.validator';
-import { requireAuth } from '@/infra/http/middleware/require-auth';
+import { requireAuth, requireRole } from '@/infra/http/middleware/require-auth';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
 import { BOOKING_ATTEMPTS_PER_IP_PER_HOUR } from './viewing.types';
 import rateLimit from 'express-rate-limit';
@@ -30,6 +30,7 @@ const bookingRateLimiter = rateLimit({
 viewingRouter.get(
   '/seller/viewings',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
@@ -97,6 +98,7 @@ viewingRouter.get(
 viewingRouter.get(
   '/seller/viewings/slots/date-sidebar',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
@@ -118,6 +120,7 @@ viewingRouter.get(
 viewingRouter.get(
   '/seller/viewings/slots/month-meta',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
@@ -146,6 +149,7 @@ viewingRouter.get(
 viewingRouter.post(
   '/seller/viewings/slots/bulk-delete',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
@@ -170,6 +174,7 @@ viewingRouter.post(
 viewingRouter.post(
   '/seller/viewings/schedule',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
@@ -185,6 +190,7 @@ viewingRouter.post(
 viewingRouter.delete(
   '/seller/viewings/schedule',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
@@ -199,6 +205,7 @@ viewingRouter.delete(
 viewingRouter.post(
   '/seller/viewings/slots',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
@@ -229,6 +236,7 @@ viewingRouter.post(
 viewingRouter.delete(
   '/seller/viewings/slots/:id',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
@@ -247,6 +255,7 @@ viewingRouter.delete(
 viewingRouter.post(
   '/seller/viewings/:id/feedback',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
@@ -266,6 +275,7 @@ viewingRouter.post(
 viewingRouter.post(
   '/seller/viewings/:id/no-show',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
@@ -287,6 +297,7 @@ viewingRouter.post(
 viewingRouter.post(
   '/seller/viewings/:id/complete',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;

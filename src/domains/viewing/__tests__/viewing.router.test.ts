@@ -337,6 +337,53 @@ describe('viewing.router', () => {
     });
   });
 
+  // ─── Role Enforcement ──────────────────────────────────
+
+  describe('seller routes reject non-seller users', () => {
+    let agentApp: express.Application;
+
+    beforeAll(() => {
+      const app = express();
+      app.use(express.json());
+      app.use(express.urlencoded({ extended: true }));
+      app.use((req, _res, next) => {
+        Object.assign(req, {
+          isAuthenticated: () => true,
+          user: {
+            id: 'agent-1',
+            role: 'agent',
+            name: 'Test Agent',
+            email: 'agent@test.com',
+            twoFactorEnabled: true,
+            twoFactorVerified: true,
+          },
+        });
+        next();
+      });
+      app.use(viewingRouter);
+      agentApp = app;
+    });
+
+    it.each([
+      ['GET', '/seller/viewings'],
+      ['GET', '/seller/viewings/slots/date-sidebar'],
+      ['GET', '/seller/viewings/slots/month-meta'],
+      ['POST', '/seller/viewings/slots'],
+      ['POST', '/seller/viewings/slots/bulk-delete'],
+      ['POST', '/seller/viewings/schedule'],
+      ['DELETE', '/seller/viewings/schedule'],
+      ['DELETE', '/seller/viewings/slots/slot-1'],
+      ['POST', '/seller/viewings/v-1/feedback'],
+      ['POST', '/seller/viewings/v-1/no-show'],
+      ['POST', '/seller/viewings/v-1/complete'],
+    ])('%s %s returns 403 for agent role', async (method, path) => {
+      const res = await (request(agentApp) as never as Record<string, (p: string) => request.Test>)[
+        method.toLowerCase()
+      ](path);
+      expect(res.status).toBe(403);
+    });
+  });
+
   describe('POST /view/cancel/:viewingId/:cancelToken', () => {
     it('cancels the viewing', async () => {
       mockService.cancelViewing.mockResolvedValue(undefined);

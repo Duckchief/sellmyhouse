@@ -1,4 +1,5 @@
 // src/domains/content/content.service.ts
+import { randomInt } from 'crypto';
 import { createId } from '@/infra/database/prisma';
 import { NotFoundError, ConflictError, ValidationError } from '@/domains/shared/errors';
 import { logger } from '@/infra/logger';
@@ -454,7 +455,7 @@ const REFERRAL_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz2345678
 export function generateReferralCode(): string {
   return Array.from(
     { length: 8 },
-    () => REFERRAL_CHARSET[Math.floor(Math.random() * REFERRAL_CHARSET.length)],
+    () => REFERRAL_CHARSET[randomInt(REFERRAL_CHARSET.length)],
   ).join('');
 }
 

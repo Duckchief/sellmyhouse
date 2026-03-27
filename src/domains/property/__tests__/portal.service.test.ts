@@ -94,6 +94,10 @@ describe('portal.service', () => {
 
   describe('markAsPosted', () => {
     it('sets status to posted and records URL and timestamp', async () => {
+      mockPortalRepo.findPortalListingWithAgent.mockResolvedValue({
+        id: 'pl-1',
+        listing: { property: { seller: { agentId: 'agent-1' } } },
+      } as never);
       mockPortalRepo.updatePortalListing.mockResolvedValue({
         id: 'pl-1',
         status: 'posted',
@@ -103,8 +107,47 @@ describe('portal.service', () => {
       const result = await portalService.markAsPosted(
         'pl-1',
         'https://www.propertyguru.com.sg/listing/123',
+        'agent-1',
+        'agent',
       );
       expect(result.status).toBe('posted');
+    });
+
+    it('throws ForbiddenError when agent does not own the portal listing', async () => {
+      mockPortalRepo.findPortalListingWithAgent.mockResolvedValue({
+        id: 'pl-1',
+        listing: { property: { seller: { agentId: 'agent-2' } } },
+      } as never);
+
+      await expect(
+        portalService.markAsPosted(
+          'pl-1',
+          'https://www.propertyguru.com.sg/listing/123',
+          'agent-1',
+          'agent',
+        ),
+      ).rejects.toThrow(ForbiddenError);
+    });
+
+    it('allows admin to mark any portal listing as posted', async () => {
+      mockPortalRepo.findPortalListingWithAgent.mockResolvedValue({
+        id: 'pl-1',
+        listing: { property: { seller: { agentId: 'agent-2' } } },
+      } as never);
+      mockPortalRepo.updatePortalListing.mockResolvedValue({
+        id: 'pl-1',
+        status: 'posted',
+        portalListingUrl: 'https://www.propertyguru.com.sg/listing/123',
+      } as never);
+
+      await expect(
+        portalService.markAsPosted(
+          'pl-1',
+          'https://www.propertyguru.com.sg/listing/123',
+          'admin-1',
+          'admin',
+        ),
+      ).resolves.toBeDefined();
     });
   });
 

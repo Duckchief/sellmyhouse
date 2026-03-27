@@ -61,6 +61,26 @@ export async function updatePortalListing(
   });
 }
 
+export async function findPortalListingWithAgent(id: string) {
+  return prisma.portalListing.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      listing: {
+        select: {
+          property: {
+            select: {
+              seller: {
+                select: { agentId: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
 export async function findPortalListingsByListingId(listingId: string) {
   return prisma.portalListing.findMany({
     where: { listingId },

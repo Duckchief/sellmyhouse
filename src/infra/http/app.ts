@@ -130,10 +130,9 @@ export function createApp() {
           styleSrc: [
             "'self'",
             (req, res) => `'nonce-${(res as express.Response).locals.cspNonce}'`,
-            'fonts.googleapis.com',
             'https://cdn.jsdelivr.net',
           ],
-          fontSrc: ["'self'", 'fonts.gstatic.com'],
+          fontSrc: ["'self'"],
           imgSrc: ["'self'", 'data:', 'blob:'],
           connectSrc: ["'self'"],
           frameSrc: ['www.youtube.com'],

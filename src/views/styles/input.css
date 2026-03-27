@@ -207,3 +207,10 @@
 #sidebar.sidebar-settled {
   overflow: visible;
 }
+
+/* ── Accessibility: respect reduced motion preference ────────── */
+@media (prefers-reduced-motion: reduce) {
+  .btn-red-throb {
+    animation: none;
+  }
+}

@@ -1,36 +1,70 @@
 // src/domains/hdb/service.ts
 import { Decimal } from '@prisma/client/runtime/library';
+import { MemoryCache } from '@/infra/cache/memory-cache';
 import { HdbRepository } from './repository';
 import type { HdbTransactionFilters, HdbMarketReport } from './types';
 
 export class HdbService {
+  private cache = new MemoryCache();
+  private static readonly LOOKUP_TTL = 6 * 60 * 60 * 1000; // 6 hours
+  private static readonly REPORT_TTL = 60 * 60 * 1000; // 1 hour
+
   constructor(private readonly repo: HdbRepository = new HdbRepository()) {}
+
+  clearCache(): void {
+    this.cache.clear();
+  }
 
   async getTransactions(filters: HdbTransactionFilters) {
     return this.repo.findTransactions(filters);
   }
 
   async getDistinctTowns(): Promise<string[]> {
-    return this.repo.getDistinctTowns();
+    const key = 'hdb:towns';
+    const cached = this.cache.get<string[]>(key);
+    if (cached) return cached;
+    const result = await this.repo.getDistinctTowns();
+    this.cache.set(key, result, HdbService.LOOKUP_TTL);
+    return result;
   }
 
   async getDistinctFlatTypes(): Promise<string[]> {
-    return this.repo.getDistinctFlatTypes();
+    const key = 'hdb:flatTypes';
+    const cached = this.cache.get<string[]>(key);
+    if (cached) return cached;
+    const result = await this.repo.getDistinctFlatTypes();
+    this.cache.set(key, result, HdbService.LOOKUP_TTL);
+    return result;
   }
 
   async getDistinctFlatTypesByTown(town: string): Promise<string[]> {
-    return this.repo.getDistinctFlatTypesByTown(town);
+    const key = `hdb:flatTypes:${town}`;
+    const cached = this.cache.get<string[]>(key);
+    if (cached) return cached;
+    const result = await this.repo.getDistinctFlatTypesByTown(town);
+    this.cache.set(key, result, HdbService.LOOKUP_TTL);
+    return result;
   }
 
   async getDistinctStoreyRanges(): Promise<string[]> {
-    return this.repo.getDistinctStoreyRanges();
+    const key = 'hdb:storeyRanges';
+    const cached = this.cache.get<string[]>(key);
+    if (cached) return cached;
+    const result = await this.repo.getDistinctStoreyRanges();
+    this.cache.set(key, result, HdbService.LOOKUP_TTL);
+    return result;
   }
 
   async getDistinctStoreyRangesByTownAndFlatType(
     town: string,
     flatType: string,
   ): Promise<string[]> {
-    return this.repo.getDistinctStoreyRangesByTownAndFlatType(town, flatType);
+    const key = `hdb:storeyRanges:${town}:${flatType}`;
+    const cached = this.cache.get<string[]>(key);
+    if (cached) return cached;
+    const result = await this.repo.getDistinctStoreyRangesByTownAndFlatType(town, flatType);
+    this.cache.set(key, result, HdbService.LOOKUP_TTL);
+    return result;
   }
 
   async getPropertyInfo(
@@ -55,6 +89,16 @@ export class HdbService {
     pageSize: number;
     totalPages: number;
   }> {
+    const key = `hdb:txns:${params.town}:${params.flatType}:${params.storeyRange || 'all'}:${params.months ?? 24}:${page}:${pageSize}`;
+    const cached = this.cache.get<{
+      transactions: Awaited<ReturnType<HdbRepository['getRecentTransactions']>>;
+      total: number;
+      page: number;
+      pageSize: number;
+      totalPages: number;
+    }>(key);
+    if (cached) return cached;
+
     const months = params.months ?? 24;
     const filters: HdbTransactionFilters = {
       town: params.town.toUpperCase(),
@@ -74,13 +118,16 @@ export class HdbService {
       this.repo.countFilteredTransactions(filters),
     ]);
 
-    return {
+    const result = {
       transactions,
       total,
       page,
       pageSize,
       totalPages: Math.ceil(total / pageSize),
     };
+
+    this.cache.set(key, result, HdbService.REPORT_TTL);
+    return result;
   }
 
   async getMarketReport(params: {
@@ -89,6 +136,10 @@ export class HdbService {
     storeyRange?: string;
     months?: number;
   }): Promise<HdbMarketReport | null> {
+    const key = `hdb:report:${params.town}:${params.flatType}:${params.storeyRange || 'all'}:${params.months ?? 24}`;
+    const cached = this.cache.get<HdbMarketReport>(key);
+    if (cached) return cached;
+
     const months = params.months ?? 24;
 
     const filters: HdbTransactionFilters = {
@@ -110,7 +161,7 @@ export class HdbService {
 
     if (!stats) return null;
 
-    return {
+    const result: HdbMarketReport = {
       town: params.town.toUpperCase(),
       flatType: params.flatType,
       storeyRange: params.storeyRange ?? 'All',
@@ -122,6 +173,9 @@ export class HdbService {
       avgPricePerSqm: stats.avgPricePerSqm,
       recentTransactions: recent,
     };
+
+    this.cache.set(key, result, HdbService.REPORT_TTL);
+    return result;
   }
 }
 
@@ -131,4 +185,8 @@ const _serviceInstance = new HdbService();
 
 export async function getRecentByTownAndFlatType(town: string, flatType: string, months = 12) {
   return _serviceInstance.getRecentByTownAndFlatType(town, flatType, months);
+}
+
+export function clearHdbCache(): void {
+  _serviceInstance.clearCache();
 }

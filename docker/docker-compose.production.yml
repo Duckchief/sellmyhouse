@@ -1,7 +1,7 @@
 # docker/docker-compose.production.yml
 services:
   app-prod:
-    image: ghcr.io/${GITHUB_REPOSITORY:-local/sellmyhouse}:${IMAGE_TAG:-latest}
+    image: ghcr.io/duckchief/sellmyhouse:latest
     container_name: app-prod
     expose:
       - "3000"

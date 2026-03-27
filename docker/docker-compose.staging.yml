@@ -1,7 +1,7 @@
 # docker/docker-compose.staging.yml
 services:
   app-staging:
-    image: ghcr.io/${GITHUB_REPOSITORY:-local/sellmyhouse}:${IMAGE_TAG:-staging}
+    image: ghcr.io/duckchief/sellmyhouse:staging
     container_name: app-staging
     expose:
       - "3000"

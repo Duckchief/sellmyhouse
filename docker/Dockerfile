@@ -26,6 +26,9 @@ RUN mkdir -p public/css && npx tailwindcss -i src/views/styles/input.css -o publ
 # Stage 2: Runtime
 FROM node:22-alpine AS runner
 
+ARG GIT_SHA=dev
+ENV ASSET_VERSION=${GIT_SHA}
+
 WORKDIR /app
 
 # Copy production dependencies only

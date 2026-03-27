@@ -5,9 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}SellMyHouse.sg{% endblock %}</title>
-  <link rel="stylesheet" href="/css/output.css">
+  <link rel="preload" href="/css/output.css?v={{ assetVersion }}" as="style">
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="/css/output.css?v={{ assetVersion }}">
   <meta name="htmx-config" content='{"inlineStyleNonce":"{{ cspNonce }}","inlineScriptNonce":"{{ cspNonce }}"}'>
-  <script src="/js/htmx.min.js" nonce="{{ cspNonce }}"></script>
+  <script src="/js/htmx.min.js?v={{ assetVersion }}" defer nonce="{{ cspNonce }}"></script>
   <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1a1a2e">
@@ -21,7 +23,7 @@
       hx-headers='{"x-csrf-token": "{{ csrfToken }}"}'>
   {% block body %}{% endblock %}
   {% include "partials/cookie-consent.njk" %}
-  <script src="/js/app.js" nonce="{{ cspNonce }}"></script>
+  <script src="/js/public.js?v={{ assetVersion }}" nonce="{{ cspNonce }}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

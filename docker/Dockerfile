@@ -14,7 +14,7 @@ RUN npx prisma generate
 # Compile TypeScript (includes src/scripts/fetch-secrets.ts → dist/scripts/fetch-secrets.js)
 COPY tsconfig.json ./
 COPY src ./src
-RUN npx tsc
+RUN npx tsc && npx tsc-alias
 
 # Copy self-hosted HTMX
 RUN mkdir -p public/js && cp node_modules/htmx.org/dist/htmx.min.js public/js/htmx.min.js

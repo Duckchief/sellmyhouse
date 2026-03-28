@@ -74,29 +74,34 @@ loginRouter.post(
         return res.status(401).render('pages/auth/login', { error: 'Invalid email or password' });
       }
 
-      req.logIn(user, (loginErr) => {
-        if (loginErr) return next(loginErr);
+      // Regenerate session to prevent session fixation
+      req.session.regenerate((regenErr) => {
+        if (regenErr) return next(regenErr);
 
-        // Set session timeout based on 2FA status (Amendment E)
-        if (user.twoFactorEnabled) {
-          req.session.cookie.maxAge = 30 * 60 * 1000; // 30 min
-        } else {
-          req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours
-        }
+        req.logIn(user, (loginErr) => {
+          if (loginErr) return next(loginErr);
 
-        if (user.twoFactorEnabled) {
+          // Set session timeout based on 2FA status (Amendment E)
+          if (user.twoFactorEnabled) {
+            req.session.cookie.maxAge = 30 * 60 * 1000; // 30 min
+          } else {
+            req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours
+          }
+
+          if (user.twoFactorEnabled) {
+            if (req.headers['hx-request']) {
+              res.set('HX-Redirect', '/auth/2fa/verify');
+              return res.sendStatus(200);
+            }
+            return res.redirect('/auth/2fa/verify');
+          }
+
           if (req.headers['hx-request']) {
-            res.set('HX-Redirect', '/auth/2fa/verify');
+            res.set('HX-Redirect', '/seller/dashboard');
             return res.sendStatus(200);
           }
-          return res.redirect('/auth/2fa/verify');
-        }
-
-        if (req.headers['hx-request']) {
-          res.set('HX-Redirect', '/seller/dashboard');
-          return res.sendStatus(200);
-        }
-        return res.redirect('/seller/dashboard');
+          return res.redirect('/seller/dashboard');
+        });
       });
     })(req, res, next);
   },
@@ -128,28 +133,33 @@ loginRouter.post(
         return res.status(401).render('pages/auth/login', { error: 'Invalid email or password' });
       }
 
-      req.logIn(user, (loginErr) => {
-        if (loginErr) return next(loginErr);
+      // Regenerate session to prevent session fixation
+      req.session.regenerate((regenErr) => {
+        if (regenErr) return next(regenErr);
 
-        if (user.twoFactorEnabled) {
-          // Shrink cookie to 30 min for agents requiring 2FA
-          if (req.session) {
-            req.session.cookie.maxAge = 30 * 60 * 1000;
+        req.logIn(user, (loginErr) => {
+          if (loginErr) return next(loginErr);
+
+          if (user.twoFactorEnabled) {
+            // Shrink cookie to 30 min for agents requiring 2FA
+            if (req.session) {
+              req.session.cookie.maxAge = 30 * 60 * 1000;
+            }
+            if (req.headers['hx-request']) {
+              res.set('HX-Redirect', '/auth/2fa/verify');
+              return res.sendStatus(200);
+            }
+            return res.redirect('/auth/2fa/verify');
           }
+
+          // Agent must set up 2FA before accessing dashboard
+          const redirectUrl = '/auth/2fa/setup';
           if (req.headers['hx-request']) {
-            res.set('HX-Redirect', '/auth/2fa/verify');
+            res.set('HX-Redirect', redirectUrl);
             return res.sendStatus(200);
           }
-          return res.redirect('/auth/2fa/verify');
-        }
-
-        // Agent must set up 2FA before accessing dashboard
-        const redirectUrl = '/auth/2fa/setup';
-        if (req.headers['hx-request']) {
-          res.set('HX-Redirect', redirectUrl);
-          return res.sendStatus(200);
-        }
-        return res.redirect(redirectUrl);
+          return res.redirect(redirectUrl);
+        });
       });
     })(req, res, next);
   },
@@ -258,14 +268,17 @@ loginRouter.post(
 
       const token = req.params.token as string;
 
-      // Try seller first, then agent
+      // Try seller first, then agent — only fall through on token-not-found errors
       try {
         await authService.resetPassword(token, req.body.password, 'seller');
-      } catch (err) {
-        if (err instanceof ValidationError) {
+      } catch (sellerErr) {
+        if (
+          sellerErr instanceof ValidationError &&
+          sellerErr.message.toLowerCase().includes('invalid or expired')
+        ) {
           await authService.resetPassword(token, req.body.password, 'agent');
         } else {
-          throw err;
+          throw sellerErr;
         }
       }
 

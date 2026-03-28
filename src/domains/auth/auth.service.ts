@@ -51,14 +51,23 @@ export async function registerSeller(input: SellerRegistrationInput) {
 
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
 
-  const seller = await authRepo.createSeller({
-    name: input.name,
-    email: input.email,
-    phone: input.phone,
-    passwordHash,
-    consentService: input.consentService,
-    consentMarketing: input.consentMarketing,
-  });
+  let seller;
+  try {
+    seller = await authRepo.createSeller({
+      name: input.name,
+      email: input.email,
+      phone: input.phone,
+      passwordHash,
+      consentService: input.consentService,
+      consentMarketing: input.consentMarketing,
+    });
+  } catch (err: unknown) {
+    // Handle unique constraint violation (concurrent registration)
+    if (err instanceof Error && 'code' in err && (err as { code: string }).code === 'P2002') {
+      return null;
+    }
+    throw err;
+  }
 
   await authRepo.createConsentRecord({
     sellerId: seller.id,

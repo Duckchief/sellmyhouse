@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { HdbService } from '../hdb/service';
 import * as contentService from '../content/content.service';
 import { hdbRateLimiter } from '../../infra/http/middleware/rate-limit';
+import { HDB_TOWNS, HDB_FLAT_TYPES } from '../property/property.types';
 
 export const publicRouter = Router();
 
@@ -49,6 +50,18 @@ publicRouter.get(
           .render('partials/public/report-results', { error: 'Town and flat type are required' });
       }
 
+      if (!(HDB_TOWNS as readonly string[]).includes(town)) {
+        return res
+          .status(400)
+          .render('partials/public/report-results', { error: 'Invalid town' });
+      }
+
+      if (!(HDB_FLAT_TYPES as readonly string[]).includes(flatType)) {
+        return res
+          .status(400)
+          .render('partials/public/report-results', { error: 'Invalid flat type' });
+      }
+
       const [report, paginated] = await Promise.all([
         hdbService.getMarketReport({ town, flatType, storeyRange, months }),
         hdbService.getPaginatedTransactions({ town, flatType, storeyRange, months }, 1, 10),
@@ -81,6 +94,16 @@ publicRouter.get(
         return res.status(400).render('partials/public/transaction-rows', {
           error: 'Town and flat type are required',
         });
+      }
+
+      if (!(HDB_TOWNS as readonly string[]).includes(town)) {
+        return res.status(400).render('partials/public/transaction-rows', { error: 'Invalid town' });
+      }
+
+      if (!(HDB_FLAT_TYPES as readonly string[]).includes(flatType)) {
+        return res
+          .status(400)
+          .render('partials/public/transaction-rows', { error: 'Invalid flat type' });
       }
 
       const result = await hdbService.getPaginatedTransactions(

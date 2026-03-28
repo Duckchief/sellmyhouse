@@ -7,7 +7,7 @@ import path from 'path';
 import { authRouter } from '../auth.router';
 import { configurePassport } from '../../../infra/http/middleware/passport';
 import { errorHandler } from '../../../infra/http/middleware/error-handler';
-import { ConflictError } from '../../shared/errors';
+
 
 // Mock auth service
 jest.mock('../auth.service');
@@ -141,18 +141,8 @@ describe('AuthRouter', () => {
       expect(res.status).toBe(400);
     });
 
-    it('returns 409 on duplicate email', async () => {
-      authService.registerSeller = jest.fn().mockRejectedValue(
-        Object.assign(new Error('An account with this email already exists'), {
-          statusCode: 409,
-          code: 'CONFLICT',
-          name: 'AppError',
-        }),
-      );
-
-      authService.registerSeller = jest
-        .fn()
-        .mockRejectedValue(new ConflictError('An account with this email already exists'));
+    it('redirects to login on duplicate email (no 409 — prevents enumeration)', async () => {
+      authService.registerSeller = jest.fn().mockResolvedValue(null);
 
       const res = await request(app).post('/auth/register').type('form').send({
         name: 'Test',
@@ -162,7 +152,8 @@ describe('AuthRouter', () => {
         consentService: 'true',
       });
 
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toBe('/auth/login?registered=1');
     });
   });
 

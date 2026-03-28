@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import * as authRepo from './auth.repository';
 import * as auditService from '../shared/audit.service';
 import { encrypt, decrypt } from '../shared/encryption';
-import { ValidationError, ConflictError, UnauthorizedError, NotFoundError } from '../shared/errors';
+import { ValidationError, UnauthorizedError, NotFoundError } from '../shared/errors';
 import { maskEmail } from '../shared/nric';
 import { sendSystemEmail } from '../../infra/email/system-mailer';
 import type {
@@ -32,7 +32,21 @@ export async function registerSeller(input: SellerRegistrationInput) {
 
   const existing = await authRepo.findSellerByEmail(input.email);
   if (existing) {
-    throw new ConflictError('An account with this email already exists');
+    // Send silent email to prevent account enumeration (L3)
+    try {
+      await sendSystemEmail(
+        input.email,
+        'SellMyHouse.sg — Your account',
+        [
+          '<p>Someone tried to register with this email address, but you already have an account.</p>',
+          '<p>If this was you, please <a href="/auth/login">log in</a> instead.</p>',
+          '<p>If you did not request this, you can safely ignore this email.</p>',
+        ].join(''),
+      );
+    } catch {
+      // Best-effort — don't expose failure
+    }
+    return null;
   }
 
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);

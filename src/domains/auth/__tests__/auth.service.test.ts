@@ -45,10 +45,18 @@ describe('AuthService', () => {
       ).rejects.toThrow('Service consent is required');
     });
 
-    it('throws ConflictError on duplicate email', async () => {
+    it('returns null and sends account-exists email on duplicate email (no error thrown)', async () => {
       authRepo.findSellerByEmail = jest.fn().mockResolvedValue({ id: 'existing' });
-      await expect(authService.registerSeller(validInput)).rejects.toThrow(
-        'An account with this email already exists',
+      systemMailer.sendSystemEmail = jest.fn().mockResolvedValue(undefined);
+
+      const result = await authService.registerSeller(validInput);
+
+      expect(result).toBeNull();
+      expect(authRepo.createSeller).not.toHaveBeenCalled();
+      expect(systemMailer.sendSystemEmail).toHaveBeenCalledWith(
+        'test@example.com',
+        expect.stringContaining('account'),
+        expect.stringContaining('already'),
       );
     });
 

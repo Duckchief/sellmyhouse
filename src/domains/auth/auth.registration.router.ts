@@ -41,7 +41,7 @@ registrationRouter.post(
           .render('pages/auth/register', { errors: errorMap, values: req.body });
       }
 
-      await authService.registerSeller({
+      const seller = await authService.registerSeller({
         name: req.body.name,
         email: req.body.email,
         phone: req.body.phone,
@@ -53,12 +53,21 @@ registrationRouter.post(
         userAgent: req.get('user-agent'),
       });
 
+      if (!seller) {
+        // Duplicate email — show identical response to prevent enumeration
+        if (req.headers['hx-request']) {
+          res.set('HX-Redirect', '/auth/login?registered=1');
+          return res.sendStatus(200);
+        }
+        return res.redirect('/auth/login?registered=1');
+      }
+
       // Auto-login after registration
       passport.authenticate(
         'seller-local',
         (err: Error | null, user: AuthenticatedUser | false) => {
           if (err || !user) {
-            return res.redirect('/auth/login');
+            return res.redirect('/auth/login?registered=1');
           }
           req.logIn(user, (loginErr) => {
             if (loginErr) return next(loginErr);

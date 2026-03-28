@@ -82,12 +82,14 @@ describe('seller.repository', () => {
       expect(result).toEqual(mockSeller);
       expect(prisma.seller.findUnique).toHaveBeenCalledWith({
         where: { id: 'seller-1' },
-        include: {
+        select: expect.objectContaining({
+          id: true,
+          name: true,
           properties: true,
-          transactions: true,
+          transactions: { select: { id: true, status: true } },
           consentRecords: { orderBy: { consentGivenAt: 'desc' } },
           caseFlags: { where: { status: { not: 'resolved' } } },
-        },
+        }),
       });
     });
   });

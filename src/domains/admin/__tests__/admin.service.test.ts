@@ -10,6 +10,7 @@ jest.mock('@/domains/shared/settings.service');
 jest.mock('@/domains/notification/notification.service');
 jest.mock('@/domains/compliance/compliance.service');
 jest.mock('@/domains/agent/agent.service');
+jest.mock('@/domains/auth/auth.repository');
 jest.mock('@/domains/transaction/transaction.service');
 jest.mock('@/domains/viewing/viewing.service');
 jest.mock('@/domains/offer/offer.service');
@@ -29,8 +30,11 @@ import * as agentService from '@/domains/agent/agent.service';
 import * as transactionService from '@/domains/transaction/transaction.service';
 import * as viewingService from '@/domains/viewing/viewing.service';
 import * as offerService from '@/domains/offer/offer.service';
+import * as authRepo from '@/domains/auth/auth.repository';
 import * as adminService from '../admin.service';
 import { NotFoundError } from '@/domains/shared/errors';
+
+const mockAuthRepo = authRepo as jest.Mocked<typeof authRepo>;
 
 const mockAdminRepo = adminRepo as jest.Mocked<typeof adminRepo>;
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
@@ -437,10 +441,12 @@ describe('deactivateAgent', () => {
     });
     mockAdminRepo.countActiveSellers.mockResolvedValue(0);
     mockAdminRepo.updateAgentStatus.mockResolvedValue(undefined);
+    mockAuthRepo.invalidateUserSessions.mockResolvedValue(undefined);
 
     await adminService.deactivateAgent('a1', 'admin-1');
 
     expect(mockAdminRepo.updateAgentStatus).toHaveBeenCalledWith('a1', false);
+    expect(mockAuthRepo.invalidateUserSessions).toHaveBeenCalledWith('a1');
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'agent.deactivated' }),
     );
@@ -458,10 +464,12 @@ describe('reactivateAgent', () => {
       isActive: false,
     });
     mockAdminRepo.updateAgentStatus.mockResolvedValue(undefined);
+    mockAuthRepo.invalidateUserSessions.mockResolvedValue(undefined);
 
     await adminService.reactivateAgent('a1', 'admin-1');
 
     expect(mockAdminRepo.updateAgentStatus).toHaveBeenCalledWith('a1', true);
+    expect(mockAuthRepo.invalidateUserSessions).toHaveBeenCalledWith('a1');
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'agent.reactivated' }),
     );

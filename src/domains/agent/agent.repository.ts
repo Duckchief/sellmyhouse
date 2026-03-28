@@ -71,9 +71,17 @@ export async function getUnassignedLeadCount(): Promise<number> {
 }
 
 export async function getRecentActivity(agentId?: string, limit = 10) {
-  // Get seller IDs and their related entity IDs for this agent
+  if (!agentId) {
+    // Admin: return most recent audit logs across all entities
+    return prisma.auditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  }
+
+  // Agent: scope to their sellers and related entities
   const sellers = await prisma.seller.findMany({
-    where: agentId ? { agentId } : {},
+    where: { agentId },
     select: {
       id: true,
       properties: { select: { id: true, listings: { select: { id: true } } } },
@@ -82,7 +90,6 @@ export async function getRecentActivity(agentId?: string, limit = 10) {
 
   if (sellers.length === 0) return [];
 
-  // Build a set of all entity IDs related to these sellers
   const entityIds: string[] = [];
   for (const s of sellers) {
     entityIds.push(s.id);
@@ -95,9 +102,7 @@ export async function getRecentActivity(agentId?: string, limit = 10) {
   }
 
   return prisma.auditLog.findMany({
-    where: {
-      entityId: { in: entityIds },
-    },
+    where: { entityId: { in: entityIds } },
     orderBy: { createdAt: 'desc' },
     take: limit,
   });
@@ -258,7 +263,26 @@ export async function getSellerDetail(sellerId: string, agentId?: string) {
 
   return prisma.seller.findFirst({
     where,
-    include: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      countryCode: true,
+      nationalNumber: true,
+      emailVerified: true,
+      passwordHash: true,
+      sellingTimeline: true,
+      sellingReason: true,
+      sellingReasonOther: true,
+      status: true,
+      leadSource: true,
+      agentId: true,
+      onboardingStep: true,
+      consentService: true,
+      consentMarketing: true,
+      createdAt: true,
+      updatedAt: true,
       saleProceeds: true,
       properties: {
         take: 1,
@@ -428,9 +452,12 @@ export async function getNotificationHistory(
   return { items, total };
 }
 
-export async function getPendingCorrectionRequests() {
+export async function getPendingCorrectionRequests(agentId?: string) {
   return prisma.dataCorrectionRequest.findMany({
-    where: { status: { in: ['pending', 'in_progress'] } },
+    where: {
+      status: { in: ['pending', 'in_progress'] },
+      ...(agentId ? { seller: { agentId } } : {}),
+    },
     include: {
       seller: { select: { id: true, name: true, phone: true } },
     },

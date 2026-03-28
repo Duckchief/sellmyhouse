@@ -108,13 +108,18 @@ setupAccountRouter.post(
             }
             return res.redirect('/auth/login?setup=success');
           }
-          req.logIn(user, (loginErr) => {
-            if (loginErr) return next(loginErr);
-            if (req.headers['hx-request']) {
-              res.set('HX-Redirect', '/seller/dashboard');
-              return res.sendStatus(200);
-            }
-            return res.redirect('/seller/dashboard');
+          // Regenerate session to prevent session fixation
+          req.session.regenerate((regenErr) => {
+            if (regenErr) return next(regenErr);
+
+            req.logIn(user, (loginErr) => {
+              if (loginErr) return next(loginErr);
+              if (req.headers['hx-request']) {
+                res.set('HX-Redirect', '/seller/dashboard');
+                return res.sendStatus(200);
+              }
+              return res.redirect('/seller/dashboard');
+            });
           });
         },
       )(req, res, next);

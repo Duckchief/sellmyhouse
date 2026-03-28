@@ -4,6 +4,7 @@ import { createId } from '@/infra/database/prisma';
 import { logger } from '@/infra/logger';
 import * as auditService from '@/domains/shared/audit.service';
 import { HdbRepository } from './repository';
+import { clearHdbCache } from './service';
 import type { HdbDataSyncRecord } from './types';
 
 const RETRYABLE_NETWORK_ERRORS = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN'];
@@ -92,7 +93,7 @@ export class HdbSyncService {
 
         // Filter to only new records
         const newRecords = latestMonth
-          ? records.filter((r: ApiRecord) => r.month >= latestMonth)
+          ? records.filter((r: ApiRecord) => r.month > latestMonth)
           : records;
 
         // Early exit: sorted newest-first
@@ -120,6 +121,9 @@ export class HdbSyncService {
         source: DATASET_ID,
         status: 'success',
       });
+
+      // Clear in-memory HDB cache so fresh data is served immediately
+      clearHdbCache();
 
       logger.info(
         { recordsAdded, totalRecords, durationMs: Date.now() - startTime },

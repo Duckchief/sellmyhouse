@@ -653,10 +653,21 @@ export async function saveSaleProceeds(input: SaleProceedsInput) {
     input.commission -
     (input.buyerDeposit ?? 0);
 
-  return sellerRepo.upsertSaleProceeds({
+  const result = await sellerRepo.upsertSaleProceeds({
     ...input,
     netProceeds: Math.round(netProceeds * 100) / 100,
   });
+
+  await auditService
+    .log({
+      action: 'seller.sale_proceeds_saved',
+      entityType: 'seller',
+      entityId: input.sellerId,
+      details: { netProceeds: Math.round(netProceeds * 100) / 100 },
+    })
+    .catch((err: unknown) => logger.warn({ err }, 'Audit log failed'));
+
+  return result;
 }
 
 export async function getSaleProceeds(sellerId: string) {

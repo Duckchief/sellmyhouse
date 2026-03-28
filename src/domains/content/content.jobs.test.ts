@@ -6,9 +6,8 @@ import { registerReferralJobs } from './content.jobs';
 jest.mock('./content.repository');
 jest.mock('./content.service');
 jest.mock('@/infra/jobs/runner');
-jest.mock('@/infra/logger', () => ({ logger: { info: jest.fn(), warn: jest.fn() } }));
-jest.mock('@/domains/shared/settings.service', () => ({
-  get: jest.fn().mockResolvedValue('0 8 * * 1'),
+jest.mock('@/infra/logger', () => ({
+  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 }));
 
 const mockRepo = jest.mocked(contentRepo);

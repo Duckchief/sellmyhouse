@@ -92,6 +92,25 @@ describe('portal.router', () => {
       expect(res.status).toBe(200);
     });
 
+    it('passes agent id and role to markAsPosted for ownership check', async () => {
+      mockPortalService.markAsPosted.mockResolvedValue({
+        id: 'pl-1',
+        status: 'posted',
+        portalListingUrl: 'https://www.propertyguru.com.sg/listing/123',
+      } as never);
+
+      await request(app)
+        .post('/agent/portal-listings/pl-1/mark-posted')
+        .send({ url: 'https://www.propertyguru.com.sg/listing/123' });
+
+      expect(mockPortalService.markAsPosted).toHaveBeenCalledWith(
+        'pl-1',
+        'https://www.propertyguru.com.sg/listing/123',
+        'agent-1',
+        'agent',
+      );
+    });
+
     it('returns 400 when url is missing', async () => {
       const res = await request(app).post('/agent/portal-listings/pl-1/mark-posted').send({});
 

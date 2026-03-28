@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smh-v2';
+const CACHE_NAME = 'smh-v3';
 const PRECACHE_URLS = [
   '/',
   '/market-report',
@@ -26,14 +26,14 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch — network first, cache fallback
+// Fetch — cache-first for static assets, network-first for pages
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip API requests, authenticated pages, and cross-origin requests (CDN)
+  // Skip API requests, authenticated pages, and cross-origin requests
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/') ||
@@ -42,10 +42,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Cache-first for static assets (versioned URLs bust stale cache)
+  if (/^\/(css|js|icons|images)\//.test(url.pathname)) {
+    event.respondWith(
+      caches.match(request).then((cached) =>
+        cached || fetch(request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+      )
+    );
+    return;
+  }
+
+  // Network-first for HTML pages
   event.respondWith(
     fetch(request)
       .then((response) => {
-        // Cache successful responses
         if (response.ok) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));

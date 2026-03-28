@@ -14,6 +14,8 @@ jest.mock('../seller-document.repository', () => ({
   hardDelete: jest.fn(),
   findExpiredUnpurged: jest.fn(),
   markPurged: jest.fn(),
+  claimForDownload: jest.fn(),
+  claimAllForDownload: jest.fn(),
 }));
 
 jest.mock('../seller.repository', () => ({
@@ -168,11 +170,12 @@ describe('downloadAndDeleteSellerDocument', () => {
     wrappedKey: 'wrapped-key',
     mimeType: 'image/jpeg',
     docType: 'nric',
-    deletedAt: null,
+    deletedAt: new Date(), // After claim, deletedAt is set
     downloadedAt: null,
   };
 
-  it('decrypts file, marks as downloaded+deleted, audits', async () => {
+  it('claims atomically, decrypts file, marks as downloaded+deleted, audits', async () => {
+    mockSellerDocRepo.claimForDownload.mockResolvedValue(1);
     mockSellerDocRepo.findById.mockResolvedValue(mockDoc as any);
     (encryptedStorage.read as jest.Mock).mockResolvedValue(Buffer.from('decrypted'));
     (encryptedStorage.delete as jest.Mock).mockResolvedValue(undefined);
@@ -180,6 +183,7 @@ describe('downloadAndDeleteSellerDocument', () => {
 
     const result = await sellerDocService.downloadAndDeleteSellerDocument('doc-1', 'agent-1');
 
+    expect(mockSellerDocRepo.claimForDownload).toHaveBeenCalledWith('doc-1');
     expect(encryptedStorage.read).toHaveBeenCalledWith(mockDoc.path, mockDoc.wrappedKey);
     expect(encryptedStorage.delete).toHaveBeenCalledWith(mockDoc.path);
     expect(mockSellerDocRepo.markDownloadedAndDeleted).toHaveBeenCalledWith('doc-1', 'agent-1');
@@ -187,20 +191,20 @@ describe('downloadAndDeleteSellerDocument', () => {
     expect(result.mimeType).toBe('image/jpeg');
   });
 
-  it('rejects if document not found', async () => {
-    mockSellerDocRepo.findById.mockResolvedValue(null);
+  it('rejects if document not found (claim returns 0)', async () => {
+    mockSellerDocRepo.claimForDownload.mockResolvedValue(0);
 
     await expect(
       sellerDocService.downloadAndDeleteSellerDocument('bad-id', 'agent-1'),
     ).rejects.toThrow('SellerDocument');
   });
 
-  it('rejects if already deleted', async () => {
-    mockSellerDocRepo.findById.mockResolvedValue({ ...mockDoc, deletedAt: new Date() } as any);
+  it('rejects if already claimed by another request (claim returns 0)', async () => {
+    mockSellerDocRepo.claimForDownload.mockResolvedValue(0);
 
     await expect(
       sellerDocService.downloadAndDeleteSellerDocument('doc-1', 'agent-1'),
-    ).rejects.toThrow('already been deleted');
+    ).rejects.toThrow('SellerDocument');
   });
 });
 

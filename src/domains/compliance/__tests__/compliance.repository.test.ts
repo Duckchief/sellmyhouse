@@ -2,8 +2,8 @@
 import * as complianceRepo from '../compliance.repository';
 import type { CddDocument, CddRecord } from '../compliance.types';
 
-jest.mock('@/infra/database/prisma', () => ({
-  prisma: {
+jest.mock('@/infra/database/prisma', () => {
+  const mockPrismaObj = {
     testimonial: {
       deleteMany: jest.fn(),
     },
@@ -26,6 +26,7 @@ jest.mock('@/infra/database/prisma', () => ({
     cddRecord: {
       create: jest.fn(),
       updateMany: jest.fn(),
+      deleteMany: jest.fn(),
       findFirst: jest.fn(),
       findUnique: jest.fn(),
       findMany: jest.fn(),
@@ -35,8 +36,10 @@ jest.mock('@/infra/database/prisma', () => ({
     sellerDocument: {
       findMany: jest.fn(),
     },
-  },
-}));
+    $transaction: jest.fn((cb: (tx: unknown) => Promise<unknown>) => cb(mockPrismaObj)),
+  } as Record<string, unknown>;
+  return { prisma: mockPrismaObj };
+});
 
 import { prisma } from '@/infra/database/prisma';
 
@@ -49,6 +52,7 @@ const mockPrisma = prisma as jest.Mocked<typeof prisma> & {
   cddRecord: {
     create: jest.Mock;
     updateMany: jest.Mock;
+    deleteMany: jest.Mock;
     findFirst: jest.Mock;
     findUnique: jest.Mock;
     findMany: jest.Mock;
@@ -408,21 +412,22 @@ describe('upsertCddStatus', () => {
 describe('deleteCddRecord', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('deletes the seller CDD record if one exists', async () => {
-    mockPrisma.cddRecord.findFirst.mockResolvedValue({ id: 'cdd-1' } as never);
-    mockPrisma.cddRecord.delete.mockResolvedValue({} as never);
+  it('deletes all seller CDD records via deleteMany', async () => {
+    mockPrisma.cddRecord.deleteMany.mockResolvedValue({ count: 1 } as never);
 
     await complianceRepo.deleteCddRecord('seller-1');
 
-    expect(mockPrisma.cddRecord.delete).toHaveBeenCalledWith({ where: { id: 'cdd-1' } });
+    expect(mockPrisma.cddRecord.deleteMany).toHaveBeenCalledWith({
+      where: { subjectType: 'seller', subjectId: 'seller-1' },
+    });
   });
 
-  it('is a no-op when no record exists', async () => {
-    mockPrisma.cddRecord.findFirst.mockResolvedValue(null);
+  it('is safe when no records exist (deleteMany returns count 0)', async () => {
+    mockPrisma.cddRecord.deleteMany.mockResolvedValue({ count: 0 } as never);
 
     await complianceRepo.deleteCddRecord('seller-1');
 
-    expect(mockPrisma.cddRecord.delete).not.toHaveBeenCalled();
+    expect(mockPrisma.cddRecord.deleteMany).toHaveBeenCalled();
   });
 });
 

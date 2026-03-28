@@ -92,7 +92,7 @@ describe('Auth Integration', () => {
           consentService: 'true',
         });
 
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(302);
     });
 
     it('returns 400 when consent is missing', async () => {

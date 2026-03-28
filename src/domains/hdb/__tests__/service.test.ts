@@ -197,4 +197,31 @@ describe('HdbService', () => {
       expect(report!.median).toEqual(new Decimal(500000));
     });
   });
+
+  describe('caching', () => {
+    beforeEach(() => service.clearCache());
+
+    it('returns cached result on second call to getDistinctTowns', async () => {
+      const spy = jest.spyOn(service['repo'], 'getDistinctTowns');
+      spy.mockResolvedValue(['ANG MO KIO', 'BEDOK']);
+
+      const first = await service.getDistinctTowns();
+      const second = await service.getDistinctTowns();
+
+      expect(first).toEqual(['ANG MO KIO', 'BEDOK']);
+      expect(second).toEqual(['ANG MO KIO', 'BEDOK']);
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it('clears cache when clearCache is called', async () => {
+      const spy = jest.spyOn(service['repo'], 'getDistinctTowns');
+      spy.mockResolvedValue(['ANG MO KIO']);
+
+      await service.getDistinctTowns();
+      service.clearCache();
+      await service.getDistinctTowns();
+
+      expect(spy).toHaveBeenCalledTimes(2);
+    });
+  });
 });

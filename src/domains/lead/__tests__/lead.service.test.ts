@@ -118,8 +118,8 @@ describe('lead.service', () => {
   it('throws ConflictError for duplicate phone', async () => {
     mockLeadRepo.findActiveSellerByPhone.mockResolvedValue({
       id: 'existing',
-      name: 'Existing',
       phone: '91234567',
+      status: 'lead' as const,
     } as ReturnType<typeof mockLeadRepo.findActiveSellerByPhone> extends Promise<infer T>
       ? NonNullable<T>
       : never);
@@ -179,6 +179,18 @@ describe('lead.service', () => {
     // In production the real prisma.$transaction rolls back the seller insert.
     // Here we verify the service propagates the error without swallowing it,
     // and does NOT proceed to write the audit log.
+    expect(mockAudit.log).not.toHaveBeenCalled();
+  });
+
+  it('throws ConflictError on P2002 unique constraint (concurrent duplicate submission)', async () => {
+    mockLeadRepo.findActiveSellerByPhone.mockResolvedValue(null);
+    // Simulate Prisma P2002 unique constraint violation (race condition:
+    // two concurrent requests both pass the findActiveSellerByPhone check)
+    const prismaError = new Error('Unique constraint failed on the fields: (`phone`)');
+    (prismaError as Error & { code: string }).code = 'P2002';
+    mockLeadRepo.submitLeadAtomically.mockRejectedValue(prismaError);
+
+    await expect(submitLead(validInput)).rejects.toThrow('already exists');
     expect(mockAudit.log).not.toHaveBeenCalled();
   });
 

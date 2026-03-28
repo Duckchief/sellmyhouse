@@ -15,5 +15,13 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
+// Graceful shutdown — disconnect Prisma on process termination
+process.on('SIGTERM', () => {
+  prisma.$disconnect();
+});
+process.on('SIGINT', () => {
+  prisma.$disconnect();
+});
+
 // All IDs are cuid2, generated in application code
 export { createId };

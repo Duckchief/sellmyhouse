@@ -137,6 +137,7 @@ describe('AuthRepository', () => {
       await authRepo.findSellerByResetToken('hashed-token');
       expect(prisma.seller.findFirst).toHaveBeenCalledWith({
         where: { passwordResetToken: 'hashed-token' },
+        orderBy: { createdAt: 'desc' },
       });
     });
 
@@ -289,6 +290,7 @@ describe('AuthRepository', () => {
       await authRepo.findSellerByEmailVerificationToken('hashed-token');
       expect(prisma.seller.findFirst).toHaveBeenCalledWith({
         where: { emailVerificationToken: 'hashed-token' },
+        orderBy: { createdAt: 'desc' },
       });
     });
 

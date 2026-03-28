@@ -29,7 +29,7 @@ export const validatePropertyCreate = [
   body('remainingLease').optional().trim(),
   body('askingPrice')
     .optional()
-    .isFloat({ min: 0 })
+    .isFloat({ min: 0.01 })
     .withMessage('Asking price must be a positive number')
     .toFloat(),
 ];
@@ -52,7 +52,7 @@ export const validatePropertyUpdate = [
   body('floorAreaSqm').optional().isFloat({ min: 30, max: 300 }).toFloat(),
   body('leaseCommenceDate').optional().isInt({ min: 1960, max: new Date().getFullYear() }).toInt(),
   body('remainingLease').optional().trim(),
-  body('askingPrice').optional().isFloat({ min: 0 }).toFloat(),
+  body('askingPrice').optional().isFloat({ min: 0.01 }).toFloat(),
 ];
 
 export const validatePhotoReorder = [

@@ -728,11 +728,7 @@ describe('viewing.service', () => {
 
       await viewingService.cancelViewing('v-1', 'cancel-token-123');
 
-      expect(mockedRepo.updateViewingStatus).toHaveBeenCalledWith('v-1', { status: 'cancelled' });
-      expect(mockedRepo.updateSlotStatus).toHaveBeenCalledWith('slot-1', {
-        currentBookings: 0,
-        status: 'available',
-      });
+      expect(mockedRepo.cancelViewingAtomically).toHaveBeenCalledWith('v-1', 'slot-1', 'available');
       expect(mockedNotification.send).toHaveBeenCalled();
     });
 

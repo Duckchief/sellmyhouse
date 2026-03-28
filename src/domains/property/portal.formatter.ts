@@ -49,9 +49,18 @@ export function formatForPortal(input: PortalFormatterInput): PortalContent {
     throw new ValidationError('Asking price must be set before generating portal content');
   }
 
+  // M47: Handle both string[] (legacy) and PhotoRecord[] (current) formats
   let photos: string[] = [];
   try {
-    photos = JSON.parse(listing.photos as string) as string[];
+    const parsed = JSON.parse(listing.photos as string) as Array<
+      string | { path?: string; optimizedPath?: string }
+    >;
+    photos = parsed
+      .map((p) => {
+        if (typeof p === 'string') return p;
+        return p.optimizedPath || p.path || '';
+      })
+      .filter(Boolean);
   } catch {
     photos = [];
   }

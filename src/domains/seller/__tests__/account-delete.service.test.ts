@@ -4,12 +4,16 @@ import * as authRepo from '../../auth/auth.repository';
 import * as complianceRepo from '../../compliance/compliance.repository';
 import * as auditService from '../../shared/audit.service';
 import { localStorage } from '@/infra/storage/local-storage';
+import { encryptedStorage } from '@/infra/storage/encrypted-storage';
 
 jest.mock('../../auth/auth.repository');
 jest.mock('../../compliance/compliance.repository');
 jest.mock('../../shared/audit.service');
 jest.mock('@/infra/storage/local-storage', () => ({
   localStorage: { delete: jest.fn() },
+}));
+jest.mock('@/infra/storage/encrypted-storage', () => ({
+  encryptedStorage: { delete: jest.fn() },
 }));
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
@@ -21,6 +25,7 @@ const mockAuthRepo = authRepo as jest.Mocked<typeof authRepo>;
 const mockComplianceRepo = complianceRepo as jest.Mocked<typeof complianceRepo>;
 const mockAudit = auditService as jest.Mocked<typeof auditService>;
 const mockStorage = localStorage as jest.Mocked<typeof localStorage>;
+const mockEncryptedStorage = encryptedStorage as jest.Mocked<typeof encryptedStorage>;
 const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 
 beforeEach(() => jest.clearAllMocks());
@@ -54,10 +59,11 @@ describe('deleteSellerAccount', () => {
     mockBcrypt.compare.mockResolvedValue(true as never);
     mockComplianceRepo.collectSellerFilePaths.mockResolvedValue([
       'uploads/photo1.jpg',
-      'uploads/photo2.jpg',
+      'seller-docs/seller-1/nric-abc.jpg.enc',
     ]);
     mockComplianceRepo.hardDeleteSeller.mockResolvedValue(undefined);
     mockStorage.delete.mockResolvedValue(undefined);
+    mockEncryptedStorage.delete.mockResolvedValue(undefined);
     mockAudit.log.mockResolvedValue(undefined);
 
     await accountDeleteService.deleteSellerAccount('seller-1', 'correctpass');
@@ -73,8 +79,12 @@ describe('deleteSellerAccount', () => {
     );
     expect(mockComplianceRepo.collectSellerFilePaths).toHaveBeenCalledWith('seller-1');
     expect(mockComplianceRepo.hardDeleteSeller).toHaveBeenCalledWith('seller-1');
+    // Non-.enc files use localStorage
     expect(mockStorage.delete).toHaveBeenCalledWith('uploads/photo1.jpg');
-    expect(mockStorage.delete).toHaveBeenCalledWith('uploads/photo2.jpg');
+    // .enc files use encryptedStorage
+    expect(mockEncryptedStorage.delete).toHaveBeenCalledWith(
+      'seller-docs/seller-1/nric-abc.jpg.enc',
+    );
   });
 
   it('still deletes seller when a file cannot be removed', async () => {

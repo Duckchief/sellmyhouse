@@ -1,11 +1,13 @@
-jest.mock('@/infra/database/prisma', () => ({
-  prisma: {
+jest.mock('@/infra/database/prisma', () => {
+  const mockPrismaObj = {
     listing: {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
-  },
-}));
+    $transaction: jest.fn((cb: (tx: unknown) => Promise<unknown>) => cb(mockPrismaObj)),
+  } as Record<string, unknown>;
+  return { prisma: mockPrismaObj };
+});
 
 import { prisma } from '@/infra/database/prisma';
 import { buildAddress, approveListingDescription } from '../review.repository';

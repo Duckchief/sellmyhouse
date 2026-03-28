@@ -1,6 +1,7 @@
 import type { AIProvider, AIGenerateOptions, AIGenerateResult } from './ai.types';
 import * as settingsService from '../settings.service';
 import * as auditService from '../audit.service';
+import { ValidationError } from '../errors';
 import { logger } from '@/infra/logger';
 import { AnthropicProvider } from './providers/anthropic';
 import { OpenAIProvider } from './providers/openai';
@@ -84,6 +85,10 @@ export async function generateText(
   prompt: string,
   options: AIGenerateOptions = {},
 ): Promise<AIGenerateResult> {
+  if (prompt.length > 50000) {
+    throw new ValidationError('Prompt exceeds maximum length');
+  }
+
   const primaryProviderName = await settingsService.get('ai_provider', 'anthropic');
   const retryCount = await settingsService.getNumber('ai_retry_count', 1);
   const retryDelay = await settingsService.getNumber('ai_retry_delay_ms', 2000);

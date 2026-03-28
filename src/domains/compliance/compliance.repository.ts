@@ -125,33 +125,35 @@ export async function upsertCddStatus(
   const identityVerified = status === 'verified';
   const verifiedAt = status === 'verified' ? new Date() : null;
 
-  const existing = await prisma.cddRecord.findFirst({
-    where: { subjectType: SubjectType.seller, subjectId: sellerId },
-    orderBy: { createdAt: 'desc' },
-  });
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.cddRecord.findFirst({
+      where: { subjectType: SubjectType.seller, subjectId: sellerId },
+      orderBy: { createdAt: 'desc' },
+    });
 
-  if (existing) {
-    await prisma.cddRecord.update({
-      where: { id: existing.id },
-      data: { identityVerified, verifiedAt, verifiedByAgentId: agentId },
-    });
-  } else {
-    const retentionExpiresAt = new Date();
-    retentionExpiresAt.setDate(retentionExpiresAt.getDate() + 7);
-    await prisma.cddRecord.create({
-      data: {
-        id: createId(),
-        subjectType: SubjectType.seller,
-        subjectId: sellerId,
-        fullName: '–',
-        nricLast4: '0000',
-        verifiedByAgentId: agentId,
-        identityVerified,
-        verifiedAt,
-        retentionExpiresAt,
-      },
-    });
-  }
+    if (existing) {
+      await tx.cddRecord.update({
+        where: { id: existing.id },
+        data: { identityVerified, verifiedAt, verifiedByAgentId: agentId },
+      });
+    } else {
+      const retentionExpiresAt = new Date();
+      retentionExpiresAt.setDate(retentionExpiresAt.getDate() + 7);
+      await tx.cddRecord.create({
+        data: {
+          id: createId(),
+          subjectType: SubjectType.seller,
+          subjectId: sellerId,
+          fullName: '–',
+          nricLast4: '0000',
+          verifiedByAgentId: agentId,
+          identityVerified,
+          verifiedAt,
+          retentionExpiresAt,
+        },
+      });
+    }
+  });
 }
 
 export async function findSellerCddRecord(
@@ -165,12 +167,9 @@ export async function findSellerCddRecord(
 }
 
 export async function deleteCddRecord(sellerId: string): Promise<void> {
-  const existing = await prisma.cddRecord.findFirst({
+  await prisma.cddRecord.deleteMany({
     where: { subjectType: SubjectType.seller, subjectId: sellerId },
-    orderBy: { createdAt: 'desc' },
   });
-  if (!existing) return;
-  await prisma.cddRecord.delete({ where: { id: existing.id } });
 }
 
 export async function refreshCddRetentionOnCompletion(
@@ -266,6 +265,78 @@ export async function updateSellerConsent(
   data: { consentService?: boolean; consentMarketing?: boolean },
 ): Promise<void> {
   await prisma.seller.update({ where: { id: sellerId }, data });
+}
+
+export async function withdrawConsentAtomically(
+  sellerId: string,
+  consentType: 'service' | 'marketing',
+  consentData: {
+    subjectId: string;
+    purposeService: boolean;
+    purposeMarketing: boolean;
+    consentWithdrawnAt: Date;
+    withdrawalChannel?: string;
+    ipAddress?: string;
+    userAgent?: string;
+  },
+): Promise<ConsentRecord> {
+  return prisma.$transaction(async (tx) => {
+    const record = await tx.consentRecord.create({
+      data: {
+        id: createId(),
+        subjectType: 'seller',
+        subjectId: consentData.subjectId,
+        sellerId: consentData.subjectId,
+        purposeService: consentData.purposeService,
+        purposeMarketing: consentData.purposeMarketing,
+        purposeHuttonsTransfer: false,
+        version: CONSENT_VERSION,
+        consentWithdrawnAt: consentData.consentWithdrawnAt,
+        withdrawalChannel: consentData.withdrawalChannel ?? null,
+        ipAddress: consentData.ipAddress ?? null,
+        userAgent: consentData.userAgent ?? null,
+      },
+    });
+    const updateData =
+      consentType === 'service' ? { consentService: false } : { consentMarketing: false };
+    await tx.seller.update({ where: { id: sellerId }, data: updateData });
+    return record as unknown as ConsentRecord;
+  });
+}
+
+export async function grantConsentAtomically(
+  sellerId: string,
+  consentData: {
+    subjectId: string;
+    purposeService: boolean;
+    purposeMarketing: boolean;
+    withdrawalChannel?: string;
+    ipAddress?: string;
+    userAgent?: string;
+  },
+): Promise<ConsentRecord> {
+  return prisma.$transaction(async (tx) => {
+    const record = await tx.consentRecord.create({
+      data: {
+        id: createId(),
+        subjectType: 'seller',
+        subjectId: consentData.subjectId,
+        sellerId: consentData.subjectId,
+        purposeService: consentData.purposeService,
+        purposeMarketing: consentData.purposeMarketing,
+        purposeHuttonsTransfer: false,
+        version: CONSENT_VERSION,
+        withdrawalChannel: consentData.withdrawalChannel ?? null,
+        ipAddress: consentData.ipAddress ?? null,
+        userAgent: consentData.userAgent ?? null,
+      },
+    });
+    await tx.seller.update({
+      where: { id: sellerId },
+      data: { consentMarketing: true },
+    });
+    return record as unknown as ConsentRecord;
+  });
 }
 
 export async function findSellerConsent(
@@ -425,74 +496,76 @@ export async function purgeTransactionSensitiveDocs(
 ): Promise<{ filePaths: string[] }> {
   const filePaths: string[] = [];
 
-  // Null OTP scan paths
-  const otp = await prisma.otp.findUnique({
-    where: { transactionId },
-    select: { id: true, scannedCopyPathSeller: true, scannedCopyPathReturned: true },
-  });
-  if (otp) {
-    if (otp.scannedCopyPathSeller) filePaths.push(otp.scannedCopyPathSeller);
-    if (otp.scannedCopyPathReturned) filePaths.push(otp.scannedCopyPathReturned);
-    await prisma.otp.update({
-      where: { id: otp.id },
-      data: {
-        scannedCopyPathSeller: null,
-        scannedCopyPathReturned: null,
-        scannedCopyDeletedAt: new Date(),
-      },
+  await prisma.$transaction(async (tx) => {
+    // Null OTP scan paths
+    const otp = await tx.otp.findUnique({
+      where: { transactionId },
+      select: { id: true, scannedCopyPathSeller: true, scannedCopyPathReturned: true },
     });
-  }
-
-  // Null invoice path
-  const invoice = await prisma.commissionInvoice.findUnique({
-    where: { transactionId },
-    select: { id: true, invoiceFilePath: true },
-  });
-  if (invoice?.invoiceFilePath) {
-    filePaths.push(invoice.invoiceFilePath);
-    await prisma.commissionInvoice.update({
-      where: { id: invoice.id },
-      data: { invoiceFilePath: null, invoiceDeletedAt: new Date() },
-    });
-  }
-
-  // Clear CDD documents and redact NRIC for seller
-  const cddRecords = await prisma.cddRecord.findMany({
-    where: { subjectType: SubjectType.seller, subjectId: sellerId },
-    select: { id: true, documents: true, nricLast4: true },
-  });
-  for (const cdd of cddRecords) {
-    const docs = (cdd.documents as { path?: string }[] | null) ?? [];
-    for (const doc of docs) {
-      if (doc.path) filePaths.push(doc.path);
+    if (otp) {
+      if (otp.scannedCopyPathSeller) filePaths.push(otp.scannedCopyPathSeller);
+      if (otp.scannedCopyPathReturned) filePaths.push(otp.scannedCopyPathReturned);
+      await tx.otp.update({
+        where: { id: otp.id },
+        data: {
+          scannedCopyPathSeller: null,
+          scannedCopyPathReturned: null,
+          scannedCopyDeletedAt: new Date(),
+        },
+      });
     }
-    await prisma.cddRecord.update({
-      where: { id: cdd.id },
-      data: {
-        documents: [],
-        nricLast4: 'XXXX',
-      },
-    });
-  }
 
-  // Clear counterparty CDD documents too
-  const counterpartyCdd = await prisma.cddRecord.findMany({
-    where: { subjectType: SubjectType.counterparty, subjectId: transactionId },
-    select: { id: true, documents: true, nricLast4: true },
-  });
-  for (const cdd of counterpartyCdd) {
-    const docs = (cdd.documents as { path?: string }[] | null) ?? [];
-    for (const doc of docs) {
-      if (doc.path) filePaths.push(doc.path);
-    }
-    await prisma.cddRecord.update({
-      where: { id: cdd.id },
-      data: {
-        documents: [],
-        nricLast4: 'XXXX',
-      },
+    // Null invoice path
+    const invoice = await tx.commissionInvoice.findUnique({
+      where: { transactionId },
+      select: { id: true, invoiceFilePath: true },
     });
-  }
+    if (invoice?.invoiceFilePath) {
+      filePaths.push(invoice.invoiceFilePath);
+      await tx.commissionInvoice.update({
+        where: { id: invoice.id },
+        data: { invoiceFilePath: null, invoiceDeletedAt: new Date() },
+      });
+    }
+
+    // Clear CDD documents and redact NRIC for seller
+    const cddRecords = await tx.cddRecord.findMany({
+      where: { subjectType: SubjectType.seller, subjectId: sellerId },
+      select: { id: true, documents: true, nricLast4: true },
+    });
+    for (const cdd of cddRecords) {
+      const docs = (cdd.documents as { path?: string }[] | null) ?? [];
+      for (const doc of docs) {
+        if (doc.path) filePaths.push(doc.path);
+      }
+    }
+    const sellerCddIds = cddRecords.map((c) => c.id);
+    if (sellerCddIds.length > 0) {
+      await tx.cddRecord.updateMany({
+        where: { id: { in: sellerCddIds } },
+        data: { documents: [], nricLast4: 'XXXX' },
+      });
+    }
+
+    // Clear counterparty CDD documents too
+    const counterpartyCdd = await tx.cddRecord.findMany({
+      where: { subjectType: SubjectType.counterparty, subjectId: transactionId },
+      select: { id: true, documents: true, nricLast4: true },
+    });
+    for (const cdd of counterpartyCdd) {
+      const docs = (cdd.documents as { path?: string }[] | null) ?? [];
+      for (const doc of docs) {
+        if (doc.path) filePaths.push(doc.path);
+      }
+    }
+    const counterpartyCddIds = counterpartyCdd.map((c) => c.id);
+    if (counterpartyCddIds.length > 0) {
+      await tx.cddRecord.updateMany({
+        where: { id: { in: counterpartyCddIds } },
+        data: { documents: [], nricLast4: 'XXXX' },
+      });
+    }
+  });
 
   return { filePaths };
 }
@@ -511,22 +584,38 @@ export async function findCompletedTransactionsForFinancialRedaction(cutoffDate:
 }
 
 export async function redactTransactionFinancialData(transactionId: string): Promise<void> {
-  await prisma.transaction.update({
-    where: { id: transactionId },
-    data: { agreedPrice: 0, optionFee: null },
-  });
+  await prisma.$transaction(async (tx) => {
+    // Redact transaction financial fields and get propertyId + sellerId
+    const txRecord = await tx.transaction.update({
+      where: { id: transactionId },
+      data: { agreedPrice: 0, optionFee: null },
+      select: { propertyId: true, sellerId: true },
+    });
 
-  // Redact all offers for the transaction's property
-  const tx = await prisma.transaction.findUnique({
-    where: { id: transactionId },
-    select: { propertyId: true },
-  });
-  if (tx) {
-    await prisma.offer.updateMany({
-      where: { propertyId: tx.propertyId },
+    // Redact all offers for the transaction's property
+    await tx.offer.updateMany({
+      where: { propertyId: txRecord.propertyId },
       data: { offerAmount: 0, counterAmount: null },
     });
-  }
+
+    // Redact sale proceeds if they exist
+    await tx.saleProceeds.updateMany({
+      where: { sellerId: txRecord.sellerId },
+      data: {
+        sellingPrice: 0,
+        outstandingLoan: 0,
+        cpfSeller1: 0,
+        cpfSeller2: null,
+        cpfSeller3: null,
+        cpfSeller4: null,
+        resaleLevy: 0,
+        otherDeductions: 0,
+        buyerDeposit: 0,
+        commission: 0,
+        netProceeds: 0,
+      },
+    });
+  });
 }
 
 // ─── Tier 3: Seller PII Anonymisation ───────────────────────────────────────
@@ -571,28 +660,27 @@ export async function anonymiseTransactionSeller(
   transactionId: string,
   sellerId: string,
 ): Promise<void> {
-  // Anonymise seller PII
-  await prisma.seller.update({
-    where: { id: sellerId },
-    data: { name: 'Anonymised Seller', email: null, phone: '' },
-  });
+  await prisma.$transaction(async (tx) => {
+    // Anonymise seller PII
+    await tx.seller.update({
+      where: { id: sellerId },
+      data: {
+        name: 'Anonymised Seller',
+        email: null,
+        phone: `anonymised-${sellerId}`,
+      },
+    });
 
-  // Anonymise offer counterparty PII
-  const tx = await prisma.transaction.findUnique({
-    where: { id: transactionId },
-    select: { propertyId: true },
-  });
-  if (tx) {
-    await prisma.offer.updateMany({
-      where: { propertyId: tx.propertyId },
+    // Anonymise offer counterparty PII and set anonymisedAt in one pass
+    const txRecord = await tx.transaction.update({
+      where: { id: transactionId },
+      data: { anonymisedAt: new Date() },
+      select: { propertyId: true },
+    });
+    await tx.offer.updateMany({
+      where: { propertyId: txRecord.propertyId },
       data: { buyerName: null, buyerPhone: null },
     });
-  }
-
-  // Set anonymisedAt
-  await prisma.transaction.update({
-    where: { id: transactionId },
-    data: { anonymisedAt: new Date() },
   });
 }
 
@@ -760,6 +848,14 @@ export async function redactNricFromCddRecord(cddRecordId: string): Promise<void
   });
 }
 
+export async function redactNricFromCddRecordsBatch(cddRecordIds: string[]): Promise<void> {
+  if (cddRecordIds.length === 0) return;
+  await prisma.cddRecord.updateMany({
+    where: { id: { in: cddRecordIds } },
+    data: { nricLast4: 'XXXX' },
+  });
+}
+
 export async function findCddRecordsForRetention(
   cutoffDate: Date,
 ): Promise<{ id: string; subjectId: string; documents: unknown; verifiedAt: Date | null }[]> {
@@ -797,6 +893,18 @@ export async function findExistingDeletionRequest(
   });
 }
 
+export async function findExistingDeletionRequestIds(
+  targetType: string,
+  targetIds: string[],
+): Promise<Set<string>> {
+  if (targetIds.length === 0) return new Set();
+  const results = await prisma.dataDeletionRequest.findMany({
+    where: { targetType: targetType as never, targetId: { in: targetIds } },
+    select: { targetId: true },
+  });
+  return new Set(results.map((r) => r.targetId));
+}
+
 export async function findStaleCorrectionRequests(cutoffDate: Date): Promise<
   {
     id: string;
@@ -824,77 +932,84 @@ export async function findStaleCorrectionRequests(cutoffDate: Date): Promise<
 // ─── Hard Delete ─────────────────────────────────────────────────────────────
 
 export async function hardDeleteSeller(sellerId: string): Promise<void> {
-  // Delete in FK dependency order — no schema-level cascade on any relation
+  await prisma.$transaction(async (tx) => {
+    // Delete in FK dependency order — no schema-level cascade on any relation
 
-  // 1. Testimonial (FK to seller + transaction)
-  await prisma.testimonial.deleteMany({ where: { sellerId } });
+    // 1. Testimonial (FK to seller + transaction)
+    await tx.testimonial.deleteMany({ where: { sellerId } });
 
-  // 2. Transaction children (Otp, CommissionInvoice), then Transactions
-  const txIds = (
-    await prisma.transaction.findMany({ where: { sellerId }, select: { id: true } })
-  ).map((t) => t.id);
-  if (txIds.length > 0) {
-    await prisma.otp.deleteMany({ where: { transactionId: { in: txIds } } });
-    await prisma.commissionInvoice.deleteMany({ where: { transactionId: { in: txIds } } });
-    await prisma.transaction.deleteMany({ where: { sellerId } });
-  }
-
-  // 3. Property grandchildren and children (all FK-restrict to Property)
-  const propertyIds = (
-    await prisma.property.findMany({ where: { sellerId }, select: { id: true } })
-  ).map((p) => p.id);
-  if (propertyIds.length > 0) {
-    // PortalListing → Listing
-    const listingIds = (
-      await prisma.listing.findMany({
-        where: { propertyId: { in: propertyIds } },
-        select: { id: true },
-      })
-    ).map((l) => l.id);
-    if (listingIds.length > 0) {
-      await prisma.portalListing.deleteMany({ where: { listingId: { in: listingIds } } });
+    // 2. Transaction children (Otp, CommissionInvoice), then Transactions
+    const txIds = (
+      await tx.transaction.findMany({ where: { sellerId }, select: { id: true } })
+    ).map((t) => t.id);
+    if (txIds.length > 0) {
+      await tx.otp.deleteMany({ where: { transactionId: { in: txIds } } });
+      await tx.commissionInvoice.deleteMany({ where: { transactionId: { in: txIds } } });
+      await tx.transaction.deleteMany({ where: { sellerId } });
     }
-    await prisma.listing.deleteMany({ where: { propertyId: { in: propertyIds } } });
 
-    // Viewing → ViewingSlot
-    const slotIds = (
-      await prisma.viewingSlot.findMany({
+    // 3. Property grandchildren and children (all FK-restrict to Property)
+    const propertyIds = (
+      await tx.property.findMany({ where: { sellerId }, select: { id: true } })
+    ).map((p) => p.id);
+    if (propertyIds.length > 0) {
+      // PortalListing → Listing
+      const listingIds = (
+        await tx.listing.findMany({
+          where: { propertyId: { in: propertyIds } },
+          select: { id: true },
+        })
+      ).map((l) => l.id);
+      if (listingIds.length > 0) {
+        await tx.portalListing.deleteMany({ where: { listingId: { in: listingIds } } });
+      }
+      await tx.listing.deleteMany({ where: { propertyId: { in: propertyIds } } });
+
+      // Viewing → ViewingSlot
+      const slotIds = (
+        await tx.viewingSlot.findMany({
+          where: { propertyId: { in: propertyIds } },
+          select: { id: true },
+        })
+      ).map((s) => s.id);
+      if (slotIds.length > 0) {
+        await tx.viewing.deleteMany({ where: { viewingSlotId: { in: slotIds } } });
+      }
+      await tx.viewingSlot.deleteMany({ where: { propertyId: { in: propertyIds } } });
+
+      // RecurringSchedule → Property
+      await tx.recurringSchedule.deleteMany({ where: { propertyId: { in: propertyIds } } });
+
+      // Offer: break self-references, then delete
+      await tx.offer.updateMany({
         where: { propertyId: { in: propertyIds } },
-        select: { id: true },
-      })
-    ).map((s) => s.id);
-    if (slotIds.length > 0) {
-      await prisma.viewing.deleteMany({ where: { viewingSlotId: { in: slotIds } } });
+        data: { parentOfferId: null },
+      });
+      await tx.offer.deleteMany({ where: { propertyId: { in: propertyIds } } });
     }
-    await prisma.viewingSlot.deleteMany({ where: { propertyId: { in: propertyIds } } });
 
-    // Offer: break self-references, then delete
-    await prisma.offer.updateMany({
-      where: { propertyId: { in: propertyIds } },
-      data: { parentOfferId: null },
+    // 4. Direct seller children (FK-restrict to Seller)
+    await tx.financialReport.deleteMany({ where: { sellerId } });
+    await tx.weeklyUpdate.deleteMany({ where: { sellerId } });
+    await tx.documentChecklist.deleteMany({ where: { sellerId } });
+    await tx.estateAgencyAgreement.deleteMany({ where: { sellerId } });
+    await tx.consentRecord.deleteMany({ where: { sellerId } });
+    await tx.caseFlag.deleteMany({ where: { sellerId } });
+    await tx.dataCorrectionRequest.deleteMany({ where: { sellerId } });
+
+    // 5. Referrals: delete given, nullify received
+    await tx.referral.deleteMany({ where: { referrerSellerId: sellerId } });
+    await tx.referral.updateMany({
+      where: { referredSellerId: sellerId },
+      data: { referredSellerId: null },
     });
-    await prisma.offer.deleteMany({ where: { propertyId: { in: propertyIds } } });
-  }
 
-  // 4. Direct seller children (FK-restrict to Seller)
-  await prisma.financialReport.deleteMany({ where: { sellerId } });
-  await prisma.weeklyUpdate.deleteMany({ where: { sellerId } });
-  await prisma.documentChecklist.deleteMany({ where: { sellerId } });
-  await prisma.estateAgencyAgreement.deleteMany({ where: { sellerId } });
-  await prisma.consentRecord.deleteMany({ where: { sellerId } });
-  await prisma.caseFlag.deleteMany({ where: { sellerId } });
-  await prisma.dataCorrectionRequest.deleteMany({ where: { sellerId } });
-
-  // 5. Referrals: delete given, nullify received
-  await prisma.referral.deleteMany({ where: { referrerSellerId: sellerId } });
-  await prisma.referral.updateMany({
-    where: { referredSellerId: sellerId },
-    data: { referredSellerId: null },
+    // 6. SaleProceeds, SellerDocuments, Property, then Seller
+    await tx.saleProceeds.deleteMany({ where: { sellerId } });
+    await tx.sellerDocument.deleteMany({ where: { sellerId } });
+    await tx.property.deleteMany({ where: { sellerId } });
+    await tx.seller.delete({ where: { id: sellerId } });
   });
-
-  // 6. Property, then Seller
-  await prisma.property.deleteMany({ where: { sellerId } });
-  await prisma.seller.delete({ where: { id: sellerId } });
 }
 
 export async function hardDeleteCddDocuments(cddRecordId: string): Promise<void> {
@@ -1095,10 +1210,14 @@ export async function findVerifiedViewersForRetention(
 
 export async function anonymiseVerifiedViewerRecords(viewerIds: string[]): Promise<void> {
   if (viewerIds.length === 0) return;
-  await prisma.verifiedViewer.updateMany({
-    where: { id: { in: viewerIds } },
-    data: { name: 'Anonymised Viewer', phone: '' },
-  });
+  await prisma.$transaction(
+    viewerIds.map((id) =>
+      prisma.verifiedViewer.update({
+        where: { id },
+        data: { name: 'Anonymised Viewer', phone: `anonymised-${id}` },
+      }),
+    ),
+  );
 }
 
 export async function findBuyersForRetention(
@@ -1112,10 +1231,14 @@ export async function findBuyersForRetention(
 
 export async function anonymiseBuyerRecords(buyerIds: string[]): Promise<void> {
   if (buyerIds.length === 0) return;
-  await prisma.buyer.updateMany({
-    where: { id: { in: buyerIds } },
-    data: { name: 'Anonymised Buyer', email: null, phone: '' },
-  });
+  await prisma.$transaction(
+    buyerIds.map((id) =>
+      prisma.buyer.update({
+        where: { id },
+        data: { name: 'Anonymised Buyer', email: null, phone: `anonymised-${id}` },
+      }),
+    ),
+  );
 }
 
 // ─── Agent Anonymisation ──────────────────────────────────────────────────────
@@ -1124,9 +1247,15 @@ export async function anonymiseAgentRecord(agentId: string): Promise<void> {
   await prisma.agent.update({
     where: { id: agentId },
     data: {
-      name: `Former Agent ${agentId}`,
+      name: `Former Agent [${agentId}]`,
       email: `anonymised-${agentId}@deleted.local`,
       phone: `anonymised-${agentId}`,
+      passwordHash: '',
+      twoFactorSecret: null,
+      twoFactorBackupCodes: Prisma.JsonNull,
+      passwordResetToken: null,
+      passwordResetExpiry: null,
+      isActive: false,
     },
   });
 }
@@ -1157,14 +1286,16 @@ export async function findCddRecordById(id: string): Promise<CddRecord | null> {
 }
 
 export async function addCddDocument(cddRecordId: string, doc: CddDocument): Promise<void> {
-  const record = await prisma.cddRecord.findUnique({
-    where: { id: cddRecordId },
-    select: { documents: true },
-  });
-  const existing = (record?.documents as unknown as CddDocument[]) ?? [];
-  await prisma.cddRecord.update({
-    where: { id: cddRecordId },
-    data: { documents: [...existing, doc] as unknown as Prisma.InputJsonValue },
+  await prisma.$transaction(async (tx) => {
+    const record = await tx.cddRecord.findUnique({
+      where: { id: cddRecordId },
+      select: { documents: true },
+    });
+    const existing = (record?.documents as unknown as CddDocument[]) ?? [];
+    await tx.cddRecord.update({
+      where: { id: cddRecordId },
+      data: { documents: [...existing, doc] as unknown as Prisma.InputJsonValue },
+    });
   });
 }
 
@@ -1172,21 +1303,23 @@ export async function removeCddDocument(
   cddRecordId: string,
   documentId: string,
 ): Promise<string | null> {
-  const record = await prisma.cddRecord.findUnique({
-    where: { id: cddRecordId },
-    select: { documents: true },
-  });
-  const existing = (record?.documents as unknown as CddDocument[]) ?? [];
-  const target = existing.find((d) => d.id === documentId);
-  if (!target) return null;
+  return prisma.$transaction(async (tx) => {
+    const record = await tx.cddRecord.findUnique({
+      where: { id: cddRecordId },
+      select: { documents: true },
+    });
+    const existing = (record?.documents as unknown as CddDocument[]) ?? [];
+    const target = existing.find((d) => d.id === documentId);
+    if (!target) return null;
 
-  await prisma.cddRecord.update({
-    where: { id: cddRecordId },
-    data: {
-      documents: existing.filter((d) => d.id !== documentId) as unknown as Prisma.InputJsonValue,
-    },
+    await tx.cddRecord.update({
+      where: { id: cddRecordId },
+      data: {
+        documents: existing.filter((d) => d.id !== documentId) as unknown as Prisma.InputJsonValue,
+      },
+    });
+    return target.path;
   });
-  return target.path;
 }
 
 export async function findCddRecordWithDocument(

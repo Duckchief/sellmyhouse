@@ -40,3 +40,6 @@
   </main>
 </div>
 {% endblock %}
+{% block scripts %}
+<script src="/js/app.js?v={{ assetVersion }}" nonce="{{ cspNonce }}"></script>
+{% endblock %}

@@ -40,6 +40,8 @@ jobs:
           context: .
           file: docker/Dockerfile
           push: true
+          build-args: |
+            GIT_SHA=${{ github.sha }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:staging
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:staging-${{ github.sha }}

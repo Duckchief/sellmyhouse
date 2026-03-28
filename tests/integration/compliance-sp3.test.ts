@@ -164,7 +164,7 @@ describe('Compliance SP3 — Retention + Deletion + Anonymisation (integration)'
       });
 
       const anonymised = await testPrisma.agent.findUnique({ where: { id: agent.id } });
-      expect(anonymised?.name).toBe(`Former Agent ${agent.id}`);
+      expect(anonymised?.name).toBe(`Former Agent [${agent.id}]`);
       expect(anonymised?.email).toBe(`anonymised-${agent.id}@deleted.local`);
       // phone is non-nullable in schema, so it's set to an anonymised string value
       expect(anonymised?.phone).toMatch(/anonymised/);

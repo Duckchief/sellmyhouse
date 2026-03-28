@@ -8,6 +8,7 @@ export async function findActiveSellerByPhone(phone: string) {
       phone,
       status: { in: ['lead', 'engaged', 'active'] },
     },
+    select: { id: true, phone: true, status: true },
   });
 }
 

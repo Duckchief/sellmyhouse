@@ -1,20 +1,20 @@
 import { maskNric, validateNricLast4, maskPhone, maskEmail } from './nric';
 
 describe('maskNric', () => {
-  it('masks a 4-char last-4 NRIC to SXXXX format', () => {
-    expect(maskNric('567A')).toBe('SXXXX567A');
+  it('masks a 4-char last-4 NRIC to XXXX format (no prefix — prefix is unknown)', () => {
+    expect(maskNric('567A')).toBe('XXXX567A');
   });
-  it('works with lowercase letters in last char (uppercase output)', () => {
-    expect(maskNric('567a')).toBe('SXXXX567a');
+  it('works with lowercase letters in last char', () => {
+    expect(maskNric('567a')).toBe('XXXX567a');
   });
   it('handles exactly 4 characters', () => {
-    expect(maskNric('123B')).toBe('SXXXX123B');
+    expect(maskNric('123B')).toBe('XXXX123B');
   });
   it('returns INVALID for empty string', () => {
-    expect(maskNric('')).toBe('SXXXXINVALID');
+    expect(maskNric('')).toBe('XXXXINVALID');
   });
   it('returns INVALID for string shorter than 4 chars', () => {
-    expect(maskNric('12')).toBe('SXXXXINVALID');
+    expect(maskNric('12')).toBe('XXXXINVALID');
   });
 });
 
@@ -48,11 +48,14 @@ describe('maskPhone', () => {
   it('returns **** for empty string', () => {
     expect(maskPhone('')).toBe('****');
   });
-  it('shows only last 4 when phone is exactly 4 chars', () => {
-    expect(maskPhone('1234')).toBe('1234');
+  it('masks phone of exactly 4 chars showing only last 2 (L29)', () => {
+    expect(maskPhone('1234')).toBe('**34');
   });
-  it('masks correctly when phone is shorter than 4 chars', () => {
-    expect(maskPhone('12')).toBe('**');
+  it('masks phone shorter than 4 chars showing only last 2 (L29)', () => {
+    expect(maskPhone('12')).toBe('**12');
+  });
+  it('masks single-char phone', () => {
+    expect(maskPhone('9')).toBe('**9');
   });
 });
 
@@ -60,8 +63,8 @@ describe('maskEmail', () => {
   it('masks local part keeping first char, replaces rest with ***, keeps domain', () => {
     expect(maskEmail('john@example.com')).toBe('j***@example.com');
   });
-  it('handles single-char local part', () => {
-    expect(maskEmail('a@b.com')).toBe('a***@b.com');
+  it('masks single-char local part fully (L38)', () => {
+    expect(maskEmail('a@b.com')).toBe('***@b.com');
   });
   it('masks longer local part to j***', () => {
     expect(maskEmail('johndoe@test.sg')).toBe('j***@test.sg');

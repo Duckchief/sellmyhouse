@@ -54,23 +54,30 @@ export async function findByPropertyId(propertyId: string) {
 
 export async function updateTransactionStatus(
   id: string,
-  status: TransactionStatus,
+  newStatus: TransactionStatus,
+  currentStatus: TransactionStatus,
   completionDate?: Date | null,
 ) {
-  return prisma.transaction.update({
-    where: { id },
+  const result = await prisma.transaction.updateMany({
+    where: { id, status: currentStatus },
     data: {
-      status,
+      status: newStatus,
+      updatedAt: new Date(),
       ...(completionDate !== undefined ? { completionDate } : {}),
     },
   });
+  return result.count;
 }
 
 export async function updateFallenThrough(id: string, reason: string) {
-  return prisma.transaction.update({
-    where: { id },
-    data: { status: 'fallen_through', fallenThroughReason: reason },
+  const result = await prisma.transaction.updateMany({
+    where: {
+      id,
+      status: { notIn: ['completed', 'fallen_through'] },
+    },
+    data: { status: 'fallen_through', fallenThroughReason: reason, updatedAt: new Date() },
   });
+  return result.count;
 }
 
 export async function updateHdbTracking(
@@ -180,15 +187,23 @@ export async function updateOtpReview(
   });
 }
 
-export async function updateOtpScanPath(id: string, scanType: 'seller' | 'returned', path: string) {
-  const field = scanType === 'seller' ? 'scannedCopyPathSeller' : 'scannedCopyPathReturned';
-  return prisma.otp.update({ where: { id }, data: { [field]: path } });
+export async function updateOtpScanPath(
+  id: string,
+  scanType: 'seller' | 'returned',
+  path: string,
+  wrappedKey: string,
+) {
+  const pathField = scanType === 'seller' ? 'scannedCopyPathSeller' : 'scannedCopyPathReturned';
+  const keyField =
+    scanType === 'seller' ? 'scannedCopyWrappedKeySeller' : 'scannedCopyWrappedKeyReturned';
+  return prisma.otp.update({ where: { id }, data: { [pathField]: path, [keyField]: wrappedKey } });
 }
 
 export async function createCommissionInvoice(data: {
   id?: string;
   transactionId: string;
   invoiceFilePath: string;
+  invoiceWrappedKey: string;
   invoiceNumber: string;
   amount: number;
   gstAmount: number;
@@ -199,6 +214,7 @@ export async function createCommissionInvoice(data: {
       id: data.id ?? createId(),
       transactionId: data.transactionId,
       invoiceFilePath: data.invoiceFilePath,
+      invoiceWrappedKey: data.invoiceWrappedKey,
       invoiceNumber: data.invoiceNumber,
       amount: data.amount,
       gstAmount: data.gstAmount,
@@ -279,7 +295,21 @@ export async function findCounterpartyCddByPropertyId(propertyId: string) {
 export async function findOtpsIssuedToBuyer() {
   return prisma.otp.findMany({
     where: { status: 'issued_to_buyer' },
-    include: { transaction: { include: { seller: true } } },
+    include: {
+      transaction: {
+        include: {
+          seller: {
+            select: {
+              id: true,
+              name: true,
+              agentId: true,
+              phone: true,
+              notificationPreference: true,
+            },
+          },
+        },
+      },
+    },
   });
 }
 
@@ -294,7 +324,19 @@ export async function findTransactionsCompletedOn(date: Date) {
       status: 'completed',
       completionDate: { gte: start, lte: end },
     },
-    include: { seller: true },
+    include: {
+      seller: {
+        select: {
+          id: true,
+          name: true,
+          agentId: true,
+          phone: true,
+          notificationPreference: true,
+          consentMarketing: true,
+        },
+      },
+      property: true,
+    },
   });
 }
 

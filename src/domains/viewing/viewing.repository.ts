@@ -363,6 +363,31 @@ export async function updateViewingStatus(
   return prisma.viewing.update({ where: { id }, data });
 }
 
+/**
+ * Atomically cancel a viewing and decrement the slot's currentBookings using
+ * Prisma's atomic decrement to avoid lost-update race conditions.
+ */
+export async function cancelViewingAtomically(
+  viewingId: string,
+  slotId: string,
+  newSlotStatus: SlotStatus,
+) {
+  return prisma.$transaction(async (tx) => {
+    await tx.viewing.update({
+      where: { id: viewingId },
+      data: { status: 'cancelled' as ViewingStatus },
+    });
+
+    return tx.viewingSlot.update({
+      where: { id: slotId },
+      data: {
+        currentBookings: { decrement: 1 },
+        status: newSlotStatus,
+      },
+    });
+  });
+}
+
 export async function findViewingsBySlot(slotId: string) {
   return prisma.viewing.findMany({
     where: { viewingSlotId: slotId, status: { notIn: ['cancelled'] } },
@@ -381,15 +406,17 @@ export async function findDuplicateBooking(phone: string, slotId: string) {
 }
 
 export async function countBookingsToday(phone: string) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  // L43: Use Asia/Singapore timezone so the "today" boundary is correct regardless of server TZ
+  const now = new Date();
+  const sgDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Singapore' }));
+  sgDate.setHours(0, 0, 0, 0);
+  const sgTomorrow = new Date(sgDate);
+  sgTomorrow.setDate(sgTomorrow.getDate() + 1);
 
   return prisma.viewing.count({
     where: {
       verifiedViewer: { phone },
-      createdAt: { gte: today, lt: tomorrow },
+      createdAt: { gte: sgDate, lt: sgTomorrow },
       status: { notIn: ['cancelled'] },
     },
   });
@@ -468,24 +495,23 @@ export async function findUpcomingViewingsForProperty(propertyId: string) {
 }
 
 export async function getViewingStats(propertyId: string) {
-  const totalViewings = await prisma.viewing.count({
-    where: { propertyId, status: { notIn: ['cancelled', 'pending_otp'] } },
-  });
-
-  const upcomingCount = await prisma.viewing.count({
-    where: { propertyId, status: 'scheduled', scheduledAt: { gte: new Date() } },
-  });
-
-  const noShowCount = await prisma.viewing.count({
-    where: { propertyId, status: 'no_show' },
-  });
-
-  const avgRating = await prisma.$queryRaw<{ avg: number | null }[]>`
-    SELECT AVG(interest_rating)::float as avg
-    FROM viewings
-    WHERE property_id = ${propertyId}
-      AND interest_rating IS NOT NULL
-  `;
+  const [totalViewings, upcomingCount, noShowCount, avgRating] = await Promise.all([
+    prisma.viewing.count({
+      where: { propertyId, status: { notIn: ['cancelled', 'pending_otp'] } },
+    }),
+    prisma.viewing.count({
+      where: { propertyId, status: 'scheduled', scheduledAt: { gte: new Date() } },
+    }),
+    prisma.viewing.count({
+      where: { propertyId, status: 'no_show' },
+    }),
+    prisma.$queryRaw<{ avg: number | null }[]>`
+      SELECT AVG(interest_rating)::float as avg
+      FROM viewings
+      WHERE property_id = ${propertyId}
+        AND interest_rating IS NOT NULL
+    `,
+  ]);
 
   return {
     totalViewings,
@@ -523,7 +549,11 @@ export async function findTodaysViewingsGroupedBySeller() {
     include: {
       viewingSlot: true,
       verifiedViewer: true,
-      property: { include: { seller: true } },
+      property: {
+        include: {
+          seller: { select: { id: true, name: true, agentId: true, phone: true } },
+        },
+      },
     },
     orderBy: { scheduledAt: 'asc' },
   });
@@ -540,7 +570,7 @@ export async function findViewingsNeedingFeedbackPrompt() {
     JOIN properties p ON v.property_id = p.id
     WHERE v.status = 'completed'
       AND v.feedback IS NULL
-      AND (vs.date + vs.end_time::time) < ${oneHourAgoIso}::timestamptz
+      AND (vs.date + vs.end_time::time) AT TIME ZONE 'Asia/Singapore' < ${oneHourAgoIso}::timestamptz
   `;
 }
 

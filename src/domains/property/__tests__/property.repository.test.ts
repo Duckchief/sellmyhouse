@@ -1,8 +1,8 @@
 import * as propertyRepo from '../property.repository';
 import type { CreatePropertyInput, UpdatePropertyInput, PhotoRecord } from '../property.types';
 
-jest.mock('../../../infra/database/prisma', () => ({
-  prisma: {
+jest.mock('../../../infra/database/prisma', () => {
+  const mockPrismaObj = {
     property: {
       create: jest.fn(),
       findUnique: jest.fn(),
@@ -15,8 +15,10 @@ jest.mock('../../../infra/database/prisma', () => ({
       update: jest.fn(),
       findMany: jest.fn(),
     },
-  },
-}));
+    $transaction: jest.fn((cb: (tx: unknown) => Promise<unknown>) => cb(mockPrismaObj)),
+  } as Record<string, unknown>;
+  return { prisma: mockPrismaObj };
+});
 jest.mock('@paralleldrive/cuid2', () => ({ createId: () => 'test-id-123' }));
 
 const { prisma } = jest.requireMock('../../../infra/database/prisma');

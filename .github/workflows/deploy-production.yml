@@ -82,6 +82,8 @@ jobs:
           context: .
           file: docker/Dockerfile
           push: true
+          build-args: |
+            GIT_SHA=${{ github.sha }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:prod-${{ github.sha }}

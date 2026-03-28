@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import * as authRepo from '../auth/auth.repository';
 import * as complianceRepo from '../compliance/compliance.repository';
 import { localStorage } from '@/infra/storage/local-storage';
+import { encryptedStorage } from '@/infra/storage/encrypted-storage';
 import * as auditService from '../shared/audit.service';
 import { UnauthorizedError } from '../shared/errors';
 
@@ -32,9 +33,14 @@ export async function deleteSellerAccount(sellerId: string, password: string): P
   await complianceRepo.hardDeleteSeller(sellerId);
 
   // Best-effort file deletion — DB record already gone, log failures but don't throw
+  // Use encryptedStorage for .enc files (seller documents), localStorage for others
   for (const filePath of filePaths) {
     try {
-      await localStorage.delete(filePath);
+      if (filePath.endsWith('.enc')) {
+        await encryptedStorage.delete(filePath);
+      } else {
+        await localStorage.delete(filePath);
+      }
     } catch (err) {
       await auditService.log({
         action: 'compliance.file_unlink_failed',

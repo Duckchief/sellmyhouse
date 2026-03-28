@@ -78,7 +78,7 @@ notificationRouter.post(
   },
 );
 
-// Unsubscribe from marketing emails via link in email
+// Unsubscribe from marketing emails via link in email — step 1: show confirmation page
 notificationRouter.get(
   '/api/notifications/unsubscribe',
   async (req: Request, res: Response, next: NextFunction) => {
@@ -86,7 +86,40 @@ notificationRouter.get(
       const token = req.query.token as string;
       if (!token) return res.status(400).render('pages/error', { message: 'Missing token' });
 
-      const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
+      const payload = jwt.verify(token, process.env.JWT_SECRET!, {
+        algorithms: ['HS256'],
+      }) as {
+        sellerId: string;
+        purpose: string;
+      };
+
+      if (payload.purpose !== 'marketing_consent_withdrawal') {
+        return res.status(400).render('pages/error', { message: 'Invalid token' });
+      }
+
+      res.render('pages/unsubscribe-confirm', { token });
+    } catch (err) {
+      if (err instanceof jwt.JsonWebTokenError || err instanceof jwt.TokenExpiredError) {
+        return res
+          .status(400)
+          .render('pages/error', { message: 'Invalid or expired unsubscribe link' });
+      }
+      next(err);
+    }
+  },
+);
+
+// Unsubscribe from marketing emails — step 2: perform the withdrawal
+notificationRouter.post(
+  '/api/notifications/unsubscribe',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const token = req.body.token as string;
+      if (!token) return res.status(400).render('pages/error', { message: 'Missing token' });
+
+      const payload = jwt.verify(token, process.env.JWT_SECRET!, {
+        algorithms: ['HS256'],
+      }) as {
         sellerId: string;
         purpose: string;
       };

@@ -62,16 +62,15 @@ describe('property.service', () => {
       };
 
       const fakeProperty = { id: 'prop-1', ...input };
-      const fakeListing = { id: 'listing-1', propertyId: 'prop-1', status: 'draft' };
 
-      mockedRepo.create.mockResolvedValue(fakeProperty as Property);
-      mockedRepo.createListing.mockResolvedValue(fakeListing as unknown as Listing);
+      mockedRepo.createPropertyWithListing.mockResolvedValue(fakeProperty as Property);
       mockedAudit.log.mockResolvedValue(undefined);
 
       const result = await propertyService.createProperty(input);
 
-      expect(mockedRepo.create).toHaveBeenCalledWith(expect.objectContaining(input));
-      expect(mockedRepo.createListing).toHaveBeenCalledWith('prop-1');
+      expect(mockedRepo.createPropertyWithListing).toHaveBeenCalledWith(
+        expect.objectContaining(input),
+      );
       expect(mockedAudit.log).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'property.created',
@@ -99,13 +98,12 @@ describe('property.service', () => {
       const fakeProperty = { id: 'prop-1', ...input, slug: expectedSlug };
 
       mockedRepo.findBySlug.mockResolvedValue(null); // slug not taken
-      mockedRepo.create.mockResolvedValue(fakeProperty as unknown as Property);
-      mockedRepo.createListing.mockResolvedValue({ id: 'listing-1' } as unknown as Listing);
+      mockedRepo.createPropertyWithListing.mockResolvedValue(fakeProperty as unknown as Property);
       mockedAudit.log.mockResolvedValue(undefined);
 
       const result = await propertyService.createProperty(input);
 
-      expect(mockedRepo.create).toHaveBeenCalledWith(
+      expect(mockedRepo.createPropertyWithListing).toHaveBeenCalledWith(
         expect.objectContaining({ slug: expectedSlug }),
       );
       expect(result.slug).toBe(expectedSlug);
@@ -128,17 +126,16 @@ describe('property.service', () => {
       mockedRepo.findBySlug
         .mockResolvedValueOnce({ id: 'other-prop' } as unknown as Property)
         .mockResolvedValueOnce(null);
-      mockedRepo.create.mockResolvedValue({
+      mockedRepo.createPropertyWithListing.mockResolvedValue({
         id: 'prop-1',
         ...input,
         slug: '123-ang-mo-kio-ave-3-ang-mo-kio-abcdef',
       } as unknown as Property);
-      mockedRepo.createListing.mockResolvedValue({ id: 'listing-1' } as unknown as Listing);
       mockedAudit.log.mockResolvedValue(undefined);
 
       await propertyService.createProperty(input);
 
-      expect(mockedRepo.create).toHaveBeenCalledWith(
+      expect(mockedRepo.createPropertyWithListing).toHaveBeenCalledWith(
         expect.objectContaining({
           slug: expect.stringContaining('123-ang-mo-kio-ave-3-ang-mo-kio-'),
         }),
@@ -169,8 +166,9 @@ describe('property.service', () => {
 
     it('proceeds and logs MOP override audit when override reason is provided', async () => {
       mockedCaseFlagService.hasActiveMopFlag.mockResolvedValueOnce(true);
-      mockedRepo.create.mockResolvedValue({ id: 'prop-1' } as unknown as Property);
-      mockedRepo.createListing.mockResolvedValue({ id: 'listing-1' } as unknown as Listing);
+      mockedRepo.createPropertyWithListing.mockResolvedValue({
+        id: 'prop-1',
+      } as unknown as Property);
       mockedAudit.log.mockResolvedValue(undefined);
 
       await propertyService.createProperty({
@@ -187,7 +185,7 @@ describe('property.service', () => {
         agentId: 'agent-1',
       });
 
-      expect(mockedRepo.create).toHaveBeenCalled();
+      expect(mockedRepo.createPropertyWithListing).toHaveBeenCalled();
       expect(mockedAudit.log).toHaveBeenCalledWith(
         expect.objectContaining({
           agentId: 'agent-1',
@@ -540,7 +538,9 @@ describe('property.service', () => {
       mockedRepo.findByIdWithListings.mockResolvedValue(
         fakeProperty as unknown as PropertyWithListing,
       );
-      mockedRepo.updateListingStatus.mockResolvedValue(updatedListing as unknown as Listing);
+      mockedRepo.updateListingAndPropertyStatus.mockResolvedValue(
+        updatedListing as unknown as Listing,
+      );
       mockedReviewService.checkComplianceGate.mockResolvedValue(undefined);
       mockedAudit.log.mockResolvedValue(undefined);
 
@@ -550,7 +550,12 @@ describe('property.service', () => {
         'eaa_signed',
         'seller-1',
       );
-      expect(mockedRepo.updateListingStatus).toHaveBeenCalledWith('listing-1', 'live');
+      expect(mockedRepo.updateListingAndPropertyStatus).toHaveBeenCalledWith(
+        'listing-1',
+        'live',
+        'prop-1',
+        'listed',
+      );
       expect(result).toEqual(updatedListing);
     });
 
@@ -569,6 +574,7 @@ describe('property.service', () => {
         ComplianceError,
       );
       expect(mockedRepo.updateListingStatus).not.toHaveBeenCalled();
+      expect(mockedRepo.updateListingAndPropertyStatus).not.toHaveBeenCalled();
     });
   });
 
@@ -607,7 +613,7 @@ describe('property.service', () => {
       mockedRepo.saveAiDescription.mockResolvedValue({} as never);
     });
 
-    it('calls generateText and saves all aiDescription fields plus staging description', async () => {
+    it('calls generateText and saves aiDescription fields (not description - human-in-the-loop)', async () => {
       await propertyService.generateListingDescription(listingId, agentId, 'agent');
 
       expect(aiFacade.generateText).toHaveBeenCalledWith(expect.stringContaining('4 ROOM'));
@@ -617,7 +623,6 @@ describe('property.service', () => {
         aiDescriptionProvider: 'anthropic',
         aiDescriptionModel: 'claude-sonnet-4-6',
         aiDescriptionGeneratedAt: expect.any(Date),
-        description: 'Generated description text.',
         descriptionApprovedAt: null,
       });
       expect(mockedAudit.log).toHaveBeenCalledWith(

@@ -44,7 +44,9 @@ describe('seller-document.repository', () => {
 
       const result = await sellerDocRepo.create(input);
 
-      expect(mockPrisma.sellerDocument.create).toHaveBeenCalledWith({ data: input });
+      expect(mockPrisma.sellerDocument.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ ...input, id: expect.any(String) }),
+      });
       expect(result).toEqual(expected);
     });
   });

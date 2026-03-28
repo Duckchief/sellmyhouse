@@ -171,6 +171,7 @@ offerRouter.post(
       const offer = await offerService.reviewAiAnalysis({
         offerId: req.params['id'] as string,
         agentId: user.id,
+        role: user.role,
       });
 
       if (req.headers['hx-request']) {
@@ -197,6 +198,7 @@ offerRouter.post(
       const offer = await offerService.shareAiAnalysis({
         offerId: req.params['id'] as string,
         agentId: user.id,
+        role: user.role,
         sellerId: req.body.sellerId as string,
       });
 

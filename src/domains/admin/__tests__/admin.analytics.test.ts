@@ -20,7 +20,12 @@ describe('getAnalytics', () => {
       activeTransactions: 2,
       pendingInvoices: 1,
     });
-    mockSettings.getNumber.mockResolvedValue(1633.91);
+    (mockSettings.getCommission as jest.Mock).mockResolvedValue({
+      amount: 1499,
+      gstRate: 0.09,
+      gstAmount: 134.91,
+      total: 1633.91,
+    });
     mockRepo.getTransactionFunnel.mockResolvedValue({
       lead: 10,
       engaged: 5,

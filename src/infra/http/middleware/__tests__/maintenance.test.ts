@@ -6,7 +6,7 @@ jest.mock('@/domains/shared/settings.service');
 const mockSettings = settingsService as jest.Mocked<typeof settingsService>;
 
 // Import after mocking
-import { maintenanceMiddleware } from '../maintenance';
+import { maintenanceMiddleware, __clearMaintenanceCache } from '../maintenance';
 
 function makeReq(overrides: Partial<Request> = {}): Partial<Request> {
   return {
@@ -33,6 +33,7 @@ describe('maintenanceMiddleware', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     next = jest.fn();
+    __clearMaintenanceCache();
   });
 
   it('passes through when maintenance_mode is false', async () => {
@@ -169,5 +170,16 @@ describe('maintenanceMiddleware', () => {
     await maintenanceMiddleware(req, res, next);
 
     expect(next).toHaveBeenCalledWith(err);
+  });
+
+  it('calls settings service only once for rapid sequential requests', async () => {
+    mockSettings.get.mockResolvedValue('false');
+
+    await maintenanceMiddleware(makeReq() as Request, makeRes() as Response, next);
+    await maintenanceMiddleware(makeReq() as Request, makeRes() as Response, next);
+    await maintenanceMiddleware(makeReq() as Request, makeRes() as Response, next);
+
+    // Should be cached after first call — only 1 DB hit
+    expect(mockSettings.get).toHaveBeenCalledTimes(1);
   });
 });

@@ -6,7 +6,7 @@ import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as auditService from '@/domains/shared/audit.service';
-import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '@/domains/shared/errors';
+import { NotFoundError, ValidationError, ForbiddenError } from '@/domains/shared/errors';
 import { OFFER_TRANSITIONS, AI_ANALYSIS_STATUS } from './offer.types';
 import type { CreateOfferInput, CounterOfferInput } from './offer.types';
 

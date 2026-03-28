@@ -214,7 +214,7 @@ export async function loginAgent(email: string, password: string) {
 export async function setup2FA(
   userId: string,
   role: UserRole,
-  currentSessionId?: string,
+  _currentSessionId?: string,
 ): Promise<TotpSetupResult> {
   const secret = otpGenerateSecret();
   const issuer = role === 'seller' ? 'SellMyHouse (Seller)' : 'SellMyHouse (Agent)';

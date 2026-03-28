@@ -8,7 +8,6 @@ import * as auditService from '@/domains/shared/audit.service';
 import * as portalService from '@/domains/property/portal.service';
 import * as propertyService from '@/domains/property/property.service';
 import * as viewingService from '@/domains/viewing/viewing.service';
-import { localStorage } from '@/infra/storage/local-storage';
 import { encryptedStorage } from '@/infra/storage/encrypted-storage';
 import { scanBuffer } from '@/infra/security/virus-scanner';
 import {

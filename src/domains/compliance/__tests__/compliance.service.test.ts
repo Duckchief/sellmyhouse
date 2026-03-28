@@ -141,10 +141,10 @@ describe('checkDncAllowed', () => {
 describe('withdrawConsent', () => {
   const baseSeller = { status: 'active', transactions: [] };
 
-  it('creates a new consent record (append-only)', async () => {
+  it('creates a new consent record atomically (append-only)', async () => {
     mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: true });
     mockRepo.findSellerWithTransactions.mockResolvedValue({ ...baseSeller, transactions: [] });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+    mockRepo.withdrawConsentAtomically.mockResolvedValue({ id: 'cr1' } as never);
     mockAudit.log.mockResolvedValue(undefined);
 
     await complianceService.withdrawConsent({
@@ -153,32 +153,37 @@ describe('withdrawConsent', () => {
       channel: 'web',
     });
 
-    expect(mockRepo.createConsentRecord).toHaveBeenCalledWith(
+    expect(mockRepo.withdrawConsentAtomically).toHaveBeenCalledWith(
+      'seller1',
+      'marketing',
       expect.objectContaining({ purposeMarketing: false }),
     );
   });
 
-  it('updates seller.consentMarketing flag when withdrawing marketing consent', async () => {
-    mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: true });
-    mockRepo.findSellerWithTransactions.mockResolvedValue({ ...baseSeller, transactions: [] });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+  it('calls withdrawConsentAtomically with service type when withdrawing service consent', async () => {
+    mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: false });
+    mockRepo.findSellerWithTransactions.mockResolvedValue({ status: 'lead', transactions: [] });
+    mockRepo.withdrawConsentAtomically.mockResolvedValue({ id: 'cr1' } as never);
+    mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
     mockAudit.log.mockResolvedValue(undefined);
 
     await complianceService.withdrawConsent({
       sellerId: 'seller1',
-      type: 'marketing',
+      type: 'service',
       channel: 'web',
     });
 
-    expect(mockRepo.updateSellerConsent).toHaveBeenCalledWith('seller1', {
-      consentMarketing: false,
-    });
+    expect(mockRepo.withdrawConsentAtomically).toHaveBeenCalledWith(
+      'seller1',
+      'service',
+      expect.objectContaining({ purposeService: false }),
+    );
   });
 
   it('creates a flagged deletion request when service consent withdrawn with no transactions', async () => {
     mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: false });
     mockRepo.findSellerWithTransactions.mockResolvedValue({ status: 'lead', transactions: [] });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+    mockRepo.withdrawConsentAtomically.mockResolvedValue({ id: 'cr1' } as never);
     mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
     mockAudit.log.mockResolvedValue(undefined);
 
@@ -200,7 +205,7 @@ describe('withdrawConsent', () => {
       status: 'completed',
       transactions: [{ completionDate: new Date(), status: 'completed' }],
     });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+    mockRepo.withdrawConsentAtomically.mockResolvedValue({ id: 'cr1' } as never);
     mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
     mockAudit.log.mockResolvedValue(undefined);
 
@@ -219,7 +224,7 @@ describe('withdrawConsent', () => {
   it('logs consent.withdrawn audit event', async () => {
     mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: true });
     mockRepo.findSellerWithTransactions.mockResolvedValue({ ...baseSeller, transactions: [] });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+    mockRepo.withdrawConsentAtomically.mockResolvedValue({ id: 'cr1' } as never);
     mockAudit.log.mockResolvedValue(undefined);
 
     await complianceService.withdrawConsent({
@@ -249,7 +254,7 @@ describe('withdrawConsent', () => {
         consentMarketing: false,
       });
       mockRepo.findSellerWithTransactions.mockResolvedValue({ status: 'lead', transactions: [] });
-      mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+      mockRepo.withdrawConsentAtomically.mockResolvedValue({ id: 'cr1' } as never);
       mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
       mockAudit.log.mockResolvedValue(undefined);
       mockPropertyRepo.findBySellerId.mockResolvedValue(baseProperty as never);
@@ -1780,13 +1785,12 @@ describe('recordHuttonsTransferConsent', () => {
 });
 
 describe('grantMarketingConsent', () => {
-  it('sets consentMarketing to true and creates a consent record', async () => {
+  it('sets consentMarketing to true atomically and creates a consent record', async () => {
     mockRepo.findSellerConsent.mockResolvedValue({
       consentService: true,
       consentMarketing: false,
     });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'record-1' } as any);
-    mockRepo.updateSellerConsent.mockResolvedValue(undefined);
+    mockRepo.grantConsentAtomically.mockResolvedValue({ id: 'record-1' } as any);
 
     const result = await complianceService.grantMarketingConsent({
       sellerId: 'seller-1',
@@ -1795,7 +1799,8 @@ describe('grantMarketingConsent', () => {
       userAgent: 'Mozilla/5.0',
     });
 
-    expect(mockRepo.createConsentRecord).toHaveBeenCalledWith(
+    expect(mockRepo.grantConsentAtomically).toHaveBeenCalledWith(
+      'seller-1',
       expect.objectContaining({
         subjectId: 'seller-1',
         purposeMarketing: true,
@@ -1803,9 +1808,6 @@ describe('grantMarketingConsent', () => {
         withdrawalChannel: 'web',
       }),
     );
-    expect(mockRepo.updateSellerConsent).toHaveBeenCalledWith('seller-1', {
-      consentMarketing: true,
-    });
     expect(result.consentRecordId).toBe('record-1');
   });
 
@@ -1822,8 +1824,7 @@ describe('grantMarketingConsent', () => {
       consentService: true,
       consentMarketing: true,
     });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'record-2' } as any);
-    mockRepo.updateSellerConsent.mockResolvedValue(undefined);
+    mockRepo.grantConsentAtomically.mockResolvedValue({ id: 'record-2' } as any);
 
     const result = await complianceService.grantMarketingConsent({
       sellerId: 'seller-1',
@@ -1838,8 +1839,7 @@ describe('grantMarketingConsent', () => {
       consentService: true,
       consentMarketing: false,
     });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'record-3' } as any);
-    mockRepo.updateSellerConsent.mockResolvedValue(undefined);
+    mockRepo.grantConsentAtomically.mockResolvedValue({ id: 'record-3' } as any);
 
     await complianceService.grantMarketingConsent({ sellerId: 'seller-1', channel: 'web' });
 

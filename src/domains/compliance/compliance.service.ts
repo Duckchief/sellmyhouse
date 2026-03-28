@@ -95,23 +95,20 @@ export async function withdrawConsent(
 
   const now = new Date();
 
-  // Build the new consent record (append-only — never update existing records)
-  const newRecord = await complianceRepo.createConsentRecord({
-    subjectId: input.sellerId,
-    purposeService: input.type === 'service' ? false : currentConsent.consentService,
-    purposeMarketing: input.type === 'marketing' ? false : currentConsent.consentMarketing,
-    consentWithdrawnAt: now,
-    withdrawalChannel: input.channel,
-    ipAddress: input.ipAddress,
-    userAgent: input.userAgent,
-  });
-
-  // Update the Seller's fast-access consent flag
-  if (input.type === 'service') {
-    await complianceRepo.updateSellerConsent(input.sellerId, { consentService: false });
-  } else {
-    await complianceRepo.updateSellerConsent(input.sellerId, { consentMarketing: false });
-  }
+  // Atomically create consent record + update seller flag in a single transaction
+  const newRecord = await complianceRepo.withdrawConsentAtomically(
+    input.sellerId,
+    input.type,
+    {
+      subjectId: input.sellerId,
+      purposeService: input.type === 'service' ? false : currentConsent.consentService,
+      purposeMarketing: input.type === 'marketing' ? false : currentConsent.consentMarketing,
+      consentWithdrawnAt: now,
+      withdrawalChannel: input.channel,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+    },
+  );
 
   // For marketing withdrawal: no deletion request needed
   if (input.type === 'marketing') {
@@ -202,17 +199,18 @@ export async function grantMarketingConsent(input: GrantConsentInput): Promise<C
     throw new NotFoundError('Seller', input.sellerId);
   }
 
-  // Append-only — always create a new record, even if already consented
-  const newRecord = await complianceRepo.createConsentRecord({
-    subjectId: input.sellerId,
-    purposeService: currentConsent.consentService,
-    purposeMarketing: true,
-    ipAddress: input.ipAddress,
-    userAgent: input.userAgent,
-    withdrawalChannel: input.channel, // schema field is named for withdrawal but stores the interaction channel for both grant and withdraw
-  });
-
-  await complianceRepo.updateSellerConsent(input.sellerId, { consentMarketing: true });
+  // Atomically create consent record + update seller flag in a single transaction
+  const newRecord = await complianceRepo.grantConsentAtomically(
+    input.sellerId,
+    {
+      subjectId: input.sellerId,
+      purposeService: currentConsent.consentService,
+      purposeMarketing: true,
+      withdrawalChannel: input.channel, // schema field is named for withdrawal but stores the interaction channel for both grant and withdraw
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+    },
+  );
 
   await auditService.log({
     action: 'consent.granted',

@@ -71,6 +71,31 @@ export async function markDownloadedAndDeleted(
   });
 }
 
+/**
+ * Atomically claim a single document for download by setting deletedAt.
+ * Uses updateMany with a WHERE deletedAt IS NULL guard to prevent TOCTOU races.
+ * Returns the count of rows updated (0 = already claimed by another request).
+ */
+export async function claimForDownload(id: string): Promise<number> {
+  const result = await prisma.sellerDocument.updateMany({
+    where: { id, deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
+  return result.count;
+}
+
+/**
+ * Atomically claim all active documents for a seller by setting deletedAt.
+ * Returns the count of rows updated.
+ */
+export async function claimAllForDownload(sellerId: string): Promise<number> {
+  const result = await prisma.sellerDocument.updateMany({
+    where: { sellerId, deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
+  return result.count;
+}
+
 export async function markPurged(id: string): Promise<void> {
   await prisma.sellerDocument.update({
     where: { id },

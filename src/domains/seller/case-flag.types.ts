@@ -67,4 +67,5 @@ export interface UpdateCaseFlagInput {
   status: CaseFlagStatus;
   guidanceProvided?: string;
   agentId: string;
+  role?: string;
 }

@@ -268,6 +268,80 @@ export async function updateSellerConsent(
   await prisma.seller.update({ where: { id: sellerId }, data });
 }
 
+export async function withdrawConsentAtomically(
+  sellerId: string,
+  consentType: 'service' | 'marketing',
+  consentData: {
+    subjectId: string;
+    purposeService: boolean;
+    purposeMarketing: boolean;
+    consentWithdrawnAt: Date;
+    withdrawalChannel?: string;
+    ipAddress?: string;
+    userAgent?: string;
+  },
+): Promise<ConsentRecord> {
+  return prisma.$transaction(async (tx) => {
+    const record = await tx.consentRecord.create({
+      data: {
+        id: createId(),
+        subjectType: 'seller',
+        subjectId: consentData.subjectId,
+        sellerId: consentData.subjectId,
+        purposeService: consentData.purposeService,
+        purposeMarketing: consentData.purposeMarketing,
+        purposeHuttonsTransfer: false,
+        version: CONSENT_VERSION,
+        consentWithdrawnAt: consentData.consentWithdrawnAt,
+        withdrawalChannel: consentData.withdrawalChannel ?? null,
+        ipAddress: consentData.ipAddress ?? null,
+        userAgent: consentData.userAgent ?? null,
+      },
+    });
+    const updateData =
+      consentType === 'service'
+        ? { consentService: false }
+        : { consentMarketing: false };
+    await tx.seller.update({ where: { id: sellerId }, data: updateData });
+    return record as unknown as ConsentRecord;
+  });
+}
+
+export async function grantConsentAtomically(
+  sellerId: string,
+  consentData: {
+    subjectId: string;
+    purposeService: boolean;
+    purposeMarketing: boolean;
+    withdrawalChannel?: string;
+    ipAddress?: string;
+    userAgent?: string;
+  },
+): Promise<ConsentRecord> {
+  return prisma.$transaction(async (tx) => {
+    const record = await tx.consentRecord.create({
+      data: {
+        id: createId(),
+        subjectType: 'seller',
+        subjectId: consentData.subjectId,
+        sellerId: consentData.subjectId,
+        purposeService: consentData.purposeService,
+        purposeMarketing: consentData.purposeMarketing,
+        purposeHuttonsTransfer: false,
+        version: CONSENT_VERSION,
+        withdrawalChannel: consentData.withdrawalChannel ?? null,
+        ipAddress: consentData.ipAddress ?? null,
+        userAgent: consentData.userAgent ?? null,
+      },
+    });
+    await tx.seller.update({
+      where: { id: sellerId },
+      data: { consentMarketing: true },
+    });
+    return record as unknown as ConsentRecord;
+  });
+}
+
 export async function findSellerConsent(
   sellerId: string,
 ): Promise<{ consentService: boolean; consentMarketing: boolean } | null> {

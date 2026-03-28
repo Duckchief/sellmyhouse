@@ -93,7 +93,7 @@ export class HdbSyncService {
 
         // Filter to only new records
         const newRecords = latestMonth
-          ? records.filter((r: ApiRecord) => r.month >= latestMonth)
+          ? records.filter((r: ApiRecord) => r.month > latestMonth)
           : records;
 
         // Early exit: sorted newest-first

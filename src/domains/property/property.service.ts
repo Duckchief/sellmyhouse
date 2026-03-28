@@ -10,6 +10,9 @@ import * as authRepo from '../auth/auth.repository';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import { buildListingDescriptionPrompt } from '@/domains/shared/ai/prompts/listing-description';
+import { logger } from '@/infra/logger';
+
+const SLUG_RETRY_LIMIT = 3;
 
 export function generatePropertySlug(block: string, street: string, town: string): string {
   return `${block}-${street}-${town}`
@@ -23,6 +26,10 @@ async function buildUniqueSlug(baseSlug: string): Promise<string> {
   const existing = await propertyRepo.findBySlug(baseSlug);
   if (!existing) return baseSlug;
   return `${baseSlug}-${createId().slice(0, 6)}`;
+}
+
+function isPrismaUniqueConstraintError(err: unknown): boolean {
+  return err instanceof Error && 'code' in err && (err as { code: string }).code === 'P2002';
 }
 
 export async function createProperty(input: CreatePropertyInput) {
@@ -40,30 +47,51 @@ export async function createProperty(input: CreatePropertyInput) {
   }
 
   const baseSlug = generatePropertySlug(input.block, input.street, input.town);
-  const slug = await buildUniqueSlug(baseSlug);
 
-  const property = await propertyRepo.create({ ...input, slug });
-  await propertyRepo.createListing(property.id);
+  // L20: Retry on slug unique constraint violation (P2002) to handle concurrent requests
+  // M39: Property + listing created atomically in a single transaction
+  let property;
+  for (let attempt = 0; attempt < SLUG_RETRY_LIMIT; attempt++) {
+    const slug =
+      attempt === 0
+        ? await buildUniqueSlug(baseSlug)
+        : `${baseSlug}-${createId().slice(0, 6)}`;
+    try {
+      property = await propertyRepo.createPropertyWithListing({ ...input, slug });
+      break;
+    } catch (err) {
+      if (isPrismaUniqueConstraintError(err) && attempt < SLUG_RETRY_LIMIT - 1) {
+        logger.warn({ attempt, baseSlug }, 'Slug collision on property create, retrying');
+        continue;
+      }
+      throw err;
+    }
+  }
 
-  auditService.log({
-    action: 'property.created',
-    entityType: 'property',
-    entityId: property.id,
-    details: { sellerId: input.sellerId },
-  });
+  // L21: Add .catch() to fire-and-forget audit calls
+  auditService
+    .log({
+      action: 'property.created',
+      entityType: 'property',
+      entityId: property!.id,
+      details: { sellerId: input.sellerId },
+    })
+    .catch((err: unknown) => logger.warn({ err }, 'Audit log failed'));
 
   // Audit the MOP override when an override reason was provided
   if (hasMopBlock && input.mopOverrideReason) {
-    auditService.log({
-      agentId: input.agentId,
-      action: 'case_flag.mop_override',
-      entityType: 'property',
-      entityId: property.id,
-      details: { sellerId: input.sellerId, mopOverrideReason: input.mopOverrideReason },
-    });
+    auditService
+      .log({
+        agentId: input.agentId,
+        action: 'case_flag.mop_override',
+        entityType: 'property',
+        entityId: property!.id,
+        details: { sellerId: input.sellerId, mopOverrideReason: input.mopOverrideReason },
+      })
+      .catch((err: unknown) => logger.warn({ err }, 'Audit log failed'));
   }
 
-  return property;
+  return property!;
 }
 
 export async function getPropertyForSeller(sellerId: string) {
@@ -93,12 +121,15 @@ export async function updateProperty(
     await propertyRepo.updateListingStatus(activeListing.id, 'pending_review');
   }
 
-  auditService.log({
-    action: 'property.updated',
-    entityType: 'property',
-    entityId: propertyId,
-    details: { sellerId, data },
-  });
+  // L21: Add .catch() to fire-and-forget audit call
+  auditService
+    .log({
+      action: 'property.updated',
+      entityType: 'property',
+      entityId: propertyId,
+      details: { sellerId, data },
+    })
+    .catch((err: unknown) => logger.warn({ err }, 'Audit log failed'));
 
   return updated;
 }
@@ -115,20 +146,26 @@ export async function updateAskingPrice(propertyId: string, sellerId: string, ne
   const activeListing = updated.listings.find((l) => l.status !== 'closed');
   if (activeListing && activeListing.status === 'live') {
     await propertyRepo.updateListingStatus(activeListing.id, 'pending_review');
-    auditService.log({
-      action: 'listing.reverted_to_pending_review',
-      entityType: 'listing',
-      entityId: activeListing.id,
-      details: { reason: 'asking_price_changed' },
-    });
+    // L21: Add .catch() to fire-and-forget audit call
+    auditService
+      .log({
+        action: 'listing.reverted_to_pending_review',
+        entityType: 'listing',
+        entityId: activeListing.id,
+        details: { reason: 'asking_price_changed' },
+      })
+      .catch((err: unknown) => logger.warn({ err }, 'Audit log failed'));
   }
 
-  auditService.log({
-    action: 'property.price_changed',
-    entityType: 'property',
-    entityId: propertyId,
-    details: { sellerId, oldPrice, newPrice },
-  });
+  // L21: Add .catch() to fire-and-forget audit call
+  auditService
+    .log({
+      action: 'property.price_changed',
+      entityType: 'property',
+      entityId: propertyId,
+      details: { sellerId, oldPrice, newPrice },
+    })
+    .catch((err: unknown) => logger.warn({ err }, 'Audit log failed'));
 
   return updated;
 }
@@ -141,12 +178,15 @@ export async function revertPropertyToDraft(propertyId: string): Promise<void> {
     await propertyRepo.updateListingStatus(listing.id, 'draft');
   }
 
-  auditService.log({
-    action: 'property.reverted_to_draft',
-    entityType: 'property',
-    entityId: propertyId,
-    details: { reason: 'fallen_through' },
-  });
+  // L21: Add .catch() to fire-and-forget audit call
+  auditService
+    .log({
+      action: 'property.reverted_to_draft',
+      entityType: 'property',
+      entityId: propertyId,
+      details: { reason: 'fallen_through' },
+    })
+    .catch((err: unknown) => logger.warn({ err }, 'Audit log failed'));
 }
 
 export async function backfillPropertySlugs(): Promise<number> {
@@ -196,19 +236,28 @@ export async function updateListingStatus(propertyId: string, newStatus: string)
     await checkComplianceGate('eaa_signed', property.sellerId);
   }
 
-  const updated = await propertyRepo.updateListingStatus(listing.id, newStatus);
-
-  // Sync property.status to 'listed' so public slug queries (findPropertyBySlug) see live listings
+  // M46: When going live, update both listing and property status atomically
+  let updated;
   if (newStatus === 'live') {
-    await propertyRepo.updatePropertyStatus(propertyId, 'listed');
+    updated = await propertyRepo.updateListingAndPropertyStatus(
+      listing.id,
+      newStatus,
+      propertyId,
+      'listed',
+    );
+  } else {
+    updated = await propertyRepo.updateListingStatus(listing.id, newStatus);
   }
 
-  auditService.log({
-    action: 'listing.status_changed',
-    entityType: 'listing',
-    entityId: listing.id,
-    details: { from: listing.status, to: newStatus },
-  });
+  // L21: Add .catch() to fire-and-forget audit call
+  auditService
+    .log({
+      action: 'listing.status_changed',
+      entityType: 'listing',
+      entityId: listing.id,
+      details: { from: listing.status, to: newStatus },
+    })
+    .catch((err: unknown) => logger.warn({ err }, 'Audit log failed'));
 
   return updated;
 }
@@ -248,7 +297,6 @@ export async function generateListingDescription(
     aiDescriptionProvider: result.provider,
     aiDescriptionModel: result.model,
     aiDescriptionGeneratedAt: new Date(),
-    description: result.text,
     descriptionApprovedAt: null,
   });
 

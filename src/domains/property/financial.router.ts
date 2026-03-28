@@ -162,18 +162,51 @@ financialRouter.post(
         });
       }
 
+      const parsedSellingPrice = parseFloat(sellingPrice);
+      if (isNaN(parsedSellingPrice)) {
+        return res.status(400).json({ error: 'Invalid numeric value for sellingPrice' });
+      }
+      const parsedOutstandingLoan = parseFloat(outstandingLoan);
+      if (isNaN(parsedOutstandingLoan)) {
+        return res.status(400).json({ error: 'Invalid numeric value for outstandingLoan' });
+      }
+      const parsedCpfSeller1 = parseFloat(cpfSeller1);
+      if (isNaN(parsedCpfSeller1)) {
+        return res.status(400).json({ error: 'Invalid numeric value for cpfSeller1' });
+      }
+      const parsedCpfSeller2 = cpfSeller2 ? parseFloat(cpfSeller2) : undefined;
+      if (parsedCpfSeller2 !== undefined && isNaN(parsedCpfSeller2)) {
+        return res.status(400).json({ error: 'Invalid numeric value for cpfSeller2' });
+      }
+      const parsedCpfSeller3 = cpfSeller3 ? parseFloat(cpfSeller3) : undefined;
+      if (parsedCpfSeller3 !== undefined && isNaN(parsedCpfSeller3)) {
+        return res.status(400).json({ error: 'Invalid numeric value for cpfSeller3' });
+      }
+      const parsedCpfSeller4 = cpfSeller4 ? parseFloat(cpfSeller4) : undefined;
+      if (parsedCpfSeller4 !== undefined && isNaN(parsedCpfSeller4)) {
+        return res.status(400).json({ error: 'Invalid numeric value for cpfSeller4' });
+      }
+      const parsedResaleLevy = parseFloat(resaleLevy || '0');
+      if (isNaN(parsedResaleLevy)) {
+        return res.status(400).json({ error: 'Invalid numeric value for resaleLevy' });
+      }
+      const parsedOtherDeductions = parseFloat(otherDeductions || '0');
+      if (isNaN(parsedOtherDeductions)) {
+        return res.status(400).json({ error: 'Invalid numeric value for otherDeductions' });
+      }
+
       const commission = await settingsService.getCommission();
 
       await sellerService.saveSaleProceeds({
         sellerId: user.id,
-        sellingPrice: parseFloat(sellingPrice),
-        outstandingLoan: parseFloat(outstandingLoan),
-        cpfSeller1: parseFloat(cpfSeller1),
-        cpfSeller2: cpfSeller2 ? parseFloat(cpfSeller2) : undefined,
-        cpfSeller3: cpfSeller3 ? parseFloat(cpfSeller3) : undefined,
-        cpfSeller4: cpfSeller4 ? parseFloat(cpfSeller4) : undefined,
-        resaleLevy: parseFloat(resaleLevy || '0'),
-        otherDeductions: parseFloat(otherDeductions || '0'),
+        sellingPrice: parsedSellingPrice,
+        outstandingLoan: parsedOutstandingLoan,
+        cpfSeller1: parsedCpfSeller1,
+        cpfSeller2: parsedCpfSeller2,
+        cpfSeller3: parsedCpfSeller3,
+        cpfSeller4: parsedCpfSeller4,
+        resaleLevy: parsedResaleLevy,
+        otherDeductions: parsedOtherDeductions,
         buyerDeposit,
         commission: commission.total,
       });

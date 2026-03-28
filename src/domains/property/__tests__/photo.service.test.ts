@@ -533,6 +533,28 @@ describe('photo.service', () => {
       );
     });
 
+    it('throws ValidationError when photoIds omit existing photos (L23)', async () => {
+      const photo1 = makePhotoRecord({ id: 'photo-1', displayOrder: 0 });
+      const photo2 = makePhotoRecord({ id: 'photo-2', displayOrder: 1 });
+      const photo3 = makePhotoRecord({ id: 'photo-3', displayOrder: 2 });
+      const listing = makeListing([photo1, photo2, photo3]);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
+
+      await expect(
+        photoService.reorderPhotos('prop-1', ['photo-1', 'photo-2']),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('throws ValidationError when photoIds contain unknown IDs (L23)', async () => {
+      const photo1 = makePhotoRecord({ id: 'photo-1', displayOrder: 0 });
+      const listing = makeListing([photo1]);
+      mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
+
+      await expect(
+        photoService.reorderPhotos('prop-1', ['photo-1', 'photo-unknown']),
+      ).rejects.toThrow(ValidationError);
+    });
+
     it('throws NotFoundError when no active listing exists', async () => {
       mockedRepo.findActiveListingForProperty.mockResolvedValue(null);
 

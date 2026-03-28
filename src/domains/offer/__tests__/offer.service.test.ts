@@ -201,12 +201,11 @@ describe('offer.service', () => {
   });
 
   describe('counterOffer', () => {
-    it('creates a child offer and sets parent status to countered', async () => {
+    it('creates a child offer and sets parent status to countered atomically', async () => {
       const parent = makeOffer({ id: 'offer-1', status: 'pending' });
       const child = makeOffer({ id: 'offer-2', parentOfferId: 'offer-1', counterAmount: '650000' });
       mockOfferRepo.findById.mockResolvedValue(parent as never);
-      mockOfferRepo.create.mockResolvedValue(child as never);
-      mockOfferRepo.updateStatus.mockResolvedValue({ ...parent, status: 'countered' } as never);
+      mockOfferRepo.counterOfferAtomically.mockResolvedValue(child as never);
 
       await offerService.counterOffer({
         parentOfferId: 'offer-1',
@@ -215,9 +214,11 @@ describe('offer.service', () => {
         role: 'agent',
       });
 
-      expect(mockOfferRepo.updateStatus).toHaveBeenCalledWith('offer-1', 'countered');
-      expect(mockOfferRepo.create).toHaveBeenCalledWith(
+      expect(mockOfferRepo.counterOfferAtomically).toHaveBeenCalledWith(
+        'offer-1',
+        'pending',
         expect.objectContaining({ parentOfferId: 'offer-1', counterAmount: 650000 }),
+        'countered',
       );
     });
 

@@ -6,7 +6,7 @@ import * as aiFacade from '@/domains/shared/ai/ai.facade';
 import * as settingsService from '@/domains/shared/settings.service';
 import * as notificationService from '@/domains/notification/notification.service';
 import * as auditService from '@/domains/shared/audit.service';
-import { NotFoundError, ValidationError, ForbiddenError } from '@/domains/shared/errors';
+import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '@/domains/shared/errors';
 import { OFFER_TRANSITIONS, AI_ANALYSIS_STATUS } from './offer.types';
 import type { CreateOfferInput, CounterOfferInput } from './offer.types';
 
@@ -165,8 +165,10 @@ export async function counterOffer(input: CounterOfferInput & { role: string }) 
   }
 
   const childId = createId();
-  const [child] = await Promise.all([
-    offerRepo.create({
+  const child = await offerRepo.counterOfferAtomically(
+    input.parentOfferId,
+    parent.status,
+    {
       id: childId,
       propertyId: parent.propertyId,
       buyerName: parent.buyerName,
@@ -178,9 +180,9 @@ export async function counterOffer(input: CounterOfferInput & { role: string }) 
       counterAmount: input.counterAmount,
       notes: input.notes ?? null,
       parentOfferId: input.parentOfferId,
-    }),
-    offerRepo.updateStatus(input.parentOfferId, 'countered'),
-  ]);
+    },
+    'countered',
+  );
 
   await auditService.log({
     agentId: input.agentId,

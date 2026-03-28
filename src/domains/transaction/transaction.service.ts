@@ -155,8 +155,13 @@ export async function advanceTransactionStatus(input: {
   const updated = await txRepo.updateTransactionStatus(
     input.transactionId,
     input.status,
+    tx.status,
     completionDate !== null ? completionDate : undefined,
   );
+
+  if (updated === 0) {
+    throw new ConflictError('Transaction was modified concurrently');
+  }
 
   await auditService.log({
     agentId: input.agentId,
@@ -223,6 +228,10 @@ export async function markFallenThrough(input: {
   }
 
   const updated = await txRepo.updateFallenThrough(input.transactionId, input.reason);
+
+  if (updated === 0) {
+    throw new ConflictError('Transaction was modified concurrently');
+  }
 
   await handleFallenThrough(tx.propertyId, input.transactionId, input.agentId);
 

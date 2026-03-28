@@ -59,9 +59,13 @@ describe('transaction.repository', () => {
 
   describe('updateTransactionStatus', () => {
     it('updates status and sets completionDate when transitioning to completed', async () => {
-      const updated = await txRepo.updateTransactionStatus(transactionId, 'completed', new Date());
-      expect(updated.status).toBe('completed');
-      expect(updated.completionDate).not.toBeNull();
+      const count = await txRepo.updateTransactionStatus(transactionId, 'completed', 'option_issued', new Date());
+      expect(count).toBe(1);
+    });
+
+    it('returns 0 when currentStatus does not match (optimistic locking)', async () => {
+      const count = await txRepo.updateTransactionStatus(transactionId, 'completed', 'completing');
+      expect(count).toBe(0);
     });
   });
 

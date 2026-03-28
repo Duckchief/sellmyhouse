@@ -54,23 +54,30 @@ export async function findByPropertyId(propertyId: string) {
 
 export async function updateTransactionStatus(
   id: string,
-  status: TransactionStatus,
+  newStatus: TransactionStatus,
+  currentStatus: TransactionStatus,
   completionDate?: Date | null,
 ) {
-  return prisma.transaction.update({
-    where: { id },
+  const result = await prisma.transaction.updateMany({
+    where: { id, status: currentStatus },
     data: {
-      status,
+      status: newStatus,
+      updatedAt: new Date(),
       ...(completionDate !== undefined ? { completionDate } : {}),
     },
   });
+  return result.count;
 }
 
 export async function updateFallenThrough(id: string, reason: string) {
-  return prisma.transaction.update({
-    where: { id },
-    data: { status: 'fallen_through', fallenThroughReason: reason },
+  const result = await prisma.transaction.updateMany({
+    where: {
+      id,
+      status: { notIn: ['completed', 'fallen_through'] },
+    },
+    data: { status: 'fallen_through', fallenThroughReason: reason, updatedAt: new Date() },
   });
+  return result.count;
 }
 
 export async function updateHdbTracking(

@@ -376,11 +376,7 @@ describe('transaction.service', () => {
     it('sets completionDate automatically on transition to completed', async () => {
       const tx = makeTransaction({ status: 'completing' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'completed',
-        completionDate: new Date(),
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -391,6 +387,7 @@ describe('transaction.service', () => {
       expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
         'tx-1',
         'completed',
+        'completing', // currentStatus for optimistic locking
         expect.any(Date), // completionDate auto-set
       );
     });
@@ -428,10 +425,7 @@ describe('transaction.service', () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'option_exercised',
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -442,6 +436,7 @@ describe('transaction.service', () => {
       expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
         'tx-1',
         'option_exercised',
+        'option_issued', // currentStatus for optimistic locking
         undefined,
       );
     });
@@ -473,10 +468,7 @@ describe('transaction.service', () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'option_exercised',
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -497,11 +489,7 @@ describe('transaction.service', () => {
       const tx = makeTransaction({ status: 'completing' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'completed',
-        completionDate: new Date(),
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -518,6 +506,7 @@ describe('transaction.service', () => {
       expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
         'tx-1',
         'completed',
+        'completing', // currentStatus for optimistic locking
         expect.any(Date),
       );
     });
@@ -527,11 +516,7 @@ describe('transaction.service', () => {
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
       mockComplianceService.refreshCddRetentionOnCompletion.mockResolvedValue(undefined);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'completed',
-        completionDate: new Date(),
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -549,10 +534,7 @@ describe('transaction.service', () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'option_exercised',
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -573,10 +555,7 @@ describe('transaction.service', () => {
         buyerAgentName: 'John Agent',
         buyerAgentCeaReg: 'R012345B',
       } as never);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'option_exercised',
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -594,10 +573,7 @@ describe('transaction.service', () => {
     it('passes buyerRepresented: false when tx has no offerId', async () => {
       const tx = makeTransaction({ status: 'option_issued', offerId: null });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'option_exercised',
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -617,11 +593,7 @@ describe('transaction.service', () => {
     it('triggers fallen-through cascade and notifies seller', async () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateFallenThrough.mockResolvedValue({
-        ...tx,
-        status: 'fallen_through',
-        fallenThroughReason: 'Buyer financing fell through.',
-      } as never);
+      mockTxRepo.updateFallenThrough.mockResolvedValue(1 as never);
       mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
       mockPortalService.expirePortalListings.mockResolvedValue({ count: 3 } as never);
 
@@ -646,10 +618,7 @@ describe('transaction.service', () => {
     it('cancels viewing slots for the property', async () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateFallenThrough.mockResolvedValue({
-        ...tx,
-        status: 'fallen_through',
-      } as never);
+      mockTxRepo.updateFallenThrough.mockResolvedValue(1 as never);
       mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
       mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
 
@@ -669,10 +638,7 @@ describe('transaction.service', () => {
     it('reverts property to draft', async () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateFallenThrough.mockResolvedValue({
-        ...tx,
-        status: 'fallen_through',
-      } as never);
+      mockTxRepo.updateFallenThrough.mockResolvedValue(1 as never);
       mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
       mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
 

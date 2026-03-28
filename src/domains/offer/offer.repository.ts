@@ -1,5 +1,6 @@
 import { prisma } from '@/infra/database/prisma';
 import { createId } from '@paralleldrive/cuid2';
+import { ConflictError } from '@/domains/shared/errors';
 import type { Offer, OfferStatus, Prisma } from '@prisma/client';
 
 interface CreateOfferData {
@@ -139,6 +140,45 @@ export async function acceptOfferAtomically(offerId: string, propertyId: string)
     const accepted = await updateStatusTx(tx, offerId, 'accepted');
     await expirePendingAndCounteredSiblingsTx(tx, propertyId, offerId);
     return accepted;
+  });
+}
+
+/**
+ * Atomically creates a counter-offer child and updates the parent status.
+ * Uses optimistic locking on the parent status to prevent concurrent modifications.
+ */
+export async function counterOfferAtomically(
+  parentId: string,
+  parentCurrentStatus: OfferStatus,
+  childData: CreateOfferData,
+  newParentStatus: OfferStatus,
+) {
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.offer.updateMany({
+      where: { id: parentId, status: parentCurrentStatus },
+      data: { status: newParentStatus },
+    });
+    if (updated.count === 0) {
+      throw new ConflictError('Offer was modified concurrently');
+    }
+
+    const child = await tx.offer.create({
+      data: {
+        id: childData.id ?? createId(),
+        propertyId: childData.propertyId,
+        buyerName: childData.buyerName ?? null,
+        buyerPhone: childData.buyerPhone ?? null,
+        buyerAgentName: childData.buyerAgentName ?? null,
+        buyerAgentCeaReg: childData.buyerAgentCeaReg ?? null,
+        isCoBroke: childData.isCoBroke ?? false,
+        offerAmount: childData.offerAmount,
+        notes: childData.notes ?? null,
+        parentOfferId: childData.parentOfferId ?? null,
+        counterAmount: childData.counterAmount ?? null,
+        retentionExpiresAt: childData.retentionExpiresAt ?? null,
+      },
+    });
+    return child;
   });
 }
 

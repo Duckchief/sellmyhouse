@@ -291,7 +291,6 @@ export async function generateListingDescription(
 
   await propertyRepo.saveAiDescription(listingId, {
     aiDescription: result.text,
-    description: result.text,
     aiDescriptionStatus: 'ai_generated',
     aiDescriptionProvider: result.provider,
     aiDescriptionModel: result.model,

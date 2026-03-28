@@ -29,8 +29,8 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
       }),
       prisma.listing.findMany({
         where: {
-          description: { not: null },
-          descriptionApprovedAt: null,
+          aiDescription: { not: null },
+          aiDescriptionStatus: { in: ['ai_generated', 'pending_review'] },
           property: { seller: sellerWhere },
         },
         include: {

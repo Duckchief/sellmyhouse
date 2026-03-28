@@ -88,7 +88,7 @@ describe('Listing Description Integration', () => {
     // Verify AI description was saved
     const afterGen = await testPrisma.listing.findUnique({ where: { id: listing.id } });
     expect(afterGen?.aiDescription).toBe('Test description.');
-    expect(afterGen?.description).toBe('Test description.');
+    expect(afterGen?.description).toBeNull();
     expect(afterGen?.descriptionApprovedAt).toBeNull();
 
     // Step 2: Edit draft
@@ -197,7 +197,7 @@ describe('Listing Description Integration', () => {
     expect(regenRes.status).toBe(200);
 
     const afterRegen = await testPrisma.listing.findUnique({ where: { id: listing.id } });
-    expect(afterRegen?.description).toBe('Test description.');
+    expect(afterRegen?.description).toBeNull();
     expect(afterRegen?.aiDescription).toBe('Test description.');
     expect(afterRegen?.descriptionApprovedAt).toBeNull();
   });
@@ -297,9 +297,10 @@ describe('Listing Description Integration', () => {
       .post(`/agent/listings/${listing.id}/description/generate`)
       .set('HX-Request', 'true');
 
-    // Check review queue — description present and not approved
+    // Check review queue — aiDescription present, not yet approved
     const fromDb = await testPrisma.listing.findUnique({ where: { id: listing.id } });
-    expect(fromDb?.description).not.toBeNull();
+    expect(fromDb?.aiDescription).not.toBeNull();
+    expect(fromDb?.description).toBeNull();
     expect(fromDb?.descriptionApprovedAt).toBeNull();
 
     // Fetch the review queue page and verify the listing appears

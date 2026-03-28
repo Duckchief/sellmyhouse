@@ -324,7 +324,7 @@ describe('offer.service', () => {
         aiAnalysisStatus: 'reviewed',
       } as never);
 
-      await offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1' });
+      await offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1', role: 'agent' });
 
       expect(mockOfferRepo.updateAiAnalysisStatus).toHaveBeenCalledWith('offer-1', 'reviewed');
     });
@@ -334,7 +334,7 @@ describe('offer.service', () => {
       mockOfferRepo.findById.mockResolvedValue(offer as never);
 
       await expect(
-        offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1' }),
+        offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1', role: 'agent' }),
       ).rejects.toThrow(ValidationError);
     });
 
@@ -343,8 +343,23 @@ describe('offer.service', () => {
       mockOfferRepo.findById.mockResolvedValue(offer as never);
 
       await expect(
-        offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1' }),
+        offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1', role: 'agent' }),
       ).rejects.toThrow(ValidationError);
+    });
+    it('throws ForbiddenError when agent is not assigned to property', async () => {
+      const offer = makeOffer({ aiAnalysis: 'some analysis', aiAnalysisStatus: 'generated' });
+      mockOfferRepo.findById.mockResolvedValue(offer as never);
+      mockPropertyService.findPropertyByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
+      await expect(offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1', role: 'agent' })).rejects.toThrow(ForbiddenError);
+    });
+
+    it('admin bypasses ownership check on review', async () => {
+      const offer = makeOffer({ aiAnalysis: 'some analysis', aiAnalysisStatus: 'generated' });
+      mockOfferRepo.findById.mockResolvedValue(offer as never);
+      mockPropertyService.findPropertyByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
+      mockOfferRepo.updateAiAnalysisStatus.mockResolvedValue({ ...offer, aiAnalysisStatus: 'reviewed' } as never);
+      await offerService.reviewAiAnalysis({ offerId: 'offer-1', agentId: 'admin-1', role: 'admin' });
+      expect(mockOfferRepo.updateAiAnalysisStatus).toHaveBeenCalledWith('offer-1', 'reviewed');
     });
   });
 
@@ -360,6 +375,7 @@ describe('offer.service', () => {
       await offerService.shareAiAnalysis({
         offerId: 'offer-1',
         agentId: 'agent-1',
+        role: 'agent',
         sellerId: 'seller-1',
       });
 
@@ -378,6 +394,7 @@ describe('offer.service', () => {
         offerService.shareAiAnalysis({
           offerId: 'offer-1',
           agentId: 'agent-1',
+          role: 'agent',
           sellerId: 'seller-1',
         }),
       ).rejects.toThrow(ValidationError);
@@ -391,9 +408,25 @@ describe('offer.service', () => {
         offerService.shareAiAnalysis({
           offerId: 'offer-1',
           agentId: 'agent-1',
+          role: 'agent',
           sellerId: 'seller-1',
         }),
       ).rejects.toThrow(ValidationError);
+    });
+    it('throws ForbiddenError when agent is not assigned to property', async () => {
+      const offer = makeOffer({ aiAnalysis: 'some analysis', aiAnalysisStatus: 'reviewed' });
+      mockOfferRepo.findById.mockResolvedValue(offer as never);
+      mockPropertyService.findPropertyByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
+      await expect(offerService.shareAiAnalysis({ offerId: 'offer-1', agentId: 'agent-1', role: 'agent', sellerId: 'seller-1' })).rejects.toThrow(ForbiddenError);
+    });
+
+    it('admin bypasses ownership check on share', async () => {
+      const offer = makeOffer({ aiAnalysis: 'some analysis', aiAnalysisStatus: 'reviewed' });
+      mockOfferRepo.findById.mockResolvedValue(offer as never);
+      mockPropertyService.findPropertyByIdWithSeller.mockResolvedValue(makeProperty('other-agent') as never);
+      mockOfferRepo.updateAiAnalysisStatus.mockResolvedValue({ ...offer, aiAnalysisStatus: 'shared' } as never);
+      await offerService.shareAiAnalysis({ offerId: 'offer-1', agentId: 'admin-1', role: 'admin', sellerId: 'seller-1' });
+      expect(mockOfferRepo.updateAiAnalysisStatus).toHaveBeenCalledWith('offer-1', 'shared');
     });
   });
 });

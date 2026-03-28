@@ -242,7 +242,7 @@ export async function markFallenThrough(input: {
   await notificationService.send(
     {
       recipientType: 'seller',
-      recipientId: input.sellerId,
+      recipientId: tx.sellerId,
       templateName: 'transaction_update',
       templateData: {
         address: sellerAddress,
@@ -324,6 +324,10 @@ export async function createOtp(input: CreateOtpInput) {
   const tx = await txRepo.findById(input.transactionId);
   if (!tx) throw new NotFoundError('Transaction', input.transactionId);
 
+  if (tx.status === 'completed' || tx.status === 'fallen_through') {
+    throw new ValidationError('Cannot modify OTP for a terminal transaction');
+  }
+
   const existing = await txRepo.findOtpByTransactionId(input.transactionId);
   if (existing) throw new ConflictError('OTP already exists for this transaction');
 
@@ -347,6 +351,10 @@ export async function createOtp(input: CreateOtpInput) {
 export async function advanceOtp(input: AdvanceOtpInput) {
   const tx = await txRepo.findById(input.transactionId);
   if (!tx) throw new NotFoundError('Transaction', input.transactionId);
+
+  if (tx.status === 'completed' || tx.status === 'fallen_through') {
+    throw new ValidationError('Cannot modify OTP for a terminal transaction');
+  }
 
   const otp = await txRepo.findOtpByTransactionId(input.transactionId);
   if (!otp) throw new NotFoundError('OTP', input.transactionId);
@@ -555,6 +563,12 @@ export async function sendInvoice(input: {
   const invoice = await txRepo.findInvoiceByTransactionId(input.transactionId);
   if (!invoice) throw new NotFoundError('CommissionInvoice', input.transactionId);
 
+  if (invoice.status !== 'uploaded') {
+    throw new ValidationError(
+      `Cannot send invoice with status '${invoice.status}' — must be 'uploaded'`,
+    );
+  }
+
   // N6: Fetch actual property address instead of using transactionId
   const invoiceTx = await txRepo.findById(input.transactionId);
   const invoiceProperty = invoiceTx
@@ -567,7 +581,7 @@ export async function sendInvoice(input: {
   await notificationService.send(
     {
       recipientType: 'seller',
-      recipientId: input.sellerId,
+      recipientId: invoiceTx?.sellerId ?? input.sellerId,
       templateName: 'invoice_uploaded',
       templateData: { address: invoiceAddress },
     },
@@ -593,6 +607,12 @@ export async function sendInvoice(input: {
 export async function markInvoicePaid(input: { transactionId: string; agentId: string }) {
   const invoice = await txRepo.findInvoiceByTransactionId(input.transactionId);
   if (!invoice) throw new NotFoundError('CommissionInvoice', input.transactionId);
+
+  if (invoice.status !== 'sent_to_client') {
+    throw new ValidationError(
+      `Cannot mark invoice as paid with status '${invoice.status}' — must be 'sent_to_client'`,
+    );
+  }
 
   const updated = await txRepo.updateInvoiceStatus(invoice.id, 'paid', { paidAt: new Date() });
 

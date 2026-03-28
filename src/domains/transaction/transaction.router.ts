@@ -99,15 +99,15 @@ transactionRouter.patch(
   ...validateAdvanceStatus,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
       if (req.body.status === 'fallen_through') {
         return res.status(400).json({
           error:
             'Use POST /agent/transactions/:id/fallen-through to mark a transaction as fallen through',
         });
       }
-
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
       const user = req.user as AuthenticatedUser;
       await txService.getTransaction(req.params['id'] as string, getCallerAgentId(user));

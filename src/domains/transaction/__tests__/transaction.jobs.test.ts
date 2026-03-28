@@ -8,6 +8,9 @@ jest.mock('../transaction.repository');
 jest.mock('@/domains/notification/notification.service');
 jest.mock('@/domains/content/content.service');
 jest.mock('@/infra/jobs/runner');
+jest.mock('@/infra/logger', () => ({
+  logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
+}));
 
 const mockTxRepo = jest.mocked(txRepo);
 const mockNotification = jest.mocked(notificationService);
@@ -46,188 +49,132 @@ describe('transaction.jobs', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockNotification.send.mockResolvedValue(undefined as never);
-    // Default: no existing notification (allow sends)
     mockTxRepo.findExistingNotification.mockResolvedValue(null as never);
-    // Default: no existing testimonial, no existing referral
     mockContentService.getTestimonialBySeller.mockResolvedValue(null as never);
     mockContentService.issueTestimonialToken.mockResolvedValue(undefined as never);
-    mockContentService.sendReferralLinks.mockResolvedValue({
-      referralCode: 'TESTCODE',
-    } as never);
+    mockContentService.sendReferralLinks.mockResolvedValue({ referralCode: 'TESTCODE' } as never);
   });
 
   describe('sendOtpExerciseReminders', () => {
     it('sends reminder when deadline is exactly 14 days away', async () => {
       const deadline = new Date();
       deadline.setDate(deadline.getDate() + 14);
-
       const otpWithTx = makeOtpWithTransaction({
-        transaction: {
-          id: 'tx-1',
-          sellerId: 'seller-1',
-          exerciseDeadline: deadline,
-          seller: { id: 'seller-1', notificationPreference: 'in_app' },
-        },
+        transaction: { id: 'tx-1', sellerId: 'seller-1', exerciseDeadline: deadline, seller: { id: 'seller-1', notificationPreference: 'in_app' } },
       });
-
       mockTxRepo.findOtpsIssuedToBuyer.mockResolvedValue([otpWithTx] as never);
-      // findExistingNotification returns null by default (set in beforeEach)
-
       await txJobs.sendOtpExerciseReminders();
-
       expect(mockNotification.send).toHaveBeenCalledTimes(1);
     });
 
-    it('does NOT send reminder for a deadline that is 10 days away (not a reminder day)', async () => {
+    it('does NOT send reminder for non-reminder day', async () => {
       const deadline = new Date();
       deadline.setDate(deadline.getDate() + 10);
-
       const otpWithTx = makeOtpWithTransaction({
-        transaction: {
-          id: 'tx-1',
-          sellerId: 'seller-1',
-          exerciseDeadline: deadline,
-          seller: { id: 'seller-1', notificationPreference: 'in_app' },
-        },
+        transaction: { id: 'tx-1', sellerId: 'seller-1', exerciseDeadline: deadline, seller: { id: 'seller-1', notificationPreference: 'in_app' } },
       });
-
       mockTxRepo.findOtpsIssuedToBuyer.mockResolvedValue([otpWithTx] as never);
-
       await txJobs.sendOtpExerciseReminders();
-
       expect(mockNotification.send).not.toHaveBeenCalled();
     });
 
-    it('does NOT send duplicate reminder when notification already exists', async () => {
+    it('does NOT send duplicate reminder', async () => {
       const deadline = new Date();
       deadline.setDate(deadline.getDate() + 7);
-
       const otpWithTx = makeOtpWithTransaction({
-        transaction: {
-          id: 'tx-1',
-          sellerId: 'seller-1',
-          exerciseDeadline: deadline,
-          seller: { id: 'seller-1', notificationPreference: 'in_app' },
-        },
+        transaction: { id: 'tx-1', sellerId: 'seller-1', exerciseDeadline: deadline, seller: { id: 'seller-1', notificationPreference: 'in_app' } },
       });
-
       mockTxRepo.findOtpsIssuedToBuyer.mockResolvedValue([otpWithTx] as never);
-      // Simulate existing notification (duplicate check)
       mockTxRepo.findExistingNotification.mockResolvedValue({ id: 'notif-1' } as never);
-
       await txJobs.sendOtpExerciseReminders();
-
       expect(mockNotification.send).not.toHaveBeenCalled();
+    });
+
+    it('continues when one OTP notification fails (M13)', async () => {
+      const deadline = new Date();
+      deadline.setDate(deadline.getDate() + 7);
+      const otp1 = makeOtpWithTransaction({ id: 'otp-1', transaction: { id: 'tx-1', sellerId: 'seller-1', exerciseDeadline: deadline, seller: { id: 'seller-1', notificationPreference: 'in_app' } } });
+      const otp2 = makeOtpWithTransaction({ id: 'otp-2', transaction: { id: 'tx-2', sellerId: 'seller-2', exerciseDeadline: deadline, seller: { id: 'seller-2', notificationPreference: 'in_app' } } });
+      mockTxRepo.findOtpsIssuedToBuyer.mockResolvedValue([otp1, otp2] as never);
+      mockNotification.send.mockRejectedValueOnce(new Error('fail')).mockResolvedValueOnce(undefined as never);
+      await txJobs.sendOtpExerciseReminders();
+      expect(mockNotification.send).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('sendPostCompletionMessages', () => {
-    it('sends thank-you message on day 1 after completion', async () => {
+    it('sends thank-you on day 1', async () => {
       const tx = makeCompletedTransaction();
       mockTxRepo.findTransactionsCompletedDaysAgo.mockResolvedValue([tx] as never);
-      // findExistingNotification returns null by default (set in beforeEach)
-
       await txJobs.sendPostCompletionMessages();
-
-      // Should be called at least once (for the day-1 thank-you)
       expect(mockNotification.send).toHaveBeenCalled();
     });
 
-    it('does NOT send day-14 buyer follow-up without marketing consent', async () => {
-      const tx = makeCompletedTransaction({
-        seller: {
-          id: 'seller-1',
-          notificationPreference: 'in_app',
-          consentMarketing: false, // no marketing consent
-        },
-      });
-
-      // Simulate: only day-14 transactions returned
-      mockTxRepo.findTransactionsCompletedDaysAgo.mockImplementation(async (days) => {
-        if (days === 14) return [tx] as never;
-        return [] as never;
-      });
-
-      // findExistingNotification returns null by default (set in beforeEach)
-
+    it('blocks day-14 without marketing consent', async () => {
+      const tx = makeCompletedTransaction({ seller: { id: 'seller-1', notificationPreference: 'in_app', consentMarketing: false } });
+      mockTxRepo.findTransactionsCompletedDaysAgo.mockImplementation(async (days) => (days === 14 ? [tx] as never : [] as never));
       await txJobs.sendPostCompletionMessages();
-
       expect(mockNotification.send).not.toHaveBeenCalled();
     });
 
-    it('calls issueTestimonialToken on day-7 when no testimonial exists', async () => {
-      const tx = makeCompletedTransaction({
-        seller: {
-          id: 'seller-1',
-          name: 'John Doe',
-          notificationPreference: 'in_app',
-          consentMarketing: false,
-        },
-      });
-      mockTxRepo.findTransactionsCompletedDaysAgo.mockImplementation(async (days) => {
-        if (days === 7) return [tx] as never;
-        return [] as never;
-      });
-      // No existing testimonial (set in beforeEach)
-
+    it('issues testimonial token on day-7', async () => {
+      const tx = makeCompletedTransaction({ seller: { id: 'seller-1', name: 'John Doe', notificationPreference: 'in_app', consentMarketing: false } });
+      mockTxRepo.findTransactionsCompletedDaysAgo.mockImplementation(async (days) => (days === 7 ? [tx] as never : [] as never));
       await txJobs.sendPostCompletionMessages();
-
-      expect(mockContentService.issueTestimonialToken).toHaveBeenCalledWith(
-        'seller-1',
-        'tx-1',
-        'John Doe',
-        '',
-      );
+      expect(mockContentService.issueTestimonialToken).toHaveBeenCalledWith('seller-1', 'tx-1', 'John Doe', '');
     });
 
-    it('does NOT call issueTestimonialToken when testimonial already exists', async () => {
-      const tx = makeCompletedTransaction({
-        seller: {
-          id: 'seller-1',
-          name: 'John Doe',
-          notificationPreference: 'in_app',
-          consentMarketing: false,
-        },
-      });
-      mockTxRepo.findTransactionsCompletedDaysAgo.mockImplementation(async (days) => {
-        if (days === 7) return [tx] as never;
-        return [] as never;
-      });
+    it('skips testimonial token when exists', async () => {
+      const tx = makeCompletedTransaction({ seller: { id: 'seller-1', name: 'John Doe', notificationPreference: 'in_app', consentMarketing: false } });
+      mockTxRepo.findTransactionsCompletedDaysAgo.mockImplementation(async (days) => (days === 7 ? [tx] as never : [] as never));
       mockContentService.getTestimonialBySeller.mockResolvedValue({ id: 't-existing' } as never);
-
       await txJobs.sendPostCompletionMessages();
-
       expect(mockContentService.issueTestimonialToken).not.toHaveBeenCalled();
     });
 
-    it('includes referralLink in day-14 templateData', async () => {
-      const tx = makeCompletedTransaction({
-        seller: {
-          id: 'seller-1',
-          name: 'John Doe',
-          notificationPreference: 'in_app',
-          consentMarketing: true,
-        },
-      });
-      mockTxRepo.findTransactionsCompletedDaysAgo.mockImplementation(async (days) => {
-        if (days === 14) return [tx] as never;
-        return [] as never;
-      });
-      mockContentService.sendReferralLinks.mockResolvedValue({
-        referralCode: 'MYCODE12',
-      } as never);
-      process.env.APP_URL = 'https://sellmyhouse.sg';
-
+    it('continues when one post-completion notification fails (M13)', async () => {
+      const tx1 = makeCompletedTransaction({ id: 'tx-1', seller: { id: 'seller-1', name: 'S1', notificationPreference: 'in_app', consentMarketing: false } });
+      const tx2 = makeCompletedTransaction({ id: 'tx-2', sellerId: 'seller-2', seller: { id: 'seller-2', name: 'S2', notificationPreference: 'in_app', consentMarketing: false } });
+      mockTxRepo.findTransactionsCompletedDaysAgo.mockImplementation(async (days) => (days === 1 ? [tx1, tx2] as never : [] as never));
+      mockNotification.send.mockRejectedValueOnce(new Error('fail')).mockResolvedValueOnce(undefined as never);
       await txJobs.sendPostCompletionMessages();
+      expect(mockNotification.send).toHaveBeenCalledTimes(2);
+    });
 
-      expect(mockNotification.send).toHaveBeenCalledWith(
-        expect.objectContaining({
-          templateData: expect.objectContaining({
-            referralLink: 'https://sellmyhouse.sg/?ref=MYCODE12',
-          }),
-        }),
-        'system',
-      );
+    it('includes referralLink in day-14', async () => {
+      const tx = makeCompletedTransaction({ seller: { id: 'seller-1', name: 'John', notificationPreference: 'in_app', consentMarketing: true } });
+      mockTxRepo.findTransactionsCompletedDaysAgo.mockImplementation(async (days) => (days === 14 ? [tx] as never : [] as never));
+      mockContentService.sendReferralLinks.mockResolvedValue({ referralCode: 'MYCODE12' } as never);
+      process.env.APP_URL = 'https://sellmyhouse.sg';
+      await txJobs.sendPostCompletionMessages();
+      expect(mockNotification.send).toHaveBeenCalledWith(expect.objectContaining({ templateData: expect.objectContaining({ referralLink: 'https://sellmyhouse.sg/?ref=MYCODE12' }) }), 'system');
+    });
+  });
+
+  describe('sendHdbAppointmentReminders', () => {
+    it('sends with hdb_appointment_reminder template (M14)', async () => {
+      mockTxRepo.findUpcomingHdbAppointments.mockResolvedValue([{ id: 'tx-1', sellerId: 'seller-1', hdbAppointmentDate: new Date(Date.now() + 86400000) }] as never);
+      const result = await txJobs.sendHdbAppointmentReminders();
+      expect(result.reminded).toBe(1);
+      expect(mockNotification.send).toHaveBeenCalledWith(expect.objectContaining({ templateName: 'hdb_appointment_reminder' }), 'system');
+    });
+
+    it('skips if already sent', async () => {
+      mockTxRepo.findUpcomingHdbAppointments.mockResolvedValue([{ id: 'tx-1', sellerId: 'seller-1', hdbAppointmentDate: new Date(Date.now() + 86400000) }] as never);
+      mockTxRepo.findExistingNotification.mockResolvedValue({ id: 'n-1' } as never);
+      const result = await txJobs.sendHdbAppointmentReminders();
+      expect(result.reminded).toBe(0);
+    });
+
+    it('continues when one HDB reminder fails (M13)', async () => {
+      mockTxRepo.findUpcomingHdbAppointments.mockResolvedValue([
+        { id: 'tx-1', sellerId: 'seller-1', hdbAppointmentDate: new Date(Date.now() + 86400000) },
+        { id: 'tx-2', sellerId: 'seller-2', hdbAppointmentDate: new Date(Date.now() + 86400000) },
+      ] as never);
+      mockNotification.send.mockRejectedValueOnce(new Error('fail')).mockResolvedValueOnce(undefined as never);
+      const result = await txJobs.sendHdbAppointmentReminders();
+      expect(result.reminded).toBe(1);
+      expect(mockNotification.send).toHaveBeenCalledTimes(2);
     });
   });
 });

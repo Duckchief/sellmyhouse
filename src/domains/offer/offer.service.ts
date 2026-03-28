@@ -283,9 +283,11 @@ export async function getOffersForProperty(propertyId: string, agentId: string, 
   return offerRepo.findByPropertyId(propertyId);
 }
 
-export async function reviewAiAnalysis(input: { offerId: string; agentId: string }) {
+export async function reviewAiAnalysis(input: { offerId: string; agentId: string; role: string }) {
   const offer = await offerRepo.findById(input.offerId);
   if (!offer) throw new NotFoundError('Offer', input.offerId);
+
+  await assertOfferOwnership(offer.propertyId, input.agentId, input.role);
 
   if (!offer.aiAnalysis) {
     throw new ValidationError('No AI analysis exists for this offer');
@@ -316,10 +318,13 @@ export async function reviewAiAnalysis(input: { offerId: string; agentId: string
 export async function shareAiAnalysis(input: {
   offerId: string;
   agentId: string;
+  role: string;
   sellerId: string;
 }) {
   const offer = await offerRepo.findById(input.offerId);
   if (!offer) throw new NotFoundError('Offer', input.offerId);
+
+  await assertOfferOwnership(offer.propertyId, input.agentId, input.role);
 
   if (!offer.aiAnalysis) {
     throw new ValidationError('No AI analysis exists for this offer');

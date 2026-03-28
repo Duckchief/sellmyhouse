@@ -207,3 +207,34 @@ export async function anonymiseOfferPii(offerId: string): Promise<void> {
     data: { buyerName: null, buyerPhone: null },
   });
 }
+
+
+/**
+ * Atomically anonymises offer PII and creates an audit log entry in a single transaction.
+ * Ensures atomicity for M65: either both the anonymisation and audit log succeed, or neither does.
+ */
+export async function anonymiseOfferPiiWithAudit(
+  offerId: string,
+  auditData: {
+    action: string;
+    entityType: string;
+    entityId: string;
+    details: Record<string, unknown>;
+  },
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    await tx.offer.update({
+      where: { id: offerId },
+      data: { buyerName: null, buyerPhone: null },
+    });
+    await tx.auditLog.create({
+      data: {
+        id: createId(),
+        action: auditData.action,
+        entityType: auditData.entityType,
+        entityId: auditData.entityId,
+        details: auditData.details as Prisma.InputJsonValue,
+      },
+    });
+  });
+}

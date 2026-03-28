@@ -310,7 +310,7 @@ export async function findTransactionsCompletedOn(date: Date) {
       status: 'completed',
       completionDate: { gte: start, lte: end },
     },
-    include: { seller: true },
+    include: { seller: true, property: true },
   });
 }
 

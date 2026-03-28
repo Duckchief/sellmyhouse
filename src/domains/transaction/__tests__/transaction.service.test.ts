@@ -234,9 +234,32 @@ describe('transaction.service', () => {
         }),
       ).rejects.toThrow(ConflictError);
     });
+    it('throws ValidationError when transaction is completed (M12)', async () => {
+      const tx = makeTransaction({ status: 'completed' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      await expect(txService.createOtp({ transactionId: 'tx-1', hdbSerialNumber: 'SN-001', agentId: 'agent-1' })).rejects.toThrow(ValidationError);
+    });
+
+    it('throws ValidationError when transaction is fallen_through (M12)', async () => {
+      const tx = makeTransaction({ status: 'fallen_through' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      await expect(txService.createOtp({ transactionId: 'tx-1', hdbSerialNumber: 'SN-001', agentId: 'agent-1' })).rejects.toThrow(ValidationError);
+    });
   });
 
   describe('advanceOtp', () => {
+    it('throws ValidationError when transaction is completed (M12)', async () => {
+      const tx = makeTransaction({ status: 'completed' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      await expect(txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' })).rejects.toThrow(ValidationError);
+    });
+
+    it('throws ValidationError when transaction is fallen_through (M12)', async () => {
+      const tx = makeTransaction({ status: 'fallen_through' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      await expect(txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' })).rejects.toThrow(ValidationError);
+    });
+
     it('advances OTP to next status (prepared → sent_to_seller)', async () => {
       const tx = makeTransaction();
       const otp = makeOtp({ status: 'prepared' });
@@ -651,6 +674,15 @@ describe('transaction.service', () => {
 
       expect(mockPropertyService.revertPropertyToDraft).toHaveBeenCalledWith('property-1');
     });
+    it('uses tx.sellerId for notification, not input.sellerId (M16)', async () => {
+      const tx = makeTransaction({ status: 'option_issued', sellerId: 'real-seller' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.updateFallenThrough.mockResolvedValue(1 as never);
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
+      mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
+      await txService.markFallenThrough({ transactionId: 'tx-1', sellerId: 'spoofed-seller', reason: 'Test reason.', agentId: 'agent-1' });
+      expect(mockNotification.send).toHaveBeenCalledWith(expect.objectContaining({ recipientId: 'real-seller' }), 'agent-1');
+    });
   });
 
   describe('updateHdbTracking', () => {
@@ -895,6 +927,46 @@ describe('transaction.service', () => {
       ).rejects.toThrow('Setting not found: commission_amount');
 
       expect(mockTxRepo.createCommissionInvoice).not.toHaveBeenCalled();
+    });
+  });
+
+
+  describe('sendInvoice', () => {
+    it('throws ValidationError when invoice status is not uploaded (M17)', async () => {
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({ id: 'inv-1', status: 'sent_to_client' } as never);
+      await expect(txService.sendInvoice({ transactionId: 'tx-1', sellerId: 'seller-1', agentId: 'agent-1' })).rejects.toThrow(ValidationError);
+    });
+
+    it('sends invoice when status is uploaded', async () => {
+      const tx = makeTransaction();
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({ id: 'inv-1', status: 'uploaded' } as never);
+      mockTxRepo.updateInvoiceStatus.mockResolvedValue({ id: 'inv-1', status: 'sent_to_client' } as never);
+      await txService.sendInvoice({ transactionId: 'tx-1', sellerId: 'seller-1', agentId: 'agent-1' });
+      expect(mockTxRepo.updateInvoiceStatus).toHaveBeenCalledWith('inv-1', 'sent_to_client', expect.any(Object));
+    });
+
+    it('uses tx.sellerId for notification (M16)', async () => {
+      const tx = makeTransaction({ sellerId: 'real-seller' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({ id: 'inv-1', status: 'uploaded' } as never);
+      mockTxRepo.updateInvoiceStatus.mockResolvedValue({ id: 'inv-1', status: 'sent_to_client' } as never);
+      await txService.sendInvoice({ transactionId: 'tx-1', sellerId: 'spoofed', agentId: 'agent-1' });
+      expect(mockNotification.send).toHaveBeenCalledWith(expect.objectContaining({ recipientId: 'real-seller' }), 'agent-1');
+    });
+  });
+
+  describe('markInvoicePaid', () => {
+    it('throws ValidationError when status is not sent_to_client (M17)', async () => {
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({ id: 'inv-1', status: 'uploaded' } as never);
+      await expect(txService.markInvoicePaid({ transactionId: 'tx-1', agentId: 'agent-1' })).rejects.toThrow(ValidationError);
+    });
+
+    it('marks paid when status is sent_to_client', async () => {
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({ id: 'inv-1', status: 'sent_to_client' } as never);
+      mockTxRepo.updateInvoiceStatus.mockResolvedValue({ id: 'inv-1', status: 'paid' } as never);
+      await txService.markInvoicePaid({ transactionId: 'tx-1', agentId: 'agent-1' });
+      expect(mockTxRepo.updateInvoiceStatus).toHaveBeenCalledWith('inv-1', 'paid', expect.any(Object));
     });
   });
 });

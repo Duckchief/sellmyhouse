@@ -299,9 +299,7 @@ export async function withdrawConsentAtomically(
       },
     });
     const updateData =
-      consentType === 'service'
-        ? { consentService: false }
-        : { consentMarketing: false };
+      consentType === 'service' ? { consentService: false } : { consentMarketing: false };
     await tx.seller.update({ where: { id: sellerId }, data: updateData });
     return record as unknown as ConsentRecord;
   });

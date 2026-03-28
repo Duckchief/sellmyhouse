@@ -38,7 +38,9 @@ jest.mock('@/infra/storage/local-storage', () => ({
 }));
 jest.mock('@/infra/storage/encrypted-storage', () => ({
   encryptedStorage: {
-    save: jest.fn().mockResolvedValue({ path: 'otp/tx-1/seller-abc.jpg', wrappedKey: 'wrapped-key-abc' }),
+    save: jest
+      .fn()
+      .mockResolvedValue({ path: 'otp/tx-1/seller-abc.jpg', wrappedKey: 'wrapped-key-abc' }),
     read: jest.fn().mockResolvedValue(Buffer.from('decrypted')),
     delete: jest.fn().mockResolvedValue(undefined),
   },
@@ -237,13 +239,25 @@ describe('transaction.service', () => {
     it('throws ValidationError when transaction is completed (M12)', async () => {
       const tx = makeTransaction({ status: 'completed' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      await expect(txService.createOtp({ transactionId: 'tx-1', hdbSerialNumber: 'SN-001', agentId: 'agent-1' })).rejects.toThrow(ValidationError);
+      await expect(
+        txService.createOtp({
+          transactionId: 'tx-1',
+          hdbSerialNumber: 'SN-001',
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('throws ValidationError when transaction is fallen_through (M12)', async () => {
       const tx = makeTransaction({ status: 'fallen_through' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      await expect(txService.createOtp({ transactionId: 'tx-1', hdbSerialNumber: 'SN-001', agentId: 'agent-1' })).rejects.toThrow(ValidationError);
+      await expect(
+        txService.createOtp({
+          transactionId: 'tx-1',
+          hdbSerialNumber: 'SN-001',
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow(ValidationError);
     });
   });
 
@@ -251,13 +265,17 @@ describe('transaction.service', () => {
     it('throws ValidationError when transaction is completed (M12)', async () => {
       const tx = makeTransaction({ status: 'completed' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      await expect(txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' })).rejects.toThrow(ValidationError);
+      await expect(
+        txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('throws ValidationError when transaction is fallen_through (M12)', async () => {
       const tx = makeTransaction({ status: 'fallen_through' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      await expect(txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' })).rejects.toThrow(ValidationError);
+      await expect(
+        txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('advances OTP to next status (prepared → sent_to_seller)', async () => {
@@ -680,8 +698,16 @@ describe('transaction.service', () => {
       mockTxRepo.updateFallenThrough.mockResolvedValue(1 as never);
       mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
       mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
-      await txService.markFallenThrough({ transactionId: 'tx-1', sellerId: 'spoofed-seller', reason: 'Test reason.', agentId: 'agent-1' });
-      expect(mockNotification.send).toHaveBeenCalledWith(expect.objectContaining({ recipientId: 'real-seller' }), 'agent-1');
+      await txService.markFallenThrough({
+        transactionId: 'tx-1',
+        sellerId: 'spoofed-seller',
+        reason: 'Test reason.',
+        agentId: 'agent-1',
+      });
+      expect(mockNotification.send).toHaveBeenCalledWith(
+        expect.objectContaining({ recipientId: 'real-seller' }),
+        'agent-1',
+      );
     });
   });
 
@@ -789,12 +815,19 @@ describe('transaction.service', () => {
     };
 
     beforeEach(() => {
-      jest.requireMock('file-type').fileTypeFromBuffer.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
-      mockEncryptedStorage.save.mockResolvedValue({ path: 'otp/tx-1/seller-abc.jpg', wrappedKey: 'wrapped-key-abc' });
+      jest
+        .requireMock('file-type')
+        .fileTypeFromBuffer.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
+      mockEncryptedStorage.save.mockResolvedValue({
+        path: 'otp/tx-1/seller-abc.jpg',
+        wrappedKey: 'wrapped-key-abc',
+      });
     });
 
     afterEach(() => {
-      jest.requireMock('file-type').fileTypeFromBuffer.mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
+      jest
+        .requireMock('file-type')
+        .fileTypeFromBuffer.mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
     });
 
     it('saves OTP scan via encryptedStorage (not localStorage)', async () => {
@@ -831,8 +864,16 @@ describe('transaction.service', () => {
       const tx = makeTransaction();
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockTxRepo.findInvoiceByTransactionId.mockResolvedValue(null);
-      mockSettings.getCommission.mockResolvedValue({ amount: 1499, gstRate: 0.09, gstAmount: 134.91, total: 1633.91 } as never);
-      mockEncryptedStorage.save.mockResolvedValue({ path: 'invoices/tx-1/invoice-abc.pdf', wrappedKey: 'wrapped-inv-key' });
+      mockSettings.getCommission.mockResolvedValue({
+        amount: 1499,
+        gstRate: 0.09,
+        gstAmount: 134.91,
+        total: 1633.91,
+      } as never);
+      mockEncryptedStorage.save.mockResolvedValue({
+        path: 'invoices/tx-1/invoice-abc.pdf',
+        wrappedKey: 'wrapped-inv-key',
+      });
       mockTxRepo.createCommissionInvoice.mockResolvedValue({ id: 'inv-1' } as never);
 
       await txService.uploadInvoice({
@@ -853,8 +894,16 @@ describe('transaction.service', () => {
       const tx = makeTransaction();
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockTxRepo.findInvoiceByTransactionId.mockResolvedValue(null);
-      mockSettings.getCommission.mockResolvedValue({ amount: 1499, gstRate: 0.09, gstAmount: 134.91, total: 1633.91 } as never);
-      mockEncryptedStorage.save.mockResolvedValue({ path: 'invoices/tx-1/invoice-abc.pdf', wrappedKey: 'wrapped-inv-key' });
+      mockSettings.getCommission.mockResolvedValue({
+        amount: 1499,
+        gstRate: 0.09,
+        gstAmount: 134.91,
+        total: 1633.91,
+      } as never);
+      mockEncryptedStorage.save.mockResolvedValue({
+        path: 'invoices/tx-1/invoice-abc.pdf',
+        wrappedKey: 'wrapped-inv-key',
+      });
       mockTxRepo.createCommissionInvoice.mockResolvedValue({ id: 'inv-1' } as never);
 
       await txService.uploadInvoice({
@@ -880,7 +929,10 @@ describe('transaction.service', () => {
         gstAmount: 134.91,
         total: 1633.91,
       } as never);
-      mockEncryptedStorage.save.mockResolvedValue({ path: 'invoices/tx-1/invoice-abc.pdf', wrappedKey: 'wrapped-inv-key' });
+      mockEncryptedStorage.save.mockResolvedValue({
+        path: 'invoices/tx-1/invoice-abc.pdf',
+        wrappedKey: 'wrapped-inv-key',
+      });
       mockTxRepo.createCommissionInvoice.mockResolvedValue({
         id: 'inv-1',
         amount: '1499',
@@ -930,43 +982,86 @@ describe('transaction.service', () => {
     });
   });
 
-
   describe('sendInvoice', () => {
     it('throws ValidationError when invoice status is not uploaded (M17)', async () => {
-      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({ id: 'inv-1', status: 'sent_to_client' } as never);
-      await expect(txService.sendInvoice({ transactionId: 'tx-1', sellerId: 'seller-1', agentId: 'agent-1' })).rejects.toThrow(ValidationError);
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({
+        id: 'inv-1',
+        status: 'sent_to_client',
+      } as never);
+      await expect(
+        txService.sendInvoice({ transactionId: 'tx-1', sellerId: 'seller-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('sends invoice when status is uploaded', async () => {
       const tx = makeTransaction();
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({ id: 'inv-1', status: 'uploaded' } as never);
-      mockTxRepo.updateInvoiceStatus.mockResolvedValue({ id: 'inv-1', status: 'sent_to_client' } as never);
-      await txService.sendInvoice({ transactionId: 'tx-1', sellerId: 'seller-1', agentId: 'agent-1' });
-      expect(mockTxRepo.updateInvoiceStatus).toHaveBeenCalledWith('inv-1', 'sent_to_client', expect.any(Object));
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({
+        id: 'inv-1',
+        status: 'uploaded',
+      } as never);
+      mockTxRepo.updateInvoiceStatus.mockResolvedValue({
+        id: 'inv-1',
+        status: 'sent_to_client',
+      } as never);
+      await txService.sendInvoice({
+        transactionId: 'tx-1',
+        sellerId: 'seller-1',
+        agentId: 'agent-1',
+      });
+      expect(mockTxRepo.updateInvoiceStatus).toHaveBeenCalledWith(
+        'inv-1',
+        'sent_to_client',
+        expect.any(Object),
+      );
     });
 
     it('uses tx.sellerId for notification (M16)', async () => {
       const tx = makeTransaction({ sellerId: 'real-seller' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({ id: 'inv-1', status: 'uploaded' } as never);
-      mockTxRepo.updateInvoiceStatus.mockResolvedValue({ id: 'inv-1', status: 'sent_to_client' } as never);
-      await txService.sendInvoice({ transactionId: 'tx-1', sellerId: 'spoofed', agentId: 'agent-1' });
-      expect(mockNotification.send).toHaveBeenCalledWith(expect.objectContaining({ recipientId: 'real-seller' }), 'agent-1');
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({
+        id: 'inv-1',
+        status: 'uploaded',
+      } as never);
+      mockTxRepo.updateInvoiceStatus.mockResolvedValue({
+        id: 'inv-1',
+        status: 'sent_to_client',
+      } as never);
+      await txService.sendInvoice({
+        transactionId: 'tx-1',
+        sellerId: 'spoofed',
+        agentId: 'agent-1',
+      });
+      expect(mockNotification.send).toHaveBeenCalledWith(
+        expect.objectContaining({ recipientId: 'real-seller' }),
+        'agent-1',
+      );
     });
   });
 
   describe('markInvoicePaid', () => {
     it('throws ValidationError when status is not sent_to_client (M17)', async () => {
-      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({ id: 'inv-1', status: 'uploaded' } as never);
-      await expect(txService.markInvoicePaid({ transactionId: 'tx-1', agentId: 'agent-1' })).rejects.toThrow(ValidationError);
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({
+        id: 'inv-1',
+        status: 'uploaded',
+      } as never);
+      await expect(
+        txService.markInvoicePaid({ transactionId: 'tx-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('marks paid when status is sent_to_client', async () => {
-      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({ id: 'inv-1', status: 'sent_to_client' } as never);
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({
+        id: 'inv-1',
+        status: 'sent_to_client',
+      } as never);
       mockTxRepo.updateInvoiceStatus.mockResolvedValue({ id: 'inv-1', status: 'paid' } as never);
       await txService.markInvoicePaid({ transactionId: 'tx-1', agentId: 'agent-1' });
-      expect(mockTxRepo.updateInvoiceStatus).toHaveBeenCalledWith('inv-1', 'paid', expect.any(Object));
+      expect(mockTxRepo.updateInvoiceStatus).toHaveBeenCalledWith(
+        'inv-1',
+        'paid',
+        expect.any(Object),
+      );
     });
   });
 });

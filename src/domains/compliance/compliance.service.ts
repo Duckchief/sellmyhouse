@@ -96,19 +96,15 @@ export async function withdrawConsent(
   const now = new Date();
 
   // Atomically create consent record + update seller flag in a single transaction
-  const newRecord = await complianceRepo.withdrawConsentAtomically(
-    input.sellerId,
-    input.type,
-    {
-      subjectId: input.sellerId,
-      purposeService: input.type === 'service' ? false : currentConsent.consentService,
-      purposeMarketing: input.type === 'marketing' ? false : currentConsent.consentMarketing,
-      consentWithdrawnAt: now,
-      withdrawalChannel: input.channel,
-      ipAddress: input.ipAddress,
-      userAgent: input.userAgent,
-    },
-  );
+  const newRecord = await complianceRepo.withdrawConsentAtomically(input.sellerId, input.type, {
+    subjectId: input.sellerId,
+    purposeService: input.type === 'service' ? false : currentConsent.consentService,
+    purposeMarketing: input.type === 'marketing' ? false : currentConsent.consentMarketing,
+    consentWithdrawnAt: now,
+    withdrawalChannel: input.channel,
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent,
+  });
 
   // For marketing withdrawal: no deletion request needed
   if (input.type === 'marketing') {
@@ -200,17 +196,14 @@ export async function grantMarketingConsent(input: GrantConsentInput): Promise<C
   }
 
   // Atomically create consent record + update seller flag in a single transaction
-  const newRecord = await complianceRepo.grantConsentAtomically(
-    input.sellerId,
-    {
-      subjectId: input.sellerId,
-      purposeService: currentConsent.consentService,
-      purposeMarketing: true,
-      withdrawalChannel: input.channel, // schema field is named for withdrawal but stores the interaction channel for both grant and withdraw
-      ipAddress: input.ipAddress,
-      userAgent: input.userAgent,
-    },
-  );
+  const newRecord = await complianceRepo.grantConsentAtomically(input.sellerId, {
+    subjectId: input.sellerId,
+    purposeService: currentConsent.consentService,
+    purposeMarketing: true,
+    withdrawalChannel: input.channel, // schema field is named for withdrawal but stores the interaction channel for both grant and withdraw
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent,
+  });
 
   await auditService.log({
     action: 'consent.granted',

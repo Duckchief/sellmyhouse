@@ -52,7 +52,9 @@ export async function scanBuffer(buffer: Buffer, filename: string): Promise<Scan
     if (process.env.NODE_ENV === 'production') {
       throw new Error('Virus scanner unavailable — file uploads blocked in production');
     }
-    const fileHash = filename ? crypto.createHash('sha256').update(filename).digest('hex').slice(0, 8) : 'unknown';
+    const fileHash = filename
+      ? crypto.createHash('sha256').update(filename).digest('hex').slice(0, 8)
+      : 'unknown';
     logger.warn({ fileHash }, 'Virus scan skipped (ClamAV unavailable)');
     return { isClean: true, viruses: [] };
   }
@@ -65,7 +67,9 @@ export async function scanBuffer(buffer: Buffer, filename: string): Promise<Scan
     const { isInfected, viruses } = await clamInstance.scanStream(stream);
 
     if (isInfected) {
-      const fileHash = filename ? crypto.createHash('sha256').update(filename).digest('hex').slice(0, 8) : 'unknown';
+      const fileHash = filename
+        ? crypto.createHash('sha256').update(filename).digest('hex').slice(0, 8)
+        : 'unknown';
       logger.error({ fileHash, viruses }, 'VIRUS DETECTED in upload');
     }
 
@@ -74,7 +78,9 @@ export async function scanBuffer(buffer: Buffer, filename: string): Promise<Scan
       viruses: viruses || [],
     };
   } catch (err) {
-    const fileHash = filename ? crypto.createHash('sha256').update(filename).digest('hex').slice(0, 8) : 'unknown';
+    const fileHash = filename
+      ? crypto.createHash('sha256').update(filename).digest('hex').slice(0, 8)
+      : 'unknown';
     logger.error({ err, fileHash }, 'Virus scan error');
     // Fail-closed: treat scan errors as infected in production
     if (process.env.NODE_ENV === 'production') {

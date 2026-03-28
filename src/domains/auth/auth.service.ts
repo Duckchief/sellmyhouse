@@ -282,9 +282,7 @@ export async function confirm2FA(
   await updateFn(userId, { twoFactorEnabled: true });
 
   const resetFn =
-    role === 'seller'
-      ? authRepo.resetSellerFailedTwoFactor
-      : authRepo.resetAgentFailedTwoFactor;
+    role === 'seller' ? authRepo.resetSellerFailedTwoFactor : authRepo.resetAgentFailedTwoFactor;
   await resetFn(userId);
 
   // Invalidate all other sessions so they cannot bypass the newly enabled 2FA

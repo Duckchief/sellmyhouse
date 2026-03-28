@@ -171,9 +171,10 @@ async function sendExternal(
   }
 
   // Resolve actual contact info from DB — providers need email/phone, not CUID
-  const contact = input.recipientEmail || input.recipientPhone
-    ? { email: input.recipientEmail ?? null, phone: input.recipientPhone ?? null }
-    : await notificationRepo.findRecipientContact(input.recipientType, input.recipientId);
+  const contact =
+    input.recipientEmail || input.recipientPhone
+      ? { email: input.recipientEmail ?? null, phone: input.recipientPhone ?? null }
+      : await notificationRepo.findRecipientContact(input.recipientType, input.recipientId);
 
   const record = await notificationRepo.create({
     recipientType: input.recipientType,
@@ -189,7 +190,11 @@ async function sendExternal(
 
     if (!recipientAddress) {
       logger.warn(
-        { recipientId: input.recipientId, recipientType: input.recipientType, channel: resolvedChannel },
+        {
+          recipientId: input.recipientId,
+          recipientType: input.recipientType,
+          channel: resolvedChannel,
+        },
         'No contact info found for recipient — cannot send external notification',
       );
       await notificationRepo.updateStatus(record.id, 'failed', {

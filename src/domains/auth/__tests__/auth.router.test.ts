@@ -8,7 +8,6 @@ import { authRouter } from '../auth.router';
 import { configurePassport } from '../../../infra/http/middleware/passport';
 import { errorHandler } from '../../../infra/http/middleware/error-handler';
 
-
 // Mock auth service
 jest.mock('../auth.service');
 const authService = jest.requireMock('../auth.service');
@@ -112,31 +111,25 @@ describe('AuthRouter', () => {
     });
 
     it('returns 400 when password has no number (M3 complexity)', async () => {
-      const res = await request(app)
-        .post('/auth/register')
-        .type('form')
-        .send({
-          name: 'Test',
-          email: 'test@example.com',
-          phone: '91234567',
-          password: 'aaaaaaaa',
-          consentService: 'true',
-        });
+      const res = await request(app).post('/auth/register').type('form').send({
+        name: 'Test',
+        email: 'test@example.com',
+        phone: '91234567',
+        password: 'aaaaaaaa',
+        consentService: 'true',
+      });
 
       expect(res.status).toBe(400);
     });
 
     it('returns 400 when password has no letter (M3 complexity)', async () => {
-      const res = await request(app)
-        .post('/auth/register')
-        .type('form')
-        .send({
-          name: 'Test',
-          email: 'test@example.com',
-          phone: '91234567',
-          password: '12345678',
-          consentService: 'true',
-        });
+      const res = await request(app).post('/auth/register').type('form').send({
+        name: 'Test',
+        email: 'test@example.com',
+        phone: '91234567',
+        password: '12345678',
+        consentService: 'true',
+      });
 
       expect(res.status).toBe(400);
     });

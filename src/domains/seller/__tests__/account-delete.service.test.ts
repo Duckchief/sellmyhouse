@@ -82,7 +82,9 @@ describe('deleteSellerAccount', () => {
     // Non-.enc files use localStorage
     expect(mockStorage.delete).toHaveBeenCalledWith('uploads/photo1.jpg');
     // .enc files use encryptedStorage
-    expect(mockEncryptedStorage.delete).toHaveBeenCalledWith('seller-docs/seller-1/nric-abc.jpg.enc');
+    expect(mockEncryptedStorage.delete).toHaveBeenCalledWith(
+      'seller-docs/seller-1/nric-abc.jpg.enc',
+    );
   });
 
   it('still deletes seller when a file cannot be removed', async () => {

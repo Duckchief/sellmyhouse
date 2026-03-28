@@ -60,7 +60,9 @@ describe('ProfileService', () => {
     } as Express.Multer.File;
 
     beforeEach(() => {
-      mockedFileType.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' } as Awaited<ReturnType<typeof fileTypeFromBuffer>>);
+      mockedFileType.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' } as Awaited<
+        ReturnType<typeof fileTypeFromBuffer>
+      >);
       mockedScanBuffer.mockResolvedValue({ isClean: true, viruses: [] });
     });
 
@@ -79,7 +81,9 @@ describe('ProfileService', () => {
     });
 
     it('rejects file when magic bytes do not match a valid image type (M5)', async () => {
-      mockedFileType.mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' } as Awaited<ReturnType<typeof fileTypeFromBuffer>>);
+      mockedFileType.mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' } as Awaited<
+        ReturnType<typeof fileTypeFromBuffer>
+      >);
       await expect(service.uploadAvatar('agent1', mockFile)).rejects.toThrow(
         'Invalid file type detected',
       );

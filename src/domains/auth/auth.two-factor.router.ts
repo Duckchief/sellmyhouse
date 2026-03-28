@@ -63,7 +63,9 @@ twoFactorRouter.post(
             message: 'Enter a valid 6-digit code',
           });
         }
-        return res.status(400).render('pages/auth/2fa-setup', { error: 'Enter a valid 6-digit code' });
+        return res
+          .status(400)
+          .render('pages/auth/2fa-setup', { error: 'Enter a valid 6-digit code' });
       }
 
       const user = req.user as AuthenticatedUser;
@@ -80,9 +82,9 @@ twoFactorRouter.post(
             message: 'Invalid verification code. Check your authenticator app and try again.',
           });
         }
-        return res
-          .status(401)
-          .render('pages/auth/2fa-setup', { error: 'Invalid verification code. Check your authenticator app and try again.' });
+        return res.status(401).render('pages/auth/2fa-setup', {
+          error: 'Invalid verification code. Check your authenticator app and try again.',
+        });
       }
 
       // Shrink session timeout now that 2FA is active

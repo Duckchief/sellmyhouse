@@ -540,9 +540,9 @@ describe('photo.service', () => {
       const listing = makeListing([photo1, photo2, photo3]);
       mockedRepo.findActiveListingForProperty.mockResolvedValue(listing as unknown as Listing);
 
-      await expect(
-        photoService.reorderPhotos('prop-1', ['photo-1', 'photo-2']),
-      ).rejects.toThrow(ValidationError);
+      await expect(photoService.reorderPhotos('prop-1', ['photo-1', 'photo-2'])).rejects.toThrow(
+        ValidationError,
+      );
     });
 
     it('throws ValidationError when photoIds contain unknown IDs (L23)', async () => {

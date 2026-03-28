@@ -5,7 +5,12 @@ import * as sellerRepo from './seller.repository';
 import * as auditService from '@/domains/shared/audit.service';
 import { NotFoundError, ForbiddenError, ValidationError } from '@/domains/shared/errors';
 import { CASE_FLAG_CHECKLISTS } from './case-flag.types';
-import type { CreateCaseFlagInput, UpdateCaseFlagInput, CaseFlagType, CaseFlagStatus } from './case-flag.types';
+import type {
+  CreateCaseFlagInput,
+  UpdateCaseFlagInput,
+  CaseFlagType,
+  CaseFlagStatus,
+} from './case-flag.types';
 
 // H13: Valid status transitions for case flags
 const CASE_FLAG_TRANSITIONS: Record<CaseFlagStatus, CaseFlagStatus[]> = {

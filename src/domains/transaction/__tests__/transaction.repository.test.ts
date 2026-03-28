@@ -59,7 +59,12 @@ describe('transaction.repository', () => {
 
   describe('updateTransactionStatus', () => {
     it('updates status and sets completionDate when transitioning to completed', async () => {
-      const count = await txRepo.updateTransactionStatus(transactionId, 'completed', 'option_issued', new Date());
+      const count = await txRepo.updateTransactionStatus(
+        transactionId,
+        'completed',
+        'option_issued',
+        new Date(),
+      );
       expect(count).toBe(1);
     });
 

@@ -37,9 +37,7 @@ export async function sendOtpExerciseReminders(): Promise<void> {
 
       const deadline = new Date(tx.exerciseDeadline);
       deadline.setHours(0, 0, 0, 0);
-      const daysUntil = Math.round(
-        (deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-      );
+      const daysUntil = Math.round((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
       if (!OTP_REMINDER_DAYS.includes(daysUntil)) continue;
 
@@ -105,12 +103,9 @@ export async function sendPostCompletionMessages(): Promise<void> {
         if (existing) continue;
 
         // M15: Use actual property address from included relation, not transaction ID
-        const property = (
-          tx as { property?: { town?: string; street?: string; block?: string } }
-        ).property;
-        const address = property
-          ? `${property.block} ${property.street}, ${property.town}`
-          : tx.id;
+        const property = (tx as { property?: { town?: string; street?: string; block?: string } })
+          .property;
+        const address = property ? `${property.block} ${property.street}, ${property.town}` : tx.id;
 
         // Build template data, extended per day
         const templateData: Record<string, string> = {

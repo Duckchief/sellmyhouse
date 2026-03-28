@@ -208,7 +208,6 @@ export async function anonymiseOfferPii(offerId: string): Promise<void> {
   });
 }
 
-
 /**
  * Atomically anonymises offer PII and creates an audit log entry in a single transaction.
  * Ensures atomicity for M65: either both the anonymisation and audit log succeed, or neither does.

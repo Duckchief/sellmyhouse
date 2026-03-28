@@ -51,9 +51,7 @@ publicRouter.get(
       }
 
       if (!(HDB_TOWNS as readonly string[]).includes(town)) {
-        return res
-          .status(400)
-          .render('partials/public/report-results', { error: 'Invalid town' });
+        return res.status(400).render('partials/public/report-results', { error: 'Invalid town' });
       }
 
       if (!(HDB_FLAT_TYPES as readonly string[]).includes(flatType)) {
@@ -97,7 +95,9 @@ publicRouter.get(
       }
 
       if (!(HDB_TOWNS as readonly string[]).includes(town)) {
-        return res.status(400).render('partials/public/transaction-rows', { error: 'Invalid town' });
+        return res
+          .status(400)
+          .render('partials/public/transaction-rows', { error: 'Invalid town' });
       }
 
       if (!(HDB_FLAT_TYPES as readonly string[]).includes(flatType)) {

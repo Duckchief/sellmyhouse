@@ -53,9 +53,7 @@ export async function createProperty(input: CreatePropertyInput) {
   let property;
   for (let attempt = 0; attempt < SLUG_RETRY_LIMIT; attempt++) {
     const slug =
-      attempt === 0
-        ? await buildUniqueSlug(baseSlug)
-        : `${baseSlug}-${createId().slice(0, 6)}`;
+      attempt === 0 ? await buildUniqueSlug(baseSlug) : `${baseSlug}-${createId().slice(0, 6)}`;
     try {
       property = await propertyRepo.createPropertyWithListing({ ...input, slug });
       break;

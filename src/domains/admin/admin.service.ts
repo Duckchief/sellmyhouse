@@ -612,7 +612,7 @@ export async function getAnalytics(filter: AnalyticsFilter): Promise<AnalyticsDa
   const dateFrom = filter.dateFrom ? new Date(filter.dateFrom) : defaultFrom;
   const dateTo = filter.dateTo ? new Date(filter.dateTo) : now;
 
-  const [revenue, funnel, timeToClose, leadSources, viewings, referrals, commission] =
+  const [revenue, funnel, timeToClose, leadSources, viewings, referrals, commissionData] =
     await Promise.all([
       adminRepo.getRevenueMetrics(dateFrom, dateTo),
       adminRepo.getTransactionFunnel(dateFrom, dateTo),
@@ -620,8 +620,9 @@ export async function getAnalytics(filter: AnalyticsFilter): Promise<AnalyticsDa
       adminRepo.getLeadSourceMetrics(dateFrom, dateTo),
       adminRepo.getViewingMetrics(dateFrom, dateTo),
       adminRepo.getReferralMetrics(dateFrom, dateTo),
-      settingsService.getNumber('commission_total_with_gst', 1633.91),
+      settingsService.getCommission(),
     ]);
+  const commission = commissionData.total;
 
   return {
     revenue: {

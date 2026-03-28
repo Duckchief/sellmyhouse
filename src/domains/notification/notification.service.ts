@@ -170,6 +170,11 @@ async function sendExternal(
     }
   }
 
+  // Resolve actual contact info from DB — providers need email/phone, not CUID
+  const contact = input.recipientEmail || input.recipientPhone
+    ? { email: input.recipientEmail ?? null, phone: input.recipientPhone ?? null }
+    : await notificationRepo.findRecipientContact(input.recipientType, input.recipientId);
+
   const record = await notificationRepo.create({
     recipientType: input.recipientType,
     recipientId: input.recipientId,
@@ -180,8 +185,22 @@ async function sendExternal(
 
   try {
     const provider = resolvedChannel === 'whatsapp' ? new WhatsAppProvider() : new EmailProvider();
+    const recipientAddress = resolvedChannel === 'whatsapp' ? contact.phone : contact.email;
 
-    const result = await provider.send(input.recipientId, content, agentId);
+    if (!recipientAddress) {
+      logger.warn(
+        { recipientId: input.recipientId, recipientType: input.recipientType, channel: resolvedChannel },
+        'No contact info found for recipient — cannot send external notification',
+      );
+      await notificationRepo.updateStatus(record.id, 'failed', {
+        error: `No ${resolvedChannel === 'whatsapp' ? 'phone' : 'email'} found for recipient`,
+      });
+      return;
+    }
+
+    const result = await provider.send(recipientAddress, content, agentId, {
+      attachments: input.attachments,
+    });
     await notificationRepo.updateStatus(record.id, 'sent', {
       sentAt: new Date(),
       whatsappMessageId: result.messageId ?? undefined,
@@ -232,7 +251,18 @@ async function sendExternal(
         });
 
         const emailProvider = new EmailProvider();
-        const result = await emailProvider.send(input.recipientId, content, agentId);
+        const fallbackAddress = contact.email ?? input.recipientEmail;
+        if (!fallbackAddress) {
+          logger.warn(
+            { recipientId: input.recipientId },
+            'No email found for fallback — cannot send',
+          );
+          await notificationRepo.updateStatus(fallbackRecord.id, 'failed', {
+            error: 'No email found for fallback',
+          });
+          return;
+        }
+        const result = await emailProvider.send(fallbackAddress, content, agentId);
         await notificationRepo.updateStatus(fallbackRecord.id, 'sent', {
           sentAt: new Date(),
           whatsappMessageId: result.messageId ?? undefined,

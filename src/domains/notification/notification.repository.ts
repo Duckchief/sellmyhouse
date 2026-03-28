@@ -142,6 +142,37 @@ export async function findSellerMarketingConsent(sellerId: string): Promise<bool
   return seller?.consentMarketing ?? false;
 }
 
+export async function findRecipientContact(
+  recipientType: 'seller' | 'agent' | 'viewer',
+  recipientId: string,
+): Promise<{ email: string | null; phone: string | null }> {
+  if (recipientType === 'seller') {
+    const seller = await prisma.seller.findUnique({
+      where: { id: recipientId },
+      select: { email: true, phone: true },
+    });
+    return { email: seller?.email ?? null, phone: seller?.phone ?? null };
+  }
+
+  if (recipientType === 'agent') {
+    const agent = await prisma.agent.findUnique({
+      where: { id: recipientId },
+      select: { email: true, phone: true },
+    });
+    return { email: agent?.email ?? null, phone: agent?.phone ?? null };
+  }
+
+  if (recipientType === 'viewer') {
+    const viewer = await prisma.verifiedViewer.findUnique({
+      where: { id: recipientId },
+      select: { phone: true },
+    });
+    return { email: null, phone: viewer?.phone ?? null };
+  }
+
+  return { email: null, phone: null };
+}
+
 export async function withdrawMarketingConsent(sellerId: string): Promise<void> {
   await prisma.$transaction(async (tx) => {
     await tx.seller.update({

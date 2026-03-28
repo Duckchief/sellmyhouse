@@ -120,6 +120,12 @@ describe('NotificationService', () => {
 
     // Default: DNC check allows all sends
     complianceService.checkDncAllowed = jest.fn().mockResolvedValue({ allowed: true });
+
+    // Default: resolve recipient contact info (C1 fix)
+    notificationRepo.findRecipientContact = jest.fn().mockResolvedValue({
+      email: 'test@example.com',
+      phone: '+6591234567',
+    });
   });
 
   describe('send', () => {

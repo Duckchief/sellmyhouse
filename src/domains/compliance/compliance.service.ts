@@ -569,7 +569,12 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
 
   async function flagNewItems(
     targetType: string,
-    items: { id: string; reason: string; retentionRule: string; details: Record<string, unknown> }[],
+    items: {
+      id: string;
+      reason: string;
+      retentionRule: string;
+      details: Record<string, unknown>;
+    }[],
   ) {
     if (items.length === 0) return;
     const existingIds = await complianceRepo.findExistingDeletionRequestIds(

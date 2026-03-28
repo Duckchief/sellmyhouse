@@ -608,9 +608,7 @@ describe('scanRetention', () => {
     mockRepo.findLeadsForRetention.mockResolvedValue([
       { id: 'seller1', name: 'Old Lead', updatedAt: oldDate },
     ]);
-    mockRepo.findExistingDeletionRequestIds = jest
-      .fn()
-      .mockResolvedValue(new Set(['seller1']));
+    mockRepo.findExistingDeletionRequestIds = jest.fn().mockResolvedValue(new Set(['seller1']));
 
     const result = await complianceService.scanRetention();
     expect(mockRepo.createDeletionRequest).not.toHaveBeenCalled();

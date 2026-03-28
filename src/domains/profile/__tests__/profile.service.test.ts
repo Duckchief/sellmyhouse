@@ -1,6 +1,8 @@
 import path from 'path';
 import * as service from '../profile.service';
 import { NotFoundError } from '../../shared/errors';
+import { fileTypeFromBuffer } from 'file-type';
+import { scanBuffer } from '@/infra/security/virus-scanner';
 
 jest.mock('../profile.repository');
 jest.mock('../../auth/auth.repository');
@@ -8,11 +10,17 @@ jest.mock('../../shared/audit.service');
 jest.mock('bcrypt');
 jest.mock('fs/promises');
 jest.mock('sharp');
+jest.mock('file-type', () => ({ fileTypeFromBuffer: jest.fn() }));
+jest.mock('@/infra/security/virus-scanner', () => ({
+  scanBuffer: jest.fn(),
+}));
 
 const repo = jest.requireMock('../profile.repository');
 const authRepo = jest.requireMock('../../auth/auth.repository');
 const fsp = jest.requireMock('fs/promises');
 const sharp = jest.requireMock('sharp');
+const mockedFileType = jest.mocked(fileTypeFromBuffer);
+const mockedScanBuffer = jest.mocked(scanBuffer);
 
 const mockAgent = {
   id: 'agent1',
@@ -48,7 +56,13 @@ describe('ProfileService', () => {
       buffer: Buffer.from('fake-image-data'),
       mimetype: 'image/jpeg',
       size: 1024 * 100,
+      originalname: 'avatar.jpg',
     } as Express.Multer.File;
+
+    beforeEach(() => {
+      mockedFileType.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' } as Awaited<ReturnType<typeof fileTypeFromBuffer>>);
+      mockedScanBuffer.mockResolvedValue({ isClean: true, viruses: [] });
+    });
 
     it('rejects non-image mime types', async () => {
       const badFile = { ...mockFile, mimetype: 'application/pdf' } as Express.Multer.File;
@@ -61,6 +75,20 @@ describe('ProfileService', () => {
       const bigFile = { ...mockFile, size: 3 * 1024 * 1024 } as Express.Multer.File;
       await expect(service.uploadAvatar('agent1', bigFile)).rejects.toThrow(
         'File too large. Maximum size is 2MB.',
+      );
+    });
+
+    it('rejects file when magic bytes do not match a valid image type (M5)', async () => {
+      mockedFileType.mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' } as Awaited<ReturnType<typeof fileTypeFromBuffer>>);
+      await expect(service.uploadAvatar('agent1', mockFile)).rejects.toThrow(
+        'Invalid file type detected',
+      );
+    });
+
+    it('rejects file when virus scan flags it as infected (M5)', async () => {
+      mockedScanBuffer.mockResolvedValue({ isClean: false, viruses: ['EICAR-Test-File'] });
+      await expect(service.uploadAvatar('agent1', mockFile)).rejects.toThrow(
+        'File rejected: security scan failed',
       );
     });
 

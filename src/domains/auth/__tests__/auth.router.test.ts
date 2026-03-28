@@ -111,6 +111,36 @@ describe('AuthRouter', () => {
       expect(res.status).toBe(400);
     });
 
+    it('returns 400 when password has no number (M3 complexity)', async () => {
+      const res = await request(app)
+        .post('/auth/register')
+        .type('form')
+        .send({
+          name: 'Test',
+          email: 'test@example.com',
+          phone: '91234567',
+          password: 'aaaaaaaa',
+          consentService: 'true',
+        });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 400 when password has no letter (M3 complexity)', async () => {
+      const res = await request(app)
+        .post('/auth/register')
+        .type('form')
+        .send({
+          name: 'Test',
+          email: 'test@example.com',
+          phone: '91234567',
+          password: '12345678',
+          consentService: 'true',
+        });
+
+      expect(res.status).toBe(400);
+    });
+
     it('returns 409 on duplicate email', async () => {
       authService.registerSeller = jest.fn().mockRejectedValue(
         Object.assign(new Error('An account with this email already exists'), {

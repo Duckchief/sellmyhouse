@@ -3,9 +3,11 @@ import path from 'path';
 import fs from 'fs/promises';
 import bcrypt from 'bcrypt';
 import sharp from 'sharp';
+import { fileTypeFromBuffer } from 'file-type';
 import * as repo from './profile.repository';
 import * as authRepo from '../auth/auth.repository';
 import * as auditService from '../shared/audit.service';
+import { scanBuffer } from '@/infra/security/virus-scanner';
 import { NotFoundError, ValidationError } from '../shared/errors';
 import type { ProfileView } from './profile.types';
 
@@ -25,6 +27,24 @@ export async function uploadAvatar(agentId: string, file: Express.Multer.File): 
   }
   if (file.size > MAX_SIZE) {
     throw new ValidationError('File too large. Maximum size is 2MB.');
+  }
+
+  // Validate actual file bytes — client-supplied Content-Type is not trusted
+  const detected = await fileTypeFromBuffer(file.buffer);
+  if (!detected || !ALLOWED_MIME.has(detected.mime)) {
+    throw new ValidationError('Invalid file type detected');
+  }
+
+  // Virus scan before processing
+  const scanResult = await scanBuffer(file.buffer, file.originalname ?? 'avatar');
+  if (!scanResult.isClean) {
+    await auditService.log({
+      action: 'upload.virus_detected',
+      entityType: 'Agent',
+      entityId: agentId,
+      details: { filename: file.originalname, viruses: scanResult.viruses },
+    });
+    throw new ValidationError('File rejected: security scan failed');
   }
 
   await fs.mkdir(AVATAR_DIR, { recursive: true });

@@ -53,6 +53,8 @@ jobs:
           username: ${{ secrets.STAGING_VPS_USER }}
           key: ${{ secrets.STAGING_VPS_SSH_KEY }}
           port: ${{ secrets.STAGING_VPS_SSH_PORT }}
+          timeout: 60s
+          command_timeout: 5m
           script: |
             cd ~/sellmyhouse
             git pull --ff-only origin staging

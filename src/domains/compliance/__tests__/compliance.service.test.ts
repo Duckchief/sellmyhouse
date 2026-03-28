@@ -988,7 +988,7 @@ describe('generateDataExport', () => {
     const result = await complianceService.generateDataExport('seller-1');
     const trail = result['auditTrail'] as { details: Record<string, unknown> }[];
 
-    expect(trail[0]?.details?.['nricLast4']).toBe('SXXXX567A');
+    expect(trail[0]?.details?.['nricLast4']).toBe('XXXX567A');
   });
 
   it('logs data_access.requested and data_access.fulfilled audit events', async () => {

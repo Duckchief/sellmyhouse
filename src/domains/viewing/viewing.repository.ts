@@ -406,15 +406,17 @@ export async function findDuplicateBooking(phone: string, slotId: string) {
 }
 
 export async function countBookingsToday(phone: string) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  // L43: Use Asia/Singapore timezone so the "today" boundary is correct regardless of server TZ
+  const now = new Date();
+  const sgDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Singapore' }));
+  sgDate.setHours(0, 0, 0, 0);
+  const sgTomorrow = new Date(sgDate);
+  sgTomorrow.setDate(sgTomorrow.getDate() + 1);
 
   return prisma.viewing.count({
     where: {
       verifiedViewer: { phone },
-      createdAt: { gte: today, lt: tomorrow },
+      createdAt: { gte: sgDate, lt: sgTomorrow },
       status: { notIn: ['cancelled'] },
     },
   });
@@ -565,7 +567,7 @@ export async function findViewingsNeedingFeedbackPrompt() {
     JOIN properties p ON v.property_id = p.id
     WHERE v.status = 'completed'
       AND v.feedback IS NULL
-      AND (vs.date + vs.end_time::time) < ${oneHourAgoIso}::timestamptz
+      AND (vs.date + vs.end_time::time) AT TIME ZONE 'Asia/Singapore' < ${oneHourAgoIso}::timestamptz
   `;
 }
 

@@ -7,6 +7,7 @@ import * as notificationService from '@/domains/notification/notification.servic
 import * as settingsService from '@/domains/shared/settings.service';
 import * as complianceService from '@/domains/compliance/compliance.service';
 import * as propertyService from '@/domains/property/property.service';
+import { logger } from '@/infra/logger';
 import {
   NotFoundError,
   ForbiddenError,
@@ -792,24 +793,28 @@ export async function sendMorningReminders() {
   }
 
   for (const [sellerId, sellerViewings] of bySeller) {
-    const lines = sellerViewings.map((v) => {
-      const slot = (v as { viewingSlot: { startTime: string } }).viewingSlot;
-      const viewer = (v as { verifiedViewer: { name: string } }).verifiedViewer;
-      return `${slot.startTime} - ${viewer.name}`;
-    });
+    try {
+      const lines = sellerViewings.map((v) => {
+        const slot = (v as { viewingSlot: { startTime: string } }).viewingSlot;
+        const viewer = (v as { verifiedViewer: { name: string } }).verifiedViewer;
+        return `${slot.startTime} - ${viewer.name}`;
+      });
 
-    await notificationService.send(
-      {
-        recipientType: 'seller',
-        recipientId: sellerId,
-        templateName: 'viewing_reminder',
-        templateData: {
-          address: 'your property',
-          date: `Today's viewings:\n${lines.join('\n')}`,
+      await notificationService.send(
+        {
+          recipientType: 'seller',
+          recipientId: sellerId,
+          templateName: 'viewing_reminder',
+          templateData: {
+            address: 'your property',
+            date: `Today's viewings:\n${lines.join('\n')}`,
+          },
         },
-      },
-      'system',
-    );
+        'system',
+      );
+    } catch (err) {
+      logger.warn({ err, sellerId }, 'Failed to send morning reminder');
+    }
   }
 }
 
@@ -817,40 +822,44 @@ export async function sendOneHourReminders() {
   const viewings = await viewingRepo.findViewingsNeedingReminder(60, 75);
 
   for (const v of viewings) {
-    const viewing = v as {
-      property: { sellerId: string; town: string; street: string };
-      viewingSlot: { startTime: string; date: Date };
-      verifiedViewer: { id: string; name: string };
-    };
+    try {
+      const viewing = v as {
+        property: { sellerId: string; town: string; street: string };
+        viewingSlot: { startTime: string; date: Date };
+        verifiedViewer: { id: string; name: string };
+      };
 
-    // Notify viewer
-    await notificationService.send(
-      {
-        recipientType: 'viewer',
-        recipientId: viewing.verifiedViewer.id,
-        templateName: 'viewing_reminder_viewer',
-        templateData: {
-          address: `${viewing.property.town} ${viewing.property.street}`,
-          time: viewing.viewingSlot.startTime,
+      // Notify viewer
+      await notificationService.send(
+        {
+          recipientType: 'viewer',
+          recipientId: viewing.verifiedViewer.id,
+          templateName: 'viewing_reminder_viewer',
+          templateData: {
+            address: `${viewing.property.town} ${viewing.property.street}`,
+            time: viewing.viewingSlot.startTime,
+          },
+          preferredChannel: 'whatsapp',
         },
-        preferredChannel: 'whatsapp',
-      },
-      'system',
-    );
+        'system',
+      );
 
-    // Notify seller
-    await notificationService.send(
-      {
-        recipientType: 'seller',
-        recipientId: viewing.property.sellerId,
-        templateName: 'viewing_reminder',
-        templateData: {
-          address: `${viewing.property.town} ${viewing.property.street}`,
-          date: `${viewing.viewingSlot.startTime} - ${viewing.verifiedViewer.name}`,
+      // Notify seller
+      await notificationService.send(
+        {
+          recipientType: 'seller',
+          recipientId: viewing.property.sellerId,
+          templateName: 'viewing_reminder',
+          templateData: {
+            address: `${viewing.property.town} ${viewing.property.street}`,
+            date: `${viewing.viewingSlot.startTime} - ${viewing.verifiedViewer.name}`,
+          },
         },
-      },
-      'system',
-    );
+        'system',
+      );
+    } catch (err) {
+      logger.warn({ err, viewingId: (v as { id: string }).id }, 'Failed to send one-hour reminder');
+    }
   }
 }
 
@@ -861,18 +870,22 @@ export async function sendFeedbackPrompts() {
     property: { sellerId: string; town: string; street: string };
     viewingSlot: { date: Date };
   }[]) {
-    await notificationService.send(
-      {
-        recipientType: 'seller',
-        recipientId: v.property.sellerId,
-        templateName: 'viewing_feedback_prompt',
-        templateData: {
-          address: `${v.property.town} ${v.property.street}`,
-          date: v.viewingSlot.date.toISOString().split('T')[0],
+    try {
+      await notificationService.send(
+        {
+          recipientType: 'seller',
+          recipientId: v.property.sellerId,
+          templateName: 'viewing_feedback_prompt',
+          templateData: {
+            address: `${v.property.town} ${v.property.street}`,
+            date: v.viewingSlot.date.toISOString().split('T')[0],
+          },
         },
-      },
-      'system',
-    );
+        'system',
+      );
+    } catch (err) {
+      logger.warn({ err, sellerId: v.property.sellerId }, 'Failed to send feedback prompt');
+    }
   }
 }
 
@@ -881,40 +894,46 @@ export async function sendFeedbackPrompts() {
 export async function sendViewerFollowups() {
   const viewings = await viewingRepo.findViewingsNeedingFollowup();
 
+  let sent = 0;
   for (const v of viewings) {
-    const viewing = v as {
-      id: string;
-      verifiedViewer: { id: string; phone: string };
-      viewingSlot: {
-        property: {
-          town: string;
-          street: string;
-          sellerId: string;
-          seller: { agentId: string | null };
+    try {
+      const viewing = v as {
+        id: string;
+        verifiedViewer: { id: string; phone: string };
+        viewingSlot: {
+          property: {
+            town: string;
+            street: string;
+            sellerId: string;
+            seller: { agentId: string | null };
+          };
         };
       };
-    };
 
-    const agentPhone = 'our agent';
+      const agentPhone = 'our agent';
 
-    await notificationService.send(
-      {
-        recipientType: 'viewer',
-        recipientId: viewing.verifiedViewer.id,
-        templateName: 'viewing_followup_viewer',
-        templateData: {
-          address: `${viewing.viewingSlot.property.town} ${viewing.viewingSlot.property.street}`,
-          agentPhone,
+      await notificationService.send(
+        {
+          recipientType: 'viewer',
+          recipientId: viewing.verifiedViewer.id,
+          templateName: 'viewing_followup_viewer',
+          templateData: {
+            address: `${viewing.viewingSlot.property.town} ${viewing.viewingSlot.property.street}`,
+            agentPhone,
+          },
+          preferredChannel: 'whatsapp',
         },
-        preferredChannel: 'whatsapp',
-      },
-      'system',
-    );
+        'system',
+      );
 
-    await viewingRepo.markFollowupSent(viewing.id);
+      await viewingRepo.markFollowupSent(viewing.id);
+      sent++;
+    } catch (err) {
+      logger.warn({ err, viewingId: (v as { id: string }).id }, 'Failed to send viewer followup');
+    }
   }
 
-  return { sent: viewings.length };
+  return { sent };
 }
 
 // ─── Stats ───────────────────────────────────────────────

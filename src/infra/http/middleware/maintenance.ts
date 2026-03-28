@@ -44,8 +44,17 @@ export async function maintenanceMiddleware(
       }
     }
 
-    const maintenanceMessage = await settingsService.get('maintenance_message', '');
-    const maintenanceEta = await settingsService.get('maintenance_eta', '');
+    let maintenanceMessage = cache.get<string>('maintenance_message');
+    if (maintenanceMessage === undefined) {
+      maintenanceMessage = await settingsService.get('maintenance_message', '');
+      cache.set('maintenance_message', maintenanceMessage, CACHE_TTL);
+    }
+
+    let maintenanceEta = cache.get<string>('maintenance_eta');
+    if (maintenanceEta === undefined) {
+      maintenanceEta = await settingsService.get('maintenance_eta', '');
+      cache.set('maintenance_eta', maintenanceEta, CACHE_TTL);
+    }
 
     res.status(503);
     res.setHeader('Retry-After', '3600');

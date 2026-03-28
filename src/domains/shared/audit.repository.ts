@@ -78,5 +78,5 @@ export async function exportAll(filter: {
   dateTo?: Date;
 }) {
   const where = buildAuditWhere(filter);
-  return prisma.auditLog.findMany({ where, orderBy: { createdAt: 'desc' } });
+  return prisma.auditLog.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100000 });
 }

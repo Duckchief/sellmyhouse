@@ -95,6 +95,7 @@ export function createApp() {
       'Dec',
     ];
     const idx = parseInt(month, 10) - 1;
+    if (idx < 0 || idx > 11 || isNaN(idx)) return str;
     return `${months[idx]} ${year}`;
   });
 

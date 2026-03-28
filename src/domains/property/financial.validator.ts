@@ -77,6 +77,13 @@ export function validateCalculationInput(body: Record<string, unknown>): Financi
       ? Number(body.legalFeesEstimate)
       : undefined;
 
+  if (legalFeesEstimate !== undefined && isNaN(legalFeesEstimate)) {
+    throw new ValidationError('Legal fees estimate must be a valid number');
+  }
+  if (legalFeesEstimate !== undefined && legalFeesEstimate < 0) {
+    throw new ValidationError('Legal fees estimate cannot be negative');
+  }
+
   return {
     salePrice,
     outstandingLoan,

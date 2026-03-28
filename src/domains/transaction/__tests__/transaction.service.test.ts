@@ -30,10 +30,19 @@ jest.mock('file-type', () => ({
 }));
 jest.mock('@/infra/storage/local-storage', () => ({
   localStorage: {
-    save: jest.fn().mockResolvedValue('invoices/tx-1/invoice-abc.pdf'),
+    save: jest.fn().mockResolvedValue('uploads/legacy.pdf'),
     read: jest.fn().mockResolvedValue(Buffer.from('')),
     delete: jest.fn().mockResolvedValue(undefined),
     exists: jest.fn().mockResolvedValue(true),
+  },
+}));
+jest.mock('@/infra/storage/encrypted-storage', () => ({
+  encryptedStorage: {
+    save: jest
+      .fn()
+      .mockResolvedValue({ path: 'otp/tx-1/seller-abc.jpg', wrappedKey: 'wrapped-key-abc' }),
+    read: jest.fn().mockResolvedValue(Buffer.from('decrypted')),
+    delete: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -45,6 +54,8 @@ const mockPortalService = jest.mocked(portalService);
 const mockPropertyService = jest.mocked(propertyService);
 const mockViewingService = jest.mocked(viewingService);
 const mockOfferService = jest.mocked(offerService);
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const mockEncryptedStorage = jest.requireMock('@/infra/storage/encrypted-storage').encryptedStorage;
 const mockComplianceService = jest.mocked(complianceService);
 const mockReviewService = jest.mocked(reviewService);
 
@@ -225,9 +236,48 @@ describe('transaction.service', () => {
         }),
       ).rejects.toThrow(ConflictError);
     });
+    it('throws ValidationError when transaction is completed (M12)', async () => {
+      const tx = makeTransaction({ status: 'completed' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      await expect(
+        txService.createOtp({
+          transactionId: 'tx-1',
+          hdbSerialNumber: 'SN-001',
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('throws ValidationError when transaction is fallen_through (M12)', async () => {
+      const tx = makeTransaction({ status: 'fallen_through' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      await expect(
+        txService.createOtp({
+          transactionId: 'tx-1',
+          hdbSerialNumber: 'SN-001',
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow(ValidationError);
+    });
   });
 
   describe('advanceOtp', () => {
+    it('throws ValidationError when transaction is completed (M12)', async () => {
+      const tx = makeTransaction({ status: 'completed' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      await expect(
+        txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('throws ValidationError when transaction is fallen_through (M12)', async () => {
+      const tx = makeTransaction({ status: 'fallen_through' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      await expect(
+        txService.advanceOtp({ transactionId: 'tx-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
+    });
+
     it('advances OTP to next status (prepared → sent_to_seller)', async () => {
       const tx = makeTransaction();
       const otp = makeOtp({ status: 'prepared' });
@@ -367,11 +417,7 @@ describe('transaction.service', () => {
     it('sets completionDate automatically on transition to completed', async () => {
       const tx = makeTransaction({ status: 'completing' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'completed',
-        completionDate: new Date(),
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -382,6 +428,7 @@ describe('transaction.service', () => {
       expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
         'tx-1',
         'completed',
+        'completing', // currentStatus for optimistic locking
         expect.any(Date), // completionDate auto-set
       );
     });
@@ -419,10 +466,7 @@ describe('transaction.service', () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'option_exercised',
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -433,6 +477,7 @@ describe('transaction.service', () => {
       expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
         'tx-1',
         'option_exercised',
+        'option_issued', // currentStatus for optimistic locking
         undefined,
       );
     });
@@ -464,10 +509,7 @@ describe('transaction.service', () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'option_exercised',
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -488,11 +530,7 @@ describe('transaction.service', () => {
       const tx = makeTransaction({ status: 'completing' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'completed',
-        completionDate: new Date(),
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -509,6 +547,7 @@ describe('transaction.service', () => {
       expect(mockTxRepo.updateTransactionStatus).toHaveBeenCalledWith(
         'tx-1',
         'completed',
+        'completing', // currentStatus for optimistic locking
         expect.any(Date),
       );
     });
@@ -518,11 +557,7 @@ describe('transaction.service', () => {
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
       mockComplianceService.refreshCddRetentionOnCompletion.mockResolvedValue(undefined);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'completed',
-        completionDate: new Date(),
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -540,10 +575,7 @@ describe('transaction.service', () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
       mockReviewService.checkComplianceGate.mockResolvedValue(undefined);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'option_exercised',
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -564,10 +596,7 @@ describe('transaction.service', () => {
         buyerAgentName: 'John Agent',
         buyerAgentCeaReg: 'R012345B',
       } as never);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'option_exercised',
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -585,10 +614,7 @@ describe('transaction.service', () => {
     it('passes buyerRepresented: false when tx has no offerId', async () => {
       const tx = makeTransaction({ status: 'option_issued', offerId: null });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateTransactionStatus.mockResolvedValue({
-        ...tx,
-        status: 'option_exercised',
-      } as never);
+      mockTxRepo.updateTransactionStatus.mockResolvedValue(1 as never);
 
       await txService.advanceTransactionStatus({
         transactionId: 'tx-1',
@@ -608,11 +634,7 @@ describe('transaction.service', () => {
     it('triggers fallen-through cascade and notifies seller', async () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateFallenThrough.mockResolvedValue({
-        ...tx,
-        status: 'fallen_through',
-        fallenThroughReason: 'Buyer financing fell through.',
-      } as never);
+      mockTxRepo.updateFallenThrough.mockResolvedValue(1 as never);
       mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
       mockPortalService.expirePortalListings.mockResolvedValue({ count: 3 } as never);
 
@@ -637,10 +659,7 @@ describe('transaction.service', () => {
     it('cancels viewing slots for the property', async () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateFallenThrough.mockResolvedValue({
-        ...tx,
-        status: 'fallen_through',
-      } as never);
+      mockTxRepo.updateFallenThrough.mockResolvedValue(1 as never);
       mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
       mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
 
@@ -660,10 +679,7 @@ describe('transaction.service', () => {
     it('reverts property to draft', async () => {
       const tx = makeTransaction({ status: 'option_issued' });
       mockTxRepo.findById.mockResolvedValue(tx as never);
-      mockTxRepo.updateFallenThrough.mockResolvedValue({
-        ...tx,
-        status: 'fallen_through',
-      } as never);
+      mockTxRepo.updateFallenThrough.mockResolvedValue(1 as never);
       mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
       mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
 
@@ -675,6 +691,23 @@ describe('transaction.service', () => {
       });
 
       expect(mockPropertyService.revertPropertyToDraft).toHaveBeenCalledWith('property-1');
+    });
+    it('uses tx.sellerId for notification, not input.sellerId (M16)', async () => {
+      const tx = makeTransaction({ status: 'option_issued', sellerId: 'real-seller' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.updateFallenThrough.mockResolvedValue(1 as never);
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(null);
+      mockPortalService.expirePortalListings.mockResolvedValue({ count: 0 } as never);
+      await txService.markFallenThrough({
+        transactionId: 'tx-1',
+        sellerId: 'spoofed-seller',
+        reason: 'Test reason.',
+        agentId: 'agent-1',
+      });
+      expect(mockNotification.send).toHaveBeenCalledWith(
+        expect.objectContaining({ recipientId: 'real-seller' }),
+        'agent-1',
+      );
     });
   });
 
@@ -772,7 +805,120 @@ describe('transaction.service', () => {
     });
   });
 
+  describe('uploadOtpScan', () => {
+    const baseOtpInput = {
+      transactionId: 'tx-1',
+      scanType: 'seller' as const,
+      fileBuffer: Buffer.from('fake-image'),
+      originalFilename: 'otp-scan.jpg',
+      agentId: 'agent-1',
+    };
+
+    beforeEach(() => {
+      jest
+        .requireMock('file-type')
+        .fileTypeFromBuffer.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
+      mockEncryptedStorage.save.mockResolvedValue({
+        path: 'otp/tx-1/seller-abc.jpg',
+        wrappedKey: 'wrapped-key-abc',
+      });
+    });
+
+    afterEach(() => {
+      jest
+        .requireMock('file-type')
+        .fileTypeFromBuffer.mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
+    });
+
+    it('saves OTP scan via encryptedStorage (not localStorage)', async () => {
+      const otp = makeOtp({ status: 'issued' });
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
+      mockTxRepo.updateOtpScanPath.mockResolvedValue(otp as never);
+
+      await txService.uploadOtpScan(baseOtpInput);
+
+      expect(mockEncryptedStorage.save).toHaveBeenCalledWith(
+        expect.stringContaining('otp/tx-1/'),
+        baseOtpInput.fileBuffer,
+      );
+    });
+
+    it('passes wrappedKey to updateOtpScanPath', async () => {
+      const otp = makeOtp({ status: 'issued' });
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
+      mockTxRepo.updateOtpScanPath.mockResolvedValue(otp as never);
+
+      await txService.uploadOtpScan(baseOtpInput);
+
+      expect(mockTxRepo.updateOtpScanPath).toHaveBeenCalledWith(
+        'otp-1',
+        'seller',
+        'otp/tx-1/seller-abc.jpg',
+        'wrapped-key-abc',
+      );
+    });
+  });
+
   describe('uploadInvoice', () => {
+    it('saves invoice via encryptedStorage (not localStorage)', async () => {
+      const tx = makeTransaction();
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue(null);
+      mockSettings.getCommission.mockResolvedValue({
+        amount: 1499,
+        gstRate: 0.09,
+        gstAmount: 134.91,
+        total: 1633.91,
+      } as never);
+      mockEncryptedStorage.save.mockResolvedValue({
+        path: 'invoices/tx-1/invoice-abc.pdf',
+        wrappedKey: 'wrapped-inv-key',
+      });
+      mockTxRepo.createCommissionInvoice.mockResolvedValue({ id: 'inv-1' } as never);
+
+      await txService.uploadInvoice({
+        transactionId: 'tx-1',
+        fileBuffer: Buffer.from('fake-pdf'),
+        originalFilename: 'invoice.pdf',
+        invoiceNumber: 'INV-001',
+        agentId: 'agent-1',
+      });
+
+      expect(mockEncryptedStorage.save).toHaveBeenCalledWith(
+        expect.stringContaining('invoices/tx-1/'),
+        expect.any(Buffer),
+      );
+    });
+
+    it('passes invoiceWrappedKey to createCommissionInvoice', async () => {
+      const tx = makeTransaction();
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue(null);
+      mockSettings.getCommission.mockResolvedValue({
+        amount: 1499,
+        gstRate: 0.09,
+        gstAmount: 134.91,
+        total: 1633.91,
+      } as never);
+      mockEncryptedStorage.save.mockResolvedValue({
+        path: 'invoices/tx-1/invoice-abc.pdf',
+        wrappedKey: 'wrapped-inv-key',
+      });
+      mockTxRepo.createCommissionInvoice.mockResolvedValue({ id: 'inv-1' } as never);
+
+      await txService.uploadInvoice({
+        transactionId: 'tx-1',
+        fileBuffer: Buffer.from('fake-pdf'),
+        originalFilename: 'invoice.pdf',
+        invoiceNumber: 'INV-001',
+        agentId: 'agent-1',
+      });
+
+      expect(mockTxRepo.createCommissionInvoice).toHaveBeenCalledWith(
+        expect.objectContaining({ invoiceWrappedKey: 'wrapped-inv-key' }),
+      );
+    });
+
     it('reads commission amounts from SystemSetting via getCommission(), not schema defaults', async () => {
       const tx = makeTransaction();
       mockTxRepo.findById.mockResolvedValue(tx as never);
@@ -783,6 +929,10 @@ describe('transaction.service', () => {
         gstAmount: 134.91,
         total: 1633.91,
       } as never);
+      mockEncryptedStorage.save.mockResolvedValue({
+        path: 'invoices/tx-1/invoice-abc.pdf',
+        wrappedKey: 'wrapped-inv-key',
+      });
       mockTxRepo.createCommissionInvoice.mockResolvedValue({
         id: 'inv-1',
         amount: '1499',
@@ -829,6 +979,89 @@ describe('transaction.service', () => {
       ).rejects.toThrow('Setting not found: commission_amount');
 
       expect(mockTxRepo.createCommissionInvoice).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('sendInvoice', () => {
+    it('throws ValidationError when invoice status is not uploaded (M17)', async () => {
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({
+        id: 'inv-1',
+        status: 'sent_to_client',
+      } as never);
+      await expect(
+        txService.sendInvoice({ transactionId: 'tx-1', sellerId: 'seller-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('sends invoice when status is uploaded', async () => {
+      const tx = makeTransaction();
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({
+        id: 'inv-1',
+        status: 'uploaded',
+      } as never);
+      mockTxRepo.updateInvoiceStatus.mockResolvedValue({
+        id: 'inv-1',
+        status: 'sent_to_client',
+      } as never);
+      await txService.sendInvoice({
+        transactionId: 'tx-1',
+        sellerId: 'seller-1',
+        agentId: 'agent-1',
+      });
+      expect(mockTxRepo.updateInvoiceStatus).toHaveBeenCalledWith(
+        'inv-1',
+        'sent_to_client',
+        expect.any(Object),
+      );
+    });
+
+    it('uses tx.sellerId for notification (M16)', async () => {
+      const tx = makeTransaction({ sellerId: 'real-seller' });
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({
+        id: 'inv-1',
+        status: 'uploaded',
+      } as never);
+      mockTxRepo.updateInvoiceStatus.mockResolvedValue({
+        id: 'inv-1',
+        status: 'sent_to_client',
+      } as never);
+      await txService.sendInvoice({
+        transactionId: 'tx-1',
+        sellerId: 'spoofed',
+        agentId: 'agent-1',
+      });
+      expect(mockNotification.send).toHaveBeenCalledWith(
+        expect.objectContaining({ recipientId: 'real-seller' }),
+        'agent-1',
+      );
+    });
+  });
+
+  describe('markInvoicePaid', () => {
+    it('throws ValidationError when status is not sent_to_client (M17)', async () => {
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({
+        id: 'inv-1',
+        status: 'uploaded',
+      } as never);
+      await expect(
+        txService.markInvoicePaid({ transactionId: 'tx-1', agentId: 'agent-1' }),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('marks paid when status is sent_to_client', async () => {
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue({
+        id: 'inv-1',
+        status: 'sent_to_client',
+      } as never);
+      mockTxRepo.updateInvoiceStatus.mockResolvedValue({ id: 'inv-1', status: 'paid' } as never);
+      await txService.markInvoicePaid({ transactionId: 'tx-1', agentId: 'agent-1' });
+      expect(mockTxRepo.updateInvoiceStatus).toHaveBeenCalledWith(
+        'inv-1',
+        'paid',
+        expect.any(Object),
+      );
     });
   });
 });

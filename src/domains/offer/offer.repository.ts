@@ -1,5 +1,6 @@
 import { prisma } from '@/infra/database/prisma';
 import { createId } from '@paralleldrive/cuid2';
+import { ConflictError } from '@/domains/shared/errors';
 import type { Offer, OfferStatus, Prisma } from '@prisma/client';
 
 interface CreateOfferData {
@@ -21,7 +22,7 @@ interface UpdateAiAnalysisData {
   aiAnalysis: string;
   aiAnalysisProvider: string;
   aiAnalysisModel: string;
-  aiAnalysisStatus: string;
+  aiAnalysisStatus: 'generated' | 'reviewed' | 'shared';
 }
 
 export async function create(data: CreateOfferData) {
@@ -79,7 +80,10 @@ export async function updateAiAnalysis(id: string, data: UpdateAiAnalysisData) {
  * Updates only the AI analysis status, without modifying content or provider/model fields.
  * This prevents accidentally overwriting null fields with empty strings.
  */
-export async function updateAiAnalysisStatus(id: string, status: string) {
+export async function updateAiAnalysisStatus(
+  id: string,
+  status: 'generated' | 'reviewed' | 'shared',
+) {
   return prisma.offer.update({
     where: { id },
     data: { aiAnalysisStatus: status },
@@ -143,6 +147,45 @@ export async function acceptOfferAtomically(offerId: string, propertyId: string)
 }
 
 /**
+ * Atomically creates a counter-offer child and updates the parent status.
+ * Uses optimistic locking on the parent status to prevent concurrent modifications.
+ */
+export async function counterOfferAtomically(
+  parentId: string,
+  parentCurrentStatus: OfferStatus,
+  childData: CreateOfferData,
+  newParentStatus: OfferStatus,
+) {
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.offer.updateMany({
+      where: { id: parentId, status: parentCurrentStatus },
+      data: { status: newParentStatus },
+    });
+    if (updated.count === 0) {
+      throw new ConflictError('Offer was modified concurrently');
+    }
+
+    const child = await tx.offer.create({
+      data: {
+        id: childData.id ?? createId(),
+        propertyId: childData.propertyId,
+        buyerName: childData.buyerName ?? null,
+        buyerPhone: childData.buyerPhone ?? null,
+        buyerAgentName: childData.buyerAgentName ?? null,
+        buyerAgentCeaReg: childData.buyerAgentCeaReg ?? null,
+        isCoBroke: childData.isCoBroke ?? false,
+        offerAmount: childData.offerAmount,
+        notes: childData.notes ?? null,
+        parentOfferId: childData.parentOfferId ?? null,
+        counterAmount: childData.counterAmount ?? null,
+        retentionExpiresAt: childData.retentionExpiresAt ?? null,
+      },
+    });
+    return child;
+  });
+}
+
+/**
  * Returns all Offer records where retentionExpiresAt is in the past
  * and at least one PII field (buyerName or buyerPhone) is not yet nulled.
  * Used by the anonymisation job to find records that need PII erasure.
@@ -165,5 +208,35 @@ export async function anonymiseOfferPii(offerId: string): Promise<void> {
   await prisma.offer.update({
     where: { id: offerId },
     data: { buyerName: null, buyerPhone: null },
+  });
+}
+
+/**
+ * Atomically anonymises offer PII and creates an audit log entry in a single transaction.
+ * Ensures atomicity for M65: either both the anonymisation and audit log succeed, or neither does.
+ */
+export async function anonymiseOfferPiiWithAudit(
+  offerId: string,
+  auditData: {
+    action: string;
+    entityType: string;
+    entityId: string;
+    details: Record<string, unknown>;
+  },
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    await tx.offer.update({
+      where: { id: offerId },
+      data: { buyerName: null, buyerPhone: null },
+    });
+    await tx.auditLog.create({
+      data: {
+        id: createId(),
+        action: auditData.action,
+        entityType: auditData.entityType,
+        entityId: auditData.entityId,
+        details: auditData.details as Prisma.InputJsonValue,
+      },
+    });
   });
 }

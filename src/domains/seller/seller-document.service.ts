@@ -109,9 +109,13 @@ export async function downloadAndDeleteSellerDocument(
   documentId: string,
   agentId: string,
 ): Promise<{ buffer: Buffer; mimeType: string; docType: string }> {
+  // Atomically claim the document to prevent TOCTOU race conditions
+  const claimed = await sellerDocRepo.claimForDownload(documentId);
+  if (claimed === 0) throw new NotFoundError('SellerDocument', documentId);
+
+  // Re-fetch to get path, wrappedKey, etc. (deletedAt is now set, so use findById)
   const doc = await sellerDocRepo.findById(documentId);
   if (!doc) throw new NotFoundError('SellerDocument', documentId);
-  if (doc.deletedAt) throw new ForbiddenError('This document has already been deleted');
 
   // Decrypt in memory
   const buffer = await encryptedStorage.read(doc.path, doc.wrappedKey);
@@ -119,7 +123,7 @@ export async function downloadAndDeleteSellerDocument(
   // Hard-delete file from disk
   await encryptedStorage.delete(doc.path);
 
-  // Mark row as downloaded + deleted
+  // Mark row as downloaded (deletedAt already set by claim)
   await sellerDocRepo.markDownloadedAndDeleted(documentId, agentId);
 
   await auditService.log({
@@ -137,12 +141,18 @@ export async function downloadAllAndDeleteSellerDocuments(
   sellerId: string,
   agentId: string,
 ): Promise<{ files: { buffer: Buffer; filename: string }[]; sellerId: string }> {
-  const docs = await sellerDocRepo.findActiveBySeller(sellerId);
-  if (docs.length === 0) throw new NotFoundError('SellerDocuments', sellerId);
+  // Atomically claim all active documents to prevent TOCTOU race conditions
+  const claimedCount = await sellerDocRepo.claimAllForDownload(sellerId);
+  if (claimedCount === 0) throw new NotFoundError('SellerDocuments', sellerId);
+
+  // Fetch the claimed docs (they now have deletedAt set but we still need their data)
+  const docs = await sellerDocRepo.findAllBySeller(sellerId);
+  // Filter to only the ones we just claimed (deletedAt is set, downloadedAt is null)
+  const claimedDocs = docs.filter((d) => d.deletedAt !== null && d.downloadedAt === null);
 
   const files: { buffer: Buffer; filename: string }[] = [];
 
-  for (const doc of docs) {
+  for (const doc of claimedDocs) {
     const buffer = await encryptedStorage.read(doc.path, doc.wrappedKey);
     const ext = path.extname(doc.path).replace('.enc', '');
     files.push({ buffer, filename: `${doc.docType}-${doc.id}${ext}` });
@@ -156,7 +166,7 @@ export async function downloadAllAndDeleteSellerDocuments(
     action: 'seller_document.bulk_downloaded_and_deleted',
     entityType: 'seller',
     entityId: sellerId,
-    details: { documentCount: docs.length, docTypes: docs.map((d) => d.docType) },
+    details: { documentCount: claimedDocs.length, docTypes: claimedDocs.map((d) => d.docType) },
   });
 
   return { files, sellerId };

@@ -1,5 +1,4 @@
 import * as offerRepo from '@/domains/offer/offer.repository';
-import * as auditService from '@/domains/shared/audit.service';
 import { logger } from '../logger';
 
 export async function runAnonymiseOffersJob(): Promise<void> {
@@ -7,8 +6,8 @@ export async function runAnonymiseOffersJob(): Promise<void> {
   let count = 0;
   for (const offer of offers) {
     try {
-      await offerRepo.anonymiseOfferPii(offer.id);
-      await auditService.log({
+      // M65: Atomically anonymise PII and create audit log in a single transaction
+      await offerRepo.anonymiseOfferPiiWithAudit(offer.id, {
         action: 'compliance.offer_pii_anonymised',
         entityType: 'offer',
         entityId: offer.id,

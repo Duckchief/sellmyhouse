@@ -148,15 +148,14 @@ describe('HdbSyncService', () => {
     expect(mockedAxios.get).not.toHaveBeenCalled();
   });
 
-  it('picks up new records added to the same month', async () => {
+  it('skips records from the same month as latest (strict > avoids re-inserts)', async () => {
     mockRepo.getLatestMonth.mockResolvedValue('2026-03');
     mockRepo.countTransactions.mockResolvedValue(500);
-    mockRepo.createManyTransactions.mockResolvedValue(1);
     mockRepo.createSyncLog.mockResolvedValue({
       id: 'sync-5',
       syncedAt: new Date(),
-      recordsAdded: 1,
-      recordsTotal: 501,
+      recordsAdded: 0,
+      recordsTotal: 500,
       source: 'd_8b84c4ee58e3cfc0ece0d773c8ca6abc',
       status: 'success',
       error: null,
@@ -189,16 +188,8 @@ describe('HdbSyncService', () => {
 
     const result = await service.sync();
 
-    expect(result.recordsAdded).toBe(1);
-    expect(mockRepo.createManyTransactions).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: '99',
-          town: 'YISHUN',
-          source: 'datagov_sync',
-        }),
-      ]),
-    );
+    expect(result.recordsAdded).toBe(0);
+    expect(mockRepo.createManyTransactions).not.toHaveBeenCalled();
   });
 
   it('logs failure when API errors', async () => {

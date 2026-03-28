@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
 import * as adminRepo from './admin.repository';
 import * as complianceService from '../compliance/compliance.service';
+import * as authRepo from '@/domains/auth/auth.repository';
 import * as auditService from '@/domains/shared/audit.service';
 import * as auditRepo from '@/domains/shared/audit.repository';
 import * as settingsService from '@/domains/shared/settings.service';
@@ -161,6 +162,7 @@ export async function deactivateAgent(agentId: string, adminId: string): Promise
   }
 
   await adminRepo.updateAgentStatus(agentId, false);
+  await authRepo.invalidateUserSessions(agentId);
 
   await auditService.log({
     agentId: adminId,
@@ -176,6 +178,7 @@ export async function reactivateAgent(agentId: string, adminId: string): Promise
   if (!agent) throw new NotFoundError('Agent', agentId);
 
   await adminRepo.updateAgentStatus(agentId, true);
+  await authRepo.invalidateUserSessions(agentId);
 
   await auditService.log({
     agentId: adminId,
@@ -609,7 +612,7 @@ export async function getAnalytics(filter: AnalyticsFilter): Promise<AnalyticsDa
   const dateFrom = filter.dateFrom ? new Date(filter.dateFrom) : defaultFrom;
   const dateTo = filter.dateTo ? new Date(filter.dateTo) : now;
 
-  const [revenue, funnel, timeToClose, leadSources, viewings, referrals, commission] =
+  const [revenue, funnel, timeToClose, leadSources, viewings, referrals, commissionData] =
     await Promise.all([
       adminRepo.getRevenueMetrics(dateFrom, dateTo),
       adminRepo.getTransactionFunnel(dateFrom, dateTo),
@@ -617,8 +620,9 @@ export async function getAnalytics(filter: AnalyticsFilter): Promise<AnalyticsDa
       adminRepo.getLeadSourceMetrics(dateFrom, dateTo),
       adminRepo.getViewingMetrics(dateFrom, dateTo),
       adminRepo.getReferralMetrics(dateFrom, dateTo),
-      settingsService.getNumber('commission_total_with_gst', 1633.91),
+      settingsService.getCommission(),
     ]);
+  const commission = commissionData.total;
 
   return {
     revenue: {

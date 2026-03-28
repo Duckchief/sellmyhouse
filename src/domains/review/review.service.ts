@@ -191,9 +191,8 @@ export async function approveItem(input: {
         await propertyService.saveDescriptionDraft(entityId, text, agentId, callerRole);
       }
       await reviewRepo.approveListingDescription(entityId, agentId);
-      const isFullyApprovedDesc = await reviewRepo.checkListingFullyApproved(entityId);
+      const isFullyApprovedDesc = await reviewRepo.approveListingIfFullyReviewed(entityId);
       if (isFullyApprovedDesc) {
-        await reviewRepo.setListingStatus(entityId, 'approved');
         await portalService.generatePortalListings(entityId);
       }
       break;
@@ -208,9 +207,8 @@ export async function approveItem(input: {
       //      qualifiers must be appended
       //   5. No copyrighted images or watermarks from other listings
       await reviewRepo.approveListingPhotos(entityId, agentId);
-      const isFullyApprovedPhotos = await reviewRepo.checkListingFullyApproved(entityId);
+      const isFullyApprovedPhotos = await reviewRepo.approveListingIfFullyReviewed(entityId);
       if (isFullyApprovedPhotos) {
-        await reviewRepo.setListingStatus(entityId, 'approved');
         await portalService.generatePortalListings(entityId);
       }
       break;

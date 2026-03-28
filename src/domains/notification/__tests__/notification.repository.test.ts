@@ -68,6 +68,7 @@ describe('NotificationRepository', () => {
         status: { not: 'read' },
       },
       orderBy: { createdAt: 'desc' },
+      take: 50,
     });
   });
 
@@ -92,6 +93,7 @@ describe('NotificationRepository', () => {
 
     expect(prisma.notification.findFirst).toHaveBeenCalledWith({
       where: { whatsappMessageId: 'wamid.123' },
+      orderBy: { createdAt: 'desc' },
     });
   });
 

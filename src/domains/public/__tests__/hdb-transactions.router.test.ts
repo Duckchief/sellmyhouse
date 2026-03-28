@@ -50,8 +50,55 @@ const paginatedResult = {
   totalPages: 3,
 };
 
+describe('GET /api/hdb/report', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns 400 when town is not a valid HDB town', async () => {
+    const app = buildApp();
+    const res = await request(app)
+      .get('/api/hdb/report?town=INVALID_TOWN&flatType=4+ROOM')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when flatType is not a valid HDB flat type', async () => {
+    const app = buildApp();
+    const res = await request(app)
+      .get('/api/hdb/report?town=TAMPINES&flatType=INVALID_TYPE')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 200 for valid town and flatType', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    jest.spyOn(HdbService.prototype, 'getMarketReport').mockResolvedValue(null as any);
+    jest.spyOn(HdbService.prototype, 'getPaginatedTransactions').mockResolvedValue(paginatedResult);
+    const app = buildApp();
+    const res = await request(app)
+      .get('/api/hdb/report?town=TAMPINES&flatType=4+ROOM')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(200);
+  });
+});
+
 describe('GET /api/hdb/transactions', () => {
   beforeEach(() => jest.clearAllMocks());
+
+  it('returns 400 when town is not a valid HDB town', async () => {
+    const app = buildApp();
+    const res = await request(app)
+      .get('/api/hdb/transactions?town=INVALID_TOWN&flatType=4+ROOM')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when flatType is not a valid HDB flat type', async () => {
+    const app = buildApp();
+    const res = await request(app)
+      .get('/api/hdb/transactions?town=TAMPINES&flatType=INVALID_TYPE')
+      .set('HX-Request', 'true');
+    expect(res.status).toBe(400);
+  });
 
   it('returns 400 when town or flatType missing', async () => {
     jest.spyOn(HdbService.prototype, 'getPaginatedTransactions').mockResolvedValue(paginatedResult);

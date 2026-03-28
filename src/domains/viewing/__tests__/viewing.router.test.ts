@@ -132,6 +132,22 @@ describe('viewing.router', () => {
 
       expect(res.status).toBe(400);
     });
+
+    it('returns 400 when slotIds contains non-string elements', async () => {
+      const res = await request(app)
+        .post('/seller/viewings/slots/bulk-delete')
+        .send({ slotIds: [123, null, true] });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 400 when slotIds contains empty strings', async () => {
+      const res = await request(app)
+        .post('/seller/viewings/slots/bulk-delete')
+        .send({ slotIds: ['slot-1', ''] });
+
+      expect(res.status).toBe(400);
+    });
   });
 
   describe('DELETE /seller/viewings/slots/:id', () => {
@@ -282,6 +298,21 @@ describe('viewing.router', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
     });
+
+    it('has at least one middleware layer before the handler (rate limiter)', () => {
+      // Verify the route has more than just the handler — a rate limiter must be
+      // registered as an earlier layer in the route stack.
+      const router = viewingRouter as unknown as {
+        stack: Array<{ route?: { path: string; stack: unknown[] } }>;
+      };
+      const otpRouteLayer = router.stack.find(
+        (l) => l.route?.path === '/view/:propertySlug/verify-otp',
+      );
+      expect(otpRouteLayer).toBeDefined();
+      // Without a rate limiter there is only 1 layer (the handler).
+      // With one there are at least 2.
+      expect(otpRouteLayer!.route!.stack.length).toBeGreaterThanOrEqual(2);
+    });
   });
 
   describe('GET /seller/viewings/slots/date-sidebar', () => {
@@ -334,6 +365,53 @@ describe('viewing.router', () => {
       );
 
       expect(res.status).toBe(400);
+    });
+  });
+
+  // ─── Role Enforcement ──────────────────────────────────
+
+  describe('seller routes reject non-seller users', () => {
+    let agentApp: express.Application;
+
+    beforeAll(() => {
+      const app = express();
+      app.use(express.json());
+      app.use(express.urlencoded({ extended: true }));
+      app.use((req, _res, next) => {
+        Object.assign(req, {
+          isAuthenticated: () => true,
+          user: {
+            id: 'agent-1',
+            role: 'agent',
+            name: 'Test Agent',
+            email: 'agent@test.com',
+            twoFactorEnabled: true,
+            twoFactorVerified: true,
+          },
+        });
+        next();
+      });
+      app.use(viewingRouter);
+      agentApp = app;
+    });
+
+    it.each([
+      ['GET', '/seller/viewings'],
+      ['GET', '/seller/viewings/slots/date-sidebar'],
+      ['GET', '/seller/viewings/slots/month-meta'],
+      ['POST', '/seller/viewings/slots'],
+      ['POST', '/seller/viewings/slots/bulk-delete'],
+      ['POST', '/seller/viewings/schedule'],
+      ['DELETE', '/seller/viewings/schedule'],
+      ['DELETE', '/seller/viewings/slots/slot-1'],
+      ['POST', '/seller/viewings/v-1/feedback'],
+      ['POST', '/seller/viewings/v-1/no-show'],
+      ['POST', '/seller/viewings/v-1/complete'],
+    ])('%s %s returns 403 for agent role', async (method, path) => {
+      const res = await (request(agentApp) as never as Record<string, (p: string) => request.Test>)[
+        method.toLowerCase()
+      ](path);
+      expect(res.status).toBe(403);
     });
   });
 

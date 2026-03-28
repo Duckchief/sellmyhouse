@@ -25,8 +25,8 @@ export class AwsKmsKeyProvider implements KeyProvider {
       );
       if (!response.CiphertextBlob) throw new Error('no CiphertextBlob');
       return Buffer.from(response.CiphertextBlob).toString('base64');
-    } catch {
-      throw new Error('Failed to wrap key');
+    } catch (err) {
+      throw new Error('Failed to wrap key', { cause: err });
     }
   }
 
@@ -40,8 +40,8 @@ export class AwsKmsKeyProvider implements KeyProvider {
       );
       if (!response.Plaintext) throw new Error('no Plaintext');
       return Buffer.from(response.Plaintext);
-    } catch {
-      throw new Error('Failed to unwrap key');
+    } catch (err) {
+      throw new Error('Failed to unwrap key', { cause: err });
     }
   }
 }

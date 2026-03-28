@@ -1,4 +1,5 @@
 import { prisma } from '@/infra/database/prisma';
+import { createId } from '@paralleldrive/cuid2';
 import type { SellerDocument } from '@prisma/client';
 
 export async function create(data: {
@@ -11,7 +12,7 @@ export async function create(data: {
   sizeBytes: number;
   uploadedBy: string;
 }): Promise<SellerDocument> {
-  return prisma.sellerDocument.create({ data });
+  return prisma.sellerDocument.create({ data: { id: createId(), ...data } });
 }
 
 export async function findById(id: string): Promise<SellerDocument | null> {
@@ -69,6 +70,31 @@ export async function markDownloadedAndDeleted(
     where: { id },
     data: { downloadedAt: now, downloadedBy, deletedAt: now },
   });
+}
+
+/**
+ * Atomically claim a single document for download by setting deletedAt.
+ * Uses updateMany with a WHERE deletedAt IS NULL guard to prevent TOCTOU races.
+ * Returns the count of rows updated (0 = already claimed by another request).
+ */
+export async function claimForDownload(id: string): Promise<number> {
+  const result = await prisma.sellerDocument.updateMany({
+    where: { id, deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
+  return result.count;
+}
+
+/**
+ * Atomically claim all active documents for a seller by setting deletedAt.
+ * Returns the count of rows updated.
+ */
+export async function claimAllForDownload(sellerId: string): Promise<number> {
+  const result = await prisma.sellerDocument.updateMany({
+    where: { sellerId, deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
+  return result.count;
 }
 
 export async function markPurged(id: string): Promise<void> {

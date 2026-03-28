@@ -21,6 +21,28 @@ export const propertyRepository = {
     });
   },
 
+  // M39: Atomic property + listing creation in a single transaction
+  async createPropertyWithListing(input: CreatePropertyInput) {
+    return prisma.$transaction(async (tx) => {
+      const property = await tx.property.create({
+        data: {
+          id: createId(),
+          priceHistory: '[]',
+          ...input,
+        },
+      });
+      await tx.listing.create({
+        data: {
+          id: createId(),
+          propertyId: property.id,
+          status: 'draft',
+          photos: '[]',
+        },
+      });
+      return property;
+    });
+  },
+
   async findByIdWithListings(id: string) {
     return prisma.property.findUnique({
       where: { id },
@@ -51,31 +73,33 @@ export const propertyRepository = {
   },
 
   async appendPriceHistory(id: string, newPrice: number, changedBy: string) {
-    const property = await prisma.property.findUnique({
-      where: { id },
-      include: { listings: true },
-    });
+    return prisma.$transaction(async (tx) => {
+      const property = await tx.property.findUnique({
+        where: { id },
+        include: { listings: true },
+      });
 
-    const rawHistory = property?.priceHistory;
-    const existingHistory: PriceHistoryEntry[] = rawHistory
-      ? (JSON.parse(rawHistory as string) as PriceHistoryEntry[])
-      : [];
+      const rawHistory = property?.priceHistory;
+      const existingHistory: PriceHistoryEntry[] = rawHistory
+        ? (JSON.parse(rawHistory as string) as PriceHistoryEntry[])
+        : [];
 
-    const newEntry: PriceHistoryEntry = {
-      price: newPrice,
-      changedAt: new Date().toISOString(),
-      changedBy,
-    };
+      const newEntry: PriceHistoryEntry = {
+        price: newPrice,
+        changedAt: new Date().toISOString(),
+        changedBy,
+      };
 
-    const updatedHistory = [...existingHistory, newEntry];
+      const updatedHistory = [...existingHistory, newEntry];
 
-    return prisma.property.update({
-      where: { id },
-      data: {
-        askingPrice: newPrice,
-        priceHistory: JSON.stringify(updatedHistory),
-      },
-      include: { listings: true },
+      return tx.property.update({
+        where: { id },
+        data: {
+          askingPrice: newPrice,
+          priceHistory: JSON.stringify(updatedHistory),
+        },
+        include: { listings: true },
+      });
     });
   },
 
@@ -116,6 +140,28 @@ export const propertyRepository = {
     });
   },
 
+  // M46: Atomic listing + property status update in a single transaction
+  async updateListingAndPropertyStatus(
+    listingId: string,
+    listingStatus: string,
+    propertyId: string,
+    propertyStatus: string,
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const listing = await tx.listing.update({
+        where: { id: listingId },
+        data: { status: listingStatus as $Enums.ListingStatus },
+      });
+      await tx.property.update({
+        where: { id: propertyId },
+        data: {
+          status: propertyStatus as import('@prisma/client').$Enums.PropertyStatus,
+        },
+      });
+      return listing;
+    });
+  },
+
   async updateListingPhotos(listingId: string, photos: PhotoRecord[]) {
     return prisma.listing.update({
       where: { id: listingId },
@@ -150,7 +196,6 @@ export const propertyRepository = {
       aiDescriptionProvider: string;
       aiDescriptionModel: string;
       aiDescriptionGeneratedAt: Date;
-      description: string;
       descriptionApprovedAt: null;
     },
   ) {
@@ -160,12 +205,13 @@ export const propertyRepository = {
     });
   },
 
+  // M50: Set aiDescriptionStatus to pending_review when draft is saved
   async updateDescriptionDraft(listingId: string, text: string) {
     return prisma.listing.update({
       where: { id: listingId },
       data: {
         aiDescription: text,
-        description: text,
+        aiDescriptionStatus: 'pending_review' as AiDescriptionStatus,
       },
     });
   },
@@ -215,6 +261,8 @@ export const propertyRepository = {
 
 // Named exports to match the function-based calling pattern in tests
 export const create = propertyRepository.create.bind(propertyRepository);
+export const createPropertyWithListing =
+  propertyRepository.createPropertyWithListing.bind(propertyRepository);
 export const findByIdWithListings =
   propertyRepository.findByIdWithListings.bind(propertyRepository);
 export const findBySellerId = propertyRepository.findBySellerId.bind(propertyRepository);
@@ -224,6 +272,8 @@ export const createListing = propertyRepository.createListing.bind(propertyRepos
 export const findActiveListingForProperty =
   propertyRepository.findActiveListingForProperty.bind(propertyRepository);
 export const updateListingStatus = propertyRepository.updateListingStatus.bind(propertyRepository);
+export const updateListingAndPropertyStatus =
+  propertyRepository.updateListingAndPropertyStatus.bind(propertyRepository);
 export const updateListingPhotos = propertyRepository.updateListingPhotos.bind(propertyRepository);
 export const findBySlug = propertyRepository.findBySlug.bind(propertyRepository);
 export const updateSlug = propertyRepository.updateSlug.bind(propertyRepository);

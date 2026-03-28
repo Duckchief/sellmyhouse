@@ -172,9 +172,12 @@ portalRouter.post(
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
+      const user = req.user as AuthenticatedUser;
       const portalListing = await portalService.markAsPosted(
         req.params['id'] as string,
         req.body.url as string,
+        user.id,
+        user.role,
       );
 
       if (req.headers['hx-request']) {

@@ -146,13 +146,14 @@ describe('transaction.router', () => {
       expect(res.status).toBe(200);
     });
 
-    it('returns 400 with informative message when status is fallen_through', async () => {
+    it('returns 400 when status is fallen_through (rejected by validation first)', async () => {
       const res = await request(app)
         .patch('/agent/transactions/tx-1/status')
         .send({ status: 'fallen_through' });
 
+      // M8: validation runs before fallen_through redirect, so validator rejects it
       expect(res.status).toBe(400);
-      expect(res.body.error).toMatch(/fallen-through/);
+      expect(res.body.errors).toBeDefined();
     });
   });
 

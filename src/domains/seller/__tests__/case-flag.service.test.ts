@@ -2,7 +2,7 @@ import * as caseFlagService from '../case-flag.service';
 import * as caseFlagRepo from '../case-flag.repository';
 import * as sellerRepo from '../seller.repository';
 import * as auditService from '../../shared/audit.service';
-import { NotFoundError } from '../../shared/errors';
+import { NotFoundError, ForbiddenError, ValidationError } from '../../shared/errors';
 
 jest.mock('../case-flag.repository');
 jest.mock('../seller.repository');
@@ -57,8 +57,13 @@ describe('case-flag.service', () => {
   });
 
   describe('updateCaseFlag', () => {
-    it('updates status and writes audit log', async () => {
-      mockedCaseFlagRepo.findById.mockResolvedValue({ id: 'flag-1' } as never);
+    it('updates status and writes audit log when agent is authorized', async () => {
+      mockedCaseFlagRepo.findById.mockResolvedValue({
+        id: 'flag-1',
+        sellerId: 'seller-1',
+        status: 'identified',
+      } as never);
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', agentId: 'agent-1' } as never);
       mockedCaseFlagRepo.updateStatus.mockResolvedValue({
         id: 'flag-1',
         status: 'resolved',
@@ -76,8 +81,58 @@ describe('case-flag.service', () => {
       );
     });
 
+    it('allows admin to update any flag regardless of agent assignment', async () => {
+      mockedCaseFlagRepo.findById.mockResolvedValue({
+        id: 'flag-1',
+        sellerId: 'seller-1',
+        status: 'identified',
+      } as never);
+      mockedCaseFlagRepo.updateStatus.mockResolvedValue({
+        id: 'flag-1',
+        status: 'resolved',
+      } as never);
+
+      await caseFlagService.updateCaseFlag({
+        flagId: 'flag-1',
+        status: 'resolved',
+        agentId: 'admin-1',
+        role: 'admin',
+      });
+
+      // Should not check seller assignment for admin
+      expect(mockedSellerRepo.findById).not.toHaveBeenCalled();
+      expect(mockedCaseFlagRepo.updateStatus).toHaveBeenCalledWith('flag-1', 'resolved', undefined);
+    });
+
+    it('throws ForbiddenError when agent is not assigned to the seller', async () => {
+      mockedCaseFlagRepo.findById.mockResolvedValue({
+        id: 'flag-1',
+        sellerId: 'seller-1',
+        status: 'identified',
+      } as never);
+      mockedSellerRepo.findById.mockResolvedValue({
+        id: 'seller-1',
+        agentId: 'agent-other',
+      } as never);
+
+      await expect(
+        caseFlagService.updateCaseFlag({
+          flagId: 'flag-1',
+          status: 'resolved',
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow(ForbiddenError);
+
+      expect(mockedCaseFlagRepo.updateStatus).not.toHaveBeenCalled();
+    });
+
     it('passes guidanceProvided when supplied', async () => {
-      mockedCaseFlagRepo.findById.mockResolvedValue({ id: 'flag-1' } as never);
+      mockedCaseFlagRepo.findById.mockResolvedValue({
+        id: 'flag-1',
+        sellerId: 'seller-1',
+        status: 'identified',
+      } as never);
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', agentId: 'agent-1' } as never);
       mockedCaseFlagRepo.updateStatus.mockResolvedValue({ id: 'flag-1' } as never);
 
       await caseFlagService.updateCaseFlag({
@@ -102,6 +157,94 @@ describe('case-flag.service', () => {
       ).rejects.toThrow(NotFoundError);
 
       expect(mockedCaseFlagRepo.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it('throws ValidationError for invalid status transition (resolved -> in_progress)', async () => {
+      mockedCaseFlagRepo.findById.mockResolvedValue({
+        id: 'flag-1',
+        sellerId: 'seller-1',
+        status: 'resolved',
+      } as never);
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', agentId: 'agent-1' } as never);
+
+      await expect(
+        caseFlagService.updateCaseFlag({
+          flagId: 'flag-1',
+          status: 'in_progress',
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow(ValidationError);
+
+      expect(mockedCaseFlagRepo.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it('throws ValidationError for invalid status transition (out_of_scope -> resolved)', async () => {
+      mockedCaseFlagRepo.findById.mockResolvedValue({
+        id: 'flag-1',
+        sellerId: 'seller-1',
+        status: 'out_of_scope',
+      } as never);
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', agentId: 'agent-1' } as never);
+
+      await expect(
+        caseFlagService.updateCaseFlag({
+          flagId: 'flag-1',
+          status: 'resolved',
+          agentId: 'agent-1',
+        }),
+      ).rejects.toThrow(ValidationError);
+
+      expect(mockedCaseFlagRepo.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it('allows valid transition from identified to in_progress', async () => {
+      mockedCaseFlagRepo.findById.mockResolvedValue({
+        id: 'flag-1',
+        sellerId: 'seller-1',
+        status: 'identified',
+      } as never);
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', agentId: 'agent-1' } as never);
+      mockedCaseFlagRepo.updateStatus.mockResolvedValue({
+        id: 'flag-1',
+        status: 'in_progress',
+      } as never);
+
+      await caseFlagService.updateCaseFlag({
+        flagId: 'flag-1',
+        status: 'in_progress',
+        agentId: 'agent-1',
+      });
+
+      expect(mockedCaseFlagRepo.updateStatus).toHaveBeenCalledWith(
+        'flag-1',
+        'in_progress',
+        undefined,
+      );
+    });
+
+    it('allows valid transition from in_progress to out_of_scope', async () => {
+      mockedCaseFlagRepo.findById.mockResolvedValue({
+        id: 'flag-1',
+        sellerId: 'seller-1',
+        status: 'in_progress',
+      } as never);
+      mockedSellerRepo.findById.mockResolvedValue({ id: 'seller-1', agentId: 'agent-1' } as never);
+      mockedCaseFlagRepo.updateStatus.mockResolvedValue({
+        id: 'flag-1',
+        status: 'out_of_scope',
+      } as never);
+
+      await caseFlagService.updateCaseFlag({
+        flagId: 'flag-1',
+        status: 'out_of_scope',
+        agentId: 'agent-1',
+      });
+
+      expect(mockedCaseFlagRepo.updateStatus).toHaveBeenCalledWith(
+        'flag-1',
+        'out_of_scope',
+        undefined,
+      );
     });
   });
 

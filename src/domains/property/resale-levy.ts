@@ -7,6 +7,7 @@ import type { FlatType, SubsidyType } from './financial.types';
  * First-timers and non-subsidised flat purchasers do not pay resale levy.
  */
 const SUBSIDISED_LEVY: Record<string, number> = {
+  '1 ROOM': 15000,
   '2 ROOM': 15000,
   '3 ROOM': 30000,
   '4 ROOM': 40000,

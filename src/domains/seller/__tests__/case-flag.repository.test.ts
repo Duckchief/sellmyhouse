@@ -125,6 +125,7 @@ describe('case-flag.repository', () => {
           flagType: 'mop_not_met',
           status: { in: ['identified', 'in_progress'] },
         },
+        orderBy: { createdAt: 'desc' },
       });
     });
 

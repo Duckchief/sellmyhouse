@@ -41,5 +41,6 @@ export async function findActiveMopFlag(sellerId: string) {
       flagType: 'mop_not_met',
       status: { in: ['identified', 'in_progress'] },
     },
+    orderBy: { createdAt: 'desc' },
   });
 }

@@ -120,6 +120,12 @@ describe('NotificationService', () => {
 
     // Default: DNC check allows all sends
     complianceService.checkDncAllowed = jest.fn().mockResolvedValue({ allowed: true });
+
+    // Default: resolve recipient contact info (C1 fix)
+    notificationRepo.findRecipientContact = jest.fn().mockResolvedValue({
+      email: 'test@example.com',
+      phone: '+6591234567',
+    });
   });
 
   describe('send', () => {
@@ -515,7 +521,10 @@ describe('NotificationService', () => {
     it('generates a valid JWT with sellerId and purpose', () => {
       process.env.JWT_SECRET = 'test-jwt-secret';
       const token = service.generateUnsubscribeToken('seller-1');
-      const decoded = jwt.verify(token, 'test-jwt-secret') as { sellerId: string; purpose: string };
+      const decoded = jwt.verify(token, 'test-jwt-secret', { algorithms: ['HS256'] }) as {
+        sellerId: string;
+        purpose: string;
+      };
       expect(decoded.sellerId).toBe('seller-1');
       expect(decoded.purpose).toBe('marketing_consent_withdrawal');
     });

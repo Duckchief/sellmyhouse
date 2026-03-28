@@ -1,4 +1,5 @@
 // src/domains/admin/admin.repository.ts
+import { Prisma } from '@prisma/client';
 import { prisma, createId } from '@/infra/database/prisma';
 import type { TeamMember, AgentCreateInput, HdbDataStatus, HdbSyncRecord } from './admin.types';
 import type { SettingRecord } from '@/domains/shared/settings.types';
@@ -10,7 +11,19 @@ const ACTIVE_STAGES = new Set(['lead', 'engaged', 'active']);
 
 export async function findAllAgents(): Promise<TeamMember[]> {
   const [agents, stageCounts] = await Promise.all([
-    prisma.agent.findMany({ orderBy: { name: 'asc' } }),
+    prisma.agent.findMany({
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        ceaRegNo: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    }),
     prisma.seller.groupBy({
       by: ['agentId', 'status'],
       where: { agentId: { not: null } },
@@ -90,7 +103,12 @@ export async function anonymiseAgent(id: string): Promise<void> {
     data: {
       name: `Former Agent [${id}]`,
       email: `anonymised-${id}@deleted.local`,
-      phone: 'anonymised',
+      phone: `anonymised-${id}`,
+      passwordHash: '',
+      twoFactorSecret: null,
+      twoFactorBackupCodes: Prisma.JsonNull,
+      passwordResetToken: null,
+      passwordResetExpiry: null,
       isActive: false,
     },
   });
@@ -327,6 +345,7 @@ export async function getTimeToClose(dateFrom?: Date, dateTo?: Date) {
       completionDate: true,
       property: { select: { flatType: true } },
     },
+    take: 5000,
   });
   if (completed.length === 0) return { averageDays: 0, count: 0, byFlatType: {} };
   let totalDays = 0;
@@ -405,6 +424,7 @@ export async function getReferralMetrics(dateFrom?: Date, dateTo?: Date) {
         referrer: { select: { name: true } },
       },
       orderBy: { clickCount: 'desc' },
+      take: 500,
     }),
     prisma.seller.count({ where: { leadSource: 'referral', ...dateFilter } }),
     prisma.seller.count({ where: { leadSource: 'referral', status: 'completed', ...dateFilter } }),
@@ -466,7 +486,14 @@ export async function getHdbStatus(): Promise<HdbDataStatus> {
 export async function findSellerDetailForAdmin(id: string) {
   return prisma.seller.findUnique({
     where: { id },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      status: true,
+      notificationPreference: true,
+      createdAt: true,
       agent: {
         select: { id: true, name: true, ceaRegNo: true, phone: true },
       },

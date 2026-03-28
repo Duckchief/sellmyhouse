@@ -18,9 +18,22 @@ export async function updateOnboardingStep(id: string, step: number): Promise<Se
 export async function getSellerWithRelations(id: string) {
   return prisma.seller.findUnique({
     where: { id },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      status: true,
+      onboardingStep: true,
+      emailVerified: true,
+      notificationPreference: true,
+      consentService: true,
+      consentMarketing: true,
+      agentId: true,
+      createdAt: true,
+      updatedAt: true,
       properties: true,
-      transactions: true,
+      transactions: { select: { id: true, status: true } },
       consentRecords: { orderBy: { consentGivenAt: 'desc' } },
       caseFlags: { where: { status: { not: 'resolved' } } },
     },

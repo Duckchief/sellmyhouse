@@ -2,7 +2,11 @@
 import { body } from 'express-validator';
 
 export const validateTestimonialSubmit = [
-  body('content').trim().notEmpty().withMessage('Please share your experience'),
+  body('content')
+    .trim()
+    .notEmpty()
+    .isLength({ min: 10, max: 1000 })
+    .withMessage('Testimonial must be 10\u20131000 characters'),
   body('rating').isInt({ min: 1, max: 5 }).toInt().withMessage('Rating must be between 1 and 5'),
   body('clientName').trim().notEmpty().withMessage('Name is required'),
   body('clientTown').trim().notEmpty().withMessage('Town is required'),

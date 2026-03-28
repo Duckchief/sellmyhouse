@@ -3,7 +3,11 @@ import { doubleCsrf } from 'csrf-csrf';
 import type { Request, Response, NextFunction } from 'express';
 
 const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
-  getSecret: () => process.env.SESSION_SECRET ?? 'dev-csrf-secret',
+  getSecret: () => {
+    const secret = process.env.SESSION_SECRET;
+    if (!secret) throw new Error('SESSION_SECRET environment variable is required');
+    return secret;
+  },
   // Empty string identifier: classic double-submit cookie pattern (no session binding).
   // Session binding is desirable in theory but breaks with saveUninitialized:false because
   // the session ID isn't stable before the first authenticated request.

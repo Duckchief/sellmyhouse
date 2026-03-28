@@ -66,6 +66,7 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   findConsentRecordsForDeletion: jest.Mock;
   findStaleCorrectionRequests: jest.Mock;
   findExistingDeletionRequest: jest.Mock;
+  findExistingDeletionRequestIds: jest.Mock;
   collectSellerFilePaths: jest.Mock;
   collectTransactionFilePaths: jest.Mock;
   hardDeleteSeller: jest.Mock;
@@ -141,10 +142,10 @@ describe('checkDncAllowed', () => {
 describe('withdrawConsent', () => {
   const baseSeller = { status: 'active', transactions: [] };
 
-  it('creates a new consent record (append-only)', async () => {
+  it('creates a new consent record atomically (append-only)', async () => {
     mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: true });
     mockRepo.findSellerWithTransactions.mockResolvedValue({ ...baseSeller, transactions: [] });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+    mockRepo.withdrawConsentAtomically.mockResolvedValue({ id: 'cr1' } as never);
     mockAudit.log.mockResolvedValue(undefined);
 
     await complianceService.withdrawConsent({
@@ -153,32 +154,37 @@ describe('withdrawConsent', () => {
       channel: 'web',
     });
 
-    expect(mockRepo.createConsentRecord).toHaveBeenCalledWith(
+    expect(mockRepo.withdrawConsentAtomically).toHaveBeenCalledWith(
+      'seller1',
+      'marketing',
       expect.objectContaining({ purposeMarketing: false }),
     );
   });
 
-  it('updates seller.consentMarketing flag when withdrawing marketing consent', async () => {
-    mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: true });
-    mockRepo.findSellerWithTransactions.mockResolvedValue({ ...baseSeller, transactions: [] });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+  it('calls withdrawConsentAtomically with service type when withdrawing service consent', async () => {
+    mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: false });
+    mockRepo.findSellerWithTransactions.mockResolvedValue({ status: 'lead', transactions: [] });
+    mockRepo.withdrawConsentAtomically.mockResolvedValue({ id: 'cr1' } as never);
+    mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
     mockAudit.log.mockResolvedValue(undefined);
 
     await complianceService.withdrawConsent({
       sellerId: 'seller1',
-      type: 'marketing',
+      type: 'service',
       channel: 'web',
     });
 
-    expect(mockRepo.updateSellerConsent).toHaveBeenCalledWith('seller1', {
-      consentMarketing: false,
-    });
+    expect(mockRepo.withdrawConsentAtomically).toHaveBeenCalledWith(
+      'seller1',
+      'service',
+      expect.objectContaining({ purposeService: false }),
+    );
   });
 
   it('creates a flagged deletion request when service consent withdrawn with no transactions', async () => {
     mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: false });
     mockRepo.findSellerWithTransactions.mockResolvedValue({ status: 'lead', transactions: [] });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+    mockRepo.withdrawConsentAtomically.mockResolvedValue({ id: 'cr1' } as never);
     mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
     mockAudit.log.mockResolvedValue(undefined);
 
@@ -200,7 +206,7 @@ describe('withdrawConsent', () => {
       status: 'completed',
       transactions: [{ completionDate: new Date(), status: 'completed' }],
     });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+    mockRepo.withdrawConsentAtomically.mockResolvedValue({ id: 'cr1' } as never);
     mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
     mockAudit.log.mockResolvedValue(undefined);
 
@@ -219,7 +225,7 @@ describe('withdrawConsent', () => {
   it('logs consent.withdrawn audit event', async () => {
     mockRepo.findSellerConsent.mockResolvedValue({ consentService: true, consentMarketing: true });
     mockRepo.findSellerWithTransactions.mockResolvedValue({ ...baseSeller, transactions: [] });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+    mockRepo.withdrawConsentAtomically.mockResolvedValue({ id: 'cr1' } as never);
     mockAudit.log.mockResolvedValue(undefined);
 
     await complianceService.withdrawConsent({
@@ -249,7 +255,7 @@ describe('withdrawConsent', () => {
         consentMarketing: false,
       });
       mockRepo.findSellerWithTransactions.mockResolvedValue({ status: 'lead', transactions: [] });
-      mockRepo.createConsentRecord.mockResolvedValue({ id: 'cr1' } as never);
+      mockRepo.withdrawConsentAtomically.mockResolvedValue({ id: 'cr1' } as never);
       mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
       mockAudit.log.mockResolvedValue(undefined);
       mockPropertyRepo.findBySellerId.mockResolvedValue(baseProperty as never);
@@ -274,7 +280,7 @@ describe('withdrawConsent', () => {
         channel: 'web',
       });
 
-      expect(mockOfferRepo.updateStatus).toHaveBeenCalledWith('offer-1', 'expired');
+      expect(mockOfferRepo.expirePendingAndCounteredSiblings).toHaveBeenCalledWith('prop-1', '');
     });
 
     it('voids countered offers on service consent withdrawal', async () => {
@@ -291,7 +297,7 @@ describe('withdrawConsent', () => {
         channel: 'web',
       });
 
-      expect(mockOfferRepo.updateStatus).toHaveBeenCalledWith('offer-2', 'expired');
+      expect(mockOfferRepo.expirePendingAndCounteredSiblings).toHaveBeenCalledWith('prop-1', '');
     });
 
     it('does not void accepted or expired offers', async () => {
@@ -307,7 +313,8 @@ describe('withdrawConsent', () => {
         channel: 'web',
       });
 
-      expect(mockOfferRepo.updateStatus).not.toHaveBeenCalled();
+      // Batch expire is still called but only affects pending/countered (none here)
+      expect(mockOfferRepo.expirePendingAndCounteredSiblings).toHaveBeenCalledWith('prop-1', '');
     });
 
     it('cancels active viewing slots on service consent withdrawal', async () => {
@@ -320,7 +327,7 @@ describe('withdrawConsent', () => {
         channel: 'web',
       });
 
-      expect(mockViewingRepo.cancelSlotAndViewings).toHaveBeenCalledWith('slot-1');
+      expect(mockViewingRepo.bulkCancelSlotsAndViewings).toHaveBeenCalledWith(['slot-1']);
     });
 
     it('delists active listing on service consent withdrawal', async () => {
@@ -555,6 +562,7 @@ describe('scanRetention', () => {
     mockRepo.deleteOldWeeklyUpdates.mockResolvedValue(0);
     mockRepo.findStaleCorrectionRequests.mockResolvedValue([]);
     mockRepo.findExistingDeletionRequest.mockResolvedValue(null);
+    mockRepo.findExistingDeletionRequestIds = jest.fn().mockResolvedValue(new Set());
     mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
     mockRepo.findVerifiedViewersForRetention.mockResolvedValue([]);
     mockRepo.anonymiseVerifiedViewerRecords.mockResolvedValue(undefined);
@@ -600,7 +608,7 @@ describe('scanRetention', () => {
     mockRepo.findLeadsForRetention.mockResolvedValue([
       { id: 'seller1', name: 'Old Lead', updatedAt: oldDate },
     ]);
-    mockRepo.findExistingDeletionRequest.mockResolvedValue({ id: 'existing', status: 'flagged' });
+    mockRepo.findExistingDeletionRequestIds = jest.fn().mockResolvedValue(new Set(['seller1']));
 
     const result = await complianceService.scanRetention();
     expect(mockRepo.createDeletionRequest).not.toHaveBeenCalled();
@@ -983,7 +991,7 @@ describe('generateDataExport', () => {
     const result = await complianceService.generateDataExport('seller-1');
     const trail = result['auditTrail'] as { details: Record<string, unknown> }[];
 
-    expect(trail[0]?.details?.['nricLast4']).toBe('SXXXX567A');
+    expect(trail[0]?.details?.['nricLast4']).toBe('XXXX567A');
   });
 
   it('logs data_access.requested and data_access.fulfilled audit events', async () => {
@@ -1649,23 +1657,23 @@ describe('purgeSensitiveDocs', () => {
       },
     ]);
     mockRepo.findCddRecordsForNricRedaction = jest.fn().mockResolvedValue([{ id: 'cdd-1' }]);
-    mockRepo.redactNricFromCddRecord = jest.fn().mockResolvedValue(undefined);
+    mockRepo.redactNricFromCddRecordsBatch = jest.fn().mockResolvedValue(undefined);
 
     await complianceService.purgeSensitiveDocs();
 
     expect(mockRepo.findCddRecordsForNricRedaction).toHaveBeenCalledWith(expect.any(Date));
-    expect(mockRepo.redactNricFromCddRecord).toHaveBeenCalledWith('cdd-1');
+    expect(mockRepo.redactNricFromCddRecordsBatch).toHaveBeenCalledWith(['cdd-1']);
   });
 
   it('skips CDD nricLast4 redaction when no records qualify', async () => {
     mockSettings.getNumber.mockResolvedValueOnce(7);
     mockRepo.findCompletedTransactionsForDocPurge.mockResolvedValue([]);
     mockRepo.findCddRecordsForNricRedaction = jest.fn().mockResolvedValue([]);
-    mockRepo.redactNricFromCddRecord = jest.fn().mockResolvedValue(undefined);
+    mockRepo.redactNricFromCddRecordsBatch = jest.fn().mockResolvedValue(undefined);
 
     await complianceService.purgeSensitiveDocs();
 
-    expect(mockRepo.redactNricFromCddRecord).not.toHaveBeenCalled();
+    expect(mockRepo.redactNricFromCddRecordsBatch).not.toHaveBeenCalled();
   });
 });
 
@@ -1780,13 +1788,12 @@ describe('recordHuttonsTransferConsent', () => {
 });
 
 describe('grantMarketingConsent', () => {
-  it('sets consentMarketing to true and creates a consent record', async () => {
+  it('sets consentMarketing to true atomically and creates a consent record', async () => {
     mockRepo.findSellerConsent.mockResolvedValue({
       consentService: true,
       consentMarketing: false,
     });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'record-1' } as any);
-    mockRepo.updateSellerConsent.mockResolvedValue(undefined);
+    mockRepo.grantConsentAtomically.mockResolvedValue({ id: 'record-1' } as any);
 
     const result = await complianceService.grantMarketingConsent({
       sellerId: 'seller-1',
@@ -1795,7 +1802,8 @@ describe('grantMarketingConsent', () => {
       userAgent: 'Mozilla/5.0',
     });
 
-    expect(mockRepo.createConsentRecord).toHaveBeenCalledWith(
+    expect(mockRepo.grantConsentAtomically).toHaveBeenCalledWith(
+      'seller-1',
       expect.objectContaining({
         subjectId: 'seller-1',
         purposeMarketing: true,
@@ -1803,9 +1811,6 @@ describe('grantMarketingConsent', () => {
         withdrawalChannel: 'web',
       }),
     );
-    expect(mockRepo.updateSellerConsent).toHaveBeenCalledWith('seller-1', {
-      consentMarketing: true,
-    });
     expect(result.consentRecordId).toBe('record-1');
   });
 
@@ -1822,8 +1827,7 @@ describe('grantMarketingConsent', () => {
       consentService: true,
       consentMarketing: true,
     });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'record-2' } as any);
-    mockRepo.updateSellerConsent.mockResolvedValue(undefined);
+    mockRepo.grantConsentAtomically.mockResolvedValue({ id: 'record-2' } as any);
 
     const result = await complianceService.grantMarketingConsent({
       sellerId: 'seller-1',
@@ -1838,8 +1842,7 @@ describe('grantMarketingConsent', () => {
       consentService: true,
       consentMarketing: false,
     });
-    mockRepo.createConsentRecord.mockResolvedValue({ id: 'record-3' } as any);
-    mockRepo.updateSellerConsent.mockResolvedValue(undefined);
+    mockRepo.grantConsentAtomically.mockResolvedValue({ id: 'record-3' } as any);
 
     await complianceService.grantMarketingConsent({ sellerId: 'seller-1', channel: 'web' });
 

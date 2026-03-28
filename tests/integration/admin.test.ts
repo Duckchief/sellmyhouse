@@ -234,7 +234,7 @@ describe('POST /admin/team/:id/anonymise', () => {
     expect(anonymised?.name).toBe(`Former Agent [${targetAgent.id}]`);
     expect(anonymised?.email).toBe(`anonymised-${targetAgent.id}@deleted.local`);
     // phone is non-nullable in schema — anonymised to placeholder
-    expect(anonymised?.phone).toBe('anonymised');
+    expect(anonymised?.phone).toBe(`anonymised-${targetAgent.id}`);
     expect(anonymised?.isActive).toBe(false);
 
     const auditEntry = await testPrisma.auditLog.findFirst({

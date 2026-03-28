@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import * as authRepo from './auth.repository';
 import * as auditService from '../shared/audit.service';
 import { encrypt, decrypt } from '../shared/encryption';
-import { ValidationError, ConflictError, UnauthorizedError, NotFoundError } from '../shared/errors';
+import { ValidationError, UnauthorizedError, NotFoundError } from '../shared/errors';
 import { maskEmail } from '../shared/nric';
 import { sendSystemEmail } from '../../infra/email/system-mailer';
 import type {
@@ -32,28 +32,48 @@ export async function registerSeller(input: SellerRegistrationInput) {
 
   const existing = await authRepo.findSellerByEmail(input.email);
   if (existing) {
-    throw new ConflictError('An account with this email already exists');
+    // Send silent email to prevent account enumeration (L3)
+    try {
+      await sendSystemEmail(
+        input.email,
+        'SellMyHouse.sg — Your account',
+        [
+          '<p>Someone tried to register with this email address, but you already have an account.</p>',
+          '<p>If this was you, please <a href="/auth/login">log in</a> instead.</p>',
+          '<p>If you did not request this, you can safely ignore this email.</p>',
+        ].join(''),
+      );
+    } catch {
+      // Best-effort — don't expose failure
+    }
+    return null;
   }
 
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
 
-  const seller = await authRepo.createSeller({
-    name: input.name,
-    email: input.email,
-    phone: input.phone,
-    passwordHash,
-    consentService: input.consentService,
-    consentMarketing: input.consentMarketing,
-  });
-
-  await authRepo.createConsentRecord({
-    sellerId: seller.id,
-    purposeService: input.consentService,
-    purposeMarketing: input.consentMarketing,
-    purposeHuttonsTransfer: false,
-    ipAddress: input.ipAddress,
-    userAgent: input.userAgent,
-  });
+  let seller;
+  try {
+    seller = await authRepo.createSellerWithConsent(
+      {
+        name: input.name,
+        email: input.email,
+        phone: input.phone,
+        passwordHash,
+        consentService: input.consentService,
+        consentMarketing: input.consentMarketing,
+      },
+      {
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+      },
+    );
+  } catch (err: unknown) {
+    // Handle unique constraint violation (concurrent registration)
+    if (err instanceof Error && 'code' in err && (err as { code: string }).code === 'P2002') {
+      return null;
+    }
+    throw err;
+  }
 
   // Best-effort: send verification email; failure should not block registration
   try {
@@ -191,7 +211,7 @@ export async function loginAgent(email: string, password: string) {
 export async function setup2FA(
   userId: string,
   role: UserRole,
-  currentSessionId?: string,
+  _currentSessionId?: string,
 ): Promise<TotpSetupResult> {
   const secret = otpGenerateSecret();
   const issuer = role === 'seller' ? 'SellMyHouse (Seller)' : 'SellMyHouse (Agent)';
@@ -212,13 +232,57 @@ export async function setup2FA(
   const updateFn =
     role === 'seller' ? authRepo.updateSellerTwoFactor : authRepo.updateAgentTwoFactor;
 
+  // Store provisional secret with twoFactorEnabled: false.
+  // 2FA is only activated once the user confirms a valid TOTP code via confirm2FA.
   await updateFn(userId, {
     twoFactorSecret: encryptedSecret,
-    twoFactorEnabled: true,
+    twoFactorEnabled: false,
     twoFactorBackupCodes: hashedCodes,
   });
 
-  // Invalidate all other sessions so existing sessions cannot bypass the new 2FA secret
+  return { secret, otpAuthUrl, qrCodeDataUrl, backupCodes };
+}
+
+export async function confirm2FA(
+  userId: string,
+  role: UserRole,
+  token: string,
+  currentSessionId?: string,
+): Promise<boolean> {
+  const record = await getRecordForRole(userId, role);
+  if (!record) throw new UnauthorizedError('User not found');
+
+  if (!record.twoFactorSecret) {
+    throw new UnauthorizedError('2FA setup not initiated');
+  }
+
+  // Check lockout (reuses same lockout counter as login 2FA verification)
+  if (record.twoFactorLockedUntil && record.twoFactorLockedUntil > new Date()) {
+    throw new UnauthorizedError('2FA is temporarily locked. Please try again later.');
+  }
+
+  const secret = decrypt(record.twoFactorSecret);
+  const { valid } = verifySync({ secret, token });
+
+  if (!valid) {
+    const incrementFn =
+      role === 'seller'
+        ? authRepo.incrementSellerFailedTwoFactor
+        : authRepo.incrementAgentFailedTwoFactor;
+    await incrementFn(userId);
+    return false;
+  }
+
+  const updateFn =
+    role === 'seller' ? authRepo.updateSellerTwoFactor : authRepo.updateAgentTwoFactor;
+
+  await updateFn(userId, { twoFactorEnabled: true });
+
+  const resetFn =
+    role === 'seller' ? authRepo.resetSellerFailedTwoFactor : authRepo.resetAgentFailedTwoFactor;
+  await resetFn(userId);
+
+  // Invalidate all other sessions so they cannot bypass the newly enabled 2FA
   await authRepo.invalidateUserSessions(userId, currentSessionId);
 
   await auditService.log({
@@ -230,7 +294,7 @@ export async function setup2FA(
     actorId: userId,
   });
 
-  return { secret, otpAuthUrl, qrCodeDataUrl, backupCodes };
+  return true;
 }
 
 export async function verify2FA(input: TotpVerifyInput): Promise<boolean> {
@@ -282,6 +346,11 @@ export async function verifyBackupCode(input: BackupCodeVerifyInput): Promise<bo
   const record = await getRecordForRole(input.userId, input.role);
   if (!record) throw new UnauthorizedError('User not found');
 
+  // Check lockout — shared counter with TOTP failures
+  if (record.twoFactorLockedUntil && record.twoFactorLockedUntil > new Date()) {
+    throw new UnauthorizedError('2FA is temporarily locked. Please try again later.');
+  }
+
   const storedCodes = (record.twoFactorBackupCodes as string[]) || [];
   if (storedCodes.length === 0) return false;
 
@@ -307,6 +376,21 @@ export async function verifyBackupCode(input: BackupCodeVerifyInput): Promise<bo
 
       return true;
     }
+  }
+
+  // No code matched — increment failure counter and lock if threshold reached
+  const incrementFn =
+    input.role === 'seller'
+      ? authRepo.incrementSellerFailedTwoFactor
+      : authRepo.incrementAgentFailedTwoFactor;
+  await incrementFn(input.userId);
+
+  const newFailures = record.failedTwoFactorAttempts + 1;
+  if (newFailures >= MAX_2FA_FAILURES) {
+    const lockUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
+    const lockFn =
+      input.role === 'seller' ? authRepo.lockSellerTwoFactor : authRepo.lockAgentTwoFactor;
+    await lockFn(input.userId, lockUntil);
   }
 
   return false;
@@ -500,7 +584,7 @@ export async function sendAccountSetupEmail(
   await sendSystemEmail(
     email,
     'Set up your SellMyHouse account',
-    `<p>Hi ${name},</p>
+    `<p>Hi ${escapeHtml(name)},</p>
 <p>Your agent has invited you to set up your SellMyHouse account. Click the link below to create your password and access your dashboard:</p>
 <p><a href="${setupUrl}">${setupUrl}</a></p>
 <p>This link expires in 24 hours.</p>
@@ -536,6 +620,15 @@ export async function resendAccountSetup(sellerId: string, agentId: string): Pro
 }
 
 // ─── Helpers ───────────────────────────────────────────────
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
 
 async function getRecordForRole(userId: string, role: UserRole) {
   if (role === 'seller') {

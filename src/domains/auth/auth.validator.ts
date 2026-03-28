@@ -8,6 +8,10 @@ export const registerValidation = [
     .matches(/^[89]\d{7}$/)
     .withMessage('Valid Singapore phone number is required (8 digits starting with 8 or 9)'),
   body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  body('password')
+    .matches(/[a-zA-Z]/)
+    .withMessage('Password must contain at least one letter'),
+  body('password').matches(/[0-9]/).withMessage('Password must contain at least one number'),
   body('consentService')
     .custom((value) => value === 'true' || value === true || value === 'on')
     .withMessage('You must consent to our service terms'),

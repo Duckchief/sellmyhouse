@@ -128,6 +128,17 @@ adminRouter.get(
   },
 );
 
+/** L32: Validate date query parameter — returns Date or undefined, or sends 400 and returns null */
+function parseDateParam(str: string | undefined, res: Response): Date | undefined | null {
+  if (!str) return undefined;
+  const d = new Date(str);
+  if (isNaN(d.getTime())) {
+    res.status(400).json({ error: 'Invalid date' });
+    return null;
+  }
+  return d;
+}
+
 // ─── Audit Log ──────────────────────────────────────────────
 // Export route MUST come before /admin/audit to avoid path matching issues
 adminRouter.get(
@@ -136,11 +147,15 @@ adminRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
+      const dateFrom = parseDateParam(req.query['dateFrom'] as string | undefined, res);
+      if (dateFrom === null) return;
+      const dateTo = parseDateParam(req.query['dateTo'] as string | undefined, res);
+      if (dateTo === null) return;
       const filter = {
         action: req.query['action'] as string | undefined,
         entityType: req.query['entityType'] as string | undefined,
-        dateFrom: req.query['dateFrom'] ? new Date(req.query['dateFrom'] as string) : undefined,
-        dateTo: req.query['dateTo'] ? new Date(req.query['dateTo'] as string) : undefined,
+        dateFrom,
+        dateTo,
       };
       const entries = await adminService.exportAuditLogCsv(filter, user.id);
 
@@ -169,11 +184,15 @@ adminRouter.get(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const dateFrom = parseDateParam(req.query['dateFrom'] as string | undefined, res);
+      if (dateFrom === null) return;
+      const dateTo = parseDateParam(req.query['dateTo'] as string | undefined, res);
+      if (dateTo === null) return;
       const filter = {
         action: req.query['action'] as string | undefined,
         entityType: req.query['entityType'] as string | undefined,
-        dateFrom: req.query['dateFrom'] ? new Date(req.query['dateFrom'] as string) : undefined,
-        dateTo: req.query['dateTo'] ? new Date(req.query['dateTo'] as string) : undefined,
+        dateFrom,
+        dateTo,
         page: req.query['page'] ? parseInt(req.query['page'] as string, 10) : undefined,
       };
       const result = await adminService.getAuditLog(filter);
@@ -203,11 +222,19 @@ adminRouter.get(
   ...adminAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const dateFromStr = req.query['dateFrom'] as string | undefined;
+      const dateToStr = req.query['dateTo'] as string | undefined;
+      if (dateFromStr && isNaN(new Date(dateFromStr).getTime())) {
+        return res.status(400).json({ error: 'Invalid date' });
+      }
+      if (dateToStr && isNaN(new Date(dateToStr).getTime())) {
+        return res.status(400).json({ error: 'Invalid date' });
+      }
       const filter = {
         channel: req.query['channel'] as string | undefined,
         status: req.query['status'] as string | undefined,
-        dateFrom: req.query['dateFrom'] as string | undefined,
-        dateTo: req.query['dateTo'] as string | undefined,
+        dateFrom: dateFromStr,
+        dateTo: dateToStr,
         page: req.query['page'] ? parseInt(req.query['page'] as string, 10) : undefined,
       };
       const result = await adminService.getNotifications(filter);

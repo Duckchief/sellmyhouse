@@ -49,7 +49,19 @@ export async function generatePortalListings(listingId: string): Promise<void> {
   });
 }
 
-export async function markAsPosted(portalListingId: string, url: string) {
+export async function markAsPosted(
+  portalListingId: string,
+  url: string,
+  agentId: string,
+  role: string,
+) {
+  if (role !== 'admin') {
+    const record = await portalRepo.findPortalListingWithAgent(portalListingId);
+    if (!record) throw new NotFoundError('PortalListing', portalListingId);
+    if (record.listing.property.seller.agentId !== agentId) {
+      throw new ForbiddenError('You are not authorised to update this portal listing');
+    }
+  }
   return portalRepo.updatePortalListing(portalListingId, {
     status: 'posted',
     portalListingUrl: url,

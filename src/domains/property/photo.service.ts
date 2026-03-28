@@ -233,10 +233,23 @@ export async function reorderPhotos(
   // Build a map of id -> photo for quick lookup
   const photoMap = new Map(photos.map((p) => [p.id, p]));
 
+  // L23: Validate that photoIds contains exactly the same set of IDs as existing photos
+  const existingIds = new Set(photos.map((p) => p.id));
+  const providedIds = new Set(photoIds);
+  if (
+    existingIds.size !== providedIds.size ||
+    [...existingIds].some((id) => !providedIds.has(id))
+  ) {
+    throw new ValidationError(
+      'Photo IDs must contain exactly the same set of photos. No photos may be added or omitted.',
+    );
+  }
+
   // Reorder by the provided ID array, assigning new displayOrder
-  const reordered = photoIds
-    .filter((id) => photoMap.has(id))
-    .map((id, index) => ({ ...photoMap.get(id)!, displayOrder: index }));
+  const reordered = photoIds.map((id, index) => ({
+    ...photoMap.get(id)!,
+    displayOrder: index,
+  }));
 
   await propertyRepo.updateListingPhotos(listing.id, reordered);
 

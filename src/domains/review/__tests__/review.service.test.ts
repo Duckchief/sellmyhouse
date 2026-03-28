@@ -293,8 +293,7 @@ describe('approveItem — listing portal generation hook', () => {
     jest.clearAllMocks();
     mockRepo.approveListingDescription.mockResolvedValue({} as never);
     mockRepo.approveListingPhotos.mockResolvedValue({} as never);
-    mockRepo.checkListingFullyApproved.mockResolvedValue(false);
-    mockRepo.setListingStatus.mockResolvedValue({} as never);
+    mockRepo.approveListingIfFullyReviewed.mockResolvedValue(false);
     mockPortalService.generatePortalListings.mockResolvedValue(undefined);
     mockAudit.log.mockResolvedValue(undefined as never);
     // Ownership check: default to listing assigned to agent-1
@@ -302,7 +301,7 @@ describe('approveItem — listing portal generation hook', () => {
   });
 
   it('generates portal listings when listing_description approval makes listing fully approved', async () => {
-    mockRepo.checkListingFullyApproved.mockResolvedValue(true);
+    mockRepo.approveListingIfFullyReviewed.mockResolvedValue(true);
 
     await approveItem({
       entityType: 'listing_description',
@@ -311,11 +310,11 @@ describe('approveItem — listing portal generation hook', () => {
     });
 
     expect(mockPortalService.generatePortalListings).toHaveBeenCalledWith('listing-1');
-    expect(mockRepo.setListingStatus).toHaveBeenCalledWith('listing-1', 'approved');
+    expect(mockRepo.approveListingIfFullyReviewed).toHaveBeenCalledWith('listing-1');
   });
 
   it('does NOT generate portal listings when only description approved (photos pending)', async () => {
-    mockRepo.checkListingFullyApproved.mockResolvedValue(false);
+    mockRepo.approveListingIfFullyReviewed.mockResolvedValue(false);
 
     await approveItem({
       entityType: 'listing_description',
@@ -327,7 +326,7 @@ describe('approveItem — listing portal generation hook', () => {
   });
 
   it('generates portal listings when listing_photos approval makes listing fully approved', async () => {
-    mockRepo.checkListingFullyApproved.mockResolvedValue(true);
+    mockRepo.approveListingIfFullyReviewed.mockResolvedValue(true);
 
     await approveItem({
       entityType: 'listing_photos',
@@ -336,7 +335,7 @@ describe('approveItem — listing portal generation hook', () => {
     });
 
     expect(mockPortalService.generatePortalListings).toHaveBeenCalledWith('listing-1');
-    expect(mockRepo.setListingStatus).toHaveBeenCalledWith('listing-1', 'approved');
+    expect(mockRepo.approveListingIfFullyReviewed).toHaveBeenCalledWith('listing-1');
   });
 });
 
@@ -344,7 +343,7 @@ describe('approveItem — ownership enforcement', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRepo.approveListingDescription.mockResolvedValue({} as never);
-    mockRepo.checkListingFullyApproved.mockResolvedValue(false);
+    mockRepo.approveListingIfFullyReviewed.mockResolvedValue(false);
     mockAudit.log.mockResolvedValue(undefined as never);
   });
 
@@ -444,7 +443,7 @@ describe('approveItem — listing_description with optional text', () => {
     jest.clearAllMocks();
     mockRepo.getListingAgentId.mockResolvedValue('agent-1');
     mockRepo.approveListingDescription.mockResolvedValue({} as never);
-    mockRepo.checkListingFullyApproved.mockResolvedValue(false);
+    mockRepo.approveListingIfFullyReviewed.mockResolvedValue(false);
     mockAudit.log.mockResolvedValue(undefined as never);
     jest.mocked(propertyService.saveDescriptionDraft).mockResolvedValue(undefined as never);
   });

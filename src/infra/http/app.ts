@@ -95,6 +95,7 @@ export function createApp() {
       'Dec',
     ];
     const idx = parseInt(month, 10) - 1;
+    if (idx < 0 || idx > 11 || isNaN(idx)) return str;
     return `${months[idx]} ${year}`;
   });
 
@@ -118,6 +119,7 @@ export function createApp() {
       hsts: {
         maxAge: 31536000,
         includeSubDomains: true,
+        preload: true,
       },
       contentSecurityPolicy: {
         directives: {
@@ -130,10 +132,9 @@ export function createApp() {
           styleSrc: [
             "'self'",
             (req, res) => `'nonce-${(res as express.Response).locals.cspNonce}'`,
-            'fonts.googleapis.com',
             'https://cdn.jsdelivr.net',
           ],
-          fontSrc: ["'self'", 'fonts.gstatic.com'],
+          fontSrc: ["'self'"],
           imgSrc: ["'self'", 'data:', 'blob:'],
           connectSrc: ["'self'"],
           frameSrc: ['www.youtube.com'],
@@ -158,7 +159,19 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
   // Static files
-  app.use(express.static(path.resolve('public')));
+  app.use(
+    express.static(path.resolve('public'), {
+      maxAge: '1d',
+      etag: true,
+    }),
+  );
+
+  // Asset version for cache-busting query strings in templates
+  const assetVersion = process.env.ASSET_VERSION || 'dev';
+  app.use((_req, res, next) => {
+    res.locals.assetVersion = assetVersion;
+    next();
+  });
 
   // Cookie parsing — required for csrf-csrf which reads req.cookies
   app.use(cookieParser());

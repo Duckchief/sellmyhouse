@@ -99,7 +99,8 @@ describe('Listing Description Integration', () => {
     expect(draftRes.status).toBe(204);
 
     const afterDraft = await testPrisma.listing.findUnique({ where: { id: listing.id } });
-    expect(afterDraft?.description).toBe('Edited description.');
+    expect(afterDraft?.aiDescription).toBe('Edited description.');
+    expect(afterDraft?.description).toBeNull();
 
     // Step 3: Approve
     const approveRes = await agent.post(`/agent/reviews/listing_description/${listing.id}/approve`);

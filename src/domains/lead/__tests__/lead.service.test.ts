@@ -182,6 +182,18 @@ describe('lead.service', () => {
     expect(mockAudit.log).not.toHaveBeenCalled();
   });
 
+  it('throws ConflictError on P2002 unique constraint (concurrent duplicate submission)', async () => {
+    mockLeadRepo.findActiveSellerByPhone.mockResolvedValue(null);
+    // Simulate Prisma P2002 unique constraint violation (race condition:
+    // two concurrent requests both pass the findActiveSellerByPhone check)
+    const prismaError = new Error('Unique constraint failed on the fields: (`phone`)');
+    (prismaError as Error & { code: string }).code = 'P2002';
+    mockLeadRepo.submitLeadAtomically.mockRejectedValue(prismaError);
+
+    await expect(submitLead(validInput)).rejects.toThrow('already exists');
+    expect(mockAudit.log).not.toHaveBeenCalled();
+  });
+
   it('auto-assigns default agent when default_agent_id is set', async () => {
     mockLeadRepo.findActiveSellerByPhone.mockResolvedValue(null);
     mockLeadRepo.submitLeadAtomically.mockResolvedValue(sellerFixture);

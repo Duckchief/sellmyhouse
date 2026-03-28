@@ -24,19 +24,29 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
 
   // Create seller and consent record atomically — if consent creation fails,
   // the seller row is rolled back (PDPA: no personal data without consent audit trail)
-  const seller = await leadRepo.submitLeadAtomically({
-    name: input.name.trim(),
-    email: input.email.trim(),
-    countryCode: input.countryCode,
-    nationalNumber: input.nationalNumber,
-    phone: input.phone,
-    consentService: input.consentService,
-    consentMarketing: input.consentMarketing,
-    leadSource: input.leadSource,
-    retentionExpiresAt,
-    ipAddress: input.ipAddress,
-    userAgent: input.userAgent,
-  });
+  let seller;
+  try {
+    seller = await leadRepo.submitLeadAtomically({
+      name: input.name.trim(),
+      email: input.email.trim(),
+      countryCode: input.countryCode,
+      nationalNumber: input.nationalNumber,
+      phone: input.phone,
+      consentService: input.consentService,
+      consentMarketing: input.consentMarketing,
+      leadSource: input.leadSource,
+      retentionExpiresAt,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+    });
+  } catch (err: unknown) {
+    // Handle race condition: if two concurrent requests pass the findActiveSellerByPhone
+    // check above, the unique constraint on phone catches the second insert (P2002).
+    if (err instanceof Error && 'code' in err && (err as { code: string }).code === 'P2002') {
+      throw new ConflictError('A lead with this phone number already exists');
+    }
+    throw err;
+  }
 
   // Generate email verification token
   const rawToken = crypto.randomBytes(32).toString('hex');

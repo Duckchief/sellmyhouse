@@ -363,6 +363,31 @@ export async function updateViewingStatus(
   return prisma.viewing.update({ where: { id }, data });
 }
 
+/**
+ * Atomically cancel a viewing and decrement the slot's currentBookings using
+ * Prisma's atomic decrement to avoid lost-update race conditions.
+ */
+export async function cancelViewingAtomically(
+  viewingId: string,
+  slotId: string,
+  newSlotStatus: SlotStatus,
+) {
+  return prisma.$transaction(async (tx) => {
+    await tx.viewing.update({
+      where: { id: viewingId },
+      data: { status: 'cancelled' as ViewingStatus },
+    });
+
+    return tx.viewingSlot.update({
+      where: { id: slotId },
+      data: {
+        currentBookings: { decrement: 1 },
+        status: newSlotStatus,
+      },
+    });
+  });
+}
+
 export async function findViewingsBySlot(slotId: string) {
   return prisma.viewing.findMany({
     where: { viewingSlotId: slotId, status: { notIn: ['cancelled'] } },

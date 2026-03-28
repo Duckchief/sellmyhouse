@@ -668,19 +668,17 @@ export async function cancelViewing(viewingId: string, cancelToken: string) {
     throw new ValidationError('This viewing cannot be cancelled');
   }
 
-  await viewingRepo.updateViewingStatus(v.id, { status: 'cancelled' as ViewingStatus });
-
-  // Decrement slot bookings and recalculate status
+  // Compute the new slot status based on one fewer booking
   const newBookings = Math.max(0, v.viewingSlot.currentBookings - 1);
   const newStatus = computeSlotStatus(
     newBookings,
     v.viewingSlot.maxViewers,
     v.viewingSlot.slotType,
   ) as SlotStatus;
-  await viewingRepo.updateSlotStatus(v.viewingSlotId, {
-    currentBookings: newBookings,
-    status: newStatus,
-  });
+
+  // Atomically cancel viewing and decrement slot bookings using Prisma's
+  // atomic decrement to avoid lost-update race conditions on concurrent cancels
+  await viewingRepo.cancelViewingAtomically(v.id, v.viewingSlotId, newStatus);
 
   // Notify seller
   await notificationService.send(

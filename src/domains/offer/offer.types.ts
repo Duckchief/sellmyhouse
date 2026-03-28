@@ -56,7 +56,7 @@ export interface OfferWithChain {
   aiAnalysis: string | null;
   aiAnalysisProvider: string | null;
   aiAnalysisModel: string | null;
-  aiAnalysisStatus: string | null;
+  aiAnalysisStatus: AiAnalysisStatus | null;
   createdAt: Date;
   updatedAt: Date;
   counterOffers: OfferWithChain[];

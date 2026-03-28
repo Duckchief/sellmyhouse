@@ -11,7 +11,19 @@ export async function findListingWithAgent(listingId: string) {
       property: {
         include: {
           seller: {
-            include: { agent: true },
+            select: {
+              id: true,
+              agentId: true,
+              agent: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                  ceaRegNo: true,
+                },
+              },
+            },
           },
         },
       },

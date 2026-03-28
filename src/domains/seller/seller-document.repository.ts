@@ -1,4 +1,5 @@
 import { prisma } from '@/infra/database/prisma';
+import { createId } from '@paralleldrive/cuid2';
 import type { SellerDocument } from '@prisma/client';
 
 export async function create(data: {
@@ -11,7 +12,7 @@ export async function create(data: {
   sizeBytes: number;
   uploadedBy: string;
 }): Promise<SellerDocument> {
-  return prisma.sellerDocument.create({ data });
+  return prisma.sellerDocument.create({ data: { id: createId(), ...data } });
 }
 
 export async function findById(id: string): Promise<SellerDocument | null> {

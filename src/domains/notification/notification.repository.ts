@@ -50,6 +50,7 @@ export function findUnreadForRecipient(recipientType: 'seller' | 'agent', recipi
       status: { not: 'read' },
     },
     orderBy: { createdAt: 'desc' },
+    take: 50,
   });
 }
 
@@ -67,6 +68,7 @@ export function markAsRead(id: string) {
 export function findByWhatsAppMessageId(messageId: string) {
   return prisma.notification.findFirst({
     where: { whatsappMessageId: messageId },
+    orderBy: { createdAt: 'desc' },
   });
 }
 

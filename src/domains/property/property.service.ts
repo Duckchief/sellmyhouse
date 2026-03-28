@@ -169,11 +169,11 @@ export async function updateAskingPrice(propertyId: string, sellerId: string, ne
 }
 
 export async function revertPropertyToDraft(propertyId: string): Promise<void> {
-  await propertyRepo.updatePropertyStatus(propertyId, 'draft');
-
   const listing = await propertyRepo.findActiveListingForProperty(propertyId);
   if (listing) {
-    await propertyRepo.updateListingStatus(listing.id, 'draft');
+    await propertyRepo.updateListingAndPropertyStatus(listing.id, 'draft', propertyId, 'draft');
+  } else {
+    await propertyRepo.updatePropertyStatus(propertyId, 'draft');
   }
 
   // L21: Add .catch() to fire-and-forget audit call

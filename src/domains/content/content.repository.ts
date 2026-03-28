@@ -44,7 +44,7 @@ export async function deleteTutorial(id: string): Promise<void> {
 }
 
 export async function reorderTutorials(items: ReorderItem[]): Promise<void> {
-  await Promise.all(
+  await prisma.$transaction(
     items.map((item) =>
       prisma.videoTutorial.update({
         where: { id: item.id },
@@ -60,6 +60,7 @@ export async function reorderTutorials(items: ReorderItem[]): Promise<void> {
 export async function findMarketContentByPeriod(period: string) {
   return prisma.marketContent.findFirst({
     where: { period, status: { not: 'rejected' } },
+    orderBy: { createdAt: 'desc' },
   });
 }
 
@@ -147,6 +148,7 @@ export async function findAllTestimonials(status?: string) {
   return prisma.testimonial.findMany({
     where: status ? { status: status as TestimonialStatus } : undefined,
     orderBy: { createdAt: 'desc' },
+    take: 200,
   });
 }
 
@@ -256,15 +258,15 @@ export async function findReferralByCode(referralCode: string) {
 }
 
 export async function findReferralBySellerId(referrerSellerId: string) {
-  return prisma.referral.findFirst({ where: { referrerSellerId } });
+  return prisma.referral.findFirst({ where: { referrerSellerId }, orderBy: { createdAt: 'desc' } });
 }
 
 export async function findReferralByReferredSeller(referredSellerId: string) {
-  return prisma.referral.findFirst({ where: { referredSellerId } });
+  return prisma.referral.findFirst({ where: { referredSellerId }, orderBy: { createdAt: 'desc' } });
 }
 
 export async function findAllReferrals() {
-  return prisma.referral.findMany({ orderBy: { createdAt: 'desc' } });
+  return prisma.referral.findMany({ orderBy: { createdAt: 'desc' }, take: 200 });
 }
 
 /** Returns referrals that are in lead_created status and whose referred seller

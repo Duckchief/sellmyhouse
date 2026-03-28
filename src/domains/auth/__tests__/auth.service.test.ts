@@ -52,7 +52,7 @@ describe('AuthService', () => {
       const result = await authService.registerSeller(validInput);
 
       expect(result).toBeNull();
-      expect(authRepo.createSeller).not.toHaveBeenCalled();
+      expect(authRepo.createSellerWithConsent).not.toHaveBeenCalled();
       expect(systemMailer.sendSystemEmail).toHaveBeenCalledWith(
         'test@example.com',
         expect.stringContaining('account'),
@@ -62,13 +62,14 @@ describe('AuthService', () => {
 
     it('creates seller with bcrypt-hashed password', async () => {
       authRepo.findSellerByEmail = jest.fn().mockResolvedValue(null);
-      authRepo.createSeller = jest.fn().mockResolvedValue({ id: 'new-seller' });
-      authRepo.createConsentRecord = jest.fn().mockResolvedValue({});
+      authRepo.createSellerWithConsent = jest
+        .fn()
+        .mockResolvedValue({ id: 'new-seller', email: 'test@example.com' });
 
       await authService.registerSeller(validInput);
 
       expect(bcrypt.hash).toHaveBeenCalledWith('password123', 12);
-      expect(authRepo.createSeller).toHaveBeenCalledWith(
+      expect(authRepo.createSellerWithConsent).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Test Seller',
           email: 'test@example.com',
@@ -76,21 +77,26 @@ describe('AuthService', () => {
           consentService: true,
           consentMarketing: false,
         }),
+        expect.objectContaining({
+          ipAddress: '127.0.0.1',
+        }),
       );
     });
 
     it('creates consent record and audit log', async () => {
       authRepo.findSellerByEmail = jest.fn().mockResolvedValue(null);
-      authRepo.createSeller = jest.fn().mockResolvedValue({ id: 'new-seller' });
-      authRepo.createConsentRecord = jest.fn().mockResolvedValue({});
+      authRepo.createSellerWithConsent = jest
+        .fn()
+        .mockResolvedValue({ id: 'new-seller', email: 'test@example.com' });
 
       await authService.registerSeller(validInput);
 
-      expect(authRepo.createConsentRecord).toHaveBeenCalledWith(
+      expect(authRepo.createSellerWithConsent).toHaveBeenCalledWith(
         expect.objectContaining({
-          sellerId: 'new-seller',
-          purposeService: true,
-          purposeMarketing: false,
+          consentService: true,
+          consentMarketing: false,
+        }),
+        expect.objectContaining({
           ipAddress: '127.0.0.1',
         }),
       );
@@ -882,10 +888,9 @@ describe('AuthService', () => {
   describe('registerSeller — sends verification email', () => {
     it('calls sendVerificationEmail after creating seller', async () => {
       authRepo.findSellerByEmail = jest.fn().mockResolvedValue(null);
-      authRepo.createSeller = jest
+      authRepo.createSellerWithConsent = jest
         .fn()
         .mockResolvedValue({ id: 'new-seller', email: 'test@example.com' });
-      authRepo.createConsentRecord = jest.fn().mockResolvedValue({});
       authRepo.setSellerEmailVerificationToken = jest.fn().mockResolvedValue({});
       systemMailer.sendSystemEmail = jest.fn().mockResolvedValue(undefined);
 

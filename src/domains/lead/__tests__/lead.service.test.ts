@@ -118,8 +118,8 @@ describe('lead.service', () => {
   it('throws ConflictError for duplicate phone', async () => {
     mockLeadRepo.findActiveSellerByPhone.mockResolvedValue({
       id: 'existing',
-      name: 'Existing',
       phone: '91234567',
+      status: 'lead' as const,
     } as ReturnType<typeof mockLeadRepo.findActiveSellerByPhone> extends Promise<infer T>
       ? NonNullable<T>
       : never);

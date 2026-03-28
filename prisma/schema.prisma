@@ -65,6 +65,12 @@ enum AiDescriptionStatus {
   rejected
 }
 
+enum AiAnalysisStatus {
+  generated
+  reviewed
+  shared
+}
+
 enum ListingStatus {
   draft
   pending_review
@@ -442,6 +448,8 @@ model Seller {
 
   @@index([agentId, status])
   @@index([leadSource])
+  @@index([passwordResetToken])
+  @@index([emailVerificationToken])
   @@map("sellers")
 }
 
@@ -472,7 +480,7 @@ model Buyer {
 model Property {
   id                String         @id
   sellerId          String         @map("seller_id")
-  seller            Seller         @relation(fields: [sellerId], references: [id])
+  seller            Seller         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   town              String
   street            String
   block             String
@@ -506,7 +514,7 @@ model Property {
 model SaleProceeds {
   id                String   @id
   sellerId          String   @unique @map("seller_id")
-  seller            Seller   @relation(fields: [sellerId], references: [id])
+  seller            Seller   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   sellingPrice      Decimal  @map("selling_price") @db.Decimal(12, 2)
   outstandingLoan   Decimal  @map("outstanding_loan") @db.Decimal(12, 2)
   cpfSeller1        Decimal  @map("cpf_seller_1") @db.Decimal(12, 2)
@@ -527,7 +535,7 @@ model SaleProceeds {
 model Listing {
   id                          String        @id
   propertyId                  String        @map("property_id")
-  property                    Property      @relation(fields: [propertyId], references: [id])
+  property                    Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   title                       String?
   description                 String?
   descriptionApprovedByAgentId String?      @map("description_approved_by_agent_id")
@@ -555,7 +563,7 @@ model Listing {
 model PortalListing {
   id                 String              @id
   listingId          String              @map("listing_id")
-  listing            Listing             @relation(fields: [listingId], references: [id])
+  listing            Listing             @relation(fields: [listingId], references: [id], onDelete: Cascade)
   portalName         PortalName          @map("portal_name")
   portalReadyContent Json?               @map("portal_ready_content")
   postedManuallyAt   DateTime?           @map("posted_manually_at")
@@ -597,7 +605,7 @@ model VerifiedViewer {
 model ViewingSlot {
   id              String     @id
   propertyId      String     @map("property_id")
-  property        Property   @relation(fields: [propertyId], references: [id])
+  property        Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   date            DateTime   @db.Date
   startTime       String     @map("start_time")
   endTime         String     @map("end_time")
@@ -608,6 +616,7 @@ model ViewingSlot {
   status          SlotStatus @default(available)
   source          SlotSource @default(manual)
   createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
 
   viewings Viewing[]
 
@@ -624,7 +633,7 @@ model RecurringSchedule {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  property Property @relation(fields: [propertyId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@map("recurring_schedules")
 }
@@ -632,9 +641,9 @@ model RecurringSchedule {
 model Viewing {
   id               String         @id
   propertyId       String         @map("property_id")
-  property         Property       @relation(fields: [propertyId], references: [id])
+  property         Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   viewingSlotId    String         @map("viewing_slot_id")
-  viewingSlot      ViewingSlot    @relation(fields: [viewingSlotId], references: [id])
+  viewingSlot      ViewingSlot    @relation(fields: [viewingSlotId], references: [id], onDelete: Cascade)
   verifiedViewerId String         @map("verified_viewer_id")
   verifiedViewer   VerifiedViewer @relation(fields: [verifiedViewerId], references: [id])
   cancelToken      String         @unique @map("cancel_token")
@@ -648,15 +657,17 @@ model Viewing {
   otpAttempts      Int            @default(0) @map("otp_attempts")
   followupSentAt   DateTime?      @map("followup_sent_at")
   createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
 
   @@index([propertyId, scheduledAt])
+  @@index([status, scheduledAt])
   @@map("viewings")
 }
 
 model Offer {
   id               String      @id
   propertyId       String      @map("property_id")
-  property         Property    @relation(fields: [propertyId], references: [id])
+  property         Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   /// PII NOTICE: buyerName and buyerPhone are counterparty personal data.
   /// retentionExpiresAt must be set by the service layer on offer creation.
   /// On transaction fallthrough or expiry, the anonymisation job must null
@@ -670,13 +681,13 @@ model Offer {
   status           OfferStatus @default(pending)
   notes            String?
   parentOfferId    String?     @map("parent_offer_id")
-  parentOffer      Offer?      @relation("OfferChain", fields: [parentOfferId], references: [id])
+  parentOffer      Offer?      @relation("OfferChain", fields: [parentOfferId], references: [id], onDelete: SetNull)
   counterOffers    Offer[]     @relation("OfferChain")
   counterAmount    Decimal?    @map("counter_amount") @db.Decimal(12, 2)
   aiAnalysis       String?     @map("ai_analysis")
   aiAnalysisProvider String?   @map("ai_analysis_provider")
   aiAnalysisModel  String?     @map("ai_analysis_model")
-  aiAnalysisStatus String?     @map("ai_analysis_status")
+  aiAnalysisStatus AiAnalysisStatus? @map("ai_analysis_status")
   retentionExpiresAt DateTime? @map("retention_expires_at")
   createdAt        DateTime    @default(now()) @map("created_at")
   updatedAt        DateTime    @updatedAt @map("updated_at")
@@ -684,25 +695,26 @@ model Offer {
   transaction      Transaction? @relation("TransactionOffer")
 
   @@index([propertyId, status])
+  @@index([retentionExpiresAt])
   @@map("offers")
 }
 
 model Transaction {
   id                       String            @id
   propertyId               String            @map("property_id")
-  property                 Property          @relation(fields: [propertyId], references: [id])
+  property                 Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   sellerId                 String            @map("seller_id")
-  seller                   Seller            @relation(fields: [sellerId], references: [id])
+  seller                   Seller            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   buyerId                  String?           @map("buyer_id")
-  buyer                    Buyer?            @relation(fields: [buyerId], references: [id])
+  buyer                    Buyer?            @relation(fields: [buyerId], references: [id], onDelete: SetNull)
   estateAgencyAgreementId  String?           @map("estate_agency_agreement_id")
-  estateAgencyAgreement    EstateAgencyAgreement? @relation(fields: [estateAgencyAgreementId], references: [id])
+  estateAgencyAgreement    EstateAgencyAgreement? @relation(fields: [estateAgencyAgreementId], references: [id], onDelete: SetNull)
   offerId                  String?           @unique @map("offer_id")
-  offer                    Offer?            @relation("TransactionOffer", fields: [offerId], references: [id])
+  offer                    Offer?            @relation("TransactionOffer", fields: [offerId], references: [id], onDelete: SetNull)
   sellerCddRecordId        String?           @map("seller_cdd_record_id")
-  sellerCddRecord          CddRecord?        @relation("SellerCdd", fields: [sellerCddRecordId], references: [id])
+  sellerCddRecord          CddRecord?        @relation("SellerCdd", fields: [sellerCddRecordId], references: [id], onDelete: SetNull)
   counterpartyCddRecordId  String?           @map("counterparty_cdd_record_id")
-  counterpartyCddRecord    CddRecord?        @relation("CounterpartyCdd", fields: [counterpartyCddRecordId], references: [id])
+  counterpartyCddRecord    CddRecord?        @relation("CounterpartyCdd", fields: [counterpartyCddRecordId], references: [id], onDelete: SetNull)
   agreedPrice              Decimal           @map("agreed_price") @db.Decimal(12, 2)
   optionFee                Decimal?          @map("option_fee") @db.Decimal(12, 2)
   optionDate               DateTime?         @map("option_date")
@@ -731,13 +743,14 @@ model Transaction {
   @@index([sellerId, status])
   @@index([propertyId])
   @@index([status])
+  @@index([status, completionDate])
   @@map("transactions")
 }
 
 model Otp {
   id                    String    @id
   transactionId         String    @unique @map("transaction_id")
-  transaction           Transaction @relation(fields: [transactionId], references: [id])
+  transaction           Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   hdbSerialNumber       String    @map("hdb_serial_number")
   status                OtpStatus @default(prepared)
   scannedCopyPathSeller         String?   @map("scanned_copy_path_seller")
@@ -762,7 +775,7 @@ model Otp {
 model CommissionInvoice {
   id                String        @id
   transactionId     String        @unique @map("transaction_id")
-  transaction       Transaction   @relation(fields: [transactionId], references: [id])
+  transaction       Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   invoiceFilePath   String?       @map("invoice_file_path")
   invoiceWrappedKey String?       @map("invoice_wrapped_key")
   invoiceDeletedAt  DateTime?     @map("invoice_deleted_at")
@@ -784,7 +797,7 @@ model CommissionInvoice {
 model EstateAgencyAgreement {
   id                     String          @id
   sellerId               String          @map("seller_id")
-  seller                 Seller          @relation(fields: [sellerId], references: [id])
+  seller                 Seller          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   agentId                String          @map("agent_id")
   agent                  Agent           @relation(fields: [agentId], references: [id])
   agreementType          AgreementType   @default(non_exclusive) @map("agreement_type")
@@ -805,15 +818,16 @@ model EstateAgencyAgreement {
 
   transactions Transaction[]
 
+  @@index([sellerId, status])
   @@map("estate_agency_agreements")
 }
 
 model FinancialReport {
   id                String   @id
   sellerId          String   @map("seller_id")
-  seller            Seller   @relation(fields: [sellerId], references: [id])
+  seller            Seller   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   propertyId        String   @map("property_id")
-  property          Property @relation(fields: [propertyId], references: [id])
+  property          Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   reportData        Json     @map("report_data")
   aiNarrative       String?  @map("ai_narrative")
   aiProvider        String?  @map("ai_provider")
@@ -830,8 +844,10 @@ model FinancialReport {
   version           Int                   @default(1)
   status            FinancialReportStatus @default(draft) @map("status")
   createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
 
   @@index([sellerId, status])
+  @@index([sellerId, propertyId])
   @@map("financial_reports")
 }
 
@@ -868,12 +884,12 @@ model ConsentRecord {
   subjectType        ConsentSubjectType @map("subject_type")
   subjectId          String             @map("subject_id")
   sellerId           String?            @map("seller_id")
-  seller             Seller?            @relation(fields: [sellerId], references: [id])
+  seller             Seller?            @relation(fields: [sellerId], references: [id], onDelete: SetNull)
   // buyerId: FK to buyers table — relation to be wired in Phase 5 when Buyer consent workflow is implemented
   buyerId            String?            @map("buyer_id")
-  buyer              Buyer?             @relation(fields: [buyerId], references: [id])
+  buyer              Buyer?             @relation(fields: [buyerId], references: [id], onDelete: SetNull)
   viewerId           String?            @map("viewer_id")
-  viewer             VerifiedViewer?    @relation(fields: [viewerId], references: [id])
+  viewer             VerifiedViewer?    @relation(fields: [viewerId], references: [id], onDelete: SetNull)
   purposeService          Boolean            @default(false) @map("purpose_service")
   purposeMarketing        Boolean            @default(false) @map("purpose_marketing")
   purposeHuttonsTransfer  Boolean            @default(false) @map("purpose_huttons_transfer")
@@ -886,6 +902,7 @@ model ConsentRecord {
   createdAt          DateTime           @default(now()) @map("created_at")
 
   @@index([subjectType, subjectId])
+  @@index([sellerId])
   @@map("consent_records")
 }
 
@@ -904,7 +921,9 @@ model Notification {
   error             String?
   createdAt         DateTime            @default(now()) @map("created_at")
 
-  @@index([recipientType, recipientId, status])
+  @@index([recipientType, recipientId, channel, status])
+  @@index([whatsappMessageId])
+  @@index([templateName, recipientId])
   @@map("notifications")
 }
 
@@ -958,11 +977,11 @@ model HdbDataSync {
 model Testimonial {
   id                  String             @id
   sellerId            String?            @map("seller_id")
-  seller              Seller?            @relation(fields: [sellerId], references: [id])
+  seller              Seller?            @relation(fields: [sellerId], references: [id], onDelete: SetNull)
   buyerId             String?            @map("buyer_id")
-  buyer               Buyer?             @relation(fields: [buyerId], references: [id])
+  buyer               Buyer?             @relation(fields: [buyerId], references: [id], onDelete: SetNull)
   transactionId       String?            @unique @map("transaction_id")
-  transaction         Transaction?       @relation(fields: [transactionId], references: [id])
+  transaction         Transaction?       @relation(fields: [transactionId], references: [id], onDelete: SetNull)
   clientType          ClientType?        @map("client_type")
   content             String?
   rating              Int?
@@ -980,6 +999,7 @@ model Testimonial {
   approvedAt          DateTime?          @map("approved_at")
   displayOnWebsite    Boolean            @default(false) @map("display_on_website")
   createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
 
   @@map("testimonials")
 }
@@ -987,15 +1007,16 @@ model Testimonial {
 model Referral {
   id               String         @id
   referrerSellerId String         @map("referrer_seller_id")
-  referrer         Seller         @relation("Referrer", fields: [referrerSellerId], references: [id])
+  referrer         Seller         @relation("Referrer", fields: [referrerSellerId], references: [id], onDelete: Cascade)
   referralCode     String         @unique @map("referral_code")
   referredName     String?        @map("referred_name")
   referredPhone    String?        @map("referred_phone")
   referredSellerId String?        @map("referred_seller_id")
-  referredSeller   Seller?        @relation("ReferredSeller", fields: [referredSellerId], references: [id])
+  referredSeller   Seller?        @relation("ReferredSeller", fields: [referredSellerId], references: [id], onDelete: SetNull)
   status           ReferralStatus @default(link_generated)
   clickCount       Int            @default(0) @map("click_count")
   createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
   convertedAt      DateTime?      @map("converted_at")
 
   @@map("referrals")
@@ -1004,7 +1025,7 @@ model Referral {
 model CaseFlag {
   id               String         @id
   sellerId         String         @map("seller_id")
-  seller           Seller         @relation(fields: [sellerId], references: [id])
+  seller           Seller         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   flagType         CaseFlagType   @map("flag_type")
   description      String
   status           CaseFlagStatus @default(identified)
@@ -1013,6 +1034,7 @@ model CaseFlag {
   createdAt        DateTime       @default(now()) @map("created_at")
   updatedAt        DateTime       @updatedAt @map("updated_at")
 
+  @@index([sellerId, status])
   @@map("case_flags")
 }
 
@@ -1041,7 +1063,7 @@ model DataDeletionRequest {
 model DataCorrectionRequest {
   id                 String                  @id
   sellerId           String                  @map("seller_id")
-  seller             Seller                  @relation(fields: [sellerId], references: [id])
+  seller             Seller                  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   fieldName          String                  @map("field_name")
   currentValue       String?                 @map("current_value")
   requestedValue     String                  @map("requested_value")
@@ -1054,6 +1076,8 @@ model DataCorrectionRequest {
   createdAt          DateTime                @default(now()) @map("created_at")
   updatedAt          DateTime                @updatedAt @map("updated_at")
 
+  @@index([sellerId])
+  @@index([status])
   @@map("data_correction_requests")
 }
 
@@ -1128,9 +1152,9 @@ model AgentSetting {
 model WeeklyUpdate {
   id                String                @id
   sellerId          String                @map("seller_id")
-  seller            Seller                @relation(fields: [sellerId], references: [id])
+  seller            Seller                @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   propertyId        String                @map("property_id")
-  property          Property              @relation(fields: [propertyId], references: [id])
+  property          Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   weekOf            DateTime              @map("week_of") @db.Date
   content           String?
   aiNarrative       String?               @map("ai_narrative")
@@ -1153,9 +1177,9 @@ model WeeklyUpdate {
 model DocumentChecklist {
   id                String                @id
   sellerId          String                @map("seller_id")
-  seller            Seller                @relation(fields: [sellerId], references: [id])
+  seller            Seller                @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   propertyId        String                @map("property_id")
-  property          Property              @relation(fields: [propertyId], references: [id])
+  property          Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   items             Json                  @default("[]")
   status            DocumentChecklistStatus @default(draft) @map("status")
   reviewedByAgentId String?                 @map("reviewed_by_agent_id")
@@ -1171,9 +1195,9 @@ model DocumentChecklist {
 }
 
 model SellerDocument {
-  id           String    @id @default(cuid())
+  id           String    @id
   sellerId     String    @map("seller_id")
-  seller       Seller    @relation(fields: [sellerId], references: [id])
+  seller       Seller    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   docType      String    @map("doc_type")
   slotIndex    Int?      @map("slot_index")
   path         String

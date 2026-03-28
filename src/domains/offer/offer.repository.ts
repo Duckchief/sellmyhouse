@@ -22,7 +22,7 @@ interface UpdateAiAnalysisData {
   aiAnalysis: string;
   aiAnalysisProvider: string;
   aiAnalysisModel: string;
-  aiAnalysisStatus: string;
+  aiAnalysisStatus: 'generated' | 'reviewed' | 'shared';
 }
 
 export async function create(data: CreateOfferData) {
@@ -80,7 +80,10 @@ export async function updateAiAnalysis(id: string, data: UpdateAiAnalysisData) {
  * Updates only the AI analysis status, without modifying content or provider/model fields.
  * This prevents accidentally overwriting null fields with empty strings.
  */
-export async function updateAiAnalysisStatus(id: string, status: string) {
+export async function updateAiAnalysisStatus(
+  id: string,
+  status: 'generated' | 'reviewed' | 'shared',
+) {
   return prisma.offer.update({
     where: { id },
     data: { aiAnalysisStatus: status },

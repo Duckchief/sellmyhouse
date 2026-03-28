@@ -118,6 +118,7 @@ export function setSellerPasswordResetToken(id: string, hashedToken: string, exp
 export function findSellerByResetToken(hashedToken: string) {
   return prisma.seller.findFirst({
     where: { passwordResetToken: hashedToken },
+    orderBy: { createdAt: 'desc' },
   });
 }
 
@@ -138,6 +139,7 @@ export function setSellerEmailVerificationToken(id: string, hashedToken: string,
 export function findSellerByEmailVerificationToken(hashedToken: string) {
   return prisma.seller.findFirst({
     where: { emailVerificationToken: hashedToken },
+    orderBy: { createdAt: 'desc' },
   });
 }
 
@@ -312,5 +314,60 @@ export function createConsentRecord(data: {
       ipAddress: data.ipAddress ?? null,
       userAgent: data.userAgent ?? null,
     },
+  });
+}
+
+export function createSellerWithConsent(
+  sellerData: {
+    name: string;
+    email: string;
+    phone: string;
+    passwordHash: string;
+    consentService: boolean;
+    consentMarketing: boolean;
+    leadSource?: string;
+  },
+  consentData: {
+    ipAddress?: string;
+    userAgent?: string;
+  },
+) {
+  return prisma.$transaction(async (tx) => {
+    const seller = await tx.seller.create({
+      data: {
+        id: createId(),
+        name: sellerData.name,
+        email: sellerData.email,
+        phone: sellerData.phone,
+        passwordHash: sellerData.passwordHash,
+        consentService: sellerData.consentService,
+        consentMarketing: sellerData.consentMarketing,
+        consentTimestamp: new Date(),
+        leadSource:
+          (sellerData.leadSource as
+            | 'website'
+            | 'tiktok'
+            | 'instagram'
+            | 'referral'
+            | 'walkin'
+            | 'other') ?? 'website',
+        status: 'lead',
+      },
+    });
+    await tx.consentRecord.create({
+      data: {
+        id: createId(),
+        subjectType: 'seller',
+        subjectId: seller.id,
+        sellerId: seller.id,
+        purposeService: sellerData.consentService,
+        purposeMarketing: sellerData.consentMarketing,
+        purposeHuttonsTransfer: false,
+        version: '1.0',
+        ipAddress: consentData.ipAddress ?? null,
+        userAgent: consentData.userAgent ?? null,
+      },
+    });
+    return seller;
   });
 }

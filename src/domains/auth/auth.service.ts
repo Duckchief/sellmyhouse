@@ -53,14 +53,20 @@ export async function registerSeller(input: SellerRegistrationInput) {
 
   let seller;
   try {
-    seller = await authRepo.createSeller({
-      name: input.name,
-      email: input.email,
-      phone: input.phone,
-      passwordHash,
-      consentService: input.consentService,
-      consentMarketing: input.consentMarketing,
-    });
+    seller = await authRepo.createSellerWithConsent(
+      {
+        name: input.name,
+        email: input.email,
+        phone: input.phone,
+        passwordHash,
+        consentService: input.consentService,
+        consentMarketing: input.consentMarketing,
+      },
+      {
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+      },
+    );
   } catch (err: unknown) {
     // Handle unique constraint violation (concurrent registration)
     if (err instanceof Error && 'code' in err && (err as { code: string }).code === 'P2002') {
@@ -68,15 +74,6 @@ export async function registerSeller(input: SellerRegistrationInput) {
     }
     throw err;
   }
-
-  await authRepo.createConsentRecord({
-    sellerId: seller.id,
-    purposeService: input.consentService,
-    purposeMarketing: input.consentMarketing,
-    purposeHuttonsTransfer: false,
-    ipAddress: input.ipAddress,
-    userAgent: input.userAgent,
-  });
 
   // Best-effort: send verification email; failure should not block registration
   try {

@@ -495,24 +495,23 @@ export async function findUpcomingViewingsForProperty(propertyId: string) {
 }
 
 export async function getViewingStats(propertyId: string) {
-  const totalViewings = await prisma.viewing.count({
-    where: { propertyId, status: { notIn: ['cancelled', 'pending_otp'] } },
-  });
-
-  const upcomingCount = await prisma.viewing.count({
-    where: { propertyId, status: 'scheduled', scheduledAt: { gte: new Date() } },
-  });
-
-  const noShowCount = await prisma.viewing.count({
-    where: { propertyId, status: 'no_show' },
-  });
-
-  const avgRating = await prisma.$queryRaw<{ avg: number | null }[]>`
-    SELECT AVG(interest_rating)::float as avg
-    FROM viewings
-    WHERE property_id = ${propertyId}
-      AND interest_rating IS NOT NULL
-  `;
+  const [totalViewings, upcomingCount, noShowCount, avgRating] = await Promise.all([
+    prisma.viewing.count({
+      where: { propertyId, status: { notIn: ['cancelled', 'pending_otp'] } },
+    }),
+    prisma.viewing.count({
+      where: { propertyId, status: 'scheduled', scheduledAt: { gte: new Date() } },
+    }),
+    prisma.viewing.count({
+      where: { propertyId, status: 'no_show' },
+    }),
+    prisma.$queryRaw<{ avg: number | null }[]>`
+      SELECT AVG(interest_rating)::float as avg
+      FROM viewings
+      WHERE property_id = ${propertyId}
+        AND interest_rating IS NOT NULL
+    `,
+  ]);
 
   return {
     totalViewings,
@@ -550,7 +549,11 @@ export async function findTodaysViewingsGroupedBySeller() {
     include: {
       viewingSlot: true,
       verifiedViewer: true,
-      property: { include: { seller: true } },
+      property: {
+        include: {
+          seller: { select: { id: true, name: true, agentId: true, phone: true } },
+        },
+      },
     },
     orderBy: { scheduledAt: 'asc' },
   });

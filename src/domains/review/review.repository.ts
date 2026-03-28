@@ -25,6 +25,7 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
           seller: { select: { id: true, name: true } },
           property: { select: { town: true, street: true, block: true } },
         },
+        take: 100,
       }),
       prisma.listing.findMany({
         where: {
@@ -37,6 +38,7 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
             include: { seller: { select: { id: true, name: true } } },
           },
         },
+        take: 100,
       }),
       prisma.listing.findMany({
         where: {
@@ -49,6 +51,7 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
             include: { seller: { select: { id: true, name: true } } },
           },
         },
+        take: 100,
       }),
       prisma.weeklyUpdate.findMany({
         where: { status: 'pending_review', seller: sellerWhere },
@@ -56,6 +59,7 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
           seller: { select: { id: true, name: true } },
           property: { select: { town: true, street: true, block: true } },
         },
+        take: 100,
       }),
       prisma.documentChecklist.findMany({
         where: { status: 'pending_review', seller: sellerWhere },
@@ -63,6 +67,7 @@ export async function getPendingQueue(agentId?: string): Promise<ReviewQueueResu
           seller: { select: { id: true, name: true } },
           property: { select: { town: true, street: true, block: true } },
         },
+        take: 100,
       }),
     ]);
 
@@ -151,23 +156,38 @@ export async function getDetailForReview(
     case 'financial_report':
       return prisma.financialReport.findUnique({
         where: { id: entityId },
-        include: { seller: true, property: true },
+        include: {
+          seller: { select: { id: true, name: true, agentId: true, status: true } },
+          property: true,
+        },
       });
     case 'listing_description':
     case 'listing_photos':
       return prisma.listing.findUnique({
         where: { id: entityId },
-        include: { property: { include: { seller: true } } },
+        include: {
+          property: {
+            include: {
+              seller: { select: { id: true, name: true, agentId: true, status: true } },
+            },
+          },
+        },
       });
     case 'weekly_update':
       return prisma.weeklyUpdate.findUnique({
         where: { id: entityId },
-        include: { seller: true, property: true },
+        include: {
+          seller: { select: { id: true, name: true, agentId: true, status: true } },
+          property: true,
+        },
       });
     case 'document_checklist':
       return prisma.documentChecklist.findUnique({
         where: { id: entityId },
-        include: { seller: true, property: true },
+        include: {
+          seller: { select: { id: true, name: true, agentId: true, status: true } },
+          property: true,
+        },
       });
     default:
       entityType satisfies never;
@@ -204,18 +224,20 @@ export async function rejectFinancialReport(
 }
 
 export async function approveListingDescription(entityId: string, agentId: string) {
-  const listing = await prisma.listing.findUnique({
-    where: { id: entityId },
-    select: { aiDescription: true },
-  });
-  return prisma.listing.update({
-    where: { id: entityId },
-    data: {
-      descriptionApprovedByAgentId: agentId,
-      descriptionApprovedAt: new Date(),
-      aiDescriptionStatus: 'approved' as AiDescriptionStatus,
-      ...(listing?.aiDescription != null && { description: listing.aiDescription }),
-    },
+  return prisma.$transaction(async (tx) => {
+    const listing = await tx.listing.findUnique({
+      where: { id: entityId },
+      select: { aiDescription: true },
+    });
+    return tx.listing.update({
+      where: { id: entityId },
+      data: {
+        descriptionApprovedByAgentId: agentId,
+        descriptionApprovedAt: new Date(),
+        aiDescriptionStatus: 'approved' as AiDescriptionStatus,
+        ...(listing?.aiDescription != null && { description: listing.aiDescription }),
+      },
+    });
   });
 }
 
@@ -320,6 +342,24 @@ export async function setListingStatus(listingId: string, status: string) {
   });
 }
 
+export async function approveListingIfFullyReviewed(listingId: string): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const listing = await tx.listing.findUnique({
+      where: { id: listingId },
+      select: { descriptionApprovedAt: true, photosApprovedAt: true },
+    });
+    if (!listing) return false;
+    if (listing.descriptionApprovedAt && listing.photosApprovedAt) {
+      await tx.listing.update({
+        where: { id: listingId },
+        data: { status: 'approved' as never },
+      });
+      return true;
+    }
+    return false;
+  });
+}
+
 /**
  * Returns the agentId assigned to the seller who owns this listing.
  * Returns null if the listing or seller does not exist, or if no agent is assigned.
@@ -337,12 +377,14 @@ export async function getListingAgentId(listingId: string): Promise<string | nul
 export async function findVerifiedSellerCdd(sellerId: string) {
   return prisma.cddRecord.findFirst({
     where: { subjectType: 'seller', subjectId: sellerId, identityVerified: true },
+    orderBy: { createdAt: 'desc' },
   });
 }
 
 export async function findActiveEaa(sellerId: string) {
   return prisma.estateAgencyAgreement.findFirst({
     where: { sellerId, status: { in: ['signed', 'active'] } },
+    orderBy: { createdAt: 'desc' },
   });
 }
 

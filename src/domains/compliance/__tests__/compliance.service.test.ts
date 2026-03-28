@@ -66,6 +66,7 @@ const mockRepo = complianceRepo as jest.Mocked<typeof complianceRepo> & {
   findConsentRecordsForDeletion: jest.Mock;
   findStaleCorrectionRequests: jest.Mock;
   findExistingDeletionRequest: jest.Mock;
+  findExistingDeletionRequestIds: jest.Mock;
   collectSellerFilePaths: jest.Mock;
   collectTransactionFilePaths: jest.Mock;
   hardDeleteSeller: jest.Mock;
@@ -279,7 +280,7 @@ describe('withdrawConsent', () => {
         channel: 'web',
       });
 
-      expect(mockOfferRepo.updateStatus).toHaveBeenCalledWith('offer-1', 'expired');
+      expect(mockOfferRepo.expirePendingAndCounteredSiblings).toHaveBeenCalledWith('prop-1', '');
     });
 
     it('voids countered offers on service consent withdrawal', async () => {
@@ -296,7 +297,7 @@ describe('withdrawConsent', () => {
         channel: 'web',
       });
 
-      expect(mockOfferRepo.updateStatus).toHaveBeenCalledWith('offer-2', 'expired');
+      expect(mockOfferRepo.expirePendingAndCounteredSiblings).toHaveBeenCalledWith('prop-1', '');
     });
 
     it('does not void accepted or expired offers', async () => {
@@ -312,7 +313,8 @@ describe('withdrawConsent', () => {
         channel: 'web',
       });
 
-      expect(mockOfferRepo.updateStatus).not.toHaveBeenCalled();
+      // Batch expire is still called but only affects pending/countered (none here)
+      expect(mockOfferRepo.expirePendingAndCounteredSiblings).toHaveBeenCalledWith('prop-1', '');
     });
 
     it('cancels active viewing slots on service consent withdrawal', async () => {
@@ -325,7 +327,7 @@ describe('withdrawConsent', () => {
         channel: 'web',
       });
 
-      expect(mockViewingRepo.cancelSlotAndViewings).toHaveBeenCalledWith('slot-1');
+      expect(mockViewingRepo.bulkCancelSlotsAndViewings).toHaveBeenCalledWith(['slot-1']);
     });
 
     it('delists active listing on service consent withdrawal', async () => {
@@ -560,6 +562,7 @@ describe('scanRetention', () => {
     mockRepo.deleteOldWeeklyUpdates.mockResolvedValue(0);
     mockRepo.findStaleCorrectionRequests.mockResolvedValue([]);
     mockRepo.findExistingDeletionRequest.mockResolvedValue(null);
+    mockRepo.findExistingDeletionRequestIds = jest.fn().mockResolvedValue(new Set());
     mockRepo.createDeletionRequest.mockResolvedValue({ id: 'dr1' } as never);
     mockRepo.findVerifiedViewersForRetention.mockResolvedValue([]);
     mockRepo.anonymiseVerifiedViewerRecords.mockResolvedValue(undefined);
@@ -605,7 +608,9 @@ describe('scanRetention', () => {
     mockRepo.findLeadsForRetention.mockResolvedValue([
       { id: 'seller1', name: 'Old Lead', updatedAt: oldDate },
     ]);
-    mockRepo.findExistingDeletionRequest.mockResolvedValue({ id: 'existing', status: 'flagged' });
+    mockRepo.findExistingDeletionRequestIds = jest
+      .fn()
+      .mockResolvedValue(new Set(['seller1']));
 
     const result = await complianceService.scanRetention();
     expect(mockRepo.createDeletionRequest).not.toHaveBeenCalled();
@@ -1654,23 +1659,23 @@ describe('purgeSensitiveDocs', () => {
       },
     ]);
     mockRepo.findCddRecordsForNricRedaction = jest.fn().mockResolvedValue([{ id: 'cdd-1' }]);
-    mockRepo.redactNricFromCddRecord = jest.fn().mockResolvedValue(undefined);
+    mockRepo.redactNricFromCddRecordsBatch = jest.fn().mockResolvedValue(undefined);
 
     await complianceService.purgeSensitiveDocs();
 
     expect(mockRepo.findCddRecordsForNricRedaction).toHaveBeenCalledWith(expect.any(Date));
-    expect(mockRepo.redactNricFromCddRecord).toHaveBeenCalledWith('cdd-1');
+    expect(mockRepo.redactNricFromCddRecordsBatch).toHaveBeenCalledWith(['cdd-1']);
   });
 
   it('skips CDD nricLast4 redaction when no records qualify', async () => {
     mockSettings.getNumber.mockResolvedValueOnce(7);
     mockRepo.findCompletedTransactionsForDocPurge.mockResolvedValue([]);
     mockRepo.findCddRecordsForNricRedaction = jest.fn().mockResolvedValue([]);
-    mockRepo.redactNricFromCddRecord = jest.fn().mockResolvedValue(undefined);
+    mockRepo.redactNricFromCddRecordsBatch = jest.fn().mockResolvedValue(undefined);
 
     await complianceService.purgeSensitiveDocs();
 
-    expect(mockRepo.redactNricFromCddRecord).not.toHaveBeenCalled();
+    expect(mockRepo.redactNricFromCddRecordsBatch).not.toHaveBeenCalled();
   });
 });
 

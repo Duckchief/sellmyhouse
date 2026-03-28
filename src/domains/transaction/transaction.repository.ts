@@ -295,7 +295,21 @@ export async function findCounterpartyCddByPropertyId(propertyId: string) {
 export async function findOtpsIssuedToBuyer() {
   return prisma.otp.findMany({
     where: { status: 'issued_to_buyer' },
-    include: { transaction: { include: { seller: true } } },
+    include: {
+      transaction: {
+        include: {
+          seller: {
+            select: {
+              id: true,
+              name: true,
+              agentId: true,
+              phone: true,
+              notificationPreference: true,
+            },
+          },
+        },
+      },
+    },
   });
 }
 
@@ -310,7 +324,19 @@ export async function findTransactionsCompletedOn(date: Date) {
       status: 'completed',
       completionDate: { gte: start, lte: end },
     },
-    include: { seller: true, property: true },
+    include: {
+      seller: {
+        select: {
+          id: true,
+          name: true,
+          agentId: true,
+          phone: true,
+          notificationPreference: true,
+          consentMarketing: true,
+        },
+      },
+      property: true,
+    },
   });
 }
 

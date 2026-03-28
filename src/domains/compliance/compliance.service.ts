@@ -220,42 +220,42 @@ async function executeConsentWithdrawalSideEffects(sellerId: string): Promise<vo
   if (property) {
     const address = `${property.block} ${property.street} ${property.town}`;
 
-    // 1. Void all pending/countered offers
+    // 1. Void all pending/countered offers in one batch
     const offers = await offerRepo.findByPropertyId(property.id);
-    const seller = await sellerService.findById(sellerId);
-    for (const offer of offers) {
-      if (offer.status === 'pending' || offer.status === 'countered') {
-        await offerRepo.updateStatus(offer.id, 'expired');
+    await offerRepo.expirePendingAndCounteredSiblings(property.id, '');
 
-        // Notify listing agent for co-broke offers (buyer's agent is external — agent handles follow-up)
-        if (offer.buyerAgentName && seller?.agentId) {
-          try {
-            await notificationService.send(
-              {
-                recipientType: 'agent',
-                recipientId: seller.agentId,
-                templateName: 'generic',
-                templateData: {
-                  message: `The seller for ${address} has withdrawn from the transaction. The offer has been voided.`,
-                },
-                preferredChannel: 'whatsapp',
-              },
-              seller.agentId,
-            );
-          } catch (notifyErr) {
-            logger.warn(
-              { err: notifyErr, offerId: offer.id },
-              'Failed to notify agent of voided offer',
-            );
-          }
-        }
+    // Notify listing agent for co-broke offers (buyer's agent is external — agent handles follow-up)
+    const seller = await sellerService.findById(sellerId);
+    const coBrokeOffers = offers.filter(
+      (o) =>
+        (o.status === 'pending' || o.status === 'countered') && o.buyerAgentName && seller?.agentId,
+    );
+    for (const offer of coBrokeOffers) {
+      try {
+        await notificationService.send(
+          {
+            recipientType: 'agent',
+            recipientId: seller!.agentId!,
+            templateName: 'generic',
+            templateData: {
+              message: `The seller for ${address} has withdrawn from the transaction. The offer has been voided.`,
+            },
+            preferredChannel: 'whatsapp',
+          },
+          seller!.agentId!,
+        );
+      } catch (notifyErr) {
+        logger.warn(
+          { err: notifyErr, offerId: offer.id },
+          'Failed to notify agent of voided offer',
+        );
       }
     }
 
-    // 2. Cancel all active viewing slots
+    // 2. Cancel all active viewing slots in one batch
     const activeSlots = await viewingRepo.findActiveSlotsByPropertyId(property.id);
-    for (const slot of activeSlots) {
-      await viewingRepo.cancelSlotAndViewings(slot.id);
+    if (activeSlots.length > 0) {
+      await viewingRepo.bulkCancelSlotsAndViewings(activeSlots.map((s) => s.id));
     }
 
     // 3. Delist active listing
@@ -357,8 +357,10 @@ export async function getMyData(sellerId: string) {
 
   const nricDisplay = data.cddRecords[0]?.nricLast4 ? maskNric(data.cddRecords[0].nricLast4) : null;
 
-  const correctionRequests = await complianceRepo.findCorrectionRequestsBySeller(sellerId);
-  const consentHistory = await complianceRepo.findAllConsentRecords(sellerId);
+  const [correctionRequests, consentHistory] = await Promise.all([
+    complianceRepo.findCorrectionRequestsBySeller(sellerId),
+    complianceRepo.findAllConsentRecords(sellerId),
+  ]);
 
   return {
     seller: {
@@ -492,8 +494,8 @@ export async function purgeSensitiveDocs(): Promise<{ purgedCount: number }> {
   // Finding #2.6: Redact nricLast4 for any CDD records not yet processed (e.g. transactions
   // that had no OTP/invoice files and were skipped by the guard above).
   const cddForNricRedaction = await complianceRepo.findCddRecordsForNricRedaction(cutoff);
-  for (const cdd of cddForNricRedaction) {
-    await complianceRepo.redactNricFromCddRecord(cdd.id);
+  if (cddForNricRedaction.length > 0) {
+    await complianceRepo.redactNricFromCddRecordsBatch(cddForNricRedaction.map((c) => c.id));
   }
 
   return { purgedCount };
@@ -565,57 +567,59 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
     settingsService.getNumber('listing_retention_months', 6),
   ]);
 
-  async function flagIfNew(
+  async function flagNewItems(
     targetType: string,
-    targetId: string,
-    reason: string,
-    retentionRule: string,
-    status: 'flagged',
-    details: Record<string, unknown>,
+    items: { id: string; reason: string; retentionRule: string; details: Record<string, unknown> }[],
   ) {
-    const existing = await complianceRepo.findExistingDeletionRequest(targetType, targetId);
-    if (existing) {
-      skippedCount++;
-      return;
-    }
-    await complianceRepo.createDeletionRequest({
+    if (items.length === 0) return;
+    const existingIds = await complianceRepo.findExistingDeletionRequestIds(
       targetType,
-      targetId,
-      reason,
-      retentionRule,
-      status,
-      details,
-    });
-    flaggedCount++;
+      items.map((i) => i.id),
+    );
+    for (const item of items) {
+      if (existingIds.has(item.id)) {
+        skippedCount++;
+        continue;
+      }
+      await complianceRepo.createDeletionRequest({
+        targetType,
+        targetId: item.id,
+        reason: item.reason,
+        retentionRule: item.retentionRule,
+        status: 'flagged',
+        details: item.details,
+      });
+      flaggedCount++;
+    }
   }
 
   // 1. Leads inactive for configured months
   const leadCutoff = new Date(now);
   leadCutoff.setMonth(leadCutoff.getMonth() - leadRetentionMonths);
   const staleLeads = await complianceRepo.findLeadsForRetention(leadCutoff);
-  for (const lead of staleLeads) {
-    await flagIfNew('lead', lead.id, 'Lead inactive for 12+ months', 'lead_12_month', 'flagged', {
-      sellerName: lead.name,
-      lastActivity: lead.updatedAt,
-    });
-  }
+  await flagNewItems(
+    'lead',
+    staleLeads.map((lead) => ({
+      id: lead.id,
+      reason: 'Lead inactive for 12+ months',
+      retentionRule: 'lead_12_month',
+      details: { sellerName: lead.name, lastActivity: lead.updatedAt },
+    })),
+  );
 
   // 2. Service consent withdrawn 30+ days, no transactions
   const withdrawalCutoff = new Date(now);
   withdrawalCutoff.setDate(withdrawalCutoff.getDate() - 30);
   const withdrawnSellers = await complianceRepo.findServiceWithdrawnForDeletion(withdrawalCutoff);
-  for (const seller of withdrawnSellers) {
-    await flagIfNew(
-      'lead',
-      seller.id,
-      'Service consent withdrawn > 30 days ago',
-      '30_day_grace',
-      'flagged',
-      {
-        sellerName: seller.name,
-      },
-    );
-  }
+  await flagNewItems(
+    'lead',
+    withdrawnSellers.map((seller) => ({
+      id: seller.id,
+      reason: 'Service consent withdrawn > 30 days ago',
+      retentionRule: '30_day_grace',
+      details: { sellerName: seller.name },
+    })),
+  );
 
   // 3. Tier 1: Auto-delete sensitive documents (NRIC, CDD docs, OTP scans, invoices)
   const { purgedCount: tier1Purged } = await purgeSensitiveDocs();
@@ -659,66 +663,67 @@ export async function scanRetention(): Promise<ScanRetentionResult> {
   const consentCutoff = new Date(now);
   consentCutoff.setFullYear(consentCutoff.getFullYear() - consentPostWithdrawalRetentionYears);
   const oldConsentRecords = await complianceRepo.findConsentRecordsForDeletion(consentCutoff);
-  for (const record of oldConsentRecords) {
-    await flagIfNew(
-      'consent_record',
-      record.id,
-      'Consent record > 1 year post-withdrawal',
-      'consent_1_year_post_withdrawal',
-      'flagged',
-      {
-        sellerId: record.sellerId,
-        withdrawnAt: record.consentWithdrawnAt,
-      },
-    );
-  }
+  await flagNewItems(
+    'consent_record',
+    oldConsentRecords.map((record) => ({
+      id: record.id,
+      reason: 'Consent record > 1 year post-withdrawal',
+      retentionRule: 'consent_1_year_post_withdrawal',
+      details: { sellerId: record.sellerId, withdrawnAt: record.consentWithdrawnAt },
+    })),
+  );
 
-  // 6. VerifiedViewers past retention period — anonymise PII fields
+  // 6. VerifiedViewers past retention period — anonymise PII fields in batch
   const expiredViewers = await complianceRepo.findVerifiedViewersForRetention(now);
-  for (const viewer of expiredViewers) {
-    await complianceRepo.anonymiseVerifiedViewerRecords([viewer.id]);
-    await auditService.log({
-      action: 'compliance.viewer_pii_anonymised',
-      entityType: 'verified_viewer',
-      entityId: viewer.id,
-      details: { reason: 'retentionExpiresAt exceeded' },
-    });
-    flaggedCount++;
+  if (expiredViewers.length > 0) {
+    await complianceRepo.anonymiseVerifiedViewerRecords(expiredViewers.map((v) => v.id));
+    for (const viewer of expiredViewers) {
+      await auditService.log({
+        action: 'compliance.viewer_pii_anonymised',
+        entityType: 'verified_viewer',
+        entityId: viewer.id,
+        details: { reason: 'retentionExpiresAt exceeded' },
+      });
+    }
+    flaggedCount += expiredViewers.length;
   }
 
-  // 7. Buyers past retention period — anonymise PII fields
+  // 7. Buyers past retention period — anonymise PII fields in batch
   const expiredBuyers = await complianceRepo.findBuyersForRetention(now);
-  for (const buyer of expiredBuyers) {
-    await complianceRepo.anonymiseBuyerRecords([buyer.id]);
-    await auditService.log({
-      action: 'compliance.buyer_pii_anonymised',
-      entityType: 'buyer',
-      entityId: buyer.id,
-      details: { reason: 'retentionExpiresAt exceeded' },
-    });
-    flaggedCount++;
+  if (expiredBuyers.length > 0) {
+    await complianceRepo.anonymiseBuyerRecords(expiredBuyers.map((b) => b.id));
+    for (const buyer of expiredBuyers) {
+      await auditService.log({
+        action: 'compliance.buyer_pii_anonymised',
+        entityType: 'buyer',
+        entityId: buyer.id,
+        details: { reason: 'retentionExpiresAt exceeded' },
+      });
+    }
+    flaggedCount += expiredBuyers.length;
   }
 
   // 8. Closed listings past configured retention period (Finding #15)
   const listingCutoff = new Date(now);
   listingCutoff.setMonth(listingCutoff.getMonth() - listingRetentionMonths);
   const closedListings = await complianceRepo.findClosedListingsForRetention(listingCutoff);
-  for (const listing of closedListings) {
-    const photos = (listing.photos as { path?: string; optimizedPath?: string }[] | null) ?? [];
-    const photoPaths: string[] = [];
-    for (const photo of photos) {
-      if (photo.path) photoPaths.push(photo.path);
-      if (photo.optimizedPath) photoPaths.push(photo.optimizedPath);
-    }
-    await flagIfNew(
-      'listing',
-      listing.id,
-      `Listing closed > ${listingRetentionMonths} months ago`,
-      'listing_closed',
-      'flagged',
-      { propertyId: listing.propertyId, photoPaths },
-    );
-  }
+  await flagNewItems(
+    'listing',
+    closedListings.map((listing) => {
+      const photos = (listing.photos as { path?: string; optimizedPath?: string }[] | null) ?? [];
+      const photoPaths: string[] = [];
+      for (const photo of photos) {
+        if (photo.path) photoPaths.push(photo.path);
+        if (photo.optimizedPath) photoPaths.push(photo.optimizedPath);
+      }
+      return {
+        id: listing.id,
+        reason: `Listing closed > ${listingRetentionMonths} months ago`,
+        retentionRule: 'listing_closed',
+        details: { propertyId: listing.propertyId, photoPaths },
+      };
+    }),
+  );
 
   // 9. ViewingSlots: delete 30 days after slot date once property has a closed listing (Finding #16)
   // Direct delete — operational scheduling data, no agent review required

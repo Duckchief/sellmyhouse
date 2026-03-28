@@ -73,31 +73,33 @@ export const propertyRepository = {
   },
 
   async appendPriceHistory(id: string, newPrice: number, changedBy: string) {
-    const property = await prisma.property.findUnique({
-      where: { id },
-      include: { listings: true },
-    });
+    return prisma.$transaction(async (tx) => {
+      const property = await tx.property.findUnique({
+        where: { id },
+        include: { listings: true },
+      });
 
-    const rawHistory = property?.priceHistory;
-    const existingHistory: PriceHistoryEntry[] = rawHistory
-      ? (JSON.parse(rawHistory as string) as PriceHistoryEntry[])
-      : [];
+      const rawHistory = property?.priceHistory;
+      const existingHistory: PriceHistoryEntry[] = rawHistory
+        ? (JSON.parse(rawHistory as string) as PriceHistoryEntry[])
+        : [];
 
-    const newEntry: PriceHistoryEntry = {
-      price: newPrice,
-      changedAt: new Date().toISOString(),
-      changedBy,
-    };
+      const newEntry: PriceHistoryEntry = {
+        price: newPrice,
+        changedAt: new Date().toISOString(),
+        changedBy,
+      };
 
-    const updatedHistory = [...existingHistory, newEntry];
+      const updatedHistory = [...existingHistory, newEntry];
 
-    return prisma.property.update({
-      where: { id },
-      data: {
-        askingPrice: newPrice,
-        priceHistory: JSON.stringify(updatedHistory),
-      },
-      include: { listings: true },
+      return tx.property.update({
+        where: { id },
+        data: {
+          askingPrice: newPrice,
+          priceHistory: JSON.stringify(updatedHistory),
+        },
+        include: { listings: true },
+      });
     });
   },
 

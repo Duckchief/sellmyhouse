@@ -1,4 +1,11 @@
-import { encrypt, decrypt, encryptIfPresent, decryptIfPresent, needsReEncryption, reEncrypt } from '../encryption';
+import {
+  encrypt,
+  decrypt,
+  encryptIfPresent,
+  decryptIfPresent,
+  needsReEncryption,
+  reEncrypt,
+} from '../encryption';
 
 const TEST_KEY = 'a'.repeat(64);
 const PREVIOUS_KEY = 'b'.repeat(64);

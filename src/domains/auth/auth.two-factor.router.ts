@@ -47,6 +47,67 @@ twoFactorRouter.post(
   },
 );
 
+// ─── 2FA Setup Confirm ─────────────────────────────────────
+
+twoFactorRouter.post(
+  '/auth/2fa/setup/confirm',
+  requireAuth(),
+  totpRateLimiter,
+  totpValidation,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        if (req.headers['hx-request']) {
+          return res.status(400).render('partials/auth/form-error', {
+            message: 'Enter a valid 6-digit code',
+          });
+        }
+        return res.status(400).render('pages/auth/2fa-setup', { error: 'Enter a valid 6-digit code' });
+      }
+
+      const user = req.user as AuthenticatedUser;
+      const confirmed = await authService.confirm2FA(
+        user.id,
+        user.role,
+        req.body.token,
+        req.session.id,
+      );
+
+      if (!confirmed) {
+        if (req.headers['hx-request']) {
+          return res.status(401).render('partials/auth/form-error', {
+            message: 'Invalid verification code. Check your authenticator app and try again.',
+          });
+        }
+        return res
+          .status(401)
+          .render('pages/auth/2fa-setup', { error: 'Invalid verification code. Check your authenticator app and try again.' });
+      }
+
+      // Shrink session timeout now that 2FA is active
+      if (req.session) {
+        req.session.cookie.maxAge = 30 * 60 * 1000;
+      }
+
+      // Mark 2FA as verified in session
+      user.twoFactorEnabled = true;
+      user.twoFactorVerified = true;
+      req.logIn(user, (err) => {
+        if (err) return next(err);
+        const redirect = user.role === 'seller' ? '/seller/dashboard' : '/agent/dashboard';
+        if (req.headers['hx-request']) {
+          res.set('HX-Redirect', redirect);
+          return res.sendStatus(200);
+        }
+        return res.redirect(redirect);
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // ─── 2FA Verify ────────────────────────────────────────────
 
 twoFactorRouter.get('/auth/2fa/verify', requireAuth(), (_req: Request, res: Response) => {

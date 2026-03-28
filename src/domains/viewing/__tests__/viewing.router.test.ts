@@ -132,6 +132,22 @@ describe('viewing.router', () => {
 
       expect(res.status).toBe(400);
     });
+
+    it('returns 400 when slotIds contains non-string elements', async () => {
+      const res = await request(app)
+        .post('/seller/viewings/slots/bulk-delete')
+        .send({ slotIds: [123, null, true] });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 400 when slotIds contains empty strings', async () => {
+      const res = await request(app)
+        .post('/seller/viewings/slots/bulk-delete')
+        .send({ slotIds: ['slot-1', ''] });
+
+      expect(res.status).toBe(400);
+    });
   });
 
   describe('DELETE /seller/viewings/slots/:id', () => {
@@ -281,6 +297,21 @@ describe('viewing.router', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+    });
+
+    it('has at least one middleware layer before the handler (rate limiter)', () => {
+      // Verify the route has more than just the handler — a rate limiter must be
+      // registered as an earlier layer in the route stack.
+      const router = viewingRouter as unknown as {
+        stack: Array<{ route?: { path: string; stack: unknown[] } }>;
+      };
+      const otpRouteLayer = router.stack.find(
+        (l) => l.route?.path === '/view/:propertySlug/verify-otp',
+      );
+      expect(otpRouteLayer).toBeDefined();
+      // Without a rate limiter there is only 1 layer (the handler).
+      // With one there are at least 2.
+      expect(otpRouteLayer!.route!.stack.length).toBeGreaterThanOrEqual(2);
     });
   });
 

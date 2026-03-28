@@ -1,5 +1,6 @@
 import path from 'path';
 import * as service from '../profile.service';
+import { NotFoundError } from '../../shared/errors';
 
 jest.mock('../profile.repository');
 jest.mock('../../auth/auth.repository');
@@ -38,9 +39,7 @@ describe('ProfileService', () => {
 
     it('throws NotFoundError when agent does not exist', async () => {
       repo.findAgentById = jest.fn().mockResolvedValue(null);
-      await expect(service.getProfile('nonexistent')).rejects.toThrow(
-        'Agent not found: nonexistent',
-      );
+      await expect(service.getProfile('nonexistent')).rejects.toThrow(NotFoundError);
     });
   });
 

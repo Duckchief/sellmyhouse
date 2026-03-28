@@ -453,10 +453,9 @@ const REFERRAL_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz2345678
 
 /** Generates a unique 8-character URL-safe referral code. */
 export function generateReferralCode(): string {
-  return Array.from(
-    { length: 8 },
-    () => REFERRAL_CHARSET[randomInt(REFERRAL_CHARSET.length)],
-  ).join('');
+  return Array.from({ length: 8 }, () => REFERRAL_CHARSET[randomInt(REFERRAL_CHARSET.length)]).join(
+    '',
+  );
 }
 
 /** Returns the seller's referral record, creating one if it doesn't exist. */

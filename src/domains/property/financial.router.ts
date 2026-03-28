@@ -210,6 +210,7 @@ financialRouter.get(
 financialRouter.get(
   '/seller/financial/report/:id',
   requireAuth(),
+  requireRole('seller'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;

@@ -118,6 +118,7 @@ export function createApp() {
       hsts: {
         maxAge: 31536000,
         includeSubDomains: true,
+        preload: true,
       },
       contentSecurityPolicy: {
         directives: {
@@ -157,10 +158,12 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
   // Static files
-  app.use(express.static(path.resolve('public'), {
-    maxAge: '1d',
-    etag: true,
-  }));
+  app.use(
+    express.static(path.resolve('public'), {
+      maxAge: '1d',
+      etag: true,
+    }),
+  );
 
   // Asset version for cache-busting query strings in templates
   const assetVersion = process.env.ASSET_VERSION || 'dev';

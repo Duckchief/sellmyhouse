@@ -348,7 +348,7 @@ describe('AuthService', () => {
   });
 
   describe('setup2FA', () => {
-    it('generates secret, QR code, and backup codes', async () => {
+    it('stores secret provisionally with twoFactorEnabled: false', async () => {
       otplib.generateSecret = jest.fn().mockReturnValue('ABCDEF');
       otplib.generateURI = jest.fn().mockReturnValue('otpauth://totp/...');
       QRCode.toDataURL = jest.fn().mockResolvedValue('data:image/png;base64,...');
@@ -359,10 +359,95 @@ describe('AuthService', () => {
       expect(result.secret).toBe('ABCDEF');
       expect(result.qrCodeDataUrl).toContain('data:image');
       expect(result.backupCodes).toHaveLength(8);
+      // 2FA must NOT be enabled until user confirms a valid TOTP code
       expect(authRepo.updateSellerTwoFactor).toHaveBeenCalledWith('s1', {
         twoFactorSecret: 'encrypted-secret',
-        twoFactorEnabled: true,
+        twoFactorEnabled: false,
         twoFactorBackupCodes: expect.any(Array),
+      });
+    });
+
+    it('does not invalidate sessions or log audit until confirmation', async () => {
+      otplib.generateSecret = jest.fn().mockReturnValue('ABCDEF');
+      otplib.generateURI = jest.fn().mockReturnValue('otpauth://totp/...');
+      QRCode.toDataURL = jest.fn().mockResolvedValue('data:image/png;base64,...');
+      authRepo.updateSellerTwoFactor = jest.fn().mockResolvedValue({});
+      authRepo.invalidateUserSessions = jest.fn().mockResolvedValue(undefined);
+
+      await authService.setup2FA('s1', 'seller', 'session-id');
+
+      expect(authRepo.invalidateUserSessions).not.toHaveBeenCalled();
+      expect(auditService.log).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('confirm2FA', () => {
+    const baseRecord = {
+      id: 's1',
+      twoFactorSecret: 'encrypted-secret',
+      twoFactorLockedUntil: null,
+      failedTwoFactorAttempts: 0,
+      twoFactorEnabled: false,
+    };
+
+    it('enables 2FA, invalidates sessions, and logs audit on valid code', async () => {
+      authRepo.findSellerById = jest.fn().mockResolvedValue(baseRecord);
+      otplib.verifySync = jest.fn().mockReturnValue({ valid: true, delta: 0 });
+      authRepo.updateSellerTwoFactor = jest.fn().mockResolvedValue({});
+      authRepo.invalidateUserSessions = jest.fn().mockResolvedValue(undefined);
+      authRepo.resetSellerFailedTwoFactor = jest.fn().mockResolvedValue({});
+
+      const result = await authService.confirm2FA('s1', 'seller', '123456', 'session-id');
+
+      expect(result).toBe(true);
+      expect(authRepo.updateSellerTwoFactor).toHaveBeenCalledWith('s1', {
+        twoFactorEnabled: true,
+      });
+      expect(authRepo.invalidateUserSessions).toHaveBeenCalledWith('s1', 'session-id');
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.2fa_setup' }),
+      );
+    });
+
+    it('returns false and does not enable 2FA on invalid code', async () => {
+      authRepo.findSellerById = jest.fn().mockResolvedValue(baseRecord);
+      otplib.verifySync = jest.fn().mockReturnValue({ valid: false });
+      authRepo.updateSellerTwoFactor = jest.fn().mockResolvedValue({});
+      authRepo.incrementSellerFailedTwoFactor = jest.fn().mockResolvedValue({});
+
+      const result = await authService.confirm2FA('s1', 'seller', 'wrong', 'session-id');
+
+      expect(result).toBe(false);
+      expect(authRepo.updateSellerTwoFactor).not.toHaveBeenCalled();
+      expect(auditService.log).not.toHaveBeenCalled();
+    });
+
+    it('throws if setup has not been initiated (no secret)', async () => {
+      authRepo.findSellerById = jest
+        .fn()
+        .mockResolvedValue({ ...baseRecord, twoFactorSecret: null });
+
+      await expect(authService.confirm2FA('s1', 'seller', '123456')).rejects.toThrow(
+        '2FA setup not initiated',
+      );
+    });
+
+    it('works for agent role', async () => {
+      authRepo.findAgentById = jest.fn().mockResolvedValue({
+        ...baseRecord,
+        id: 'a1',
+        twoFactorSecret: 'encrypted-secret',
+      });
+      otplib.verifySync = jest.fn().mockReturnValue({ valid: true, delta: 0 });
+      authRepo.updateAgentTwoFactor = jest.fn().mockResolvedValue({});
+      authRepo.invalidateUserSessions = jest.fn().mockResolvedValue(undefined);
+      authRepo.resetAgentFailedTwoFactor = jest.fn().mockResolvedValue({});
+
+      const result = await authService.confirm2FA('a1', 'agent', '123456');
+
+      expect(result).toBe(true);
+      expect(authRepo.updateAgentTwoFactor).toHaveBeenCalledWith('a1', {
+        twoFactorEnabled: true,
       });
     });
   });
@@ -470,8 +555,11 @@ describe('AuthService', () => {
       authRepo.findSellerById = jest.fn().mockResolvedValue({
         id: 's1',
         twoFactorBackupCodes: ['hash1'],
+        failedTwoFactorAttempts: 0,
+        twoFactorLockedUntil: null,
       });
       bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementSellerFailedTwoFactor = jest.fn().mockResolvedValue({});
 
       const result = await authService.verifyBackupCode({
         userId: 's1',
@@ -479,6 +567,50 @@ describe('AuthService', () => {
         code: 'wrong',
       });
       expect(result).toBe(false);
+    });
+
+    it('increments failedTwoFactorAttempts on backup code failure', async () => {
+      authRepo.findSellerById = jest.fn().mockResolvedValue({
+        id: 's1',
+        twoFactorBackupCodes: ['hash1'],
+        failedTwoFactorAttempts: 0,
+        twoFactorLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementSellerFailedTwoFactor = jest.fn().mockResolvedValue({});
+
+      await authService.verifyBackupCode({ userId: 's1', role: 'seller', code: 'wrong' });
+
+      expect(authRepo.incrementSellerFailedTwoFactor).toHaveBeenCalledWith('s1');
+    });
+
+    it('locks account after 5 failed backup code attempts', async () => {
+      authRepo.findSellerById = jest.fn().mockResolvedValue({
+        id: 's1',
+        twoFactorBackupCodes: ['hash1'],
+        failedTwoFactorAttempts: 4,
+        twoFactorLockedUntil: null,
+      });
+      bcrypt.compare = jest.fn().mockResolvedValue(false);
+      authRepo.incrementSellerFailedTwoFactor = jest.fn().mockResolvedValue({});
+      authRepo.lockSellerTwoFactor = jest.fn().mockResolvedValue({});
+
+      await authService.verifyBackupCode({ userId: 's1', role: 'seller', code: 'wrong' });
+
+      expect(authRepo.lockSellerTwoFactor).toHaveBeenCalledWith('s1', expect.any(Date));
+    });
+
+    it('throws when account is locked', async () => {
+      authRepo.findSellerById = jest.fn().mockResolvedValue({
+        id: 's1',
+        twoFactorBackupCodes: ['hash1'],
+        failedTwoFactorAttempts: 5,
+        twoFactorLockedUntil: new Date(Date.now() + 60000),
+      });
+
+      await expect(
+        authService.verifyBackupCode({ userId: 's1', role: 'seller', code: 'any' }),
+      ).rejects.toThrow('2FA is temporarily locked');
     });
   });
 
@@ -707,6 +839,21 @@ describe('AuthService', () => {
           entityId: 'seller-1',
         }),
       );
+    });
+
+    it('HTML-escapes the seller name before interpolating into email body', async () => {
+      authRepo.setSellerPasswordResetToken = jest.fn().mockResolvedValue(undefined);
+      systemMailer.sendSystemEmail = jest.fn().mockResolvedValue(undefined);
+
+      await authService.sendAccountSetupEmail(
+        'seller-1',
+        '<script>alert("xss")</script>',
+        'victim@example.com',
+      );
+
+      const html = systemMailer.sendSystemEmail.mock.calls[0][2] as string;
+      expect(html).not.toContain('<script>');
+      expect(html).toContain('&lt;script&gt;');
     });
 
     it('sets expiry to 24 hours from now', async () => {

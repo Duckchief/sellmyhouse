@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../../logger';
-import { AppError, ConflictError } from '../../../domains/shared/errors';
+import { AppError, ConflictError, NotFoundError } from '../../../domains/shared/errors';
 import { AIUnavailableError } from '../../../domains/shared/ai/ai.facade';
 
 function isBrowserRequest(req: Request): boolean {
@@ -24,7 +24,8 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
   }
 
   if (err instanceof AppError) {
-    logger.warn({ err, path: req.path }, `${err.name}: ${err.message}`);
+    const logDetail = err instanceof NotFoundError && err.detail ? err.detail : err.message;
+    logger.warn({ err, path: req.path }, `${err.name}: ${logDetail}`);
 
     // ConflictError messages can reveal sensitive information (e.g. whether a phone
     // number is registered). Send a generic client message while retaining the

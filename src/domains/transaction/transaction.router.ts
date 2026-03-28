@@ -15,6 +15,7 @@ import {
 import { requireAuth, requireRole, requireTwoFactor } from '@/infra/http/middleware/require-auth';
 import { getHasAvatar } from '../profile/profile.service';
 import { localStorage } from '@/infra/storage/local-storage';
+import { encryptedStorage } from '@/infra/storage/encrypted-storage';
 import * as auditService from '@/domains/shared/audit.service';
 import * as complianceService from '@/domains/compliance/compliance.service';
 import type { AuthenticatedUser } from '@/domains/auth/auth.types';
@@ -423,13 +424,23 @@ transactionRouter.get(
         req.params['id'] as string,
         getCallerAgentId(user),
       );
-      const invoicePath = (invoice as { commissionInvoice?: { invoiceFilePath?: string | null } })
-        .commissionInvoice?.invoiceFilePath;
+      const invoiceRecord = (
+        invoice as {
+          commissionInvoice?: {
+            id?: string;
+            invoiceFilePath?: string | null;
+            invoiceWrappedKey?: string | null;
+          };
+        }
+      ).commissionInvoice;
+      const invoicePath = invoiceRecord?.invoiceFilePath;
       if (!invoicePath) return res.status(404).json({ error: 'No invoice file found' });
 
-      // Files are served through this authenticated route — never directly via nginx
-      const buffer = await localStorage.read(invoicePath);
-      const invoiceRecord = (invoice as { commissionInvoice?: { id?: string } }).commissionInvoice;
+      // Files are served through this authenticated route — never directly via nginx.
+      // Use encrypted storage if wrappedKey is present; fall back for pre-encryption files.
+      const buffer = invoiceRecord?.invoiceWrappedKey
+        ? await encryptedStorage.read(invoicePath, invoiceRecord.invoiceWrappedKey)
+        : await localStorage.read(invoicePath);
       await auditService.log({
         agentId: user.id,
         action: 'invoice.file_downloaded',

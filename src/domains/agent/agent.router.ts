@@ -296,7 +296,7 @@ agentRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as AuthenticatedUser;
-      const requests = await agentRepo.getPendingCorrectionRequests();
+      const requests = await agentRepo.getPendingCorrectionRequests(getAgentFilter(user));
       const hasAvatar = await getHasAvatar(user.id);
       return res.render('pages/agent/correction-requests', {
         pageTitle: 'Data Corrections',

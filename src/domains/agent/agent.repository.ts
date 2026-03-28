@@ -428,9 +428,12 @@ export async function getNotificationHistory(
   return { items, total };
 }
 
-export async function getPendingCorrectionRequests() {
+export async function getPendingCorrectionRequests(agentId?: string) {
   return prisma.dataCorrectionRequest.findMany({
-    where: { status: { in: ['pending', 'in_progress'] } },
+    where: {
+      status: { in: ['pending', 'in_progress'] },
+      ...(agentId ? { seller: { agentId } } : {}),
+    },
     include: {
       seller: { select: { id: true, name: true, phone: true } },
     },

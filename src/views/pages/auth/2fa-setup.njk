@@ -36,7 +36,7 @@
           </div>
         </div>
 
-        <form hx-post="/auth/2fa/verify" hx-target="#verify-messages" hx-swap="innerHTML" class="space-y-4">
+        <form hx-post="/auth/2fa/setup/confirm" hx-target="#verify-messages" hx-swap="innerHTML" class="space-y-4">
           <div id="verify-messages"></div>
           <div>
             <label for="token" class="block text-sm font-medium text-gray-700">{{ "Enter code from your app to confirm:" | t }}</label>

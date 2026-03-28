@@ -16,7 +16,8 @@ const VALID_TIMELINES = ['one_to_three_months', 'three_to_six_months', 'just_thi
 const VALID_REASONS = ['upgrading', 'downsizing', 'relocating', 'financial', 'investment', 'other'];
 
 function signSellerId(sellerId: string): string {
-  const secret = process.env.SESSION_SECRET ?? 'dev-secret';
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error('SESSION_SECRET environment variable is required');
   return crypto.createHmac('sha256', secret).update(sellerId).digest('hex');
 }
 
@@ -57,7 +58,7 @@ verificationRouter.get('/verify-email', async (req: Request, res: Response, next
 });
 
 // DEV ONLY: GET /dev/lead-details/:sellerId — render details form for a verified seller
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV === 'development') {
   verificationRouter.get('/dev/lead-details/:sellerId', (req: Request, res: Response) => {
     const sellerId = req.params['sellerId'] as string;
     const signature = signSellerId(sellerId);

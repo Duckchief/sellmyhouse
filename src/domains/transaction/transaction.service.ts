@@ -9,6 +9,7 @@ import * as portalService from '@/domains/property/portal.service';
 import * as propertyService from '@/domains/property/property.service';
 import * as viewingService from '@/domains/viewing/viewing.service';
 import { localStorage } from '@/infra/storage/local-storage';
+import { encryptedStorage } from '@/infra/storage/encrypted-storage';
 import { scanBuffer } from '@/infra/security/virus-scanner';
 import {
   NotFoundError,
@@ -452,12 +453,12 @@ export async function uploadOtpScan(input: UploadOtpScanInput) {
 
   // Use UUID-based filename to prevent path traversal — never use originalFilename as stored name
   const storedFilename = `${input.scanType}-${createId()}${ext}`;
-  const storedPath = await localStorage.save(
+  const { path: storedPath, wrappedKey } = await encryptedStorage.save(
     `otp/${input.transactionId}/${storedFilename}`,
     input.fileBuffer,
   );
 
-  const updated = await txRepo.updateOtpScanPath(otp.id, input.scanType, storedPath);
+  const updated = await txRepo.updateOtpScanPath(otp.id, input.scanType, storedPath, wrappedKey);
 
   await auditService.log({
     agentId: input.agentId,
@@ -503,7 +504,7 @@ export async function uploadInvoice(input: UploadInvoiceInput) {
   }
 
   const storedFilename = `invoice-${createId()}.pdf`;
-  const storedPath = await localStorage.save(
+  const { path: storedPath, wrappedKey: invoiceWrappedKey } = await encryptedStorage.save(
     `invoices/${input.transactionId}/${storedFilename}`,
     input.fileBuffer,
   );
@@ -519,6 +520,7 @@ export async function uploadInvoice(input: UploadInvoiceInput) {
   const invoice = await txRepo.createCommissionInvoice({
     transactionId: input.transactionId,
     invoiceFilePath: storedPath,
+    invoiceWrappedKey,
     invoiceNumber: input.invoiceNumber,
     amount: commissionAmount,
     gstAmount,

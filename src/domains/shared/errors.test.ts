@@ -24,12 +24,14 @@ describe('NotFoundError', () => {
     const err = new NotFoundError('Property', 'abc123');
     expect(err.statusCode).toBe(404);
     expect(err.code).toBe('NOT_FOUND');
-    expect(err.message).toBe('Property not found: abc123');
+    expect(err.message).toBe('Property not found');
+    expect(err.detail).toBe('Property not found: abc123');
   });
 
   it('creates 404 without id', () => {
     const err = new NotFoundError('Property');
     expect(err.message).toBe('Property not found');
+    expect(err.detail).toBeUndefined();
   });
 });
 

@@ -25,6 +25,18 @@ const bookingRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// ─── Rate limiter for OTP verification ───────────────────
+// 10 attempts per 15 minutes per IP — prevents brute-force of 6-digit codes
+const otpVerifyRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many verification attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
 // ─── Seller Routes ───────────────────────────────────────
 
 viewingRouter.get(
@@ -157,6 +169,10 @@ viewingRouter.post(
 
       if (!Array.isArray(slotIds) || slotIds.length === 0) {
         return res.status(400).json({ error: 'slotIds array is required' });
+      }
+
+      if (!slotIds.every((id) => typeof id === 'string' && id.length > 0)) {
+        return res.status(400).json({ error: 'slotIds must be an array of non-empty strings' });
       }
 
       const result = await viewingService.bulkCancelSlots(slotIds, user.id);
@@ -379,6 +395,7 @@ viewingRouter.post(
 
 viewingRouter.post(
   '/view/:propertySlug/verify-otp',
+  otpVerifyRateLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = validateOtp(req.body);

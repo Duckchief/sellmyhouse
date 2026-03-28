@@ -13,13 +13,13 @@ function isSmtpConfigured(): boolean {
 
 export async function sendSystemEmail(to: string, subject: string, html: string): Promise<void> {
   if (!isSmtpConfigured()) {
-    logger.info({ to, subject, html }, '[EMAIL_STUB] Email not sent — SMTP not configured');
+    logger.info({ to, subject }, '[EMAIL_STUB] Email not sent — SMTP not configured');
     return;
   }
 
   const port = parseInt(process.env.SMTP_PORT!, 10);
   if (isNaN(port)) {
-    logger.info({ to, subject, html }, '[EMAIL_STUB] Email not sent — SMTP_PORT invalid');
+    logger.info({ to, subject }, '[EMAIL_STUB] Email not sent — SMTP_PORT invalid');
     return;
   }
 

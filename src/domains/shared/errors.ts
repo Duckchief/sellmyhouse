@@ -12,10 +12,14 @@ export class AppError extends Error {
 }
 
 export class NotFoundError extends AppError {
+  public readonly detail?: string; // Full message with entity ID — for server logs only, never sent to clients
+
   constructor(entity: string, id?: string) {
-    const message = id ? `${entity} not found: ${id}` : `${entity} not found`;
-    super(message, 404, 'NOT_FOUND');
+    super(`${entity} not found`, 404, 'NOT_FOUND');
     this.name = 'NotFoundError';
+    if (id) {
+      this.detail = `${entity} not found: ${id}`;
+    }
   }
 }
 

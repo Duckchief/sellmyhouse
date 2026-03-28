@@ -20,9 +20,7 @@ jest.mock('../../../infra/http/middleware/rate-limit', () => ({
   totpRateLimiter: (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
 
-function createTestApp() {
-  const app = express();
-
+function configureViews(app: express.Express) {
   const viewsPath = path.resolve('src/views');
   const env = nunjucks.configure(viewsPath, {
     autoescape: true,
@@ -31,6 +29,11 @@ function createTestApp() {
   env.addFilter('t', (str: string) => str);
   env.addFilter('date', (str: string) => (str === 'now' ? '2026' : str));
   app.set('view engine', 'njk');
+}
+
+function createTestApp() {
+  const app = express();
+  configureViews(app);
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -41,6 +44,38 @@ function createTestApp() {
       saveUninitialized: false,
     }),
   );
+  configurePassport();
+  app.use(passport.initialize());
+  app.use(passport.session());
+  app.use(authRouter);
+  app.use(errorHandler);
+
+  return app;
+}
+
+/** Creates a test app that spies on req.session.regenerate — placed between session and passport middleware. */
+function createTestAppWithSessionSpy(onRegenerate: () => void) {
+  const app = express();
+  configureViews(app);
+
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  app.use(
+    session({
+      secret: 'test-session-secret',
+      resave: false,
+      saveUninitialized: false,
+    }),
+  );
+  // Spy middleware — AFTER session (so req.session exists) but BEFORE router
+  app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    const original = req.session.regenerate.bind(req.session);
+    req.session.regenerate = (callback: (err?: Error) => void) => {
+      onRegenerate();
+      return original(callback);
+    };
+    next();
+  });
   configurePassport();
   app.use(passport.initialize());
   app.use(passport.session());
@@ -226,6 +261,70 @@ describe('AuthRouter', () => {
 
       expect(res.status).toBe(302);
       expect(res.headers.location).toBe('/auth/2fa/verify');
+    });
+  });
+
+  // ─── Session Fixation Prevention ───────────────────────
+
+  describe('session regeneration on login', () => {
+    it('regenerates session ID after successful seller login', async () => {
+      let regenerateCalled = false;
+      const spyApp = createTestAppWithSessionSpy(() => {
+        regenerateCalled = true;
+      });
+
+      authService.loginSeller = jest.fn().mockResolvedValue({
+        id: 's1',
+        email: 'test@example.com',
+        name: 'Test',
+        twoFactorEnabled: false,
+      });
+
+      await request(spyApp)
+        .post('/auth/login/seller')
+        .type('form')
+        .send({ email: 'test@example.com', password: 'password' });
+
+      expect(regenerateCalled).toBe(true);
+    });
+
+    it('regenerates session ID after successful agent login', async () => {
+      let regenerateCalled = false;
+      const spyApp = createTestAppWithSessionSpy(() => {
+        regenerateCalled = true;
+      });
+
+      authService.loginAgent = jest.fn().mockResolvedValue({
+        id: 'a1',
+        email: 'agent@test.com',
+        name: 'Agent',
+        twoFactorEnabled: false,
+        isActive: true,
+        role: 'agent',
+      });
+
+      await request(spyApp)
+        .post('/auth/login/agent')
+        .type('form')
+        .send({ email: 'agent@test.com', password: 'pass123' });
+
+      expect(regenerateCalled).toBe(true);
+    });
+
+    it('does not regenerate session when login fails', async () => {
+      let regenerateCalled = false;
+      const spyApp = createTestAppWithSessionSpy(() => {
+        regenerateCalled = true;
+      });
+
+      authService.loginSeller = jest.fn().mockResolvedValue(null);
+
+      await request(spyApp)
+        .post('/auth/login/seller')
+        .type('form')
+        .send({ email: 'bad@example.com', password: 'wrong' });
+
+      expect(regenerateCalled).toBe(false);
     });
   });
 });

@@ -30,10 +30,17 @@ jest.mock('file-type', () => ({
 }));
 jest.mock('@/infra/storage/local-storage', () => ({
   localStorage: {
-    save: jest.fn().mockResolvedValue('invoices/tx-1/invoice-abc.pdf'),
+    save: jest.fn().mockResolvedValue('uploads/legacy.pdf'),
     read: jest.fn().mockResolvedValue(Buffer.from('')),
     delete: jest.fn().mockResolvedValue(undefined),
     exists: jest.fn().mockResolvedValue(true),
+  },
+}));
+jest.mock('@/infra/storage/encrypted-storage', () => ({
+  encryptedStorage: {
+    save: jest.fn().mockResolvedValue({ path: 'otp/tx-1/seller-abc.jpg', wrappedKey: 'wrapped-key-abc' }),
+    read: jest.fn().mockResolvedValue(Buffer.from('decrypted')),
+    delete: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -45,6 +52,8 @@ const mockPortalService = jest.mocked(portalService);
 const mockPropertyService = jest.mocked(propertyService);
 const mockViewingService = jest.mocked(viewingService);
 const mockOfferService = jest.mocked(offerService);
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const mockEncryptedStorage = jest.requireMock('@/infra/storage/encrypted-storage').encryptedStorage;
 const mockComplianceService = jest.mocked(complianceService);
 const mockReviewService = jest.mocked(reviewService);
 
@@ -772,7 +781,97 @@ describe('transaction.service', () => {
     });
   });
 
+  describe('uploadOtpScan', () => {
+    const baseOtpInput = {
+      transactionId: 'tx-1',
+      scanType: 'seller' as const,
+      fileBuffer: Buffer.from('fake-image'),
+      originalFilename: 'otp-scan.jpg',
+      agentId: 'agent-1',
+    };
+
+    beforeEach(() => {
+      jest.requireMock('file-type').fileTypeFromBuffer.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
+      mockEncryptedStorage.save.mockResolvedValue({ path: 'otp/tx-1/seller-abc.jpg', wrappedKey: 'wrapped-key-abc' });
+    });
+
+    afterEach(() => {
+      jest.requireMock('file-type').fileTypeFromBuffer.mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
+    });
+
+    it('saves OTP scan via encryptedStorage (not localStorage)', async () => {
+      const otp = makeOtp({ status: 'issued' });
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
+      mockTxRepo.updateOtpScanPath.mockResolvedValue(otp as never);
+
+      await txService.uploadOtpScan(baseOtpInput);
+
+      expect(mockEncryptedStorage.save).toHaveBeenCalledWith(
+        expect.stringContaining('otp/tx-1/'),
+        baseOtpInput.fileBuffer,
+      );
+    });
+
+    it('passes wrappedKey to updateOtpScanPath', async () => {
+      const otp = makeOtp({ status: 'issued' });
+      mockTxRepo.findOtpByTransactionId.mockResolvedValue(otp as never);
+      mockTxRepo.updateOtpScanPath.mockResolvedValue(otp as never);
+
+      await txService.uploadOtpScan(baseOtpInput);
+
+      expect(mockTxRepo.updateOtpScanPath).toHaveBeenCalledWith(
+        'otp-1',
+        'seller',
+        'otp/tx-1/seller-abc.jpg',
+        'wrapped-key-abc',
+      );
+    });
+  });
+
   describe('uploadInvoice', () => {
+    it('saves invoice via encryptedStorage (not localStorage)', async () => {
+      const tx = makeTransaction();
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue(null);
+      mockSettings.getCommission.mockResolvedValue({ amount: 1499, gstRate: 0.09, gstAmount: 134.91, total: 1633.91 } as never);
+      mockEncryptedStorage.save.mockResolvedValue({ path: 'invoices/tx-1/invoice-abc.pdf', wrappedKey: 'wrapped-inv-key' });
+      mockTxRepo.createCommissionInvoice.mockResolvedValue({ id: 'inv-1' } as never);
+
+      await txService.uploadInvoice({
+        transactionId: 'tx-1',
+        fileBuffer: Buffer.from('fake-pdf'),
+        originalFilename: 'invoice.pdf',
+        invoiceNumber: 'INV-001',
+        agentId: 'agent-1',
+      });
+
+      expect(mockEncryptedStorage.save).toHaveBeenCalledWith(
+        expect.stringContaining('invoices/tx-1/'),
+        expect.any(Buffer),
+      );
+    });
+
+    it('passes invoiceWrappedKey to createCommissionInvoice', async () => {
+      const tx = makeTransaction();
+      mockTxRepo.findById.mockResolvedValue(tx as never);
+      mockTxRepo.findInvoiceByTransactionId.mockResolvedValue(null);
+      mockSettings.getCommission.mockResolvedValue({ amount: 1499, gstRate: 0.09, gstAmount: 134.91, total: 1633.91 } as never);
+      mockEncryptedStorage.save.mockResolvedValue({ path: 'invoices/tx-1/invoice-abc.pdf', wrappedKey: 'wrapped-inv-key' });
+      mockTxRepo.createCommissionInvoice.mockResolvedValue({ id: 'inv-1' } as never);
+
+      await txService.uploadInvoice({
+        transactionId: 'tx-1',
+        fileBuffer: Buffer.from('fake-pdf'),
+        originalFilename: 'invoice.pdf',
+        invoiceNumber: 'INV-001',
+        agentId: 'agent-1',
+      });
+
+      expect(mockTxRepo.createCommissionInvoice).toHaveBeenCalledWith(
+        expect.objectContaining({ invoiceWrappedKey: 'wrapped-inv-key' }),
+      );
+    });
+
     it('reads commission amounts from SystemSetting via getCommission(), not schema defaults', async () => {
       const tx = makeTransaction();
       mockTxRepo.findById.mockResolvedValue(tx as never);
@@ -783,6 +882,7 @@ describe('transaction.service', () => {
         gstAmount: 134.91,
         total: 1633.91,
       } as never);
+      mockEncryptedStorage.save.mockResolvedValue({ path: 'invoices/tx-1/invoice-abc.pdf', wrappedKey: 'wrapped-inv-key' });
       mockTxRepo.createCommissionInvoice.mockResolvedValue({
         id: 'inv-1',
         amount: '1499',

@@ -180,15 +180,23 @@ export async function updateOtpReview(
   });
 }
 
-export async function updateOtpScanPath(id: string, scanType: 'seller' | 'returned', path: string) {
-  const field = scanType === 'seller' ? 'scannedCopyPathSeller' : 'scannedCopyPathReturned';
-  return prisma.otp.update({ where: { id }, data: { [field]: path } });
+export async function updateOtpScanPath(
+  id: string,
+  scanType: 'seller' | 'returned',
+  path: string,
+  wrappedKey: string,
+) {
+  const pathField = scanType === 'seller' ? 'scannedCopyPathSeller' : 'scannedCopyPathReturned';
+  const keyField =
+    scanType === 'seller' ? 'scannedCopyWrappedKeySeller' : 'scannedCopyWrappedKeyReturned';
+  return prisma.otp.update({ where: { id }, data: { [pathField]: path, [keyField]: wrappedKey } });
 }
 
 export async function createCommissionInvoice(data: {
   id?: string;
   transactionId: string;
   invoiceFilePath: string;
+  invoiceWrappedKey: string;
   invoiceNumber: string;
   amount: number;
   gstAmount: number;
@@ -199,6 +207,7 @@ export async function createCommissionInvoice(data: {
       id: data.id ?? createId(),
       transactionId: data.transactionId,
       invoiceFilePath: data.invoiceFilePath,
+      invoiceWrappedKey: data.invoiceWrappedKey,
       invoiceNumber: data.invoiceNumber,
       amount: data.amount,
       gstAmount: data.gstAmount,

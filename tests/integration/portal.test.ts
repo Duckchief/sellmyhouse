@@ -83,6 +83,8 @@ describe('portal integration', () => {
     const updated = await portalService.markAsPosted(
       pl!.id,
       'https://www.propertyguru.com.sg/listing/12345',
+      agentId,
+      'agent',
     );
 
     expect(updated.status).toBe('posted');

@@ -60,7 +60,7 @@ describe('Public routes', () => {
       const res = await request(app).get(
         '/api/hdb/report?town=NONEXISTENT&flatType=4+ROOM&months=24',
       );
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(400);
     });
 
     it('requires town and flatType parameters', async () => {

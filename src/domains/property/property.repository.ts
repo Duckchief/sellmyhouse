@@ -190,6 +190,7 @@ export const propertyRepository = {
     listingId: string,
     data: {
       aiDescription: string;
+      description: string;
       aiDescriptionStatus: AiDescriptionStatus;
       aiDescriptionProvider: string;
       aiDescriptionModel: string;
